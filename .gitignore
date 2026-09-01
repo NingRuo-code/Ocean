@@ -1,0 +1,38 @@
+# Dependencies and build output
+node_modules/
+.pnpm-store/
+frontend/dist/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.pytest_tmp/
+.tmp/
+
+# Local data and generated artifacts
+data/raw/*
+data/processed/*
+data/cache/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/cache/.gitkeep
+
+# Reference papers / private project handouts are kept locally
+paper/*.pdf
+*.docx
+
+# Local configuration
+.env
+.env.local
+
+# Office and review temporary files
+~$*
+.docx_review/
+.questions_render/
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
