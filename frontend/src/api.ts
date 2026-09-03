@@ -39,6 +39,16 @@ export type Analysis = {
     gradient_c_per_km: number | null;
     max_gradient_c_per_km: number | null;
   };
+  intensity: {
+    available: string;
+    count: number;
+    min: number | null;
+    max: number | null;
+    mean: number | null;
+    p95: number | null;
+    active_pixel_count: number;
+    active_pixel_percent: number | null;
+  };
   front: { line_pixels: number; cold_side_pixels: number; warm_side_pixels: number; status: string };
   quality: {
     sst_valid_percent: number;
@@ -63,6 +73,9 @@ export type FrontObject = {
   codes: number[];
   mean_sst_celsius: number | null;
   temperature_range_celsius: number | null;
+  mean_intensity: number | null;
+  max_intensity: number | null;
+  intensity_pixel_count: number;
   nearest_to_query_km: number | null;
 };
 export type FrontObjectData = {
@@ -87,8 +100,12 @@ export type FrontTrackStep = {
   mean_sst_celsius: number | null;
   nearest_to_query_km: number | null;
   distance_from_previous_km: number | null;
+  speed_km_per_day: number | null;
+  bearing_deg: number | null;
   matched_by: string;
   match_score: number | null;
+  continuity_score: number | null;
+  confidence_label: string;
   shape_similarity: number | null;
   bbox_overlap_ratio: number | null;
   candidates_considered: number;
@@ -103,10 +120,18 @@ export type FrontTrackingData = {
   days: number;
   match_distance_km: number;
   algorithm: string;
+  algorithm_version: string;
   algorithm_notes: string[];
   available_step_count: number;
   tracked_step_count: number;
   cumulative_displacement_km: number | null;
+  mean_daily_displacement_km: number | null;
+  max_daily_displacement_km: number | null;
+  gap_count: number;
+  reset_count: number;
+  mean_match_score: number | null;
+  confidence_score: number | null;
+  confidence_label: string;
   status: string;
   steps: FrontTrackStep[];
   layers: Record<string, { type: string; features: GeoJsonFeature[] }>;
@@ -129,6 +154,13 @@ export type DataPreparationGroup = {
   canonical_path: string | null;
   note: string;
 };
+export type DataPreparationPriority = {
+  name: string;
+  level: string;
+  status: string;
+  reason: string;
+  command_preview: string | null;
+};
 export type DataPreparationPlan = {
   generated_at: string;
   raw_data_dir: string;
@@ -138,6 +170,7 @@ export type DataPreparationPlan = {
   target_dates: string[];
   front_file_count: number;
   sst_file_count: number;
+  front_intensity_file_count: number;
   paired_date_count: number;
   paired_dates: string[];
   missing_front_dates: string[];
@@ -150,8 +183,30 @@ export type DataPreparationPlan = {
   historical_window_days: number;
   historical_target_date_count: number;
   historical_paired_date_count: number;
+  historical_coverage_ratio: number | null;
+  historical_covered_years: number[];
+  historical_missing_years: number[];
   historical_missing_front_dates: string[];
   historical_missing_sst_dates: string[];
+  historical_missing_intensity_dates: string[];
+  next_historical_batches: {
+    label: string;
+    date_start: string | null;
+    date_end: string | null;
+    date_count: number;
+    missing_front_count: number;
+    missing_sst_count: number;
+    missing_intensity_count: number;
+    priority: string;
+    command_preview: string;
+  }[];
+  readiness_score: number;
+  readiness_level: string;
+  next_action: string;
+  required_front_sst_file_count: number;
+  optional_intensity_file_count: number;
+  priority_actions: DataPreparationPriority[];
+  acceptance_commands: string[];
   duplicate_front_groups: DataPreparationGroup[];
   duplicate_sst_groups: DataPreparationGroup[];
   recommended_steps: string[];
@@ -290,7 +345,14 @@ export type HistorySummary = {
   same_period_sample_count: number;
   same_period_front_hit_count: number;
   same_period_probability: number | null;
+  probability_rule: string;
+  probability_rule_label: string;
+  probability_threshold: number | null;
+  probability_rule_note: string;
   same_period_coverage_ratio: number | null;
+  same_period_covered_years: number[];
+  same_period_missing_years: number[];
+  next_missing_same_period_dates: string[];
   monthly_expected_sample_count: number;
   monthly_sample_count: number;
   monthly_front_hit_count: number;
@@ -319,6 +381,8 @@ export type HistoryTimelinePoint = {
   front_line_pixels: number;
   cold_side_pixels: number;
   warm_side_pixels: number;
+  front_line_density_per_1000_pixels: number;
+  nearest_front_distance_km: number | null;
   front_present: boolean;
   sst_mean_celsius: number | null;
   sst_min_celsius: number | null;
@@ -451,8 +515,102 @@ export type DataManifest = {
   datasets: DataManifestDataset[];
 };
 
-function historyParams(longitude: number, latitude: number, radius: number): URLSearchParams {
-  return new URLSearchParams({ longitude: String(longitude), latitude: String(latitude), radius_deg: String(radius) });
+export type ProbabilityRuleOption = {
+  id: string;
+  label: string;
+  description: string;
+  default_threshold: number | null;
+  threshold_unit: string | null;
+};
+export type ProbabilityRuleOptions = {
+  default_rule: string;
+  options: ProbabilityRuleOption[];
+};
+export type ProbabilityRuleConfig = {
+  probability_rule: string;
+  min_line_density_per_1000: number;
+  max_front_distance_km: number;
+};
+
+export type PredictionDriver = {
+  name: string;
+  value: string;
+  weight: number;
+  note: string;
+};
+export type FrontPredictionPoint = {
+  target_date: string;
+  horizon_day: number;
+  probability: number | null;
+  predicted_status: string;
+  confidence_label: string;
+  same_period_sample_count: number;
+  same_period_probability: number | null;
+  monthly_probability: number | null;
+  recent_signal: number | null;
+  gradient_adjustment: number;
+  observed_front_present: boolean | null;
+  observed_front_line_pixels: number | null;
+  drivers: PredictionDriver[];
+  explanation: string;
+};
+export type FrontPredictionData = {
+  date: string;
+  longitude: number;
+  latitude: number;
+  radius_deg: number;
+  horizon_days: number;
+  algorithm: string;
+  algorithm_version: string;
+  generated_at: string;
+  training_sample_count: number;
+  sample_reliability_label: string;
+  forecast_count: number;
+  predictions: FrontPredictionPoint[];
+  explanation: string[];
+  source_files: string[];
+};
+export type FrontPredictionEvaluationPoint = {
+  anchor_date: string;
+  target_date: string;
+  horizon_day: number;
+  probability: number;
+  predicted_present: boolean;
+  observed_front_present: boolean;
+  observed_front_line_pixels: number;
+  error: number;
+  squared_error: number;
+  confidence_label: string;
+};
+export type FrontPredictionEvaluationData = {
+  date: string;
+  longitude: number;
+  latitude: number;
+  radius_deg: number;
+  horizon_days: number;
+  generated_at: string;
+  algorithm: string;
+  evaluation_mode: string;
+  evaluated_count: number;
+  candidate_anchor_count: number;
+  accuracy: number | null;
+  brier_score: number | null;
+  mean_absolute_error: number | null;
+  positive_count: number;
+  negative_count: number;
+  notes: string[];
+  points: FrontPredictionEvaluationPoint[];
+  source_files: string[];
+};
+
+function historyParams(longitude: number, latitude: number, radius: number, probabilityConfig?: ProbabilityRuleConfig): URLSearchParams {
+  const params = new URLSearchParams({ longitude: String(longitude), latitude: String(latitude), radius_deg: String(radius) });
+  if (probabilityConfig) {
+    params.set("probability_rule", probabilityConfig.probability_rule);
+    params.set("min_line_density_per_1000", String(probabilityConfig.min_line_density_per_1000));
+    params.set("max_front_distance_km", String(probabilityConfig.max_front_distance_km));
+  }
+  return params;
 }
 
 export async function getCatalog(signal?: AbortSignal): Promise<Catalog> {
@@ -501,6 +659,12 @@ export async function getDataIndexDate(date: string, signal?: AbortSignal): Prom
   const response = await fetch(`/api/data/index/${date}`, { signal });
   if (!response.ok) throw new Error(`日期索引查询接口返回 ${response.status}`);
   return response.json() as Promise<DataIndexDate>;
+}
+
+export async function getProbabilityRuleOptions(signal?: AbortSignal): Promise<ProbabilityRuleOptions> {
+  const response = await fetch("/api/history/probability-rules", { signal });
+  if (!response.ok) throw new Error(`概率口径接口返回 ${response.status}`);
+  return response.json() as Promise<ProbabilityRuleOptions>;
 }
 
 export async function getAnalysis(date: string, longitude: number, latitude: number, radius: number, signal?: AbortSignal): Promise<Analysis> {
@@ -560,8 +724,56 @@ export async function getFrontTracking(
   return response.json() as Promise<FrontTrackingData>;
 }
 
-export async function getReport(date: string, longitude: number, latitude: number, radius: number, days = 3, signal?: AbortSignal): Promise<ReportData> {
-  const params = historyParams(longitude, latitude, radius);
+export async function getFrontPrediction(
+  date: string,
+  longitude: number,
+  latitude: number,
+  radius: number,
+  horizonDays = 7,
+  probabilityConfig?: ProbabilityRuleConfig,
+  signal?: AbortSignal,
+): Promise<FrontPredictionData> {
+  const params = historyParams(longitude, latitude, radius, probabilityConfig);
+  params.set("horizon_days", String(horizonDays));
+  const response = await fetch(`/api/prediction/${date}?${params}`, { signal });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null) as { detail?: string } | null;
+    throw new Error(detail?.detail ?? `锋面预测接口返回 ${response.status}`);
+  }
+  return response.json() as Promise<FrontPredictionData>;
+}
+
+export async function getFrontPredictionEvaluation(
+  date: string,
+  longitude: number,
+  latitude: number,
+  radius: number,
+  horizonDays = 7,
+  maxAnchorDates = 30,
+  probabilityConfig?: ProbabilityRuleConfig,
+  signal?: AbortSignal,
+): Promise<FrontPredictionEvaluationData> {
+  const params = historyParams(longitude, latitude, radius, probabilityConfig);
+  params.set("horizon_days", String(horizonDays));
+  params.set("max_anchor_dates", String(maxAnchorDates));
+  const response = await fetch(`/api/prediction/${date}/evaluation?${params}`, { signal });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null) as { detail?: string } | null;
+    throw new Error(detail?.detail ?? `锋面预测评估接口返回 ${response.status}`);
+  }
+  return response.json() as Promise<FrontPredictionEvaluationData>;
+}
+
+export async function getReport(
+  date: string,
+  longitude: number,
+  latitude: number,
+  radius: number,
+  days = 3,
+  probabilityConfig?: ProbabilityRuleConfig,
+  signal?: AbortSignal,
+): Promise<ReportData> {
+  const params = historyParams(longitude, latitude, radius, probabilityConfig);
   params.set("days", String(days));
   const response = await fetch(`/api/report/${date}?${params}`, { signal });
   if (!response.ok) {
@@ -626,8 +838,15 @@ export async function getHistoryIndex(
   return response.json() as Promise<HistoryIndexData>;
 }
 
-export async function getHistory(date: string, longitude: number, latitude: number, radius: number, signal?: AbortSignal): Promise<HistoryData> {
-  const params = historyParams(longitude, latitude, radius);
+export async function getHistory(
+  date: string,
+  longitude: number,
+  latitude: number,
+  radius: number,
+  probabilityConfig?: ProbabilityRuleConfig,
+  signal?: AbortSignal,
+): Promise<HistoryData> {
+  const params = historyParams(longitude, latitude, radius, probabilityConfig);
   const response = await fetch(`/api/history/${date}?${params}`, { signal });
   if (!response.ok) {
     const detail = await response.json().catch(() => null) as { detail?: string } | null;
@@ -636,22 +855,43 @@ export async function getHistory(date: string, longitude: number, latitude: numb
   return response.json() as Promise<HistoryData>;
 }
 
-export async function getHistoryProbability(date: string, longitude: number, latitude: number, radius: number, signal?: AbortSignal): Promise<HistoryProbabilityData> {
-  const params = historyParams(longitude, latitude, radius);
+export async function getHistoryProbability(
+  date: string,
+  longitude: number,
+  latitude: number,
+  radius: number,
+  probabilityConfig?: ProbabilityRuleConfig,
+  signal?: AbortSignal,
+): Promise<HistoryProbabilityData> {
+  const params = historyParams(longitude, latitude, radius, probabilityConfig);
   const response = await fetch(`/api/history/${date}/probability?${params}`, { signal });
   if (!response.ok) throw new Error(`历史概率返回 ${response.status}`);
   return response.json() as Promise<HistoryProbabilityData>;
 }
 
-export async function getHistoryMonthly(date: string, longitude: number, latitude: number, radius: number, signal?: AbortSignal): Promise<HistoryMonthlyData> {
-  const params = historyParams(longitude, latitude, radius);
+export async function getHistoryMonthly(
+  date: string,
+  longitude: number,
+  latitude: number,
+  radius: number,
+  probabilityConfig?: ProbabilityRuleConfig,
+  signal?: AbortSignal,
+): Promise<HistoryMonthlyData> {
+  const params = historyParams(longitude, latitude, radius, probabilityConfig);
   const response = await fetch(`/api/history/${date}/monthly?${params}`, { signal });
   if (!response.ok) throw new Error(`月度统计返回 ${response.status}`);
   return response.json() as Promise<HistoryMonthlyData>;
 }
 
-export async function getHistoryLocalRecords(date: string, longitude: number, latitude: number, radius: number, signal?: AbortSignal): Promise<HistoryLocalData> {
-  const params = historyParams(longitude, latitude, radius);
+export async function getHistoryLocalRecords(
+  date: string,
+  longitude: number,
+  latitude: number,
+  radius: number,
+  probabilityConfig?: ProbabilityRuleConfig,
+  signal?: AbortSignal,
+): Promise<HistoryLocalData> {
+  const params = historyParams(longitude, latitude, radius, probabilityConfig);
   const response = await fetch(`/api/history/${date}/local-records?${params}`, { signal });
   if (!response.ok) throw new Error(`局地历史记录返回 ${response.status}`);
   return response.json() as Promise<HistoryLocalData>;

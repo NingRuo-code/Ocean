@@ -17,6 +17,7 @@ data/cache/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/cache/.gitkeep
+output/
 
 # Reference papers / private project handouts are kept locally
 paper/*.pdf

@@ -1,7 +1,7 @@
-import { Activity, BarChart3, Bot, CalendarDays, Database, Download, Eye, Layers3, MapPin, RotateCcw, Search, Sparkles, ThermometerSun, Waves, X } from "lucide-react";
+import { Activity, BarChart3, Bot, CalendarDays, Database, Download, Eye, Layers3, MapPin, RotateCcw, Search, Sparkles, ThermometerSun, TrendingUp, Waves, X } from "lucide-react";
 import * as maplibregl from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
-import { getAiCapabilities, getAiHealth, getAnalysis, getCatalog, getDataIndex, getDataIndexDate, getDataManifest, getDataPreparationPlan, getFrontObjects, getFrontTracking, getHistory, getHistoryIndex, getPointQuery, getReport, runAiAnalysis, type AiAnalysisData, type AiCapabilities, type AiHealth, type Analysis, type Catalog, type DataIndex, type DataIndexDate, type DataManifest, type DataPreparationPlan, type FrontObjectData, type FrontTrackingData, type HistoryData, type HistoryIndexData, type PointQuery, type ReportData } from "./api";
+import { getAiCapabilities, getAiHealth, getAnalysis, getCatalog, getDataIndex, getDataIndexDate, getDataManifest, getDataPreparationPlan, getFrontObjects, getFrontPrediction, getFrontPredictionEvaluation, getFrontTracking, getHistory, getHistoryIndex, getPointQuery, getProbabilityRuleOptions, getReport, runAiAnalysis, type AiAnalysisData, type AiCapabilities, type AiHealth, type Analysis, type Catalog, type DataIndex, type DataIndexDate, type DataManifest, type DataPreparationPlan, type FrontObjectData, type FrontPredictionData, type FrontPredictionEvaluationData, type FrontTrackingData, type HistoryData, type HistoryIndexData, type PointQuery, type ProbabilityRuleOptions, type ReportData } from "./api";
 
 const EMPTY_STYLE: maplibregl.StyleSpecification = {
   version: 8,
@@ -24,12 +24,43 @@ const RADIUS_OPTIONS = [
 ];
 const PRESET_RADIUS_VALUES = RADIUS_OPTIONS.map((item) => item.value);
 const DEFAULT_SELECTED_DATE = "2024-08-05";
-const DATA_LAYER_IDS = ["sst-raster", "sst-field", "cold-zone", "warm-zone", "front-band", "front-line-glow", "front-line"] as const;
-const DATA_SOURCE_IDS = ["source-sst-raster", "source-sst", "source-cold-side", "source-warm-side", "source-front-band", "source-front-line"] as const;
-const OBJECT_LAYER_IDS = ["front-object-bboxes", "front-object-centroids", "front-track-lines", "front-track-points"] as const;
-const OBJECT_SOURCE_IDS = ["source-front-object-bboxes", "source-front-object-centroids", "source-front-track-lines", "source-front-track-points"] as const;
+const DATA_LAYER_IDS = ["sst-raster", "sst-field", "cold-zone", "warm-zone", "front-intensity", "front-band", "front-line-glow", "front-line"] as const;
+const DATA_SOURCE_IDS = ["source-sst-raster", "source-sst", "source-cold-side", "source-warm-side", "source-front-intensity", "source-front-band", "source-front-line"] as const;
+const OBJECT_LAYER_IDS = ["front-object-bboxes", "front-object-centroids", "front-track-lines", "front-track-points", "front-track-arrows"] as const;
+const OBJECT_SOURCE_IDS = ["source-front-object-bboxes", "source-front-object-centroids", "source-front-track-lines", "source-front-track-points", "source-front-track-arrows"] as const;
+const SELECTION_LAYER_IDS = ["selected-front-object-bbox", "selected-front-object-centroid", "selected-track-point"] as const;
+const SELECTION_SOURCE_IDS = ["source-selected-front-object-bbox", "source-selected-front-object-centroid", "source-selected-track-point"] as const;
 const QUERY_LAYER_IDS = ["query-bounds-fill", "query-bounds-line", "query-point-halo", "query-point"] as const;
 const QUERY_SOURCE_IDS = ["query-bounds", "query-point"] as const;
+
+type SidePanelKey = "current" | "history" | "objects" | "prediction" | "data" | "ai";
+
+const SIDE_PANELS: { key: SidePanelKey; label: string; hint: string }[] = [
+  { key: "current", label: "当前", hint: "单日窗口" },
+  { key: "history", label: "历史", hint: "概率统计" },
+  { key: "objects", label: "追踪", hint: "对象/轨迹" },
+  { key: "prediction", label: "预测", hint: "baseline" },
+  { key: "data", label: "数据", hint: "资产状态" },
+  { key: "ai", label: "AI", hint: "任务编排" },
+];
+
+const DEMO_PRESET = {
+  date: "2024-08-05",
+  longitude: "124.5",
+  latitude: "30.2",
+  radius: "1",
+  probabilityRule: "line_presence",
+  minLineDensity: "1",
+  maxFrontDistance: "50",
+};
+
+const DEMO_TOUR: { panel: SidePanelKey; title: string; body: string }[] = [
+  { panel: "current", title: "当前海温与锋面识别", body: "先看单日 SST 图像、冷暖侧分区、锋面中心线和局地读数。" },
+  { panel: "objects", title: "锋面对象与三日追踪", body: "再看锋面对象的范围框、质心、位移方向和连续性评分。" },
+  { panel: "history", title: "历史同期概率", body: "对比多年同期与月度样本，说明概率来源和样本覆盖情况。" },
+  { panel: "prediction", title: "透明 baseline 预测", body: "展示未来 7 日概率、首日驱动因子和简单回测指标。" },
+  { panel: "data", title: "离线数据状态", body: "最后检查本地数据配对、缺失日期、索引和下一步补数命令。" },
+];
 
 function normalizeRadiusValue(value: number): string {
   const preset = RADIUS_OPTIONS.find((item) => Math.abs(Number(item.value) - value) < 0.0001);
@@ -49,6 +80,12 @@ type SimpleGeoJsonFeature = {
   geometry: { type: "LineString"; coordinates: number[][] };
 };
 
+type TrackingArrowFeature = {
+  type: "Feature";
+  properties: Record<string, string | number>;
+  geometry: { type: "Point"; coordinates: [number, number] };
+};
+
 function buildGraticule(): { type: "FeatureCollection"; features: SimpleGeoJsonFeature[] } {
   const features: SimpleGeoJsonFeature[] = [];
   for (let lon = -180; lon <= 180; lon += 30) {
@@ -66,6 +103,60 @@ function buildGraticule(): { type: "FeatureCollection"; features: SimpleGeoJsonF
     });
   }
   return { type: "FeatureCollection", features };
+}
+
+function buildTrackingArrows(frontTracking: FrontTrackingData | null): { type: "FeatureCollection"; features: TrackingArrowFeature[] } {
+  const features: TrackingArrowFeature[] = [];
+  if (!frontTracking) return { type: "FeatureCollection", features };
+  for (const step of frontTracking.steps) {
+    if (step.centroid_longitude == null || step.centroid_latitude == null || step.bearing_deg == null) continue;
+    if (step.distance_from_previous_km == null || step.distance_from_previous_km <= 0) continue;
+    features.push({
+      type: "Feature",
+      properties: {
+        date: step.date,
+        front_id: step.front_id ?? "--",
+        bearing_deg: step.bearing_deg,
+        speed_km_per_day: step.speed_km_per_day ?? 0,
+      },
+      geometry: { type: "Point", coordinates: [step.centroid_longitude, step.centroid_latitude] },
+    });
+  }
+  return { type: "FeatureCollection", features };
+}
+
+function filterFeatureCollectionByFrontId(collection: { features?: unknown[] } | undefined, frontId: string | null): { type: "FeatureCollection"; features: unknown[] } {
+  if (!frontId) return { type: "FeatureCollection", features: [] };
+  return {
+    type: "FeatureCollection",
+    features: (collection?.features ?? []).filter((feature) => {
+      const properties = (feature as { properties?: Record<string, unknown> }).properties;
+      return String(properties?.front_id ?? "") === frontId;
+    }),
+  };
+}
+
+function buildSelectedTrackPoint(frontTracking: FrontTrackingData | null, selectedTrackDate: string | null): { type: "FeatureCollection"; features: TrackingArrowFeature[] } {
+  if (!frontTracking || !selectedTrackDate) return { type: "FeatureCollection", features: [] };
+  const step = frontTracking.steps.find((item) => item.date === selectedTrackDate);
+  if (!step || step.centroid_longitude == null || step.centroid_latitude == null) {
+    return { type: "FeatureCollection", features: [] };
+  }
+  return {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        properties: {
+          date: step.date,
+          front_id: step.front_id ?? "--",
+          bearing_deg: step.bearing_deg ?? 0,
+          speed_km_per_day: step.speed_km_per_day ?? 0,
+        },
+        geometry: { type: "Point", coordinates: [step.centroid_longitude, step.centroid_latitude] },
+      },
+    ],
+  };
 }
 
 function rasterCoordinates(bounds: number[]): [[number, number], [number, number], [number, number], [number, number]] {
@@ -111,6 +202,14 @@ function formatBytes(bytes: number | null | undefined): string {
   return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
 
+function formatDistance(value: number | null | undefined): string {
+  return value == null ? "--" : `${value.toFixed(2)} km`;
+}
+
+function formatScalar(value: number | null | undefined, digits = 3): string {
+  return value == null ? "--" : value.toFixed(digits);
+}
+
 function formatDuration(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return "--";
   return value < 1000 ? `${value.toFixed(1)} ms` : `${(value / 1000).toFixed(2)} s`;
@@ -151,16 +250,24 @@ function App() {
   const [longitude, setLongitude] = useState("124.5");
   const [latitude, setLatitude] = useState("30.2");
   const [radius, setRadius] = useState("1");
+  const [probabilityRuleOptions, setProbabilityRuleOptions] = useState<ProbabilityRuleOptions | null>(null);
+  const [probabilityRule, setProbabilityRule] = useState("line_presence");
+  const [minLineDensity, setMinLineDensity] = useState("1");
+  const [maxFrontDistance, setMaxFrontDistance] = useState("50");
   const [querying, setQuerying] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [frontObjectError, setFrontObjectError] = useState<string | null>(null);
   const [frontTrackingError, setFrontTrackingError] = useState<string | null>(null);
-  const [visibleLayers, setVisibleLayers] = useState({ sst: true, front_band: true, front_line: true, cold_side: true, warm_side: true, front_objects: true, tracking: true });
+  const [visibleLayers, setVisibleLayers] = useState({ sst: true, front_band: true, front_line: true, intensity: true, cold_side: true, warm_side: true, front_objects: true, tracking: true });
   const [historyData, setHistoryData] = useState<HistoryData | null>(null);
   const [pointQuery, setPointQuery] = useState<PointQuery | null>(null);
   const [frontObjects, setFrontObjects] = useState<FrontObjectData | null>(null);
   const [frontTracking, setFrontTracking] = useState<FrontTrackingData | null>(null);
+  const [frontPrediction, setFrontPrediction] = useState<FrontPredictionData | null>(null);
+  const [frontPredictionEvaluation, setFrontPredictionEvaluation] = useState<FrontPredictionEvaluationData | null>(null);
+  const [frontPredictionError, setFrontPredictionError] = useState<string | null>(null);
+  const [frontPredictionEvaluationError, setFrontPredictionEvaluationError] = useState<string | null>(null);
   const [aiPrompt, setAiPrompt] = useState("分析 2024-08-05 东经124.5 北纬30.2 1度范围的锋面，并解释历史概率");
   const [aiResult, setAiResult] = useState<AiAnalysisData | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -168,6 +275,12 @@ function App() {
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
   const [reportPreview, setReportPreview] = useState<ReportData | null>(null);
+  const [activePanel, setActivePanel] = useState<SidePanelKey>("current");
+  const [selectedFrontObjectId, setSelectedFrontObjectId] = useState<string | null>(null);
+  const [selectedTrackDate, setSelectedTrackDate] = useState<string | null>(null);
+  const [demoTourRunning, setDemoTourRunning] = useState(false);
+  const [demoTourStep, setDemoTourStep] = useState(0);
+  const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
 
   useEffect(() => {
     if (!mapNode.current) return;
@@ -271,6 +384,33 @@ function App() {
         },
       });
 
+      const intensityLayer = analysis.layers.front_intensity;
+      if (intensityLayer?.features?.length) {
+        map.addSource("source-front-intensity", { type: "geojson", data: intensityLayer as never });
+        map.addLayer({
+          id: "front-intensity",
+          type: "fill",
+          source: "source-front-intensity",
+          paint: {
+            "fill-color": [
+              "interpolate",
+              ["linear"],
+              ["get", "value"],
+              0,
+              "#fef3c7",
+              0.2,
+              "#f59e0b",
+              0.5,
+              "#ef4444",
+              1,
+              "#7f1d1d",
+            ],
+            "fill-opacity": 0.42,
+            "fill-outline-color": "rgba(127,29,29,0.22)",
+          },
+        });
+      }
+
       map.addSource("source-front-band", { type: "geojson", data: analysis.layers.front_band as never });
       map.addLayer({
         id: "front-band",
@@ -351,6 +491,28 @@ function App() {
             "circle-opacity": 0.9,
           },
         });
+        const trackingArrows = buildTrackingArrows(frontTracking);
+        if (trackingArrows.features.length > 0) {
+          map.addSource("source-front-track-arrows", { type: "geojson", data: trackingArrows as never });
+          map.addLayer({
+            id: "front-track-arrows",
+            type: "symbol",
+            source: "source-front-track-arrows",
+            layout: {
+              "text-field": "➤",
+              "text-size": 18,
+              "text-rotate": ["get", "bearing_deg"],
+              "text-allow-overlap": true,
+              "text-ignore-placement": true,
+            },
+            paint: {
+              "text-color": "#4f46e5",
+              "text-halo-color": "#ffffff",
+              "text-halo-width": 1.4,
+              "text-opacity": 0.92,
+            },
+          });
+        }
       }
 
       if (map.getLayer("offline-graticule")) map.moveLayer("offline-graticule");
@@ -360,6 +522,7 @@ function App() {
       }
       if (!visibleLayers.cold_side) map.setLayoutProperty("cold-zone", "visibility", "none");
       if (!visibleLayers.warm_side) map.setLayoutProperty("warm-zone", "visibility", "none");
+      if (!visibleLayers.intensity && map.getLayer("front-intensity")) map.setLayoutProperty("front-intensity", "visibility", "none");
       if (!visibleLayers.front_band) map.setLayoutProperty("front-band", "visibility", "none");
       if (!visibleLayers.front_line) {
         map.setLayoutProperty("front-line-glow", "visibility", "none");
@@ -372,6 +535,7 @@ function App() {
       if (!visibleLayers.tracking) {
         if (map.getLayer("front-track-lines")) map.setLayoutProperty("front-track-lines", "visibility", "none");
         if (map.getLayer("front-track-points")) map.setLayoutProperty("front-track-points", "visibility", "none");
+        if (map.getLayer("front-track-arrows")) map.setLayoutProperty("front-track-arrows", "visibility", "none");
       }
       const west = analysis.longitude - analysis.radius_deg;
       const east = analysis.longitude + analysis.radius_deg;
@@ -401,10 +565,14 @@ function App() {
         source: "query-point",
         paint: { "circle-radius": 5, "circle-color": "#0b7483", "circle-stroke-color": "#17363d", "circle-stroke-width": 1.5 },
       });
-      for (const layerId of ["sst-field", "cold-zone", "warm-zone", "front-band", "front-line", "front-object-bboxes", "front-object-centroids", "front-track-lines", "front-track-points"]) {
+      for (const layerId of ["sst-field", "cold-zone", "warm-zone", "front-intensity", "front-band", "front-line", "front-object-bboxes", "front-object-centroids", "front-track-lines", "front-track-points", "front-track-arrows"]) {
         if (!map.getLayer(layerId)) continue;
         map.off("click", layerId, handleLayerClick);
+        map.off("mouseenter", layerId, handleLayerMouseEnter);
+        map.off("mouseleave", layerId, handleLayerMouseLeave);
         map.on("click", layerId, handleLayerClick);
+        map.on("mouseenter", layerId, handleLayerMouseEnter);
+        map.on("mouseleave", layerId, handleLayerMouseLeave);
       }
       map.fitBounds([[analysis.longitude - analysis.radius_deg, analysis.latitude - analysis.radius_deg], [analysis.longitude + analysis.radius_deg, analysis.latitude + analysis.radius_deg]], { padding: 70, maxZoom: 7, duration: 500 });
     };
@@ -416,20 +584,35 @@ function App() {
         "sst-field": "海表温度场",
         "cold-zone": "冷侧区域",
         "warm-zone": "暖侧区域",
+        "front-intensity": "锋面强度",
         "front-band": "锋面带",
         "front-line": "锋面中心线",
         "front-object-bboxes": "锋面对象范围",
         "front-object-centroids": "锋面对象质心",
         "front-track-lines": "多日追踪路径",
         "front-track-points": "多日追踪节点",
+        "front-track-arrows": "多日追踪方向",
       }[feature.layer.id] ?? "图层";
       const value = Number((feature.properties as { value?: number } | null)?.value);
       const properties = feature.properties as Record<string, unknown> | null;
       const frontId = properties?.front_id ? String(properties.front_id) : null;
+      const trackDate = properties?.date ? String(properties.date) : null;
+      if (frontId && frontId !== "--") {
+        if (frontObjects?.objects.some((item) => item.front_id === frontId)) {
+          setSelectedFrontObjectId(frontId);
+        }
+        setActivePanel("objects");
+      }
+      if (trackDate && feature.layer.id.startsWith("front-track")) {
+        setSelectedTrackDate(trackDate);
+        setActivePanel("objects");
+      }
       const dateText = properties?.date ? `<br />日期：${String(properties.date)}` : "";
       const objectText = frontId ? `<br />对象：${frontId}` : "";
       const valueText = feature.layer.id === "sst-field"
         ? `${value.toFixed(2)} °C`
+        : feature.layer.id === "front-intensity"
+        ? `强度 ${value.toFixed(3)}`
         : feature.layer.id === "cold-zone"
         ? "冷侧"
         : feature.layer.id === "warm-zone"
@@ -444,9 +627,79 @@ function App() {
         .setHTML(`<strong>${layerLabel}</strong><br />${coordinates[0].toFixed(3)}°E, ${coordinates[1].toFixed(3)}°N${dateText}${objectText}<br />读数：${Number.isFinite(value) || frontId ? valueText : "--"}`)
         .addTo(map);
     };
+    const handleLayerMouseEnter = () => {
+      map.getCanvas().style.cursor = "pointer";
+    };
+    const handleLayerMouseLeave = () => {
+      map.getCanvas().style.cursor = "";
+    };
     if (map.isStyleLoaded()) applyLayers();
     else map.once("load", applyLayers);
   }, [analysis, frontObjects, frontTracking, visibleLayers]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !analysis) return;
+    const removeSelectionLayers = () => {
+      for (const layerId of SELECTION_LAYER_IDS) if (map.getLayer(layerId)) map.removeLayer(layerId);
+      for (const sourceId of SELECTION_SOURCE_IDS) if (map.getSource(sourceId)) map.removeSource(sourceId);
+    };
+    const applySelectionLayers = () => {
+      removeSelectionLayers();
+      const selectedBboxes = filterFeatureCollectionByFrontId(frontObjects?.layers.bboxes, selectedFrontObjectId);
+      if (selectedBboxes.features.length > 0) {
+        map.addSource("source-selected-front-object-bbox", { type: "geojson", data: selectedBboxes as never });
+        map.addLayer({
+          id: "selected-front-object-bbox",
+          type: "line",
+          source: "source-selected-front-object-bbox",
+          paint: {
+            "line-color": "#facc15",
+            "line-width": 4.2,
+            "line-opacity": 0.98,
+            "line-dasharray": [1.2, 0.8],
+          },
+        });
+      }
+
+      const selectedCentroids = filterFeatureCollectionByFrontId(frontObjects?.layers.centroids, selectedFrontObjectId);
+      if (selectedCentroids.features.length > 0) {
+        map.addSource("source-selected-front-object-centroid", { type: "geojson", data: selectedCentroids as never });
+        map.addLayer({
+          id: "selected-front-object-centroid",
+          type: "circle",
+          source: "source-selected-front-object-centroid",
+          paint: {
+            "circle-radius": 10,
+            "circle-color": "#facc15",
+            "circle-stroke-color": "#111827",
+            "circle-stroke-width": 2,
+            "circle-opacity": 0.96,
+          },
+        });
+      }
+
+      const selectedTrackPoint = buildSelectedTrackPoint(frontTracking, selectedTrackDate);
+      if (selectedTrackPoint.features.length > 0) {
+        map.addSource("source-selected-track-point", { type: "geojson", data: selectedTrackPoint as never });
+        map.addLayer({
+          id: "selected-track-point",
+          type: "circle",
+          source: "source-selected-track-point",
+          paint: {
+            "circle-radius": 12,
+            "circle-color": "#ffffff",
+            "circle-opacity": 0.86,
+            "circle-stroke-color": "#7a5cff",
+            "circle-stroke-width": 4,
+          },
+        });
+      }
+    };
+    if (map.isStyleLoaded()) applySelectionLayers();
+    else map.once("load", applySelectionLayers);
+    return removeSelectionLayers;
+  }, [analysis, frontObjects, frontTracking, selectedFrontObjectId, selectedTrackDate]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -536,6 +789,14 @@ function App() {
         setDataPlan(null);
         setDataPlanError(error instanceof Error ? error.message : "无法读取数据准备计划");
       });
+    getProbabilityRuleOptions(controller.signal)
+      .then((result) => {
+        setProbabilityRuleOptions(result);
+        setProbabilityRule(result.default_rule);
+      })
+      .catch(() => {
+        setProbabilityRuleOptions(null);
+      });
     getAiCapabilities(controller.signal)
       .then((result) => {
         setAiCapabilities(result);
@@ -561,26 +822,59 @@ function App() {
       ? `${catalog.file_count} 个数据文件`
       : "等待样例数据";
 
-  const executeDataQuery = (queryDate: string, queryLongitude: number, queryLatitude: number, queryRadius: number) => {
+  const executeDataQuery = (
+    queryDate: string,
+    queryLongitude: number,
+    queryLatitude: number,
+    queryRadius: number,
+    probabilityOverride?: {
+      probabilityRule: string;
+      minLineDensity: string;
+      maxFrontDistance: string;
+    },
+  ) => {
     if (!Number.isFinite(queryLongitude) || !Number.isFinite(queryLatitude) || !Number.isFinite(queryRadius) || Math.abs(queryLongitude) > 180 || Math.abs(queryLatitude) > 90 || queryRadius <= 0) {
       setAnalysis(null);
       setHistoryData(null);
       setFrontObjects(null);
       setFrontTracking(null);
+      setSelectedFrontObjectId(null);
+      setSelectedTrackDate(null);
       setAnalysisError("请输入有效的经纬度和分析范围");
       return;
     }
+    const effectiveProbabilityRule = probabilityOverride?.probabilityRule ?? probabilityRule;
+    const effectiveMinLineDensity = probabilityOverride?.minLineDensity ?? minLineDensity;
+    const effectiveMaxFrontDistance = probabilityOverride?.maxFrontDistance ?? maxFrontDistance;
+    const densityThreshold = Number(effectiveMinLineDensity);
+    const distanceThreshold = Number(effectiveMaxFrontDistance);
+    if (!Number.isFinite(densityThreshold) || densityThreshold < 0 || !Number.isFinite(distanceThreshold) || distanceThreshold <= 0) {
+      setAnalysisError("请输入有效的概率口径阈值");
+      return;
+    }
+    const probabilityConfig = {
+      probability_rule: effectiveProbabilityRule,
+      min_line_density_per_1000: densityThreshold,
+      max_front_distance_km: distanceThreshold,
+    };
+    setActivePanel("current");
     setQuerying(true);
     setAnalysisError(null);
     setHistoryError(null);
     setFrontObjectError(null);
     setFrontTrackingError(null);
+    setFrontPredictionError(null);
+    setFrontPredictionEvaluationError(null);
     setReportError(null);
     setReportPreview(null);
     setPointQuery(null);
     setHistoryData(null);
     setFrontObjects(null);
     setFrontTracking(null);
+    setFrontPrediction(null);
+    setFrontPredictionEvaluation(null);
+    setSelectedFrontObjectId(null);
+    setSelectedTrackDate(null);
     const analysisTask = getAnalysis(queryDate, queryLongitude, queryLatitude, queryRadius)
       .then((result) => {
         setAnalysis(result);
@@ -589,7 +883,7 @@ function App() {
         setAnalysis(null);
         setAnalysisError(error instanceof Error ? error.message : "分析失败");
       });
-    const historyTask = getHistory(queryDate, queryLongitude, queryLatitude, queryRadius)
+    const historyTask = getHistory(queryDate, queryLongitude, queryLatitude, queryRadius, probabilityConfig)
       .then((result) => {
         setHistoryData(result);
       })
@@ -612,6 +906,22 @@ function App() {
       .catch((error: unknown) => {
         setFrontTracking(null);
         setFrontTrackingError(error instanceof Error ? error.message : "锋面追踪失败");
+      });
+    const frontPredictionTask = getFrontPrediction(queryDate, queryLongitude, queryLatitude, queryRadius, 7, probabilityConfig)
+      .then((result) => {
+        setFrontPrediction(result);
+      })
+      .catch((error: unknown) => {
+        setFrontPrediction(null);
+        setFrontPredictionError(error instanceof Error ? error.message : "锋面预测失败");
+      });
+    const frontPredictionEvaluationTask = getFrontPredictionEvaluation(queryDate, queryLongitude, queryLatitude, queryRadius, 7, 30, probabilityConfig)
+      .then((result) => {
+        setFrontPredictionEvaluation(result);
+      })
+      .catch((error: unknown) => {
+        setFrontPredictionEvaluation(null);
+        setFrontPredictionEvaluationError(error instanceof Error ? error.message : "预测评估失败");
       });
     const indexTask = getHistoryIndex(queryLongitude, queryLatitude, queryRadius)
       .then((result) => {
@@ -646,14 +956,54 @@ function App() {
         setDataIndexDate(null);
         setDataIndexDateError(error instanceof Error ? error.message : "日期索引查询失败");
       });
-    void Promise.allSettled([analysisTask, historyTask, frontObjectTask, frontTrackingTask, indexTask, dataPlanTask, dataIndexTask, dataIndexDateTask]).finally(() => setQuerying(false));
+    void Promise.allSettled([analysisTask, historyTask, frontObjectTask, frontTrackingTask, frontPredictionTask, frontPredictionEvaluationTask, indexTask, dataPlanTask, dataIndexTask, dataIndexDateTask]).finally(() => setQuerying(false));
   };
 
   const runAnalysis = () => {
+    setDemoTourRunning(false);
     executeDataQuery(selectedDate, Number(longitude), Number(latitude), Number(radius));
   };
 
+  const runDemoPreset = () => {
+    setDemoTourRunning(true);
+    setDemoTourStep(0);
+    setSelectedDate(DEMO_PRESET.date);
+    setLongitude(DEMO_PRESET.longitude);
+    setLatitude(DEMO_PRESET.latitude);
+    setRadius(DEMO_PRESET.radius);
+    setProbabilityRule(DEMO_PRESET.probabilityRule);
+    setMinLineDensity(DEMO_PRESET.minLineDensity);
+    setMaxFrontDistance(DEMO_PRESET.maxFrontDistance);
+    executeDataQuery(
+      DEMO_PRESET.date,
+      Number(DEMO_PRESET.longitude),
+      Number(DEMO_PRESET.latitude),
+      Number(DEMO_PRESET.radius),
+      DEMO_PRESET,
+    );
+  };
+
+  useEffect(() => {
+    if (!demoTourRunning) return;
+    const currentStep = DEMO_TOUR[demoTourStep] ?? DEMO_TOUR[DEMO_TOUR.length - 1];
+    const switchTimer = window.setTimeout(() => setActivePanel(currentStep.panel), 0);
+    const advanceTimer = window.setTimeout(() => {
+      setDemoTourStep((current) => {
+        if (current >= DEMO_TOUR.length - 1) {
+          setDemoTourRunning(false);
+          return current;
+        }
+        return current + 1;
+      });
+    }, demoTourStep === 0 ? 2400 : 3200);
+    return () => {
+      window.clearTimeout(switchTimer);
+      window.clearTimeout(advanceTimer);
+    };
+  }, [demoTourRunning, demoTourStep]);
+
   const runAi = () => {
+    setDemoTourRunning(false);
     const prompt = aiPrompt.trim();
     if (!prompt) {
       setAiError("请输入自然语言任务");
@@ -696,16 +1046,24 @@ function App() {
     setHistoryError(null);
     setFrontObjectError(null);
     setFrontTrackingError(null);
+    setFrontPredictionError(null);
+    setFrontPredictionEvaluationError(null);
     setReportError(null);
     setReportPreview(null);
     setHistoryData(null);
     setPointQuery(null);
     setFrontObjects(null);
     setFrontTracking(null);
+    setFrontPrediction(null);
+    setFrontPredictionEvaluation(null);
+    setSelectedFrontObjectId(null);
+    setSelectedTrackDate(null);
+    setDemoTourRunning(false);
+    setActivePanel("current");
     const map = mapRef.current;
     if (map) {
-      for (const layerId of [...DATA_LAYER_IDS, ...OBJECT_LAYER_IDS, ...QUERY_LAYER_IDS]) if (map.getLayer(layerId)) map.removeLayer(layerId);
-      for (const sourceId of [...DATA_SOURCE_IDS, ...OBJECT_SOURCE_IDS, ...QUERY_SOURCE_IDS]) if (map.getSource(sourceId)) map.removeSource(sourceId);
+      for (const layerId of [...DATA_LAYER_IDS, ...OBJECT_LAYER_IDS, ...SELECTION_LAYER_IDS, ...QUERY_LAYER_IDS]) if (map.getLayer(layerId)) map.removeLayer(layerId);
+      for (const sourceId of [...DATA_SOURCE_IDS, ...OBJECT_SOURCE_IDS, ...SELECTION_SOURCE_IDS, ...QUERY_SOURCE_IDS]) if (map.getSource(sourceId)) map.removeSource(sourceId);
     }
   };
 
@@ -718,6 +1076,9 @@ function App() {
         longitude: Number(longitude),
         latitude: Number(latitude),
         radius_deg: Number(radius),
+        probability_rule: probabilityRule,
+        min_line_density_per_1000: Number(minLineDensity),
+        max_front_distance_km: Number(maxFrontDistance),
       },
       analysis,
       history: historyData,
@@ -725,6 +1086,8 @@ function App() {
       point_query: pointQuery,
       front_objects: frontObjects,
       front_tracking: frontTracking,
+      front_prediction: frontPrediction,
+      front_prediction_evaluation: frontPredictionEvaluation,
       ai_result: aiResult,
     };
     const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
@@ -746,9 +1109,14 @@ function App() {
 
   const fetchHtmlReport = (mode: "preview" | "download") => {
     if (!analysis && !historyData) return;
+    const probabilityConfig = {
+      probability_rule: probabilityRule,
+      min_line_density_per_1000: Number(minLineDensity),
+      max_front_distance_km: Number(maxFrontDistance),
+    };
     setReportLoading(true);
     setReportError(null);
-    getReport(selectedDate, Number(longitude), Number(latitude), Number(radius), 3)
+    getReport(selectedDate, Number(longitude), Number(latitude), Number(radius), 3, probabilityConfig)
       .then((result) => {
         setReportPreview(result);
         if (mode === "download") downloadHtmlReport(result);
@@ -767,8 +1135,23 @@ function App() {
     fetchHtmlReport("download");
   };
 
+  const copyCommand = (command: string) => {
+    if (!command.trim()) return;
+    if (!navigator.clipboard) {
+      setCopiedCommand("当前浏览器不支持一键复制，请手动选中命令复制。");
+      window.setTimeout(() => setCopiedCommand(null), 2200);
+      return;
+    }
+    void navigator.clipboard
+      .writeText(command)
+      .then(() => setCopiedCommand("命令已复制到剪贴板"))
+      .catch(() => setCopiedCommand("复制失败，请手动选中命令复制"));
+    window.setTimeout(() => setCopiedCommand(null), 1800);
+  };
+
   const selectedMonth = Number(selectedDate.slice(5, 7));
   const monthlyHistoryPoint = historyData?.monthly.find((item) => item.month === selectedMonth) ?? null;
+  const monthlyMaxSampleCount = Math.max(1, ...(historyData?.monthly.map((item) => item.sample_count) ?? [1]));
   const sampledTimeline = sampleTimeline(historyData?.timeline ?? [], 48);
   const frontGrid = historyIndex?.spatial.front_grid ?? null;
   const sstGrid = historyIndex?.spatial.sst_grid ?? null;
@@ -778,7 +1161,22 @@ function App() {
     ? analysis.rasters.sst
     : null;
   const nearestFrontObject = frontObjects?.objects[0] ?? null;
+  const selectedFrontObject = selectedFrontObjectId
+    ? frontObjects?.objects.find((item) => item.front_id === selectedFrontObjectId) ?? null
+    : nearestFrontObject;
   const trackedPreview = frontTracking?.steps ?? [];
+  const predictionPreview = frontPrediction?.predictions.slice(0, 5) ?? [];
+  const selectedTrackStep = selectedTrackDate ? frontTracking?.steps.find((item) => item.date === selectedTrackDate) ?? null : null;
+  const firstPrediction = frontPrediction?.predictions[0] ?? null;
+  const predictionDriverPreview = firstPrediction?.drivers ?? [];
+  const predictionDriverSummary = firstPrediction
+    ? `${firstPrediction.target_date} 预测为“${firstPrediction.predicted_status}”，概率 ${formatPercent(firstPrediction.probability)}；主要由同期概率、月度背景、近期信号和梯度修正共同给出。`
+    : "";
+  const predictionEvaluationPreview = frontPredictionEvaluation?.points.slice(0, 4) ?? [];
+  const selectedProbabilityRule = probabilityRuleOptions?.options.find((item) => item.id === probabilityRule) ?? null;
+  const probabilityRuleStatus = selectedProbabilityRule
+    ? `${selectedProbabilityRule.label}${probabilityRule === "density_threshold" ? ` ≥ ${minLineDensity}/1000` : probabilityRule === "distance_threshold" ? ` ≤ ${maxFrontDistance} km` : ""}`
+    : probabilityRule;
   const missingSstCount = dataManifest?.missing_sst_dates.length ?? 0;
   const missingFrontCount = dataManifest?.missing_front_dates.length ?? 0;
   const duplicateDataGroupCount = (dataPlan?.duplicate_front_groups.length ?? 0) + (dataPlan?.duplicate_sst_groups.length ?? 0);
@@ -786,6 +1184,7 @@ function App() {
   const dataIndexWarningCount = dataIndex?.integrity_warnings.length ?? 0;
   const indexedFront = dataIndex?.datasets.find((dataset) => dataset.dataset_type === "front_location") ?? null;
   const indexedSst = dataIndex?.datasets.find((dataset) => dataset.dataset_type === "sst") ?? null;
+  const indexedIntensity = dataIndex?.datasets.find((dataset) => dataset.dataset_type === "front_intensity") ?? null;
   const currentIndexFilePreview = dataIndexDate?.files
     .filter((file) => file.canonical)
     .slice(0, 3)
@@ -798,6 +1197,49 @@ function App() {
         : `重复 ${duplicateDataGroupCount} 组`
       : `存在 ${dataIssueCount} 个缺口`
     : "等待扫描";
+  const dataReadinessPercent = dataPlan ? Math.round(dataPlan.readiness_score * 1000) / 10 : null;
+  const frontSstCompletion = dataPlan
+    ? dataPlan.paired_date_count + dataPlan.required_front_sst_file_count > 0
+      ? dataPlan.paired_date_count / (dataPlan.paired_date_count + dataPlan.required_front_sst_file_count)
+      : 1
+    : null;
+
+  const focusFrontObject = (frontId: string) => {
+    setDemoTourRunning(false);
+    setSelectedFrontObjectId(frontId);
+    setSelectedTrackDate(null);
+    setActivePanel("objects");
+    const target = frontObjects?.objects.find((item) => item.front_id === frontId);
+    const map = mapRef.current;
+    if (!target || !map) return;
+    const [west, south, east, north] = target.bbox;
+    if ([west, south, east, north].every(Number.isFinite) && west < east && south < north) {
+      map.fitBounds([[west, south], [east, north]], { padding: 110, maxZoom: 8.5, duration: 650 });
+      return;
+    }
+    map.flyTo({ center: [target.centroid_longitude, target.centroid_latitude], zoom: Math.max(map.getZoom(), 7), duration: 650 });
+  };
+
+  const focusTrackStep = (trackDate: string) => {
+    setDemoTourRunning(false);
+    setSelectedTrackDate(trackDate);
+    setActivePanel("objects");
+    const step = frontTracking?.steps.find((item) => item.date === trackDate);
+    if (step?.front_id && frontObjects?.objects.some((item) => item.front_id === step.front_id)) {
+      setSelectedFrontObjectId(step.front_id);
+    } else {
+      setSelectedFrontObjectId(null);
+    }
+    const map = mapRef.current;
+    if (map && step?.centroid_longitude != null && step.centroid_latitude != null) {
+      map.flyTo({ center: [step.centroid_longitude, step.centroid_latitude], zoom: Math.max(map.getZoom(), 7), duration: 650 });
+    }
+  };
+
+  const stopDemoTour = () => {
+    setDemoTourRunning(false);
+    setDemoTourStep(0);
+  };
 
   return (
     <main className="app-shell">
@@ -820,7 +1262,7 @@ function App() {
           <strong>任务参数</strong>
           <span>选择日期、经纬度和空间范围，生成离线锋面图像与历史统计。</span>
         </div>
-        <label>
+        <label className="taskbar-date">
             <span><CalendarDays size={15} /> 日期</span>
             <input type="date" value={selectedDate} min={catalog?.available_dates[0]} max={catalog?.available_dates.at(-1)} onChange={(event) => setSelectedDate(event.target.value)} disabled={!catalog?.ready} />
         </label>
@@ -843,9 +1285,36 @@ function App() {
             ))}
           </select>
         </label>
+        <label className="taskbar-wide">
+          <span>概率口径</span>
+          <select value={probabilityRule} onChange={(event) => setProbabilityRule(event.target.value)}>
+            {(probabilityRuleOptions?.options ?? [
+              { id: "line_presence", label: "有锋面线即命中" },
+              { id: "density_threshold", label: "按锋面线密度" },
+              { id: "distance_threshold", label: "按最近距离" },
+            ]).map((item) => (
+              <option value={item.id} key={item.id}>{item.label}</option>
+            ))}
+          </select>
+        </label>
+        {probabilityRule === "density_threshold" && (
+          <label className="taskbar-threshold">
+            <span>密度阈值</span>
+            <input type="number" value={minLineDensity} min="0" step="0.5" onChange={(event) => setMinLineDensity(event.target.value)} />
+          </label>
+        )}
+        {probabilityRule === "distance_threshold" && (
+          <label className="taskbar-threshold">
+            <span>距离阈值 km</span>
+            <input type="number" value={maxFrontDistance} min="1" step="5" onChange={(event) => setMaxFrontDistance(event.target.value)} />
+          </label>
+        )}
         <div className="task-actions">
           <button className="icon-button" type="button" title="重置查询" aria-label="重置查询" onClick={resetQuery}>
             <RotateCcw size={17} />
+          </button>
+          <button className="ghost-button" type="button" disabled={!catalog?.ready || querying} onClick={runDemoPreset}>
+            <Sparkles size={16} /> 一键演示
           </button>
           <button className="primary-button" type="button" disabled={!catalog?.ready || querying} onClick={runAnalysis}>
             <Search size={17} /> 查询
@@ -897,15 +1366,15 @@ function App() {
           )}
           <div className="map-caption" aria-label="图像解读">
             <strong>图像解读</strong>
-            <span>底色为 SST 温度场；蓝/橙色面为冷暖侧；深色带和金色辉光标记锋面位置；绿色框/点表示锋面对象，紫色虚线表示多日追踪。</span>
+            <span>底色为 SST 温度场；蓝/橙色面为冷暖侧；深色带和金色辉光标记锋面位置；红橙色面表示可选强度数据；绿色框/点表示锋面对象，紫色虚线表示多日追踪。</span>
           </div>
           <div className="legend" aria-label="图像图层">
             <strong>图像图层</strong>
-            {(["sst", "front_band", "front_line", "front_objects", "tracking", "cold_side", "warm_side"] as const).map((key) => (
+            {(["sst", "front_band", "front_line", "intensity", "front_objects", "tracking", "cold_side", "warm_side"] as const).map((key) => (
               <label className="layer-toggle" key={key}>
                 <input type="checkbox" checked={visibleLayers[key]} onChange={(event) => setVisibleLayers((current) => ({ ...current, [key]: event.target.checked }))} />
-                <i className={`swatch ${key === "front_line" ? "front" : key === "front_band" ? "front-band" : key === "cold_side" ? "cold" : key === "warm_side" ? "warm" : key === "front_objects" ? "objects" : key === "tracking" ? "tracking" : "sst"}`} />
-                {key === "sst" ? "SST 温度场" : key === "front_band" ? "锋面带" : key === "front_line" ? "锋面中心线" : key === "front_objects" ? "锋面对象" : key === "tracking" ? "多日追踪" : key === "cold_side" ? "冷侧区" : "暖侧区"}
+                <i className={`swatch ${key === "front_line" ? "front" : key === "front_band" ? "front-band" : key === "intensity" ? "intensity" : key === "cold_side" ? "cold" : key === "warm_side" ? "warm" : key === "front_objects" ? "objects" : key === "tracking" ? "tracking" : "sst"}`} />
+                {key === "sst" ? "SST 温度场" : key === "front_band" ? "锋面带" : key === "front_line" ? "锋面中心线" : key === "intensity" ? "锋面强度" : key === "front_objects" ? "锋面对象" : key === "tracking" ? "多日追踪" : key === "cold_side" ? "冷侧区" : "暖侧区"}
               </label>
             ))}
             <div className="temperature-scale" aria-label="SST 色标">
@@ -918,13 +1387,35 @@ function App() {
 
         <aside className="side-panel">
           <nav className="function-map" aria-label="功能分区">
-            <span>01 当前查询</span>
-            <span>02 AI 分析</span>
-            <span>03 历史统计</span>
-            <span>04 对象追踪</span>
-            <span>05 数据来源</span>
+            {SIDE_PANELS.map((panel, index) => (
+              <button
+                className="function-tab"
+                data-active={activePanel === panel.key}
+                key={panel.key}
+                type="button"
+                onClick={() => {
+                  setDemoTourRunning(false);
+                  setActivePanel(panel.key);
+                }}
+              >
+                <span>{String(index + 1).padStart(2, "0")} {panel.label}</span>
+                <small>{panel.hint}</small>
+              </button>
+            ))}
           </nav>
-          <section>
+          {demoTourRunning && (
+            <div className="demo-tour-card">
+              <div>
+                <span>演示导览 {demoTourStep + 1}/{DEMO_TOUR.length}</span>
+                <strong>{DEMO_TOUR[demoTourStep]?.title ?? "项目演示"}</strong>
+                <small>{DEMO_TOUR[demoTourStep]?.body ?? "正在组织演示流程"}</small>
+              </div>
+              <button className="icon-button compact" type="button" aria-label="停止演示导览" onClick={stopDemoTour}>
+                <X size={14} />
+              </button>
+            </div>
+          )}
+          <section className="current-panel" data-active={activePanel === "current"}>
             <div className="section-heading">
               <h2>当前查询</h2>
               <span>{querying ? "计算中" : analysis ? "第 1—4 周" : "未执行"}</span>
@@ -949,12 +1440,14 @@ function App() {
               <div><dt>纬度</dt><dd>{Number(latitude).toFixed(3)}°N</dd></div>
               <div><dt>当前日期</dt><dd>{analysis?.date ?? selectedDate}</dd></div>
               <div><dt>范围</dt><dd>{formatRadiusLabel(Number(radius))}</dd></div>
+              <div><dt>概率口径</dt><dd>{historyData?.summary.probability_rule_label ?? probabilityRuleStatus}</dd></div>
               <div><dt>锋面编码</dt><dd>{pointQuery?.front_code ?? "--"}</dd></div>
               <div><dt>海表温度</dt><dd>{pointQuery?.sst_celsius != null ? `${pointQuery.sst_celsius.toFixed(2)} °C` : analysis?.sst.center_celsius != null ? `${analysis.sst.center_celsius.toFixed(2)} °C` : "--"}</dd></div>
               <div><dt>点位类别</dt><dd>{pointQuery?.front_class ?? "--"}</dd></div>
               <div><dt>距最近锋面</dt><dd>{pointQuery?.nearest_front_distance_km != null ? `${pointQuery.nearest_front_distance_km.toFixed(2)} km` : "--"}</dd></div>
               <div><dt>局地温差</dt><dd>{pointQuery?.temperature_range_celsius != null ? `${pointQuery.temperature_range_celsius.toFixed(2)} °C` : analysis?.sst.range_celsius != null ? `${analysis.sst.range_celsius.toFixed(2)} °C` : "--"}</dd></div>
               <div><dt>温度梯度</dt><dd>{pointQuery?.temperature_gradient_c_per_km != null ? `${pointQuery.temperature_gradient_c_per_km.toFixed(5)} °C/km` : analysis?.sst.gradient_c_per_km != null ? `${analysis.sst.gradient_c_per_km.toFixed(5)} °C/km` : "--"}</dd></div>
+              <div><dt>锋面强度</dt><dd>{analysis?.intensity.available === "是" ? `均值 ${analysis.intensity.mean?.toFixed(4) ?? "--"} / P95 ${analysis.intensity.p95?.toFixed(4) ?? "--"}` : "暂无 front_intensity"}</dd></div>
               <div><dt>锋面线像元</dt><dd>{analysis?.front.line_pixels ?? "--"}</dd></div>
               <div><dt>冷 / 暖侧像元</dt><dd>{analysis ? `${analysis.front.cold_side_pixels} / ${analysis.front.warm_side_pixels}` : "--"}</dd></div>
               <div><dt>锋面对象数</dt><dd>{frontObjects?.object_count ?? "--"}</dd></div>
@@ -989,7 +1482,7 @@ function App() {
               </div>
             )}
           </section>
-          <section className="object-panel">
+          <section className="object-panel" data-active={activePanel === "objects"}>
             <div className="section-heading">
               <h2>锋面对象与追踪</h2>
               <span>{frontObjects ? `第 5—8 周 · ${frontObjects.object_count} 个对象` : "等待查询"}</span>
@@ -1017,29 +1510,68 @@ function App() {
                     <strong>{frontTracking?.tracked_step_count ?? "--"}</strong>
                     <small>{frontTracking?.cumulative_displacement_km != null ? `累计 ${frontTracking.cumulative_displacement_km.toFixed(2)} km / 阈值 ${frontTracking.match_distance_km.toFixed(0)} km` : frontTracking?.status ?? "等待追踪"}</small>
                   </article>
+                  <article>
+                    <span>轨迹可信度</span>
+                    <strong>{frontTracking?.confidence_label ?? "--"}</strong>
+                    <small>{frontTracking?.confidence_score != null ? `${formatPercent(frontTracking.confidence_score)} · 平均位移 ${frontTracking.mean_daily_displacement_km?.toFixed(2) ?? "--"} km/d` : "等待连续对象"}</small>
+                  </article>
                 </div>
                 {frontTracking && (
                   <div className="tracking-algorithm">
-                    <strong>追踪算法：{frontTracking.algorithm}</strong>
+                    <strong>追踪算法：{frontTracking.algorithm} / {frontTracking.algorithm_version}</strong>
+                    <span>整体可信度 {frontTracking.confidence_label} · 缺口 {frontTracking.gap_count} · 重锚定 {frontTracking.reset_count} · 平均匹配 {formatPercent(frontTracking.mean_match_score)}</span>
                     {frontTracking.algorithm_notes.map((note) => (
                       <span key={note}>{note}</span>
                     ))}
                   </div>
                 )}
+                {selectedFrontObject && (
+                  <div className="selected-object-card">
+                    <div>
+                      <span>当前选中对象</span>
+                      <strong>{selectedFrontObject.front_id}</strong>
+                    </div>
+                    <dl>
+                      <div><dt>长度</dt><dd>{formatDistance(selectedFrontObject.length_km)}</dd></div>
+                      <div><dt>像元</dt><dd>{selectedFrontObject.pixel_count}</dd></div>
+                      <div><dt>距查询点</dt><dd>{formatDistance(selectedFrontObject.nearest_to_query_km)}</dd></div>
+                      <div><dt>质心</dt><dd>{selectedFrontObject.centroid_longitude.toFixed(3)}°E / {selectedFrontObject.centroid_latitude.toFixed(3)}°N</dd></div>
+                      <div><dt>BBox</dt><dd>{selectedFrontObject.bbox.map((value) => value.toFixed(2)).join(", ")}</dd></div>
+                      <div><dt>强度</dt><dd>{selectedFrontObject.mean_intensity != null ? `${selectedFrontObject.mean_intensity.toFixed(4)} / max ${formatScalar(selectedFrontObject.max_intensity, 4)}` : "暂无 front_intensity"}</dd></div>
+                    </dl>
+                  </div>
+                )}
+                {selectedTrackStep && (
+                  <div className="selected-track-card">
+                    <div>
+                      <span>当前追踪节点</span>
+                      <strong>{selectedTrackStep.date}</strong>
+                      <small>{selectedTrackStep.front_id ?? selectedTrackStep.status}</small>
+                    </div>
+                    <dl>
+                      <div><dt>匹配方式</dt><dd>{selectedTrackStep.matched_by}</dd></div>
+                      <div><dt>单步可信度</dt><dd>{selectedTrackStep.confidence_label}</dd></div>
+                      <div><dt>速度</dt><dd>{formatDistance(selectedTrackStep.speed_km_per_day)} / d</dd></div>
+                      <div><dt>方位角</dt><dd>{selectedTrackStep.bearing_deg != null ? `${selectedTrackStep.bearing_deg.toFixed(1)}°` : "--"}</dd></div>
+                      <div><dt>连续性</dt><dd>{formatPercent(selectedTrackStep.continuity_score)}</dd></div>
+                      <div><dt>候选数</dt><dd>{selectedTrackStep.candidates_considered}</dd></div>
+                    </dl>
+                  </div>
+                )}
                 <div className="object-list">
                   <div className="history-chart-title">
                     <strong>对象列表</strong>
-                    <span>显示最近 4 个</span>
+                    <span>点击选择，地图对象也可点击</span>
                   </div>
                   {frontObjects.objects.slice(0, 4).map((item) => (
-                    <div className="object-row" key={item.front_id}>
+                    <button className="object-row" data-active={selectedFrontObject?.front_id === item.front_id} key={item.front_id} type="button" onClick={() => focusFrontObject(item.front_id)}>
                       <span>{item.front_id}</span>
                       <strong>{item.length_km.toFixed(2)} km</strong>
                       <small>
                         质心 {item.centroid_longitude.toFixed(3)}°E, {item.centroid_latitude.toFixed(3)}°N ·
-                        {item.pixel_count} 像元 · 均温 {formatTemperature(item.mean_sst_celsius)}
+                        {item.pixel_count} 像元 · 均温 {formatTemperature(item.mean_sst_celsius)} · 强度 {item.mean_intensity != null ? item.mean_intensity.toFixed(4) : "--"}
                       </small>
-                    </div>
+                    </button>
                   ))}
                   {!frontObjects.objects.length && (
                     <div className="history-empty inline">
@@ -1053,16 +1585,17 @@ function App() {
                     <span>{frontTracking?.status ?? "等待追踪"}</span>
                   </div>
                   {trackedPreview.map((item) => (
-                    <div className="track-row" data-active={item.front_id ? "true" : "false"} key={item.date}>
+                    <button className="track-row" data-active={selectedTrackDate === item.date ? "selected" : item.front_id ? "true" : "false"} key={item.date} type="button" onClick={() => focusTrackStep(item.date)}>
+                      <b className="track-direction" style={{ transform: `rotate(${item.bearing_deg ?? 0}deg)`, opacity: item.bearing_deg == null ? 0.25 : 1 }}>➤</b>
                       <span>{item.date}</span>
                       <strong>{item.front_id ?? item.status}</strong>
                       <small>
                         {item.front_id
-                          ? `长度 ${item.length_km?.toFixed(2) ?? "--"} km · 位移 ${item.distance_from_previous_km?.toFixed(2) ?? "--"} km · 匹配 ${formatPercent(item.match_score)} · 形态 ${formatPercent(item.shape_similarity)} · 重叠 ${formatPercent(item.bbox_overlap_ratio)} · 候选 ${item.candidates_considered}`
-                          : item.status}
+                          ? `长度 ${item.length_km?.toFixed(2) ?? "--"} km · 速度 ${item.speed_km_per_day?.toFixed(2) ?? "--"} km/d · 方位 ${item.bearing_deg?.toFixed(1) ?? "--"}° · 连续 ${formatPercent(item.continuity_score)} · 形态 ${formatPercent(item.shape_similarity)} · 重叠 ${formatPercent(item.bbox_overlap_ratio)} · 候选 ${item.candidates_considered}`
+                        : item.status}
                       </small>
-                      {item.front_id && <em>{item.status}</em>}
-                    </div>
+                      {item.front_id && <em>{item.status} · 单步可信度 {item.confidence_label}</em>}
+                    </button>
                   ))}
                 </div>
               </>
@@ -1074,7 +1607,127 @@ function App() {
               </div>
             )}
           </section>
-          <section className="ai-panel">
+          <section className="prediction-panel" data-active={activePanel === "prediction"}>
+            <div className="section-heading">
+              <h2>预测 baseline</h2>
+              <span>{frontPrediction ? `${frontPrediction.horizon_days} 日 · ${frontPrediction.sample_reliability_label}` : "等待查询"}</span>
+            </div>
+            {frontPredictionError ? (
+              <div className="history-empty">
+                <TrendingUp size={22} />
+                <strong>预测加载失败</strong>
+                <span>{frontPredictionError}</span>
+              </div>
+            ) : frontPrediction ? (
+              <>
+                {firstPrediction && (
+                  <div className="prediction-hero">
+                    <div>
+                      <span>首日预测</span>
+                      <strong>{formatPercent(firstPrediction.probability)}</strong>
+                      <small>{firstPrediction.target_date} · {firstPrediction.predicted_status} · {firstPrediction.confidence_label}</small>
+                    </div>
+                    <p>{firstPrediction.explanation}</p>
+                  </div>
+                )}
+                <div className="prediction-summary">
+                  <article>
+                    <span>算法</span>
+                    <strong>{frontPrediction.algorithm_version}</strong>
+                    <small>{frontPrediction.algorithm}</small>
+                  </article>
+                  <article>
+                    <span>训练样本</span>
+                    <strong>{frontPrediction.training_sample_count}</strong>
+                    <small>{frontPrediction.sample_reliability_label}</small>
+                  </article>
+                  <article>
+                    <span>预测天数</span>
+                    <strong>{frontPrediction.forecast_count}</strong>
+                    <small>{frontPrediction.generated_at}</small>
+                  </article>
+                </div>
+                {predictionDriverPreview.length > 0 && (
+                  <div className="prediction-drivers">
+                    <div className="history-chart-title">
+                      <strong>首日预测驱动因子</strong>
+                      <span>{frontPrediction.predictions[0]?.target_date ?? "--"}</span>
+                    </div>
+                    {predictionDriverPreview.map((driver) => (
+                      <div className="driver-row" key={driver.name}>
+                        <div>
+                          <span>{driver.name}</span>
+                          <strong>{driver.value}</strong>
+                        </div>
+                        <i><b style={{ width: `${Math.max(4, Math.min(100, driver.weight * 100))}%` }} /></i>
+                        <small>权重 {driver.weight.toFixed(2)} · {driver.note}</small>
+                      </div>
+                    ))}
+                    {predictionDriverSummary && <p className="driver-explain">{predictionDriverSummary}</p>}
+                  </div>
+                )}
+                <div className="prediction-list">
+                  {predictionPreview.map((item) => (
+                    <div className="prediction-row" key={item.target_date}>
+                      <span>+{item.horizon_day} 日 · {item.target_date}</span>
+                      <strong>{formatPercent(item.probability)}</strong>
+                      <small>{item.predicted_status} · 可信度 {item.confidence_label}</small>
+                      <em>
+                        同期 {formatPercent(item.same_period_probability)} / 月度 {formatPercent(item.monthly_probability)} /
+                        近期 {formatPercent(item.recent_signal)}
+                        {item.observed_front_present != null ? ` · 回测：${item.observed_front_present ? "命中" : "未命中"} ${item.observed_front_line_pixels ?? 0} 像元` : ""}
+                      </em>
+                    </div>
+                  ))}
+                </div>
+                {frontPredictionEvaluation && (
+                  <div className="prediction-evaluation">
+                    <div className="history-chart-title">
+                      <strong>baseline 回测评估</strong>
+                      <span>{frontPredictionEvaluation.evaluation_mode}</span>
+                    </div>
+                    <div className="prediction-summary compact">
+                      <article>
+                        <span>评估样本</span>
+                        <strong>{frontPredictionEvaluation.evaluated_count}</strong>
+                        <small>{frontPredictionEvaluation.candidate_anchor_count} 个起报日</small>
+                      </article>
+                      <article>
+                        <span>准确率</span>
+                        <strong>{formatPercent(frontPredictionEvaluation.accuracy)}</strong>
+                        <small>阈值 probability ≥ 0.5</small>
+                      </article>
+                      <article>
+                        <span>Brier Score</span>
+                        <strong>{frontPredictionEvaluation.brier_score?.toFixed(4) ?? "--"}</strong>
+                        <small>越低越好</small>
+                      </article>
+                    </div>
+                    {predictionEvaluationPreview.map((item) => (
+                      <div className="prediction-row evaluation-row" key={`${item.anchor_date}-${item.target_date}-${item.horizon_day}`}>
+                        <span>{item.anchor_date} → +{item.horizon_day} 日</span>
+                        <strong>{formatPercent(item.probability)}</strong>
+                        <small>观测：{item.observed_front_present ? "命中" : "未命中"} · 误差 {item.error.toFixed(3)} · {item.confidence_label}</small>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {frontPredictionEvaluationError && <div className="quality-note quality-error"><span className="quality-dot" />{frontPredictionEvaluationError}</div>}
+                <div className="prediction-notes">
+                  {frontPrediction.explanation.slice(0, 3).map((note) => (
+                    <span key={note}>{note}</span>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="history-empty">
+                <TrendingUp size={22} />
+                <strong>等待预测</strong>
+                <span>执行查询后，这里会基于历史同期、月度概率、近期状态和温度梯度给出透明 baseline。</span>
+              </div>
+            )}
+          </section>
+          <section className="ai-panel" data-active={activePanel === "ai"}>
             <div className="section-heading">
               <h2>AI 分析智能体</h2>
               <span>{aiHealth ? `第 9—12 周 · ${aiHealth.provider} / ${aiHealth.local_model_available ? "可用" : "待接入"}` : "第 9—12 周"}</span>
@@ -1176,7 +1829,7 @@ function App() {
               </div>
             )}
           </section>
-          <section className="history-panel">
+          <section className="history-panel" data-active={activePanel === "history"}>
             <div className="section-heading">
               <h2>历史统计</h2>
               <span>{historyData ? `第 5—8 周 · ${historyData.summary.available_years.length} 个年份` : "等待查询"}</span>
@@ -1273,6 +1926,12 @@ function App() {
                 <div className="history-coverage-note" data-state={historyData.summary.sample_reliability_level}>
                   <strong>样本覆盖说明</strong>
                   <span>{historyData.summary.sample_coverage_note}</span>
+                  <small>{historyData.summary.probability_rule_note}</small>
+                </div>
+                <div className="history-facts">
+                  <span>已覆盖年份 {historyData.summary.same_period_covered_years.slice(0, 6).join(" / ") || "--"}{historyData.summary.same_period_covered_years.length > 6 ? " 等" : ""}</span>
+                  <span>缺失年份 {historyData.summary.same_period_missing_years.slice(0, 8).join(" / ") || "--"}{historyData.summary.same_period_missing_years.length > 8 ? " 等" : ""}</span>
+                  <span>下一批缺失日期 {formatDatePreview(historyData.summary.next_missing_same_period_dates, 3)}</span>
                 </div>
                 <div className="history-facts">
                   <span>锋面线像元均值 {historyData.summary.front_line_pixels_mean != null ? historyData.summary.front_line_pixels_mean.toFixed(2) : "--"}</span>
@@ -1281,6 +1940,36 @@ function App() {
                   <span>SST 范围 {historyData.summary.sst_min_celsius != null && historyData.summary.sst_max_celsius != null ? `${historyData.summary.sst_min_celsius.toFixed(2)} - ${historyData.summary.sst_max_celsius.toFixed(2)} °C` : "--"}</span>
                   <span>多年梯度 {historyData.summary.sst_gradient_c_per_km_mean != null ? `${historyData.summary.sst_gradient_c_per_km_mean.toFixed(5)} °C/km` : "--"}</span>
                   <span>当月样本 {monthlyHistoryPoint ? `${monthlyHistoryPoint.sample_count} / 命中 ${monthlyHistoryPoint.front_hit_count}` : "--"}</span>
+                </div>
+                <div className="year-hit-map">
+                  <div className="history-chart-title">
+                    <strong>同期年份命中图</strong>
+                    <span>{historyData.summary.same_period_sample_count}/{historyData.summary.same_period_expected_sample_count} 年</span>
+                  </div>
+                  <div className="year-hit-grid">
+                    {Array.from(
+                      {
+                        length: historyData.summary.historical_target_year_end - historyData.summary.historical_target_year_start + 1,
+                      },
+                      (_, index) => historyData.summary.historical_target_year_start + index,
+                    ).map((year) => {
+                      const record = historyData.same_period_records.find((item) => item.year === year);
+                      return (
+                        <span
+                          data-state={record ? (record.front_present ? "hit" : "miss") : "missing"}
+                          key={year}
+                          title={record ? `${record.date}: ${record.front_present ? "命中锋面" : "未命中"}，${record.front_line_pixels} 像元` : `${year}: 缺少样本`}
+                        >
+                          {String(year).slice(2)}
+                        </span>
+                      );
+                    })}
+                  </div>
+                  <div className="year-hit-legend">
+                    <span><i data-state="hit" />命中锋面</span>
+                    <span><i data-state="miss" />未命中</span>
+                    <span><i data-state="missing" />缺少样本</span>
+                  </div>
                 </div>
                 <div className="history-chart-stack">
                   <div className="history-chart-title">
@@ -1347,13 +2036,15 @@ function App() {
                   {historyData.monthly.map((item) => {
                     const probability = item.probability ?? 0;
                     const height = item.probability == null ? 10 : Math.max(8, probability * 100);
+                    const sampleHeight = Math.max(4, (item.sample_count / monthlyMaxSampleCount) * 100);
                     return (
                       <div className="monthly-column" key={item.month}>
                         <div className="monthly-bar-track">
+                          <div className="monthly-sample-bar" style={{ height: `${sampleHeight}%` }} />
                           <div className="monthly-bar" style={{ height: `${height}%` }} />
                         </div>
                         <span>{String(item.month).padStart(2, "0")}</span>
-                        <small>{formatPercent(item.probability)}</small>
+                        <small>{formatPercent(item.probability)} · {item.sample_count}</small>
                       </div>
                     );
                   })}
@@ -1367,7 +2058,11 @@ function App() {
                     <div className="history-record" key={item.date}>
                       <span>{item.date}</span>
                       <strong>{item.front_present ? "命中锋面" : "未命中"}</strong>
-                      <small>{item.front_line_pixels} 个锋面线像元 · {item.source_files[0] ?? "无源文件"}</small>
+                      <small>
+                        {item.front_line_pixels} 个锋面线像元 · 密度 {item.front_line_density_per_1000_pixels.toFixed(2)}/1000 ·
+                        最近 {item.nearest_front_distance_km != null ? `${item.nearest_front_distance_km.toFixed(2)} km` : "--"} ·
+                        {item.source_files[0] ?? "无源文件"}
+                      </small>
                     </div>
                   )) : (
                     <div className="history-empty inline">
@@ -1403,7 +2098,7 @@ function App() {
               {historyError ?? (historyData ? `历史样本：${historyData.summary.annual_sample_count} 条` : "等待查询")}
             </div>
           </section>
-          <section className="provenance-section">
+          <section className="provenance-section" data-active={activePanel === "data"}>
             <div className="section-heading"><h2>数据状态</h2><span>{dataHealthLabel}</span></div>
             {dataManifest && (
               <>
@@ -1423,11 +2118,56 @@ function App() {
                     <strong>{dataIssueCount}</strong>
                     <small>SST {missingSstCount} / front {missingFrontCount}</small>
                   </article>
+                  <article>
+                    <span>强度数据</span>
+                    <strong>{dataPlan?.front_intensity_file_count ?? 0}</strong>
+                    <small>front_intensity 可选增强</small>
+                  </article>
                 </div>
                 <div className="data-readiness-card">
                   <strong>离线数据就绪度</strong>
-                  <span>{dataIssueCount === 0 ? "当前 front 与 SST 日期完全配对，可以稳定执行单日、历史和追踪查询。" : "当前本地数据仍存在 front/SST 日期缺口，缺失日期会影响历史概率和连续追踪窗口。"}</span>
+                  <span>
+                    {dataPlan
+                      ? `${dataPlan.readiness_level} · ${(dataPlan.readiness_score * 100).toFixed(1)}% · 下一步：${dataPlan.next_action}`
+                      : dataIssueCount === 0
+                        ? "当前 front 与 SST 日期完全配对，可以稳定执行单日、历史和追踪查询。"
+                        : "当前本地数据仍存在 front/SST 日期缺口，缺失日期会影响历史概率和连续追踪窗口。"}
+                  </span>
                   <small>manifest 生成时间：{dataManifest.generated_at}</small>
+                </div>
+                <div className="data-dashboard">
+                  <article>
+                    <div>
+                      <span>整体就绪度</span>
+                      <strong>{dataReadinessPercent != null ? `${dataReadinessPercent.toFixed(1)}%` : "--"}</strong>
+                    </div>
+                    <i><b style={{ width: `${dataReadinessPercent ?? 0}%` }} /></i>
+                    <small>{dataPlan?.readiness_level ?? "等待数据准备计划"}</small>
+                  </article>
+                  <article>
+                    <div>
+                      <span>front/SST 主链路</span>
+                      <strong>{frontSstCompletion != null ? formatPercent(frontSstCompletion) : "--"}</strong>
+                    </div>
+                    <i><b style={{ width: `${frontSstCompletion != null ? frontSstCompletion * 100 : 0}%` }} /></i>
+                    <small>配对 {dataPlan?.paired_date_count ?? dataManifest.paired_date_count} · 待补 {dataPlan?.required_front_sst_file_count ?? dataIssueCount}</small>
+                  </article>
+                  <article>
+                    <div>
+                      <span>43 年同期覆盖</span>
+                      <strong>{formatPercent(dataPlan?.historical_coverage_ratio)}</strong>
+                    </div>
+                    <i><b style={{ width: `${(dataPlan?.historical_coverage_ratio ?? 0) * 100}%` }} /></i>
+                    <small>缺失年份 {dataPlan?.historical_missing_years.length ?? "--"}</small>
+                  </article>
+                  <article>
+                    <div>
+                      <span>强度增强</span>
+                      <strong>{dataPlan?.front_intensity_file_count ?? 0}</strong>
+                    </div>
+                    <i><b style={{ width: `${dataPlan?.front_intensity_file_count ? 100 : 0}%` }} /></i>
+                    <small>{dataPlan?.front_intensity_file_count ? "可展示强度图层" : "可后续接入 front_intensity"}</small>
+                  </article>
                 </div>
                 <div className="dataset-table" aria-label="本地数据资产表">
                   <div className="dataset-table-head">
@@ -1483,6 +2223,11 @@ function App() {
                     <strong>{indexedSst?.date_count ?? 0}</strong>
                     <small>{indexedSst ? formatRange(indexedSst.available_date_start, indexedSst.available_date_end) : "--"}</small>
                   </article>
+                  <article>
+                    <span>强度覆盖</span>
+                    <strong>{indexedIntensity?.date_count ?? 0}</strong>
+                    <small>{indexedIntensity ? formatRange(indexedIntensity.available_date_start, indexedIntensity.available_date_end) : "可后续接入"}</small>
+                  </article>
                   <article data-state={dataIndexWarningCount ? "warn" : "ok"}>
                     <span>索引告警</span>
                     <strong>{dataIndexWarningCount}</strong>
@@ -1510,6 +2255,11 @@ function App() {
                 </div>
                 <div className="data-target-grid">
                   <article>
+                    <span>就绪评分</span>
+                    <strong>{(dataPlan.readiness_score * 100).toFixed(1)}%</strong>
+                    <small>{dataPlan.readiness_level}</small>
+                  </article>
+                  <article>
                     <span>目标窗口</span>
                     <strong>{dataPlan.target_dates.length}</strong>
                     <small>{formatDatePreview(dataPlan.target_dates, 3)}</small>
@@ -1529,7 +2279,65 @@ function App() {
                     <strong>{dataPlan.historical_paired_date_count}/{dataPlan.historical_target_date_count}</strong>
                     <small>缺 front {dataPlan.historical_missing_front_dates.length} / SST {dataPlan.historical_missing_sst_dates.length}</small>
                   </article>
+                  <article data-state={dataPlan.historical_coverage_ratio != null && dataPlan.historical_coverage_ratio < 1 ? "warn" : "ok"}>
+                    <span>43 年覆盖</span>
+                    <strong>{formatPercent(dataPlan.historical_coverage_ratio)}</strong>
+                    <small>缺年份 {dataPlan.historical_missing_years.length}</small>
+                  </article>
+                  <article data-state={dataPlan.historical_missing_intensity_dates.length ? "warn" : "ok"}>
+                    <span>强度缺口</span>
+                    <strong>{dataPlan.historical_missing_intensity_dates.length}</strong>
+                    <small>可在 front/SST 后补</small>
+                  </article>
+                  <article data-state={dataPlan.required_front_sst_file_count ? "warn" : "ok"}>
+                    <span>必需补齐量</span>
+                    <strong>{dataPlan.required_front_sst_file_count}</strong>
+                    <small>front/SST 日期项</small>
+                  </article>
+                  <article data-state={dataPlan.optional_intensity_file_count ? "warn" : "ok"}>
+                    <span>可选强度量</span>
+                    <strong>{dataPlan.optional_intensity_file_count}</strong>
+                    <small>front_intensity 日期项</small>
+                  </article>
                 </div>
+                {dataPlan.priority_actions.length > 0 && (
+                  <div className="priority-action-list">
+                    <div className="history-chart-title">
+                      <strong>优先动作</strong>
+                      <span>{dataPlan.next_action}</span>
+                    </div>
+                    {dataPlan.priority_actions.map((action) => (
+                      <div className="priority-action-row" key={`${action.level}-${action.name}`}>
+                        <span>{action.level} · {action.name}</span>
+                        <strong>{action.status}</strong>
+                        <small>{action.reason}</small>
+                        {action.command_preview && (
+                          <button className="copy-command" type="button" onClick={() => copyCommand(action.command_preview ?? "")}>
+                            <code>{action.command_preview}</code>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {dataPlan.next_historical_batches.length > 0 && (
+                  <div className="batch-list">
+                    <div className="history-chart-title">
+                      <strong>下一批历史样本</strong>
+                      <span>按缺失年份分批</span>
+                    </div>
+                    {dataPlan.next_historical_batches.slice(0, 3).map((batch) => (
+                      <div className="batch-row" key={batch.label}>
+                        <span>{batch.priority} · {batch.label}</span>
+                        <strong>{batch.date_count} 天</strong>
+                        <small>{formatRange(batch.date_start, batch.date_end)} · 缺 front {batch.missing_front_count} / SST {batch.missing_sst_count}</small>
+                        <button className="copy-command" type="button" onClick={() => copyCommand(batch.command_preview)}>
+                          <code>{batch.command_preview}</code>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <ol>
                   {dataPlan.recommended_steps.slice(0, 4).map((step) => (
                     <li key={step}>{step}</li>
@@ -1547,12 +2355,22 @@ function App() {
                 )}
                 <div className="command-list">
                   {dataPlan.download_commands.slice(0, 3).map((command) => (
-                    <code key={command}>{command}</code>
+                    <button className="copy-command" key={command} type="button" onClick={() => copyCommand(command)}>
+                      <code>{command}</code>
+                    </button>
                   ))}
                   {dataPlan.historical_download_commands.slice(0, 1).map((command) => (
-                    <code key={`history-${command}`}>{command}</code>
+                    <button className="copy-command" key={`history-${command}`} type="button" onClick={() => copyCommand(command)}>
+                      <code>{command}</code>
+                    </button>
+                  ))}
+                  {dataPlan.acceptance_commands.slice(0, 2).map((command) => (
+                    <button className="copy-command" key={`accept-${command}`} type="button" onClick={() => copyCommand(command)}>
+                      <code>{command}</code>
+                    </button>
                   ))}
                 </div>
+                {copiedCommand && <div className="copy-feedback">{copiedCommand}</div>}
               </div>
             )}
             {dataIndexError && <div className="quality-note quality-error"><span className="quality-dot" />{dataIndexError}</div>}

@@ -79,6 +79,21 @@ def _write_sst_file(path: Path) -> None:
     dataset.to_netcdf(path, engine="h5netcdf")
 
 
+def _write_intensity_file(path: Path, values: np.ndarray, observation_date: str) -> None:
+    dataset = xr.Dataset(
+        data_vars={
+            "front_intensity": (("lat", "lon", "time"), values[:, :, np.newaxis].astype(np.float32)),
+        },
+        coords={
+            "lat": np.array([30.0, 31.0], dtype=np.float32),
+            "lon": np.array([120.0, 121.0], dtype=np.float32),
+            "time": np.array([np.datetime64(observation_date)], dtype="datetime64[ns]"),
+        },
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    dataset.to_netcdf(path, engine="h5netcdf")
+
+
 def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) -> None:
     raw_root = tmp_path / "raw"
     cache_root = tmp_path / "cache"
@@ -101,11 +116,16 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
         "2025-08-05",
     )
     _write_sst_file(raw_root / "sst" / "2024" / "sst_20240805_20250805.nc")
+    _write_intensity_file(
+        raw_root / "front_intensity" / "2024" / "front_intensity20240805.nc",
+        np.array([[0.1, 0.0], [0.4, 0.8]], dtype=np.float32),
+        "2024-08-05",
+    )
     _write_sst_file(raw_root / "_duplicates_backup" / "sst" / "2024" / "sst_backup_20240805.nc")
 
     catalog_response = client.get("/api/catalog")
     assert catalog_response.status_code == 200
-    assert catalog_response.json()["file_count"] == 4
+    assert catalog_response.json()["file_count"] == 5
 
     analysis_response = client.get(
         "/api/analysis/2024-08-05?longitude=120.5&latitude=30.5&radius_deg=1"
@@ -115,6 +135,9 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert analysis_payload["sst"]["range_celsius"] == 1.5
     assert analysis_payload["sst"]["gradient_c_per_km"] > 0
     assert analysis_payload["sst"]["max_gradient_c_per_km"] >= analysis_payload["sst"]["gradient_c_per_km"]
+    assert analysis_payload["intensity"]["available"] == "是"
+    assert analysis_payload["intensity"]["active_pixel_count"] == 3
+    assert analysis_payload["intensity"]["mean"] == 0.325
     assert analysis_payload["quality"]["geojson_sst_sample_step"] == 1
     assert analysis_payload["quality"]["geojson_front_sample_step"] == 1
     assert analysis_payload["rasters"]["sst"]["format"] == "image/png"
@@ -125,6 +148,7 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert analysis_payload["layers"]["cold_side"]["features"][0]["geometry"]["type"] == "Polygon"
     assert analysis_payload["layers"]["front_object_centroids"]["features"][0]["properties"]["front_id"] == "20240805-F001"
     assert analysis_payload["layers"]["front_object_bboxes"]["features"][0]["geometry"]["type"] == "Polygon"
+    assert len(analysis_payload["layers"]["front_intensity"]["features"]) == 3
 
     raster_response = client.get(
         "/api/analysis/2024-08-05/raster?longitude=120.5&latitude=30.5&radius_deg=1&kind=combined"
@@ -157,14 +181,21 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert plan_payload["missing_sst_dates"] == []
     assert plan_payload["missing_front_dates"] == []
     assert plan_payload["download_commands"][-1].endswith("phase1_12_smoke.py")
+    assert 0 <= plan_payload["readiness_score"] <= 1
+    assert plan_payload["readiness_level"]
+    assert plan_payload["next_action"]
+    assert plan_payload["required_front_sst_file_count"] >= 0
+    assert plan_payload["optional_intensity_file_count"] >= 0
+    assert plan_payload["priority_actions"]
+    assert any(command.endswith("phase1_12_smoke.py") for command in plan_payload["acceptance_commands"])
     assert plan_payload["source_notes"]
 
     data_index_response = client.get("/api/data/index")
     assert data_index_response.status_code == 200
     data_index_payload = data_index_response.json()
     assert data_index_payload["ready"] is True
-    assert data_index_payload["schema_version"] == "data-index-v1"
-    assert data_index_payload["total_file_count"] == 4
+    assert data_index_payload["schema_version"] == "data-index-v2"
+    assert data_index_payload["total_file_count"] == 5
     assert data_index_payload["indexed_date_count"] == 3
     assert data_index_payload["paired_date_count"] == 3
     assert data_index_payload["missing_sst_dates"] == []
@@ -177,6 +208,8 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert dataset_by_type["front_location"]["date_count"] == 3
     assert dataset_by_type["sst"]["file_count"] == 1
     assert dataset_by_type["sst"]["date_count"] == 3
+    assert dataset_by_type["front_intensity"]["file_count"] == 1
+    assert dataset_by_type["front_intensity"]["date_count"] == 1
 
     rebuild_index_response = client.post("/api/data/index/rebuild")
     assert rebuild_index_response.status_code == 200
@@ -188,7 +221,8 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert date_index_payload["complete"] is True
     assert date_index_payload["front_file_count"] == 1
     assert date_index_payload["sst_file_count"] == 1
-    assert len(date_index_payload["files"]) == 2
+    assert date_index_payload["intensity_file_count"] == 1
+    assert len(date_index_payload["files"]) == 3
     assert any(item["dataset_type"] == "front_location" for item in date_index_payload["files"])
     assert any(item["dataset_type"] == "sst" for item in date_index_payload["files"])
     assert all(item["canonical"] is True for item in date_index_payload["files"])
@@ -201,6 +235,8 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert objects_payload["object_count"] == 1
     assert objects_payload["nearest_front_id"] == "20240805-F001"
     assert objects_payload["objects"][0]["length_km"] > 0
+    assert objects_payload["objects"][0]["mean_intensity"] == 0.1
+    assert objects_payload["objects"][0]["max_intensity"] == 0.1
     assert objects_payload["layers"]["centroids"]["features"][0]["geometry"]["type"] == "Point"
 
     tracking_response = client.get(
@@ -211,7 +247,10 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert tracking_payload["days"] == 2
     assert tracking_payload["match_distance_km"] == 80.0
     assert tracking_payload["algorithm"] == "centroid-shape-overlap"
+    assert tracking_payload["algorithm_version"] == "v2"
     assert tracking_payload["algorithm_notes"]
+    assert tracking_payload["confidence_label"]
+    assert tracking_payload["gap_count"] == 1
     assert tracking_payload["tracked_step_count"] == 1
     assert tracking_payload["steps"][0]["front_id"] == "20240805-F001"
     assert tracking_payload["steps"][0]["matched_by"] == "query_anchor"
@@ -231,11 +270,17 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert response.status_code == 200
     payload = response.json()
     assert payload["summary"]["available_years"] == [2024, 2025]
+    assert payload["summary"]["probability_rule"] == "line_presence"
+    assert payload["summary"]["probability_rule_label"] == "窗口内存在锋面线像元"
+    assert "存在至少 1 个锋面线像元" in payload["summary"]["probability_rule_note"]
     assert payload["summary"]["same_period_sample_count"] == 2
     assert payload["summary"]["same_period_front_hit_count"] == 1
     assert payload["summary"]["same_period_probability"] == 0.5
     assert payload["summary"]["same_period_expected_sample_count"] == 43
     assert payload["summary"]["same_period_coverage_ratio"] == round(2 / 43, 4)
+    assert payload["summary"]["same_period_covered_years"] == [2024, 2025]
+    assert 1982 in payload["summary"]["same_period_missing_years"]
+    assert payload["summary"]["next_missing_same_period_dates"]
     assert payload["summary"]["monthly_expected_sample_count"] == 31 * 43
     assert payload["summary"]["monthly_coverage_ratio"] == round(3 / (31 * 43), 4)
     assert payload["summary"]["sample_reliability_level"] == "low"
@@ -249,6 +294,8 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert payload["summary"]["sst_gradient_c_per_km_mean"] > 0
     assert payload["timeline"][0]["date"] == "2024-08-05"
     assert payload["timeline"][0]["sst_gradient_c_per_km"] > 0
+    assert payload["timeline"][0]["front_line_density_per_1000_pixels"] == 250.0
+    assert payload["timeline"][0]["nearest_front_distance_km"] is not None
     assert payload["timeline"][1]["date"] == "2024-08-06"
     assert len(payload["same_period_records"]) == 2
     assert len(payload["monthly_records"]) == 3
@@ -266,6 +313,52 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert cached_payload["cache"]["records_evaluated"] == 0
     assert cached_payload["cache"]["timeline_record_count"] == 3
     assert cached_payload["summary"] == payload["summary"]
+
+    probability_rules_response = client.get("/api/history/probability-rules")
+    assert probability_rules_response.status_code == 200
+    probability_rules_payload = probability_rules_response.json()
+    assert probability_rules_payload["default_rule"] == "line_presence"
+    assert {item["id"] for item in probability_rules_payload["options"]} == {
+        "line_presence",
+        "density_threshold",
+        "distance_threshold",
+    }
+
+    distance_rule_response = client.get(
+        "/api/history/2024-08-05?longitude=120.5&latitude=30.5&radius_deg=1"
+        "&probability_rule=distance_threshold&max_front_distance_km=10"
+    )
+    assert distance_rule_response.status_code == 200
+    distance_rule_payload = distance_rule_response.json()
+    assert distance_rule_payload["summary"]["probability_rule"] == "distance_threshold"
+    assert distance_rule_payload["summary"]["probability_threshold"] == 10.0
+    assert distance_rule_payload["summary"]["same_period_probability"] == 0.0
+    assert distance_rule_payload["timeline"][0]["front_present"] is False
+
+    prediction_response = client.get(
+        "/api/prediction/2024-08-05?longitude=120.5&latitude=30.5&radius_deg=1&horizon_days=3"
+    )
+    assert prediction_response.status_code == 200
+    prediction_payload = prediction_response.json()
+    assert prediction_payload["algorithm"] == "historical-climatology-recent-baseline"
+    assert prediction_payload["forecast_count"] == 3
+    assert prediction_payload["predictions"][0]["target_date"] == "2024-08-06"
+    assert prediction_payload["predictions"][0]["probability"] is not None
+    assert prediction_payload["predictions"][0]["observed_front_present"] is False
+    assert prediction_payload["predictions"][0]["drivers"]
+
+    prediction_evaluation_response = client.get(
+        "/api/prediction/2024-08-05/evaluation?longitude=120.5&latitude=30.5"
+        "&radius_deg=1&horizon_days=2&max_anchor_dates=4"
+    )
+    assert prediction_evaluation_response.status_code == 200
+    prediction_evaluation_payload = prediction_evaluation_response.json()
+    assert prediction_evaluation_payload["evaluation_mode"] == "in-sample-local-backtest"
+    assert prediction_evaluation_payload["candidate_anchor_count"] == 1
+    assert prediction_evaluation_payload["evaluated_count"] == 1
+    assert prediction_evaluation_payload["brier_score"] is not None
+    assert prediction_evaluation_payload["points"][0]["anchor_date"] == "2024-08-05"
+    assert prediction_evaluation_payload["points"][0]["target_date"] == "2024-08-06"
 
     report_response = client.get(
         "/api/report/2024-08-05?longitude=120.5&latitude=30.5&radius_deg=1&days=2"

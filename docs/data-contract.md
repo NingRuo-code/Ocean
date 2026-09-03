@@ -36,7 +36,7 @@
 
 注意：锋面线值同时满足正负侧条件。实现图层时应先提取锋面线，再计算冷暖侧掩码，避免图层语义混淆。
 
-### `frontal_intensity`
+### `frontal_intensity` / `front_intensity`
 
 锋面强度在存储前经过对数变换。原始值恢复规则为：
 
@@ -45,7 +45,7 @@ stored == -128  →  NaN
 original = 10 ** ((stored + 100) / 100) - 1
 ```
 
-第一阶段可不接入该变量，但接口命名应避免与 `front` 混用。
+系统当前已按可选增强接入强度文件：如果本地存在 `front_intensity` / `frontal_intensity` / `intensity` 等候选变量，会在单日分析、对象识别、数据清单和 SQLite 索引中自动展示；如果没有强度文件，接口仍返回占位说明，不影响 front/SST 主流程。
 
 ## 已确认与未纳入范围
 
@@ -85,7 +85,14 @@ python scripts/fetch_zenodo_front_samples.py 2024-08-05 2024-08-06 2024-08-07
     "front_band": "GeoJSON Polygon FeatureCollection",
     "front_line": "GeoJSON LineString FeatureCollection",
     "warm_side": "GeoJSON Polygon FeatureCollection",
-    "cold_side": "GeoJSON Polygon FeatureCollection"
+    "cold_side": "GeoJSON Polygon FeatureCollection",
+    "front_intensity": "可选 GeoJSON Polygon FeatureCollection"
+  },
+  "intensity": {
+    "available": "是/否",
+    "mean": 0.32,
+    "max": 0.8,
+    "active_pixel_count": 128
   },
   "rasters": {
     "sst": {
@@ -106,8 +113,11 @@ python scripts/fetch_zenodo_front_samples.py 2024-08-05 2024-08-06 2024-08-07
 
 当前 `/api/analysis/{date}` 直接返回可供 MapLibre 使用的 GeoJSON 图层和 raster 元信息。其中 `rasters.sst` 指向后端生成的 PNG 温度场图像，适合作为地图底图；`sst`、`front_band`、`warm_side`、`cold_side` 仍保留 GeoJSON Polygon 表达，用于点击交互、兜底显示和矢量叠加；`front_line` 保留 LineString，用于在锋面带上叠加中心线。查询窗口较大时，GeoJSON 面图层会根据 `quality.geojson_sst_sample_step` 和 `quality.geojson_front_sample_step` 自动抽样，前端优先使用 PNG raster 避免响应体过大。
 
-单日分析响应同时包含对象图层：
+单日分析响应同时包含强度摘要和对象图层：
 
+- `intensity.available`：是否命中本地强度文件；
+- `intensity.mean` / `max` / `active_pixel_count`：查询窗口内有效强度均值、最大值和正值像元数；
+- `layers.front_intensity`：强度文件存在时返回强度面图层，否则返回空 FeatureCollection；
 - `layers.front_object_centroids`：锋面对象质心点；
 - `layers.front_object_bboxes`：锋面对象包围框。
 
@@ -142,13 +152,13 @@ python scripts/fetch_zenodo_front_samples.py 2024-08-05 2024-08-06 2024-08-07
 返回本地 SQLite 元数据索引状态。该索引用于把后续全量数据接入从“每次扫目录”推进到“查询本地元数据表”：
 
 - `index_path`：SQLite 索引文件位置，默认 `data/processed/data_index.sqlite`；
-- `schema_version`：索引结构版本，当前为 `data-index-v1`；
+- `schema_version`：索引结构版本，当前为 `data-index-v2`；
 - `total_file_count` / `total_size_bytes`：纳入索引的文件总数和总体积；
 - `indexed_date_count`：front/SST 日期并集数量；
 - `paired_date_count`：front 与 SST 同时存在的日期数量；
 - `missing_sst_dates`：有 front 但缺 SST 的日期；
 - `missing_front_dates`：有 SST 但缺 front 的日期；
-- `datasets`：每类数据集的文件数、日期数、年月覆盖、重复日期数量和样例路径；
+- `datasets`：每类数据集的文件数、日期数、年月覆盖、重复日期数量和样例路径，包含可选 `front_intensity`；
 - `integrity_warnings`：索引层发现的缺失、重复或 schema 不一致提示；
 - `query_examples`：用于核对索引内容的 SQL 示例。
 
@@ -178,8 +188,19 @@ python scripts/build_data_index.py
 - `target_missing_front_dates`：目标窗口内还缺少 front_location 的日期；
 - `target_missing_sst_dates`：目标窗口内还缺少 SST 的日期；
 - `historical_reference_date` / `historical_year_start` / `historical_year_end` / `historical_window_days`：跨年份同期样本目标；
+- `front_intensity_file_count`：当前已发现的强度文件数量；
 - `historical_paired_date_count` / `historical_target_date_count`：跨年份同期样本的已配对进度；
+- `historical_coverage_ratio`：完整 1982—2024 同期目标下的年份覆盖比例；
+- `historical_covered_years` / `historical_missing_years`：已覆盖和仍缺失的年份；
 - `historical_missing_front_dates` / `historical_missing_sst_dates`：跨年份同期缺失日期；
+- `historical_missing_intensity_dates`：已具备 front/SST 但尚缺强度数据的日期；
+- `next_historical_batches`：按缺失年份分组生成的下一批补样建议和命令预览；
+- `readiness_score` / `readiness_level`：面向阶段验收的数据就绪评分与等级；
+- `next_action`：当前最应该优先执行的一项数据准备动作；
+- `required_front_sst_file_count`：front_location 与 SST 主流程仍需补齐的必需文件数量；
+- `optional_intensity_file_count`：front_intensity 可选增强仍缺失的文件数量；
+- `priority_actions`：按 P0/P1/P2 输出的优先动作、原因、状态和命令预览；
+- `acceptance_commands`：数据准备完成后建议运行的验收命令；
 - `duplicate_front_groups` / `duplicate_sst_groups`：重复数据文件分组、建议保留路径和备份说明；
 - `recommended_steps`：按当前数据状态生成的下一步处理建议；
 - `download_commands`：可复制执行的数据补齐、manifest 重建和 smoke 验收命令；
@@ -198,6 +219,7 @@ python scripts/build_data_index.py
 - `objects[].centroid_longitude` / `centroid_latitude`：对象质心；
 - `objects[].bbox`：对象包围框 `[west,south,east,north]`；
 - `objects[].length_km`：基于像元数量和网格间距的近似长度；
+- `objects[].mean_intensity` / `max_intensity` / `intensity_pixel_count`：存在强度数据时返回对象级强度统计；
 - `objects[].nearest_to_query_km`：对象内最近锋面像元到查询点的近似距离；
 - `layers.centroids` / `layers.bboxes`：前端可直接加载的 GeoJSON 图层。
 
@@ -209,8 +231,11 @@ python scripts/build_data_index.py
 - `available_step_count`：窗口内实际存在 front 文件的日期数量；
 - `tracked_step_count`：检测到最近锋面对象的日期数量；
 - `cumulative_displacement_km`：连续检测到对象时的累计质心位移；
+- `mean_daily_displacement_km` / `max_daily_displacement_km`：平均和最大逐日位移；
+- `gap_count` / `reset_count`：缺测或重新锚定次数；
+- `mean_match_score` / `confidence_score` / `confidence_label`：整体匹配分和可信度；
 - `algorithm` / `algorithm_notes`：当前追踪算法标识和面向汇报的算法说明；
-- `steps[]`：每日对象 ID、质心、长度、距查询点距离、相对前一匹配日位移、匹配分数和状态；
+- `steps[]`：每日对象 ID、质心、长度、距查询点距离、相对前一匹配日位移、速度、方位角、匹配分数、连续性分数和状态；
 - `steps[].match_score`：综合质心距离、形态相似度和 bbox 重叠率后的匹配分数，越接近 1 表示连续性越强；
 - `steps[].shape_similarity`：对象长度与像元数的相似度；
 - `steps[].bbox_overlap_ratio`：相邻日期对象 bbox 的重叠比例；
@@ -218,9 +243,47 @@ python scripts/build_data_index.py
 
 当前追踪规则是第一版工程规则：首日按查询点最近对象锚定，后续综合质心距离、对象长度/像元数相似度与 bbox 重叠率打分；如果最佳对象超过 `match_distance_km`，则重新按查询点最近对象锚定。响应中的 `matched_by` 标记匹配原因，`candidates_considered` 标记候选对象数量。该结果不代表完整的跨日同一锋面物理轨迹。如果后续要做论文级追踪，需要确认匹配半径、速度约束和断裂/合并处理规则。
 
+### `GET /api/prediction/{date}`
+
+返回未来 1—14 日锋面出现概率的透明 baseline。该接口不是机器学习模型，也不等同于论文级预报系统；它用于阶段演示、回测对照和后续模型接入前的可解释基线。
+
+支持与历史统计一致的概率口径参数：
+
+- `probability_rule`：`line_presence`、`density_threshold` 或 `distance_threshold`；
+- `min_line_density_per_1000`：密度口径阈值；
+- `max_front_distance_km`：最近距离口径阈值。
+
+- `algorithm`：当前为 `historical-climatology-recent-baseline`；
+- `horizon_days` / `forecast_count`：预测窗口和实际返回天数；
+- `training_sample_count`：参与历史统计的本地样本数量；
+- `sample_reliability_label`：历史样本覆盖可信度；
+- `predictions[].target_date`：预测目标日期；
+- `predictions[].probability`：综合同日历史、月度概率、近期状态和梯度修正后的概率；
+- `predictions[].predicted_status`：面向用户的状态描述；
+- `predictions[].confidence_label`：该预测点的样本可信度；
+- `predictions[].same_period_probability` / `monthly_probability` / `recent_signal` / `gradient_adjustment`：各驱动因子；
+- `predictions[].observed_front_present` / `observed_front_line_pixels`：若目标日已有本地观测，则返回回测参考；
+- `predictions[].drivers`：每个驱动因子的权重和说明；
+- `explanation`：baseline 的使用边界；
+- `source_files`：相关历史样本源文件。
+
+### `GET /api/prediction/{date}/evaluation`
+
+返回预测 baseline 的本地样本内回测结果，用于检查预测链路是否可解释、可验收。该接口会把本地已观测日期作为起报日，对已有未来观测的目标日计算误差。
+
+- `horizon_days`：评估预测窗口，1—14 天；
+- `max_anchor_dates`：最多纳入多少个起报日，默认 30；
+- `evaluated_count` / `candidate_anchor_count`：实际评估点数和候选起报日数量；
+- `accuracy`：以 `probability >= 0.5` 为默认分类阈值的命中率；
+- `brier_score`：概率预测与 0/1 观测之间的均方误差，越低越好；
+- `mean_absolute_error`：平均绝对误差；
+- `positive_count` / `negative_count`：评估样本中的正负观测数量；
+- `points[]`：每个起报日—目标日的概率、观测、误差和可信度；
+- `notes`：说明这是本地样本内诊断，不代表严格留出集评估。
+
 ### `GET /api/report/{date}`
 
-生成可用于汇报的确定性报告。参数与单日分析一致，另支持 `days` 指定追踪窗口天数。响应包括：
+生成可用于汇报的确定性报告。参数与单日分析一致，另支持 `days` 指定追踪窗口天数，并支持 `probability_rule`、`min_line_density_per_1000`、`max_front_distance_km` 与当前历史概率口径保持一致。响应包括：
 
 - `title` / `generated_at`：报告标题与生成时间；
 - `query`：查询日期、位置、范围和追踪天数；
@@ -229,7 +292,7 @@ python scripts/build_data_index.py
 - `html`：HTML 版报告内容，前端可直接下载；
 - `source_files`：报告涉及的本地源文件。
 
-报告内容由后端调用单日分析、对象识别、连续追踪和历史统计工具生成，科学数值不由前端或 AI 文本自行编造。
+报告内容由后端调用单日分析、对象识别、连续追踪、历史统计和预测 baseline 工具生成，科学数值不由前端或 AI 文本自行编造。
 
 ## 历史统计接口契约
 
@@ -247,6 +310,14 @@ python scripts/build_data_index.py
 - `fingerprint`：由文件路径、大小和修改时间生成的索引指纹；
 - `cache_path`：历史索引缓存位置。
 
+### `GET /api/history/probability-rules`
+
+返回当前可选的历史概率命中口径：
+
+- `line_presence`：查询窗口内存在至少 1 个锋面线像元即算命中，适合第一版演示和旧结果兼容；
+- `density_threshold`：锋面线密度达到阈值才算命中，适合不同窗口大小之间做稳健比较；
+- `distance_threshold`：最近锋面线距离查询点不超过阈值才算命中，适合点位任务或告警口径。
+
 ### `GET /api/history/{date}`
 
 返回前端综合历史统计：
@@ -255,8 +326,11 @@ python scripts/build_data_index.py
 - `summary.valid_years`：查询窗口内存在有效 front 像元的年份；
 - `summary.front_years`：查询窗口内出现锋面线像元的年份；
 - `summary.same_period_probability`：同月同日历史样本中的锋面发生概率；
+- `summary.probability_rule` / `probability_rule_label` / `probability_threshold` / `probability_rule_note`：本次概率计算使用的命中口径；
 - `summary.same_period_expected_sample_count`：完整 1982—2024 目标下，同月同日应覆盖的年份数；
 - `summary.same_period_coverage_ratio`：当前同月同日样本数 / 完整目标年份数；
+- `summary.same_period_covered_years` / `same_period_missing_years`：同月同日已覆盖和仍缺失的年份；
+- `summary.next_missing_same_period_dates`：建议优先补齐的同月同日缺口日期；
 - `summary.monthly_probability`：查询月份全部历史样本中的锋面发生概率；
 - `summary.monthly_expected_sample_count`：完整 1982—2024 目标下，该月份应覆盖的总天数；
 - `summary.monthly_coverage_ratio`：当前同月样本数 / 完整目标月份天数；
@@ -265,7 +339,7 @@ python scripts/build_data_index.py
 - `summary.front_line_pixels_mean/min/max`：多年局地锋面线像元统计；
 - `summary.sst_mean_celsius` / `summary.sst_min_celsius` / `summary.sst_max_celsius`：多年局地 SST 统计；
 - `summary.sst_gradient_c_per_km_mean/min/max`：多年局地 SST 温度梯度统计；
-- `timeline`：所有历史日期的局地统计序列；
+- `timeline`：所有历史日期的局地统计序列，包含锋面线密度和最近锋面距离；
 - `monthly`：1—12 月月度统计；
 - `same_period_records` / `monthly_records`：参与概率计算的样本记录；
 - `cache`：查询缓存命中、缓存键、索引指纹、生成时间、索引来源、实时计算记录数、时间线记录数和本次构造耗时；
@@ -298,14 +372,23 @@ python scripts/build_data_index.py
 
 ### 概率定义
 
-当前第一版规则如下：
+当前支持三类规则，默认仍为第一版兼容口径：
 
 ```text
-front_present = 查询窗口内锋面线像元数量 > 0
+line_presence:
+  front_present = 查询窗口内锋面线像元数量 > 0
+
+density_threshold:
+  front_present = 查询窗口内锋面线像元数量 > 0
+                  且 锋面线密度 >= min_line_density_per_1000
+
+distance_threshold:
+  front_present = 最近锋面线距离查询点 <= max_front_distance_km
+
 probability = front_present 样本数 / 有效样本数
 ```
 
-如果老师要求按锋面强度、锋面面积占比、距查询点最近锋面距离或其他海洋学定义计算概率，需要在此处更新契约并同步修改后端规则。
+如果老师要求按锋面强度、锋面面积占比或其他海洋学定义计算概率，需要在此处更新契约并同步修改后端规则。
 
 样本覆盖可信度不是数学置信区间，而是当前本地样本相对完整 1982—2024 目标数据的覆盖程度。当前默认等级：
 
@@ -408,6 +491,7 @@ probability = front_present 样本数 / 有效样本数
 - `current-point-state`：查询点冷暖侧/锋面类别、中心 SST 和距最近锋面距离；
 - `front-object-summary`：当前窗口内锋面对象数量、最近对象、质心、长度和距查询点距离；
 - `front-tracking-summary`：连续日期窗口内最近锋面对象追踪状态、每日对象 ID 和位移；
+- `front-prediction-baseline`：透明预测 baseline 的首日概率、可信度和说明；
 - `history-same-period-probability`：历史同期概率；
 - `history-monthly-probability`：月度概率；
 - `history-multi-day-change`：连续多日变化；
@@ -420,6 +504,7 @@ probability = front_present 样本数 / 有效样本数
 - `query_monthly_activity`：查询某月份锋面活动；
 - `change_spatial_range`：修改空间范围；
 - `show_multi_day_change`：查看连续多日变化；
+- `predict_front_occurrence`：查看未来 1—14 日锋面出现概率 baseline；
 - `explain_statistics`：解释统计结果。
 
 ### AI 数值边界

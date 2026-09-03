@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+from math import atan2, degrees
 from pathlib import Path
 
 import numpy as np
@@ -9,10 +10,13 @@ from .config import settings
 from .data_access import (
     build_front_object_layers,
     extract_front_objects,
+    load_front_intensity_subset,
     load_front_subset,
     load_sst_subset,
+    match_front_intensity_record,
     match_front_record,
     match_sst_record,
+    scan_front_intensity_records,
 )
 from .history import get_history_index
 from .schemas import FrontObjectResponse, FrontTrackingResponse, FrontTrackStep
@@ -141,9 +145,21 @@ def compute_front_tracking_response(
             previous_object=previous_object,
             match_distance_km=bounded_match_distance,
         )
+        prior_object = previous_object
         centroid = (
             float(nearest["centroid_longitude"]),
             float(nearest["centroid_latitude"]),
+        )
+        speed_km_per_day = round(distance_from_previous, 3) if distance_from_previous is not None else None
+        bearing_deg = (
+            _bearing_deg(
+                float(prior_object["centroid_longitude"]),
+                float(prior_object["centroid_latitude"]),
+                centroid[0],
+                centroid[1],
+            )
+            if prior_object is not None and distance_from_previous is not None
+            else None
         )
         if distance_from_previous is not None:
             cumulative_distance += distance_from_previous
@@ -160,8 +176,12 @@ def compute_front_tracking_response(
                 mean_sst_celsius=_optional_float(nearest.get("mean_sst_celsius")),
                 nearest_to_query_km=_optional_float(nearest.get("nearest_to_query_km")),
                 distance_from_previous_km=distance_from_previous,
+                speed_km_per_day=speed_km_per_day,
+                bearing_deg=bearing_deg,
                 matched_by=matched_by,
                 match_score=match_score,
+                continuity_score=match_score,
+                confidence_label=_match_confidence_label(match_score, matched_by),
                 shape_similarity=shape_similarity,
                 bbox_overlap_ratio=bbox_overlap_ratio,
                 candidates_considered=len(objects),
@@ -176,6 +196,26 @@ def compute_front_tracking_response(
         )
 
     tracked_steps = [step for step in steps if step.front_id is not None]
+    distance_values = [
+        step.distance_from_previous_km
+        for step in tracked_steps
+        if step.distance_from_previous_km is not None
+    ]
+    match_scores = [
+        step.match_score
+        for step in tracked_steps
+        if step.match_score is not None and step.matched_by != "query_anchor"
+    ]
+    gap_count = sum(1 for step in steps if step.front_id is None)
+    reset_count = sum(1 for step in steps if step.matched_by == "query_anchor_reset")
+    mean_match_score = round(float(np.mean(match_scores)), 3) if match_scores else None
+    confidence_score = _track_confidence_score(
+        tracked_count=len(tracked_steps),
+        available_count=sum(1 for step in steps if step.status != "缺少 front 文件"),
+        mean_match_score=mean_match_score,
+        reset_count=reset_count,
+        gap_count=gap_count,
+    )
     return FrontTrackingResponse(
         date=observation_date,
         longitude=longitude,
@@ -184,14 +224,23 @@ def compute_front_tracking_response(
         days=bounded_days,
         match_distance_km=bounded_match_distance,
         algorithm="centroid-shape-overlap",
+        algorithm_version="v2",
         algorithm_notes=[
             "首日按查询点最近锋面对象锚定。",
             "后续日期综合质心距离、对象长度/像元数相似度与 bbox 重叠率打分。",
+            "v2 额外输出每日速度、方位角、连续性评分和整体轨迹可信度。",
             "匹配分数越接近 1，表示跨日对象连续性越强；超过距离阈值会回退到查询点锚定。",
         ],
         available_step_count=sum(1 for step in steps if step.status != "缺少 front 文件"),
         tracked_step_count=len(tracked_steps),
         cumulative_displacement_km=round(cumulative_distance, 3) if len(tracked_steps) > 1 else None,
+        mean_daily_displacement_km=round(float(np.mean(distance_values)), 3) if distance_values else None,
+        max_daily_displacement_km=round(float(np.max(distance_values)), 3) if distance_values else None,
+        gap_count=gap_count,
+        reset_count=reset_count,
+        mean_match_score=mean_match_score,
+        confidence_score=confidence_score,
+        confidence_label=_track_confidence_label(confidence_score),
         status=_tracking_status(steps),
         steps=steps,
         layers=_build_tracking_layers(steps),
@@ -213,9 +262,14 @@ def _load_daily_objects(
     if front_record is None:
         raise FileNotFoundError(f"未找到 {observation_date} 的锋面文件")
     sst_record = match_sst_record(list(index.sst_records), observation_date)
+    intensity_record = match_front_intensity_record(
+        scan_front_intensity_records(raw_data_dir),
+        observation_date,
+    )
     front_var = load_front_subset(front_record.path, longitude, latitude, radius_deg)
     front_values = np.asarray(front_var.values)
     sst_celsius = None
+    intensity_values = None
     source_files = [front_record.path.relative_to(raw_data_dir).as_posix()]
     if sst_record is not None:
         source_files.append(sst_record.path.relative_to(raw_data_dir).as_posix())
@@ -228,6 +282,19 @@ def _load_daily_objects(
         )
         if sst_var is not None:
             sst_celsius = np.asarray(sst_var.values) - 273.15
+    if intensity_record is not None:
+        source_files.append(intensity_record.path.relative_to(raw_data_dir).as_posix())
+        intensity_var = load_front_intensity_subset(
+            intensity_record.path,
+            observation_date,
+            longitude,
+            latitude,
+            radius_deg,
+        )
+        if intensity_var is not None:
+            candidate_intensity = np.asarray(intensity_var.values, dtype=float)
+            if candidate_intensity.shape == front_values.shape:
+                intensity_values = candidate_intensity
     objects = extract_front_objects(
         front_values,
         front_var.lon.values,
@@ -236,6 +303,7 @@ def _load_daily_objects(
         query_longitude=longitude,
         query_latitude=latitude,
         sst_celsius=sst_celsius,
+        intensity_values=intensity_values,
     )
     return {"objects": objects, "source_files": source_files}
 
@@ -262,8 +330,12 @@ def _build_tracking_layers(steps: list[FrontTrackStep]) -> dict[str, object]:
                         step.distance_from_previous_km,
                         -1,
                     ),
+                    "speed_km_per_day": _property_float(step.speed_km_per_day, -1),
+                    "bearing_deg": _property_float(step.bearing_deg, -1),
                     "matched_by": step.matched_by,
                     "match_score": _property_float(step.match_score, -1),
+                    "continuity_score": _property_float(step.continuity_score, -1),
+                    "confidence_label": step.confidence_label,
                     "shape_similarity": _property_float(step.shape_similarity, -1),
                     "bbox_overlap_ratio": _property_float(step.bbox_overlap_ratio, -1),
                     "candidates_considered": step.candidates_considered,
@@ -290,7 +362,10 @@ def _build_tracking_layers(steps: list[FrontTrackStep]) -> dict[str, object]:
                         "from_date": previous.date.isoformat(),
                         "to_date": step.date.isoformat(),
                         "distance_km": _property_float(step.distance_from_previous_km, 0),
+                        "speed_km_per_day": _property_float(step.speed_km_per_day, 0),
+                        "bearing_deg": _property_float(step.bearing_deg, -1),
                         "match_score": _property_float(step.match_score, -1),
+                        "continuity_score": _property_float(step.continuity_score, -1),
                         "matched_by": step.matched_by,
                     },
                 }
@@ -311,6 +386,14 @@ def _distance_km(lon_a: float, lat_a: float, lon_b: float, lat_b: float) -> floa
         )
         * 111.195
     )
+
+
+def _bearing_deg(lon_a: float, lat_a: float, lon_b: float, lat_b: float) -> float:
+    reference_latitude = (lat_a + lat_b) / 2
+    east_km = (lon_b - lon_a) * 111.195 * max(float(np.cos(np.deg2rad(reference_latitude))), 0.01)
+    north_km = (lat_b - lat_a) * 111.195
+    angle = (degrees(atan2(east_km, north_km)) + 360) % 360
+    return round(float(angle), 1)
 
 
 def _select_tracking_object(
@@ -374,6 +457,52 @@ def _tracking_match_metrics(
     )
     score = 0.6 * distance_score + 0.25 * shape_similarity + 0.15 * bbox_overlap_ratio
     return score, distance_km, shape_similarity, bbox_overlap_ratio
+
+
+def _match_confidence_label(match_score: float | None, matched_by: str) -> str:
+    if matched_by == "query_anchor":
+        return "首日锚定"
+    if matched_by == "query_anchor_reset":
+        return "重锚定"
+    if match_score is None:
+        return "无评分"
+    if match_score >= 0.75:
+        return "高"
+    if match_score >= 0.5:
+        return "中"
+    if match_score >= 0.25:
+        return "低"
+    return "很低"
+
+
+def _track_confidence_score(
+    *,
+    tracked_count: int,
+    available_count: int,
+    mean_match_score: float | None,
+    reset_count: int,
+    gap_count: int,
+) -> float | None:
+    if available_count <= 0 or tracked_count <= 0:
+        return None
+    coverage_score = tracked_count / available_count
+    continuity_score = mean_match_score if mean_match_score is not None else (1.0 if tracked_count == 1 else 0.5)
+    reset_penalty = min(reset_count * 0.12, 0.36)
+    gap_penalty = min(gap_count * 0.08, 0.32)
+    score = 0.55 * continuity_score + 0.45 * coverage_score - reset_penalty - gap_penalty
+    return round(float(max(0.0, min(1.0, score))), 3)
+
+
+def _track_confidence_label(score: float | None) -> str:
+    if score is None:
+        return "无可用轨迹"
+    if score >= 0.75:
+        return "高"
+    if score >= 0.55:
+        return "中"
+    if score >= 0.35:
+        return "低"
+    return "很低"
 
 
 def _shape_similarity(previous_object: dict[str, object], current_object: dict[str, object]) -> float:

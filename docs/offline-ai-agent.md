@@ -84,10 +84,11 @@ python scripts/check_local_llm.py --run-parser
   "intent": "current_front_and_history",
   "tasks": [
     "show_current_front",
-    "calculate_historical_probability",
-    "query_monthly_activity",
-    "show_multi_day_change",
-    "explain_statistics"
+      "calculate_historical_probability",
+      "query_monthly_activity",
+      "show_multi_day_change",
+      "predict_front_occurrence",
+      "explain_statistics"
   ],
   "parameters": {
     "date": "2024-08-05",
@@ -108,13 +109,14 @@ python scripts/check_local_llm.py --run-parser
 
 - `analysis.current_front`：当前日期、位置和范围的锋面/海温查询；
 - `front.objects`：把锋面线像元聚类为对象，返回对象 ID、质心、范围、长度和最近距离；
-- `front.tracking`：连续日期窗口内追踪离查询点最近的锋面对象，并返回综合匹配分数；
+- `front.tracking`：连续日期窗口内追踪离查询点最近的锋面对象，并返回综合匹配分数、速度、方位角和可信度；
+- `prediction.baseline`：用历史同期、月度概率、近期状态和 SST 梯度生成未来 1—14 日锋面出现概率 baseline；
 - `history.probability`：历史同期概率和月度概率；
 - `history.monthly`：月度锋面活动；
 - `history.timeline`：连续多日变化；
 - `knowledge.lookup`：本地锋面知识库查询。
 
-当前锋面工具证据中还包含局地温度结构：查询窗口内 SST 温差、平均温度梯度和中心 SST。对象工具证据用于回答“这个锋面在图上对应哪个对象、中心在哪里、离查询点多远”，追踪工具证据用于回答“连续多日是否保持附近锋面活动”，并引用后端给出的匹配状态和分数。这些数值仍属于数据服务计算结果，不由 AI 自行估计。
+当前锋面工具证据中还包含局地温度结构：查询窗口内 SST 温差、平均温度梯度和中心 SST。对象工具证据用于回答“这个锋面在图上对应哪个对象、中心在哪里、离查询点多远”，追踪工具证据用于回答“连续多日是否保持附近锋面活动”，预测工具证据用于回答“未来几日锋面出现概率的透明 baseline”。这些数值仍属于数据服务计算结果，不由 AI 自行估计。
 
 历史概率工具证据还包含 `history-sample-coverage`，用于说明当前概率属于“样本偏少”“演示级”“中等”或“较高”。这能防止 AI 把少量本地样本计算出的概率表述成完整历史结论。
 
@@ -132,7 +134,7 @@ python scripts/check_local_llm.py --run-parser
 ## 示例自然语言
 
 ```text
-分析 2024-08-05 东经124.5 北纬30.2 1度范围的锋面，并解释历史概率和连续3日变化
+分析 2024-08-05 东经124.5 北纬30.2 1度范围的锋面，并解释历史概率、连续3日变化和未来趋势
 ```
 
-系统会生成结构化任务，调用当前锋面、锋面对象、历史概率、时间线和对象追踪工具，然后返回结论和证据。
+系统会生成结构化任务，调用当前锋面、锋面对象、历史概率、时间线、对象追踪和预测 baseline 工具，然后返回结论和证据。

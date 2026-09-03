@@ -42,7 +42,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run phase-3 offline AI agent smoke checks.")
     parser.add_argument(
         "--message",
-        default="分析 2024-08-05 东经124.5 北纬30.2 1度范围的锋面，并解释历史概率和连续3日变化",
+        default="分析 2024-08-05 东经124.5 北纬30.2 1度范围的锋面，并解释历史概率、连续3日变化和未来趋势",
     )
     parser.add_argument("--date", default="2024-08-05")
     parser.add_argument("--longitude", type=float, default=124.5)
@@ -76,6 +76,11 @@ def main() -> int:
         _require("current-temperature-structure" in evidence_ids, "AI 缺少局地温度结构证据")
         _require("front-object-summary" in evidence_ids, "AI 缺少锋面对象证据")
         _require("front-tracking-summary" in evidence_ids, "AI 缺少锋面追踪证据")
+        _require("front-prediction-baseline" in evidence_ids, "AI 缺少预测 baseline 证据")
+        _require(
+            any(item["name"] == "prediction.baseline" for item in result["tool_calls"]),
+            "AI 工具调用缺少预测 baseline",
+        )
     except RuntimeError as exc:
         print(f"Smoke 检查失败：{exc}", file=sys.stderr)
         return 1

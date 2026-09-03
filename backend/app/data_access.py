@@ -19,6 +19,12 @@ FRONT_WARM_CODE = 20
 FRONT_LAND_CODE = -128
 SST_VARIABLE_NAME = "analysed_sst"
 IGNORED_DATA_DIRECTORIES = {"_duplicates_backup"}
+FRONT_INTENSITY_VARIABLE_CANDIDATES = (
+    "front_intensity",
+    "frontal_intensity",
+    "intensity",
+    "frontIntensity",
+)
 
 
 @dataclass(frozen=True)
@@ -39,6 +45,15 @@ class FrontFileRecord:
 class SstFileRecord:
     path: Path
     observation_dates: tuple[date, ...]
+    size_bytes: int
+    mtime_ns: int
+
+
+@dataclass(frozen=True)
+class FrontIntensityFileRecord:
+    path: Path
+    observation_dates: tuple[date, ...]
+    variable_name: str | None
     size_bytes: int
     mtime_ns: int
 
@@ -153,11 +168,51 @@ def scan_sst_records(root: Path) -> list[SstFileRecord]:
     return records
 
 
+def scan_front_intensity_records(root: Path) -> list[FrontIntensityFileRecord]:
+    records: list[FrontIntensityFileRecord] = []
+    for directory_name in ("intensity", "front_intensity"):
+        intensity_root = root / directory_name
+        if not intensity_root.exists():
+            continue
+        for path in _netcdf_paths(intensity_root):
+            stat = path.stat()
+            variable_name = None
+            observation_dates: tuple[date, ...] = ()
+            try:
+                with xr.open_dataset(path) as dataset:
+                    variable_name = front_intensity_variable_name(dataset)
+                    observation_dates = _extract_dates_from_time_coord(dataset)
+            except (OSError, ValueError, TypeError, KeyError):
+                observation_dates = ()
+            if not observation_dates:
+                fallback_date = infer_date(path)
+                observation_dates = (fallback_date,) if fallback_date is not None else ()
+            if not observation_dates:
+                continue
+            records.append(
+                FrontIntensityFileRecord(
+                    path=path,
+                    observation_dates=observation_dates,
+                    variable_name=variable_name,
+                    size_bytes=stat.st_size,
+                    mtime_ns=stat.st_mtime_ns,
+                )
+            )
+    return records
+
+
 def match_front_record(records: list[FrontFileRecord], observation_date: date) -> FrontFileRecord | None:
     return next((record for record in records if record.observation_date == observation_date), None)
 
 
 def match_sst_record(records: list[SstFileRecord], observation_date: date) -> SstFileRecord | None:
+    return next((record for record in records if observation_date in record.observation_dates), None)
+
+
+def match_front_intensity_record(
+    records: list[FrontIntensityFileRecord],
+    observation_date: date,
+) -> FrontIntensityFileRecord | None:
     return next((record for record in records if observation_date in record.observation_dates), None)
 
 
@@ -189,6 +244,63 @@ def load_sst_subset(
         except (KeyError, IndexError, OSError, ValueError, TypeError):
             return None
         return subset.load()
+
+
+def front_intensity_variable_name(dataset: xr.Dataset) -> str | None:
+    for candidate in FRONT_INTENSITY_VARIABLE_CANDIDATES:
+        if candidate in dataset.data_vars:
+            return candidate
+    coordinate_names = set(dataset.coords)
+    for name, variable in dataset.data_vars.items():
+        if name in coordinate_names:
+            continue
+        if not np.issubdtype(variable.dtype, np.number):
+            continue
+        return str(name)
+    return None
+
+
+def load_front_intensity_subset(
+    intensity_path: Path,
+    observation_date: date,
+    longitude: float,
+    latitude: float,
+    radius_deg: float,
+) -> xr.DataArray | None:
+    requested_time = np.datetime64(observation_date)
+    with xr.open_dataset(intensity_path) as dataset:
+        variable_name = front_intensity_variable_name(dataset)
+        if variable_name is None:
+            return None
+        variable = dataset[variable_name]
+        lon_name = _coord_name(dataset, variable, ("lon", "longitude", "x"))
+        lat_name = _coord_name(dataset, variable, ("lat", "latitude", "y"))
+        if lon_name is None or lat_name is None:
+            return None
+        if "time" in variable.dims:
+            try:
+                variable = variable.sel(time=requested_time)
+            except (KeyError, IndexError, OSError, ValueError, TypeError):
+                variable = variable.isel(time=0)
+        try:
+            subset = variable.sel(
+                {
+                    lon_name: slice(longitude - radius_deg, longitude + radius_deg),
+                    lat_name: slice(latitude - radius_deg, latitude + radius_deg),
+                }
+            )
+            if lat_name in subset.dims and lon_name in subset.dims:
+                subset = subset.transpose(lat_name, lon_name, ...)
+            return subset.load()
+        except (KeyError, IndexError, OSError, ValueError, TypeError):
+            return None
+
+
+def _coord_name(dataset: xr.Dataset, variable: xr.DataArray, candidates: tuple[str, ...]) -> str | None:
+    for candidate in candidates:
+        if candidate in variable.coords or candidate in dataset.coords or candidate in variable.dims:
+            return candidate
+    return None
 
 
 def finite_stats(values: np.ndarray) -> dict[str, float | int | None]:
@@ -291,6 +403,44 @@ def summarize_sst_window(
         stats["gradient_c_per_km"] = None
         stats["max_gradient_c_per_km"] = None
     return stats
+
+
+def summarize_intensity_window(values: np.ndarray | None) -> dict[str, float | int | str | None]:
+    if values is None or values.size == 0:
+        return {
+            "available": "否",
+            "count": 0,
+            "min": None,
+            "max": None,
+            "mean": None,
+            "p95": None,
+            "active_pixel_count": 0,
+            "active_pixel_percent": None,
+        }
+    numeric = np.asarray(values, dtype=float)
+    valid = numeric[np.isfinite(numeric)]
+    if valid.size == 0:
+        return {
+            "available": "是",
+            "count": 0,
+            "min": None,
+            "max": None,
+            "mean": None,
+            "p95": None,
+            "active_pixel_count": 0,
+            "active_pixel_percent": None,
+        }
+    positive = valid[valid > 0]
+    return {
+        "available": "是",
+        "count": int(valid.size),
+        "min": round(float(valid.min()), 5),
+        "max": round(float(valid.max()), 5),
+        "mean": round(float(valid.mean()), 5),
+        "p95": round(float(np.percentile(valid, 95)), 5),
+        "active_pixel_count": int(positive.size),
+        "active_pixel_percent": round(float(positive.size / valid.size * 100), 2),
+    }
 
 
 def build_point_features(
@@ -426,6 +576,7 @@ def extract_front_objects(
     query_longitude: float | None = None,
     query_latitude: float | None = None,
     sst_celsius: np.ndarray | None = None,
+    intensity_values: np.ndarray | None = None,
 ) -> list[dict[str, object]]:
     mask = np.isin(values, FRONT_LINE_CODES)
     if mask.size == 0 or not mask.any():
@@ -468,6 +619,17 @@ def extract_front_objects(
             if valid_sst.size:
                 sst_mean = round(float(valid_sst.mean()), 3)
                 sst_range = round(float(valid_sst.max() - valid_sst.min()), 3)
+        mean_intensity = None
+        max_intensity = None
+        intensity_pixel_count = 0
+        if intensity_values is not None and intensity_values.shape == values.shape:
+            object_intensity = np.asarray(intensity_values, dtype=float)[rows, cols]
+            valid_intensity = object_intensity[np.isfinite(object_intensity)]
+            if valid_intensity.size:
+                positive_intensity = valid_intensity[valid_intensity > 0]
+                intensity_pixel_count = int(positive_intensity.size)
+                mean_intensity = round(float(valid_intensity.mean()), 5)
+                max_intensity = round(float(valid_intensity.max()), 5)
         objects.append(
             {
                 "front_id": f"{observation_date:%Y%m%d}-F{component_index:03d}",
@@ -479,6 +641,9 @@ def extract_front_objects(
                 "codes": sorted({int(values[row, col]) for row, col in pixels}),
                 "mean_sst_celsius": sst_mean,
                 "temperature_range_celsius": sst_range,
+                "mean_intensity": mean_intensity,
+                "max_intensity": max_intensity,
+                "intensity_pixel_count": intensity_pixel_count,
                 "nearest_to_query_km": nearest_distance,
             }
         )
@@ -506,6 +671,8 @@ def build_front_object_layers(objects: list[dict[str, object]]) -> dict[str, obj
                     "pixel_count": item["pixel_count"],
                     "length_km": item["length_km"],
                     "nearest_to_query_km": item["nearest_to_query_km"] or -1,
+                    "mean_intensity": item.get("mean_intensity") or -1,
+                    "max_intensity": item.get("max_intensity") or -1,
                 },
             }
         )
@@ -527,6 +694,8 @@ def build_front_object_layers(objects: list[dict[str, object]]) -> dict[str, obj
                     "front_id": item["front_id"],
                     "pixel_count": item["pixel_count"],
                     "length_km": item["length_km"],
+                    "mean_intensity": item.get("mean_intensity") or -1,
+                    "max_intensity": item.get("max_intensity") or -1,
                 },
             }
         )

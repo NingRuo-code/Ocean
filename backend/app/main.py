@@ -25,6 +25,7 @@ from .data_inventory import build_data_manifest
 from .data_preparation import build_data_preparation_plan
 from .front_objects import compute_front_object_response, compute_front_tracking_response
 from .history import (
+    DEFAULT_PROBABILITY_RULE,
     compute_history_local_response,
     compute_history_monthly_response,
     compute_history_probability_response,
@@ -33,6 +34,10 @@ from .history import (
     get_history_index,
 )
 from .main_analysis import compute_analysis_response
+from .prediction import (
+    compute_front_prediction_evaluation_response,
+    compute_front_prediction_response,
+)
 from .raster_render import render_combined_png, render_front_png, render_sst_png
 from .reporting import compute_report_response
 from .schemas import (
@@ -49,6 +54,8 @@ from .schemas import (
     DataManifestResponse,
     DataPreparationPlanResponse,
     FrontObjectResponse,
+    FrontPredictionEvaluationResponse,
+    FrontPredictionResponse,
     FrontTrackingResponse,
     HealthResponse,
     HistoryIndexResponse,
@@ -57,6 +64,8 @@ from .schemas import (
     HistoryProbabilityResponse,
     HistoryResponse,
     PointQueryResponse,
+    ProbabilityRuleOption,
+    ProbabilityRuleOptionsResponse,
     ReportResponse,
     SeriesPoint,
     SeriesResponse,
@@ -70,6 +79,20 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+PROBABILITY_RULE_PATTERN = "^(line_presence|density_threshold|distance_threshold)$"
+
+
+def _probability_rule_query(
+    probability_rule: str,
+    min_line_density_per_1000: float,
+    max_front_distance_km: float,
+) -> dict[str, float | str]:
+    return {
+        "probability_rule": probability_rule,
+        "min_line_density_per_1000": min_line_density_per_1000,
+        "max_front_distance_km": max_front_distance_km,
+    }
 
 
 def _query_bounds(longitude: float, latitude: float, radius_deg: float) -> list[float]:
@@ -341,6 +364,71 @@ def front_tracking(
         raise HTTPException(status_code=422, detail=f"锋面追踪失败: {exc}") from exc
 
 
+@app.get(f"{settings.api_prefix}/prediction/{{observation_date}}", response_model=FrontPredictionResponse)
+def front_prediction(
+    observation_date: date_type,
+    longitude: float = Query(..., ge=-180, le=180),
+    latitude: float = Query(..., ge=-90, le=90),
+    radius_deg: float = Query(1.0, gt=0, le=10),
+    horizon_days: int = Query(7, ge=1, le=14),
+    probability_rule: str = Query(DEFAULT_PROBABILITY_RULE, pattern=PROBABILITY_RULE_PATTERN),
+    min_line_density_per_1000: float = Query(1.0, ge=0, le=1000),
+    max_front_distance_km: float = Query(50.0, gt=0, le=1000),
+) -> FrontPredictionResponse:
+    try:
+        return compute_front_prediction_response(
+            observation_date=observation_date,
+            longitude=longitude,
+            latitude=latitude,
+            radius_deg=radius_deg,
+            horizon_days=horizon_days,
+            raw_data_dir=settings.raw_data_dir,
+            cache_dir=settings.cache_dir,
+            **_probability_rule_query(
+                probability_rule,
+                min_line_density_per_1000,
+                max_front_distance_km,
+            ),
+        )
+    except (KeyError, ValueError, OSError) as exc:
+        raise HTTPException(status_code=422, detail=f"锋面预测失败: {exc}") from exc
+
+
+@app.get(
+    f"{settings.api_prefix}/prediction/{{observation_date}}/evaluation",
+    response_model=FrontPredictionEvaluationResponse,
+)
+def front_prediction_evaluation(
+    observation_date: date_type,
+    longitude: float = Query(..., ge=-180, le=180),
+    latitude: float = Query(..., ge=-90, le=90),
+    radius_deg: float = Query(1.0, gt=0, le=10),
+    horizon_days: int = Query(7, ge=1, le=14),
+    max_anchor_dates: int = Query(30, ge=1, le=120),
+    probability_rule: str = Query(DEFAULT_PROBABILITY_RULE, pattern=PROBABILITY_RULE_PATTERN),
+    min_line_density_per_1000: float = Query(1.0, ge=0, le=1000),
+    max_front_distance_km: float = Query(50.0, gt=0, le=1000),
+) -> FrontPredictionEvaluationResponse:
+    try:
+        return compute_front_prediction_evaluation_response(
+            observation_date=observation_date,
+            longitude=longitude,
+            latitude=latitude,
+            radius_deg=radius_deg,
+            horizon_days=horizon_days,
+            max_anchor_dates=max_anchor_dates,
+            raw_data_dir=settings.raw_data_dir,
+            cache_dir=settings.cache_dir,
+            **_probability_rule_query(
+                probability_rule,
+                min_line_density_per_1000,
+                max_front_distance_km,
+            ),
+        )
+    except (KeyError, ValueError, OSError) as exc:
+        raise HTTPException(status_code=422, detail=f"锋面预测评估失败: {exc}") from exc
+
+
 @app.get(f"{settings.api_prefix}/report/{{observation_date}}", response_model=ReportResponse)
 def report(
     observation_date: date_type,
@@ -348,6 +436,9 @@ def report(
     latitude: float = Query(..., ge=-90, le=90),
     radius_deg: float = Query(1.0, gt=0, le=10),
     days: int = Query(3, ge=1, le=31),
+    probability_rule: str = Query(DEFAULT_PROBABILITY_RULE, pattern=PROBABILITY_RULE_PATTERN),
+    min_line_density_per_1000: float = Query(1.0, ge=0, le=1000),
+    max_front_distance_km: float = Query(50.0, gt=0, le=1000),
 ) -> ReportResponse:
     try:
         return compute_report_response(
@@ -358,6 +449,11 @@ def report(
             days=days,
             raw_data_dir=settings.raw_data_dir,
             cache_dir=settings.cache_dir,
+            **_probability_rule_query(
+                probability_rule,
+                min_line_density_per_1000,
+                max_front_distance_km,
+            ),
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -464,12 +560,43 @@ def history_index(
     )
 
 
+@app.get(f"{settings.api_prefix}/history/probability-rules", response_model=ProbabilityRuleOptionsResponse)
+def probability_rule_options() -> ProbabilityRuleOptionsResponse:
+    return ProbabilityRuleOptionsResponse(
+        default_rule=DEFAULT_PROBABILITY_RULE,
+        options=[
+            ProbabilityRuleOption(
+                id="line_presence",
+                label="有锋面线即命中",
+                description="查询窗口内存在至少 1 个锋面线像元，适合第一版演示和与旧结果保持一致。",
+            ),
+            ProbabilityRuleOption(
+                id="density_threshold",
+                label="按锋面线密度",
+                description="查询窗口内锋面线密度达到阈值才算命中，适合窗口大小变化后的稳健比较。",
+                default_threshold=1.0,
+                threshold_unit="line pixels / 1000 pixels",
+            ),
+            ProbabilityRuleOption(
+                id="distance_threshold",
+                label="按最近距离",
+                description="最近锋面线距离查询点不超过阈值才算命中，适合点位任务和业务化告警口径。",
+                default_threshold=50.0,
+                threshold_unit="km",
+            ),
+        ],
+    )
+
+
 @app.get(f"{settings.api_prefix}/history/{{observation_date}}", response_model=HistoryResponse)
 def history(
     observation_date: date_type,
     longitude: float = Query(..., ge=-180, le=180),
     latitude: float = Query(..., ge=-90, le=90),
     radius_deg: float = Query(1.0, gt=0, le=10),
+    probability_rule: str = Query(DEFAULT_PROBABILITY_RULE, pattern=PROBABILITY_RULE_PATTERN),
+    min_line_density_per_1000: float = Query(1.0, ge=0, le=1000),
+    max_front_distance_km: float = Query(50.0, gt=0, le=1000),
 ) -> HistoryResponse:
     return compute_history_response(
         observation_date=observation_date,
@@ -478,6 +605,11 @@ def history(
         radius_deg=radius_deg,
         raw_data_dir=settings.raw_data_dir,
         cache_dir=settings.cache_dir,
+        **_probability_rule_query(
+            probability_rule,
+            min_line_density_per_1000,
+            max_front_distance_km,
+        ),
     )
 
 
@@ -490,6 +622,9 @@ def history_probability(
     longitude: float = Query(..., ge=-180, le=180),
     latitude: float = Query(..., ge=-90, le=90),
     radius_deg: float = Query(1.0, gt=0, le=10),
+    probability_rule: str = Query(DEFAULT_PROBABILITY_RULE, pattern=PROBABILITY_RULE_PATTERN),
+    min_line_density_per_1000: float = Query(1.0, ge=0, le=1000),
+    max_front_distance_km: float = Query(50.0, gt=0, le=1000),
 ) -> HistoryProbabilityResponse:
     return compute_history_probability_response(
         observation_date=observation_date,
@@ -498,6 +633,11 @@ def history_probability(
         radius_deg=radius_deg,
         raw_data_dir=settings.raw_data_dir,
         cache_dir=settings.cache_dir,
+        **_probability_rule_query(
+            probability_rule,
+            min_line_density_per_1000,
+            max_front_distance_km,
+        ),
     )
 
 
@@ -510,6 +650,9 @@ def history_monthly(
     longitude: float = Query(..., ge=-180, le=180),
     latitude: float = Query(..., ge=-90, le=90),
     radius_deg: float = Query(1.0, gt=0, le=10),
+    probability_rule: str = Query(DEFAULT_PROBABILITY_RULE, pattern=PROBABILITY_RULE_PATTERN),
+    min_line_density_per_1000: float = Query(1.0, ge=0, le=1000),
+    max_front_distance_km: float = Query(50.0, gt=0, le=1000),
 ) -> HistoryMonthlyResponse:
     return compute_history_monthly_response(
         observation_date=observation_date,
@@ -518,6 +661,11 @@ def history_monthly(
         radius_deg=radius_deg,
         raw_data_dir=settings.raw_data_dir,
         cache_dir=settings.cache_dir,
+        **_probability_rule_query(
+            probability_rule,
+            min_line_density_per_1000,
+            max_front_distance_km,
+        ),
     )
 
 
@@ -530,6 +678,9 @@ def history_local_records(
     longitude: float = Query(..., ge=-180, le=180),
     latitude: float = Query(..., ge=-90, le=90),
     radius_deg: float = Query(1.0, gt=0, le=10),
+    probability_rule: str = Query(DEFAULT_PROBABILITY_RULE, pattern=PROBABILITY_RULE_PATTERN),
+    min_line_density_per_1000: float = Query(1.0, ge=0, le=1000),
+    max_front_distance_km: float = Query(50.0, gt=0, le=1000),
 ) -> HistoryLocalResponse:
     return compute_history_local_response(
         observation_date=observation_date,
@@ -538,4 +689,9 @@ def history_local_records(
         radius_deg=radius_deg,
         raw_data_dir=settings.raw_data_dir,
         cache_dir=settings.cache_dir,
+        **_probability_rule_query(
+            probability_rule,
+            min_line_density_per_1000,
+            max_front_distance_km,
+        ),
     )

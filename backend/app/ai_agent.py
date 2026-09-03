@@ -27,6 +27,7 @@ from .history import (
     get_history_index,
 )
 from .knowledge_base import KnowledgeEntry, load_knowledge_entries, source_files
+from .prediction import compute_front_prediction_response
 from .schemas import (
     AiAnalysisRequest,
     AiAnalysisResponse,
@@ -48,12 +49,14 @@ SUPPORTED_TASKS = [
     "query_monthly_activity",
     "change_spatial_range",
     "show_multi_day_change",
+    "predict_front_occurrence",
     "explain_statistics",
 ]
 SUPPORTED_TOOLS = [
     "analysis.current_front",
     "front.objects",
     "front.tracking",
+    "prediction.baseline",
     "history.probability",
     "history.monthly",
     "history.timeline",
@@ -352,6 +355,28 @@ def analyze_request(
                 reason="在连续日期窗口内追踪离查询点最近的锋面对象。",
                 parameters=params,
                 evidence_ids=[item.id for item in tracking_evidence],
+            )
+        )
+
+    if can_run and "predict_front_occurrence" in structured.tasks:
+        days = params.days or 7
+        prediction_evidence = _front_prediction_evidence(
+            params.date,
+            params.longitude,
+            params.latitude,
+            params.radius_deg,
+            days,
+            raw_data_dir,
+            cache_dir,
+        )
+        evidence.extend(prediction_evidence)
+        tool_calls.append(
+            _tool_call(
+                name="prediction.baseline",
+                endpoint=f"{settings.api_prefix}/prediction/{params.date}",
+                reason="基于历史同期、月度概率、近期状态和 SST 梯度生成透明预测 baseline。",
+                parameters=params,
+                evidence_ids=[item.id for item in prediction_evidence],
             )
         )
 
@@ -740,6 +765,8 @@ def _detect_tasks(text: str) -> list[str]:
         tasks.append("change_spatial_range")
     if any(keyword in text for keyword in ("连续", "多日", "变化", "趋势", "前后", "追踪", "跟踪")):
         tasks.append("show_multi_day_change")
+    if any(keyword in text for keyword in ("预测", "未来", "预报", "可预报", "forecast", "predict")):
+        tasks.append("predict_front_occurrence")
     if any(keyword in text for keyword in ("解释", "说明", "总结", "为什么")):
         tasks.append("explain_statistics")
     if not tasks:
@@ -1007,6 +1034,54 @@ def _front_tracking_evidence(
     ]
 
 
+def _front_prediction_evidence(
+    observation_date: date,
+    longitude: float,
+    latitude: float,
+    radius_deg: float,
+    days: int,
+    raw_data_dir: Path,
+    cache_dir: Path,
+) -> list[AiEvidence]:
+    try:
+        response = compute_front_prediction_response(
+            observation_date=observation_date,
+            longitude=longitude,
+            latitude=latitude,
+            radius_deg=radius_deg,
+            horizon_days=days,
+            raw_data_dir=raw_data_dir,
+            cache_dir=cache_dir,
+        )
+    except (KeyError, ValueError, OSError) as exc:
+        return [
+            AiEvidence(
+                id="front-prediction-baseline",
+                source="tool:prediction.baseline",
+                label="锋面预测 baseline",
+                value="不可用",
+                detail=f"预测失败：{exc}",
+            )
+        ]
+    first = response.predictions[0] if response.predictions else None
+    detail = (
+        f"+{first.horizon_day} 日 {first.target_date}: {first.predicted_status}，"
+        f"概率 {_format_probability(first.probability)}，可信度 {first.confidence_label}。"
+        if first is not None
+        else "样本不足，未生成预测点。"
+    )
+    return [
+        AiEvidence(
+            id="front-prediction-baseline",
+            source="tool:prediction.baseline",
+            label="锋面预测 baseline",
+            value=_format_probability(first.probability if first is not None else None),
+            detail=detail,
+            source_files=response.source_files,
+        )
+    ]
+
+
 def _front_class(front_code: int) -> str:
     classes = {
         -128: "无效或陆地",
@@ -1130,6 +1205,14 @@ def _build_conclusions(
                 evidence_ids=[tracking.id],
             )
         )
+    prediction = evidence_map.get("front-prediction-baseline")
+    if prediction:
+        conclusions.append(
+            AiConclusion(
+                text=f"预测 baseline 首日结果为 {prediction.value}；{prediction.detail}",
+                evidence_ids=[prediction.id],
+            )
+        )
     if "change_spatial_range" in structured.tasks and structured.parameters.radius_deg is not None:
         conclusions.append(
             AiConclusion(
@@ -1176,6 +1259,20 @@ def _build_recommendations(
                     latitude=params.latitude,
                     radius_deg=params.radius_deg,
                     days=3,
+                ),
+            )
+        )
+    if "predict_front_occurrence" not in structured.tasks:
+        recommendations.append(
+            AiRecommendation(
+                text="可以继续查看预测 baseline，用历史同期、月度概率和近期状态估计未来几天锋面出现概率。",
+                action="predict_front_occurrence",
+                parameters=AiTaskParameters(
+                    date=params.date,
+                    longitude=params.longitude,
+                    latitude=params.latitude,
+                    radius_deg=params.radius_deg,
+                    days=7,
                 ),
             )
         )
