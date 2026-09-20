@@ -61,8 +61,10 @@ for (let i = 0; i < 80 && !ready; i++) {
 if (!ready) console.log("WARN: 页面 20s 内没进入就绪状态，后续断言可能失败");
 
 const GEO = `var tb=document.getElementById("topbar"), concl=document.querySelector("#pane-now .card"), tabs=document.getElementById("tabs"),
-  panes=document.getElementById("panes"), side=document.querySelector(".side"), footer=document.querySelector(".footer");
+  panes=document.getElementById("panes"), side=document.querySelector(".side"), footer=document.querySelector(".footer"),
+  aisCard=document.getElementById("aisResponseList").closest(".card");
   var r=function(n){return n.getBoundingClientRect();};
+  var aisR=r(aisCard), paneR=r(panes);
   return {
     vw: window.innerWidth, vh: window.innerHeight,
     docScrollW: document.documentElement.scrollWidth,
@@ -73,6 +75,11 @@ const GEO = `var tb=document.getElementById("topbar"), concl=document.querySelec
     tabsH: Math.round(r(tabs).height), panesH: panes.clientHeight,
     sideW: Math.round(r(side).width), sideTop: Math.round(r(side).top), sideBottom: Math.round(r(side).bottom),
     footerH: Math.round(r(footer).height),
+    aisCardH: Math.round(aisR.height),
+    aisCardTop: Math.round(aisR.top),
+    aisCardBottom: Math.round(aisR.bottom),
+    aisVisibleH: Math.round(Math.max(0, Math.min(aisR.bottom, paneR.bottom) - Math.max(aisR.top, paneR.top))),
+    aisClipped: [].slice.call(aisCard.querySelectorAll("*")).filter(function(n){return n.clientWidth>0 && n.scrollWidth>n.clientWidth+1;}).length,
     mapW: document.getElementById("map").clientWidth, mapH: document.getElementById("map").clientHeight,
     clipped: [].slice.call(document.querySelectorAll(".side *, .topbar *")).filter(function(n){return n.clientWidth>0 && n.scrollWidth>n.clientWidth+1;}).length,
     legendOk: document.querySelectorAll(".legend-row[data-layer]").length,
@@ -100,6 +107,9 @@ check("结论卡可见（高度 ≥ 150，含把握度与 4 个指标格）", g1
 check("当前页作业线索至少 1 条可点（首选锋面区入口）", g1.leadRows >= 1, "leadRows=" + g1.leadRows);
 check("页签条可见", g1.tabsH > 20, "tabsH=" + g1.tabsH);
 check("卡片区可滚动高度充足（≥200）", g1.panesH >= 200, "panesH=" + g1.panesH);
+check("历史 AIS 响应卡片入口可见且文案不裁切",
+  g1.aisVisibleH >= 90 && g1.aisCardH >= 90 && g1.aisClipped === 0,
+  `h=${g1.aisCardH} · visible=${g1.aisVisibleH} · top=${g1.aisCardTop} · bottom=${g1.aisCardBottom} · clipped=${g1.aisClipped}`);
 check("侧栏未溢出视口", g1.sideBottom <= g1.vh + 1, `${g1.sideBottom} ≤ ${g1.vh}`);
 check("地图区域尺寸合理", g1.mapW > 1100 && g1.mapH > 600, `map=${g1.mapW}x${g1.mapH}`);
 check("无文字被裁切（scrollWidth 溢出计数=0）", g1.clipped === 0, "clipped=" + g1.clipped);
@@ -120,6 +130,9 @@ check("1280 宽：结论卡仍在「当前」页且可见（高度 ≥ 150）",
   g2.legacyHero === false && g2.conclH >= 150 && g2.conclTop >= g2.tabsTop - 1,
   `${g2.conclH} · ${g2.conclTop} ≥ ${g2.tabsTop}`);
 check("1280 宽：无文字裁切", g2.clipped === 0, "clipped=" + g2.clipped);
+check("1280 宽：历史 AIS 响应卡片入口仍可见且文案不裁切",
+  g2.aisVisibleH >= 90 && g2.aisCardH >= 90 && g2.aisClipped === 0,
+  `h=${g2.aisCardH} · visible=${g2.aisVisibleH} · top=${g2.aisCardTop} · bottom=${g2.aisCardBottom} · clipped=${g2.aisClipped}`);
 check("1280 宽：卡片区可滚动", g2.panesH >= 150, "panesH=" + g2.panesH);
 check("1280 宽：3 个序号仍可见（顺序不因窄屏丢失）", g2.numBadges === 3, "badges=" + g2.numBadges);
 

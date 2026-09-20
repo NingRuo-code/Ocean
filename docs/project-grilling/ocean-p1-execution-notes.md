@@ -44,7 +44,7 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 | 04 | 实现本地 apparent fishing effort 样例转换到 Front Response Table | 已完成 | 已新增 fixture input 与转换脚本，生成 front-response 表 |
 | 05 | 计算前后窗口与非锋面对照响应增强 | 已完成 | 已固化时间窗口、非锋面对照和缺测不可用规则 |
 | 06 | 把真实/样例 AIS 响应接入当前页和 AI 证据链 | 已完成 | 当前页、AI 证据链和数据说明页已同步 |
-| 07 | 补齐 P1 UI 与文案回归检查 | 待执行 | 保护产品边界和不编造原则 |
+| 07 | 补齐 P1 UI 与文案回归检查 | 已完成 | 已补齐 placeholder、上下文联动和误导措辞拦截 |
 | 08 | 生成 P1 验证与汇报包 | 待执行 | 面向老师/评审/后续简历复盘 |
 
 ## 3. 执行日志
@@ -76,6 +76,9 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 - 执行 06：当前页“历史 AIS 响应”卡片现在在 collapsed state 显示响应状态、短 caveat、post1-3 fishing hours、lift 和 non-front control value；展开项显示 pre/post/exploratory window、front_event_id、source、metric/unit、增强判定和公开边界。
 - 执行 06：AI 分析页把 AIS response 作为 evidence source 纳入证据链，展示确定性 response artifact 的状态和数值摘要；AI 仍只负责任务编排与证据组织，不生成 fishing hours 或科学数值。
 - 执行 06：数据说明页补齐 AIS source、metric/unit、license/public-display boundary、control validation 和“不参与 Product Score”的规则说明。
+- 执行 07：补齐 UI 回归检查。placeholder 状态会临时关闭 Front Response Table，验证历史 AIS 响应卡片只能显示“待接入/暂不参与”，不能输出 fishing hours、lift 或 control 数值。
+- 执行 07：补齐全局上下文联动检查。切换日期和作业范围后，AIS 响应证据必须使用同一个 `state.date + state.range` 查询结果，并展示对应的 pre/post window 与数值明细。
+- 执行 07：新增产品文案边界检查，显式拦截“产量预测”“收益预测”“guaranteed catch”“yield prediction”“保证有鱼”等误导性 UI 措辞，确保 AI 分析页和数据说明页只表达作业线索与证据边界。
 
 ## 4. 项目真实性准备
 
@@ -131,6 +134,10 @@ missing coverage 表示 AIS/GFW 数据覆盖不足、授权不可用或样本不
 
 fishing hours、lift、control value 和 enhanced flag 都必须来自确定性数据处理脚本与可校验的 Front Response Table。AI 的职责是把用户问题拆成“当前锋面、历史同期、AIS 响应、规则预测、限制条件”等证据块，并解释每块证据的来源和边界。如果让 AI 直接生成数值，就会破坏可追溯性，也容易把 fixture、缺测或 proxy 数据误写成真实渔获结论。
 
+### Q13：如何测试大模型/AI 证据链不幻觉？
+
+P1 不直接测试大模型“会不会想象”，而是把 AI 能说的话限制在可验证证据链里：数值必须来自 Front Response Table，缺数据只能显示 unavailable，placeholder 不能输出 fishing hours、lift 或 control 值。回归检查会覆盖 AI 分析页和数据说明页，确认它们只引用确定性 artifact、数据来源、计算窗口和边界说明，并拦截“产量预测”“收益预测”“guaranteed catch”“yield prediction”“保证有鱼”等越界措辞。
+
 ## 5. 技术难点记录
 
 ### 难点 1：时空事件匹配
@@ -157,6 +164,7 @@ AIS 覆盖、接收条件、数据授权和下载范围都会造成缺测。缺�
 - [x] 执行 04：实现本地 apparent fishing effort 样例转换到 Front Response Table。
 - [x] 执行 05：计算前后窗口与非锋面对照响应增强。
 - [x] 执行 06：把真实/样例 AIS 响应接入当前页和 AI 证据链。
+- [x] 执行 07：补齐 P1 UI 与文案回归检查。
 - [ ] 每完成一张 ticket，更新本文件的执行日志、技术难点和 Q&A。
 - [ ] `gh` 可用后，把本地 tickets 发布到 GitHub Issues，并应用 `ready-for-agent` 标签。
 - [ ] P1 闭环完成后，再回头整理简历项目表达。

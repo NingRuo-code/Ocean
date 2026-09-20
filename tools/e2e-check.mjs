@@ -109,6 +109,22 @@ const PROBE = `var b=document.getElementById("mapProbe"), m=document.getElementB
     inBounds: rb.left>=rm.left-1 && rb.top>=rm.top-1 && rb.right<=rm.right+1 && rb.bottom<=rm.bottom+1 };`;
 const results = [];
 const check = (label, cond, detail) => { results.push(`${cond ? "PASS" : "FAIL"}  ${label}${detail ? "  → " + detail : ""}`); };
+const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const unsupportedClaimTerms = [
+  "产量预测",
+  "收益预测",
+  "渔获预测",
+  "保证有鱼",
+  "guaranteed catch",
+  "guaranteed yield",
+  "yield prediction",
+  "production forecast",
+  "catch prediction",
+  "catch forecast",
+  "revenue prediction",
+  "revenue forecast",
+];
+const unsupportedClaimPattern = unsupportedClaimTerms.map(escapeRegExp).join("|");
 
 // ===== 1) 真实数据接进来了 =====
 const boot = await evalJS(`var m = OFData.meta, days = OFData.availableDates();
@@ -238,6 +254,38 @@ check("当前页历史 AIS 响应卡片能展示响应增强夹具，并说明�
   /control=36\.4 h/.test(ais20.why) && /2024-07-29 ~ 2024-08-04/.test(ais20.why) &&
   /不是长期锋面轨迹 ID/.test(ais20.why),
   ais20.tag + " · " + ais20.list.slice(0, 80));
+const aisPlaceholder = await evalJS(`window.__frontResponseFns = {
+    available: OFData.frontResponseAvailable,
+    response: OFData.frontResponse,
+    meta: OFData.frontResponseMeta
+  };
+  OFData.frontResponseAvailable = function(){ return false; };
+  OFData.frontResponse = function(){ return null; };
+  OFData.frontResponseMeta = function(){ return {
+    status: "not_available",
+    metric: "apparent_fishing_effort",
+    unit: "fishing_hours",
+    isSynthetic: false,
+    note: "placeholder"
+  }; };
+  setDate("2024-08-05");
+  document.querySelector('#rangeSeg button[data-range="20"]').click();
+  renderAisResponse(snapshot());
+  return {
+    tag: document.getElementById("aisResponseTag").textContent,
+    list: document.getElementById("aisResponseList").textContent,
+    why: document.getElementById("aisResponseWhyBody").textContent
+  };`);
+check("placeholder 状态下 AIS 响应卡片待接入，不输出假 fishing hours / lift / control 数值",
+  /待接入/.test(aisPlaceholder.tag) && /待接入|暂不参与/.test(aisPlaceholder.list) &&
+  !/\d+(?:\.\d+)? h|\+\d+%|control \d/.test(aisPlaceholder.list + aisPlaceholder.why),
+  aisPlaceholder.tag + " · " + aisPlaceholder.list.slice(0, 80));
+await evalJS(`OFData.frontResponseAvailable = window.__frontResponseFns.available;
+  OFData.frontResponse = window.__frontResponseFns.response;
+  OFData.frontResponseMeta = window.__frontResponseFns.meta;
+  delete window.__frontResponseFns;
+  refresh();
+  return 1;`);
 const ais10 = await evalJS(`document.querySelector('#rangeSeg button[data-range="10"]').click();
   var r = OFData.frontResponse(document.getElementById("timeDate").value, state.range);
   return { range: state.range, response: r, tag: document.getElementById("aisResponseTag").textContent,
@@ -246,6 +294,17 @@ check("切到 10 km 后，同一契约能展示“无明显增强”状态",
   ais10.range === 10 && ais10.response.available === true && ais10.response.enhanced === false &&
   /夹具 · 未见明确增强/.test(ais10.tag) && /34 h/.test(ais10.list),
   ais10.tag + " · range=" + ais10.range);
+const aisFollowContext = await evalJS(`document.querySelector('#rangeSeg button[data-range="30"]').click();
+  setDate("2024-08-06");
+  var r = OFData.frontResponse(document.getElementById("timeDate").value, state.range);
+  return { date: state.date, range: state.range, response: r, tag: document.getElementById("aisResponseTag").textContent,
+    list: document.getElementById("aisResponseList").textContent, why: document.getElementById("aisResponseWhyBody").textContent };`);
+check("日期与作业范围变化时，AIS 响应证据跟随同一个全局上下文",
+  aisFollowContext.date === "2024-08-06" && aisFollowContext.range === 30 &&
+  aisFollowContext.response.available === true && aisFollowContext.response.post13Hours === 60.2 &&
+  /60\.2 h/.test(aisFollowContext.list) && /pre7=58 h/.test(aisFollowContext.why) &&
+  /2024-07-30 ~ 2024-08-05/.test(aisFollowContext.why),
+  aisFollowContext.date + " / " + aisFollowContext.range + " km · " + aisFollowContext.list.slice(0, 80));
 const aisMissing = await evalJS(`document.querySelector('#rangeSeg button[data-range="20"]').click();
   setDate("2024-08-07");
   var r = OFData.frontResponse(document.getElementById("timeDate").value, state.range);
@@ -494,6 +553,20 @@ check("数据说明写清 AIS response 的 source、metric、unit、公开边界
   /synthetic_fixture/.test(basis.dataText) && /not_applicable/.test(basis.dataText) &&
   /raw\/fine-grained committed=false/.test(basis.dataText) && /不参与评分/.test(basis.rulesText),
   "AIS source / metric / boundary ok");
+const unsupportedClaims = await evalJS(`var re = new RegExp(${JSON.stringify(unsupportedClaimPattern)}, "ig");
+  var areas = {
+    page: document.body.textContent,
+    ai: document.getElementById("pane-ai").textContent,
+    basis: document.getElementById("pane-basis").textContent
+  };
+  return Object.keys(areas).map(function(name){
+    var hits = areas[name].match(re) || [];
+    return { name: name, hits: hits };
+  });`);
+const unsupportedHits = unsupportedClaims.filter((item) => item.hits.length > 0);
+check("全站、AI 分析页和数据说明页拦截误导性产品措辞",
+  unsupportedHits.length === 0,
+  unsupportedHits.map((item) => item.name + "=" + item.hits.join("/")).join(" · ") || unsupportedClaimTerms.join(" / "));
 check("局限里逐条写明数据来源与没接入的东西（海温来源 / 规则预测参考 / 强度 / 海况 / 预报 / 渔场 / -128 语义）",
   /-128/.test(basis.limitsText) && /海表温度/.test(basis.limitsText) && /海况/.test(basis.limitsText) &&
   /预报/.test(basis.limitsText) && /规则预测参考/.test(basis.limitsText), basis.limitsText.slice(0, 40));
