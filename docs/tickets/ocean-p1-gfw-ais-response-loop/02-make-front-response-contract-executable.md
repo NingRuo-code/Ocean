@@ -4,10 +4,12 @@
 
 **Blocked by:** 01: 锁定 P1 AIS/GFW 数据输入与公开边界.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] 定义 event-level response 的最小字段：事件身份、日期、本地锋面 ID、buffer 半径、前后窗口 effort、对照区 effort、lift、enhanced flag、status。
-- [ ] 保持 local front ID 是项目内临时 ID，不暗示长期锋面轨迹。
-- [ ] `not_available` placeholder 仍能正常驱动 UI 空态。
-- [ ] 小型夹具能驱动 UI 展示“响应增强/无明显增强”和展开明细。
-- [ ] 更新项目执行记录，补充 Front Response Table 的字段解释和面试追问口径。
+- [x] 定义 event-level response 的最小字段：事件身份、日期、本地锋面 ID、buffer 半径、前后窗口 effort、对照区 effort、lift、enhanced flag、status。
+- [x] 保持 local front ID 是项目内临时 ID，不暗示长期锋面轨迹。
+- [x] `not_available` placeholder 仍能正常驱动 UI 空态。
+- [x] 小型夹具能驱动 UI 展示“响应增强/无明显增强”和展开明细。
+- [x] 更新项目执行记录，补充 Front Response Table 的字段解释和面试追问口径。
+
+**Implementation note:** `data/front_response/events.js` now uses `schema_version = "front-response/v1"` with `status = "synthetic_fixture"`. `OFData.frontResponse(...)` normalizes records for the current-page card and keeps missing date/range states explicit.

@@ -2,7 +2,7 @@
 
 **What to build:** 扩展现有数据检查，让 response artifact 出错时能失败：非法日期、非法半径、缺字段、`NaN/Infinity`、missing 被当成 0、增强标记与数值不一致等都能被拦住。
 
-**Blocked by:** 02: 让 Front Response Table 契约可执行.
+**Blocked by:** None (02 is done).
 
 **Status:** ready-for-agent
 

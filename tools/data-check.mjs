@@ -210,6 +210,61 @@ check("生成文件里没有 NaN / Infinity 之类的脏值",
   !/NaN|Infinity/.test(climFile.text) && !/NaN|Infinity/.test(metaFile.text) &&
   dayFiles.every((f) => !/NaN|Infinity/.test(readJs(join("day", f)).text)), "已扫描全部生成文件");
 
+// ===== AIS/GFW Front Response Table（P1 契约入口） =====
+const frontResponseFile = readJs(join("front_response", "events.js"));
+const FRONT_RESPONSE = frontResponseFile.run().OF_FRONT_RESPONSE;
+check("front_response/events.js 存在且能解析", !!FRONT_RESPONSE);
+check("front response 写明 schema / metric / unit",
+  FRONT_RESPONSE.schema_version === "front-response/v1" &&
+  FRONT_RESPONSE.metric === "apparent_fishing_effort" &&
+  FRONT_RESPONSE.unit === "fishing_hours",
+  JSON.stringify({ schema: FRONT_RESPONSE.schema_version, metric: FRONT_RESPONSE.metric, unit: FRONT_RESPONSE.unit }));
+check("front response 明确数据状态（not_available / synthetic_fixture / real）",
+  ["not_available", "synthetic_fixture", "real"].includes(FRONT_RESPONSE.status),
+  FRONT_RESPONSE.status);
+if (FRONT_RESPONSE.status === "not_available") {
+  check("front response placeholder 不提供示例数值", !FRONT_RESPONSE.events || FRONT_RESPONSE.events.length === 0,
+    "events=" + ((FRONT_RESPONSE.events || []).length));
+} else {
+  const events = FRONT_RESPONSE.events || [];
+  const ids = new Set();
+  let responseBad = null;
+  events.forEach((event) => {
+    const tag = event.response_id || "(missing response_id)";
+    if (!event.response_id || ids.has(event.response_id)) responseBad = tag + " response_id 缺失或重复";
+    ids.add(event.response_id);
+    if (!event.front_event_id || !event.date || !event.front_id) responseBad = tag + " 事件身份字段不完整";
+    if (!dayFiles.includes(event.date + ".js")) responseBad = tag + " 日期不在已导出锋面样本中";
+    const day = readJs(join("day", event.date + ".js")).run().OF_DATA_DAYS[event.date];
+    if (!day.objects.some((o) => o.front_id === event.front_id)) responseBad = tag + " front_id 不属于该日对象";
+    if (event.front_id_scope !== "local_day") responseBad = tag + " front_id_scope 必须声明为 local_day";
+    if (![10, 20, 30].includes(event.buffer_km)) responseBad = tag + " buffer_km 不在 10/20/30";
+    if (!["available", "missing_coverage", "not_authorized", "not_in_sample"].includes(event.status)) {
+      responseBad = tag + " status 非法：" + event.status;
+    }
+    if (event.status === "available") {
+      ["pre7_hours", "post1_3_hours", "non_front_control_hours", "lift_percent"].forEach((key) => {
+        if (typeof event[key] !== "number" || !Number.isFinite(event[key])) responseBad = tag + " " + key + " 不是有限数";
+      });
+      if (typeof event.enhanced_flag !== "boolean") responseBad = tag + " enhanced_flag 不是 boolean";
+    }
+  });
+  check("front response events 字段完整，front_id 明确是单日临时 ID", responseBad === null,
+    responseBad || events.length + " 条全部通过");
+  const hasEnhanced = events.some((e) => e.status === "available" && e.enhanced_flag === true);
+  const hasPlain = events.some((e) => e.status === "available" && e.enhanced_flag === false);
+  check("front response fixture 覆盖响应增强与无明显增强两种 UI 状态",
+    FRONT_RESPONSE.status !== "synthetic_fixture" || (FRONT_RESPONSE.is_synthetic === true && hasEnhanced && hasPlain),
+    "synthetic=" + FRONT_RESPONSE.is_synthetic + " enhanced=" + hasEnhanced + " plain=" + hasPlain);
+  const indexed = events.every((event) => {
+    const day = FRONT_RESPONSE.by_date && FRONT_RESPONSE.by_date[event.date];
+    return day && day.by_range && day.by_range[String(event.buffer_km)] &&
+      day.by_range[String(event.buffer_km)].response_id === event.response_id;
+  });
+  check("front response by_date / by_range 索引能按日期与半径找到事件", indexed,
+    indexed ? "全部通过" : "索引缺失或指向错误");
+}
+
 // ===== 汇总 =====
 // 数据天数多起来之后（60+ 天 × 每天 14 项）逐条打印会淹掉结果，
 // 默认只打失败项；需要看全部用 VERBOSE=1

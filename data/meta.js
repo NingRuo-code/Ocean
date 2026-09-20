@@ -265,7 +265,7 @@ window.OF_DATA_META = {
     "forecast": "not_available",
     "sea_state": "not_available",
     "fishing_grounds": "not_available",
-    "front_response": "not_available"
+    "front_response": "synthetic_fixture"
   },
   "generated_at": "2026-09-12",
   "generator": "Ocean/backend/scripts/export_prototype_data.py",

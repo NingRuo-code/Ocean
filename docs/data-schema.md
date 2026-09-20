@@ -84,9 +84,9 @@ data/
   grid: { lon0, lat0, dlon, dlat, nx, ny },
   availability: { days: [...], clim: { ready, years, dates, sample_note }, basemap: { ready, source } },
   status: { front_line: "real", cold_side: "real", warm_side: "real", front_objects: "real",
-            sst: "not_available", intensity: "not_available", forecast: "not_available",
+            sst: "real", intensity: "not_available", forecast: "not_available",
             sea_state: "not_available", fishing_grounds: "not_available",
-            front_response: "not_available" },
+            front_response: "not_available" | "synthetic_fixture" | "real" },
   generated_at, generator, known_issues: [...]
 }
 ```
@@ -146,21 +146,37 @@ probability  = 有锋面的天数 / 有效天数
 
 ### 3.6 `front_response/events.js`
 
-P1 响应表用于“历史 AIS 响应”证据块和研究图，不是真实渔获量表。接入前允许保持 placeholder：
+P1 响应表用于“历史 AIS 响应”证据块和研究图，不是真实渔获量表。当前文件可以处于三种状态：
+
+- `not_available`：只声明入口，不提供数值。
+- `synthetic_fixture`：提交小型夹具，验证数据契约和 UI 路径；不是真实 AIS/GFW 证据。
+- `real`：真实或授权样例数据接入后使用，提交前必须先满足 `docs/data-governance-gfw-ais.md`。
+
+placeholder 最小形态：
 
 ```js
-window.OF_FRONT_RESPONSE = {
-  meta: { status: "not_available", metric: "apparent_fishing_effort", unit: "fishing_hours" },
+{
+  schema_version: "front-response/v1",
+  status: "not_available",
+  metric: "apparent_fishing_effort",
+  unit: "fishing_hours",
   events: []
 }
 ```
 
-真实或样例响应表必须写清：
+synthetic fixture / real 响应表必须写清：
 
+- `response_id`：单条响应记录 ID，至少区分日期、front_id 和 buffer。
+- `front_event_id`：项目内锋面事件 ID，例如 `2024-08-05:F001`。
+- `date`：锋面事件日期。
+- `front_id`：当日数据中的本地临时锋面编号。
+- `front_id_scope = "local_day"`：明确该 ID 不是长期锋面轨迹。
+- `buffer_km`：`10` / `20` / `30`。
+- `pre7_hours`、`post1_3_hours`、`non_front_control_hours`、`lift_percent`、`enhanced_flag`。
+- `status`：`available` / `missing_coverage` / `not_authorized` / `not_in_sample`。
 - `source.kind`：`gfw_public` / `partner_ais_derivative` / `synthetic_fixture`
 - `source.attribution`、`source.license`、`source.accessed_at`
 - `metric = "apparent_fishing_effort"`，`unit = "fishing_hours"`
-- `coverage_status`：`available` / `missing_coverage` / `not_authorized` / `not_in_sample`
 - `is_synthetic`：fixture 必须为 `true`
 
 响应表的缺测值不能用 `0` 代替；只有确认为 coverage available 且计算结果为 0 时，才允许出现 `0 fishing hours`。

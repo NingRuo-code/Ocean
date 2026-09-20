@@ -36,6 +36,43 @@
     };
   }
 
+  function frontResponseStatusReady() {
+    return !!(FRONT_RESPONSE && ["real", "synthetic_fixture"].indexOf(FRONT_RESPONSE.status) >= 0);
+  }
+
+  function normalizeFrontResponse(raw, iso, rangeKm) {
+    if (!raw) return null;
+    if (raw.status && raw.status !== "available") {
+      return {
+        available: false,
+        status: raw.status,
+        reason: raw.reason || raw.status,
+        date: iso || raw.date || null,
+        bufferKm: rangeKm == null ? raw.buffer_km || null : rangeKm,
+      };
+    }
+    return {
+      available: true,
+      status: raw.status || "available",
+      responseId: raw.response_id || null,
+      frontEventId: raw.front_event_id || null,
+      date: raw.date || iso || null,
+      frontId: raw.front_id || null,
+      frontIdScope: raw.front_id_scope || "local_day",
+      bufferKm: raw.buffer_km,
+      pre7Hours: raw.pre7_hours,
+      post13Hours: raw.post1_3_hours,
+      controlHours: raw.non_front_control_hours,
+      liftPercent: raw.lift_percent,
+      enhanced: raw.enhanced_flag === true,
+      evidenceLabel: raw.evidence_label || (raw.enhanced_flag ? "响应增强" : "未见明确增强"),
+      coverageStatus: raw.coverage_status || "available",
+      isSynthetic: !!(FRONT_RESPONSE && FRONT_RESPONSE.is_synthetic),
+      note: raw.note || "",
+      raw: raw,
+    };
+  }
+
   const OFData = {
     meta: META,
     basemap: BASE,
@@ -156,23 +193,31 @@
     seaStateAvailable: function () { return !!(META && META.status && META.status.sea_state === "real"); },
     fishingAvailable: function () { return !!(META && META.status && META.status.fishing_grounds === "real"); },
     frontResponseAvailable: function () {
-      return !!(FRONT_RESPONSE && FRONT_RESPONSE.status === "real" && FRONT_RESPONSE.by_date);
+      return !!(frontResponseStatusReady() && (FRONT_RESPONSE.by_date || FRONT_RESPONSE.events));
     },
     frontResponse: function (iso, rangeKm) {
-      if (!FRONT_RESPONSE || !FRONT_RESPONSE.by_date) return null;
-      const day = FRONT_RESPONSE.by_date[iso];
-      if (!day) return null;
-      if (rangeKm != null && day.by_range && day.by_range[String(rangeKm)]) {
-        return day.by_range[String(rangeKm)];
+      if (!frontResponseStatusReady()) return null;
+      const day = FRONT_RESPONSE.by_date && FRONT_RESPONSE.by_date[iso];
+      if (!day) {
+        return normalizeFrontResponse({ status: "not_in_sample", reason: "missing_date" }, iso, rangeKm);
       }
-      return day;
+      if (rangeKm != null && day.by_range && day.by_range[String(rangeKm)]) {
+        return normalizeFrontResponse(day.by_range[String(rangeKm)], iso, rangeKm);
+      }
+      if (rangeKm != null) {
+        return normalizeFrontResponse({ status: "not_in_sample", reason: "missing_range" }, iso, rangeKm);
+      }
+      return normalizeFrontResponse(day, iso, rangeKm);
     },
     frontResponseMeta: function () {
       return FRONT_RESPONSE ? {
+        schemaVersion: FRONT_RESPONSE.schema_version || null,
         status: FRONT_RESPONSE.status || "not_available",
         source: FRONT_RESPONSE.source || null,
-        metric: FRONT_RESPONSE.metric || "apparent fishing effort",
-        unit: FRONT_RESPONSE.unit || "fishing hours",
+        metric: FRONT_RESPONSE.metric || "apparent_fishing_effort",
+        unit: FRONT_RESPONSE.unit || "fishing_hours",
+        method: FRONT_RESPONSE.method || null,
+        isSynthetic: !!FRONT_RESPONSE.is_synthetic,
         note: FRONT_RESPONSE.note || "",
         generatedAt: FRONT_RESPONSE.generated_at || null,
       } : null;

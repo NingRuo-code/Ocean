@@ -218,6 +218,34 @@ check("页签 = 当前 / 历史 / 预测 / AI 分析",
   tabs.labels.join("/") === "当前/历史/预测/AI 分析" && tabs.secondary.length === 0, JSON.stringify(tabs));
 check("默认落在「当前」页", tabs.active === "now" && tabs.paneNow === true, tabs.active);
 
+// ===== 3.1) 历史 AIS 响应：Front Response Table 契约入口 =====
+const ais20 = await evalJS(`var r = OFData.frontResponse(document.getElementById("timeDate").value, state.range);
+  return {
+    available: OFData.frontResponseAvailable(),
+    meta: OFData.frontResponseMeta(),
+    response: r,
+    tag: document.getElementById("aisResponseTag").textContent,
+    list: document.getElementById("aisResponseList").textContent,
+    why: document.getElementById("aisResponseWhyBody").textContent
+  };`);
+check("AIS 响应表通过 OFData 暴露，并明确当前是 synthetic fixture",
+  ais20.available === true && ais20.meta.status === "synthetic_fixture" && ais20.meta.isSynthetic === true &&
+  ais20.response.available === true && ais20.response.frontIdScope === "local_day",
+  JSON.stringify({ status: ais20.meta.status, synthetic: ais20.meta.isSynthetic, scope: ais20.response.frontIdScope }));
+check("当前页历史 AIS 响应卡片能展示响应增强夹具，并说明不是真实 AIS/GFW 证据",
+  /夹具 · 响应增强/.test(ais20.tag) && /57\.8 h/.test(ais20.list) && /\+36%/.test(ais20.list) &&
+  /synthetic fixture/.test(ais20.list) && /不是长期锋面轨迹 ID/.test(ais20.why),
+  ais20.tag + " · " + ais20.list.slice(0, 80));
+const ais10 = await evalJS(`document.querySelector('#rangeSeg button[data-range="10"]').click();
+  var r = OFData.frontResponse(document.getElementById("timeDate").value, state.range);
+  return { range: state.range, response: r, tag: document.getElementById("aisResponseTag").textContent,
+    list: document.getElementById("aisResponseList").textContent };`);
+check("切到 10 km 后，同一契约能展示“无明显增强”状态",
+  ais10.range === 10 && ais10.response.available === true && ais10.response.enhanced === false &&
+  /夹具 · 未见明确增强/.test(ais10.tag) && /34 h/.test(ais10.list),
+  ais10.tag + " · range=" + ais10.range);
+await evalJS(`document.querySelector('#rangeSeg button[data-range="20"]').click(); return state.range;`);
+
 // ===== 4) 结论块：已并入「当前」页（2026-09-14 起不再常驻） =====
 const hero = await evalJS(`return {
   inNow: !!document.querySelector("#pane-now #heroLine"),
@@ -261,8 +289,8 @@ check("现在页的范围标签跟着「作业范围」走，并标出数据覆�
   /20 km/.test(now.scope) && new RegExp(now.coverage.toFixed(1) + "%").test(now.scope), now.scope);
 check("海况安全提示标成「示例数据 · 仅供参考」，并提示以官方预报为准",
   /示例数据/.test(now.seaTag) && /仅供参考/.test(now.seaTag) && /官方海洋预报/.test(now.sea), now.seaTag);
-check("当前页默认只有两张信息卡，海况作为展开项，界面不堆卡",
-  now.cards === 2 && /全部锋面区/.test(now.detailsText), "cards=" + now.cards + " · " + now.detailsText);
+check("当前页默认三张信息卡（当前观测 / 历史 AIS 响应 / 展开细节），海况仍作为展开项",
+  now.cards === 3 && /全部锋面区/.test(now.detailsText), "cards=" + now.cards + " · " + now.detailsText);
 check("当前页默认作业线索不超过 3 条，完整清单保留在展开项",
   now.leadRows >= 1 && now.leadRows <= 3 && now.fronts === now.dataObjects,
   "lead=" + now.leadRows + " / all=" + now.fronts + " / data=" + now.dataObjects);
@@ -437,8 +465,8 @@ const basis = await evalJS(`return {
   rulesText: document.getElementById("basisRules").textContent,
   limitsText: document.getElementById("basisLimits").textContent,
   noFuel: !/航时|油耗/.test(document.body.textContent) };`);
-check("数据说明：数据来源至少 14 行 / 算法 5 条（航时·油耗已删） / 局限不少于 7 条",
-  basis.data >= 14 && basis.rules === 5 && basis.limits >= 7,
+check("数据说明：数据来源至少 14 行 / 算法不少于 5 条（含 AIS 响应时可增加）/ 局限不少于 7 条",
+  basis.data >= 14 && basis.rules >= 5 && basis.limits >= 7,
   JSON.stringify({ data: basis.data, rules: basis.rules, limits: basis.limits }));
 check("全页（含隐藏面板）不再出现「航时 / 油耗」文案", basis.noFuel === true, "noFuel=" + basis.noFuel);
 check("数据来源写清产品、许可与底图出处",

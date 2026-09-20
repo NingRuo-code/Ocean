@@ -39,7 +39,7 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 | 编号 | Ticket | 状态 | 说明 |
 |---|---|---|---|
 | 01 | 锁定 P1 AIS/GFW 数据输入与公开边界 | 已完成 | 已新增数据治理文档并同步到 spec/schema/需求/agent 入口 |
-| 02 | 让 Front Response Table 契约可执行 | 待执行 | 先用夹具打通 OFData 到 UI |
+| 02 | 让 Front Response Table 契约可执行 | 已完成 | 已用 synthetic fixture 打通 OFData、当前页卡片和 e2e |
 | 03 | 增加响应表数据契约检查 | 待执行 | 防止 malformed artifact 和 missing-as-zero |
 | 04 | 实现本地 apparent fishing effort 样例转换到 Front Response Table | 待执行 | 有真实样例用真实样例，没有则用夹具验证流程 |
 | 05 | 计算前后窗口与非锋面对照响应增强 | 待执行 | 核心分析算法闭环 |
@@ -58,6 +58,9 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 - 执行 01：新增 `docs/data-governance-gfw-ais.md`，锁定 P1 只使用 apparent fishing effort / fishing hours 作为渔业活动响应信号；明确 raw AIS/GFW、0.01 度中间表默认不提交，0.05 度展示聚合物和真实 Front Response Table 需 license/public-display 复核后再提交。
 - 执行 01：同步更新 `docs/data-schema.md`、P1 spec、需求文档、路线图和 `docs/agents/domain.md`，确保后续任务进入仓库时能读取同一数据边界。
 - 执行 01：补充 missing coverage 规则：AIS/GFW 覆盖不足或不可用时输出 unavailable / not_available，不能当作 `0 fishing hours` 或“无响应”。
+- 执行 02：把 `data/front_response/events.js` 升级为 `front-response/v1` 契约，当前状态为 `synthetic_fixture`，包含 2024-08-05 F001 的 10/20/30 km 三半径样例，以及 2024-08-06 F001 的无明显增强样例。
+- 执行 02：`OFData.frontResponse(date, range)` 现在统一返回标准化对象，覆盖 available、缺日期、缺范围等状态；当前页“历史 AIS 响应”卡片可以展示“夹具 · 响应增强”和“夹具 · 未见明确增强”。
+- 执行 02：新增 data-check 和 e2e 断言，验证 fixture 明确标注 synthetic、不是真实 AIS/GFW 证据，且 `front_id_scope = local_day` 不暗示长期锋面轨迹。
 
 ## 4. 项目真实性准备
 
@@ -89,6 +92,14 @@ AI 不直接生成科学数值，也不替代确定性计算。它负责把用�
 
 可以提交契约、脚本、placeholder、synthetic fixture 和经过复核的聚合摘要。默认不提交 raw AIS/GFW 下载文件、API 原始响应、0.01 度工作中间表或任何能逆推出源数据的细粒度产物。真实 0.05 度展示聚合物和 Front Response Table 只有在 license、署名、公开展示范围都确认后才提交。
 
+### Q7：Front Response Table 的最小字段是什么？
+
+一条响应记录至少包含 `response_id`、`front_event_id`、`date`、`front_id`、`front_id_scope`、`buffer_km`、`pre7_hours`、`post1_3_hours`、`non_front_control_hours`、`lift_percent`、`enhanced_flag` 和 `status`。其中 `front_id_scope = local_day` 是关键边界：`F001` 只表示某一天导出数据里的本地临时锋面对象，不表示跨天追踪出来的同一条长期锋面。
+
+### Q8：为什么要先接 synthetic fixture？
+
+它不是为了制造科学结论，而是为了先验证数据契约、`OFData` 适配器和当前页 UI 是否能吃下 response artifact。这样后续真实 GFW/AIS 样例到位时，只需要替换生成流程和数据文件，而不是边拿数据边改界面和字段口径。
+
 ## 5. 技术难点记录
 
 ### 难点 1：时空事件匹配
@@ -110,6 +121,7 @@ AIS 覆盖、接收条件、数据授权和下载范围都会造成缺测。缺�
 ## 6. Todo
 
 - [x] 执行 01：锁定 P1 AIS/GFW 数据输入与公开边界。
+- [x] 执行 02：让 Front Response Table 契约可执行。
 - [ ] 每完成一张 ticket，更新本文件的执行日志、技术难点和 Q&A。
 - [ ] `gh` 可用后，把本地 tickets 发布到 GitHub Issues，并应用 `ready-for-agent` 标签。
 - [ ] P1 闭环完成后，再回头整理简历项目表达。
