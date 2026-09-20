@@ -174,12 +174,22 @@ synthetic fixture / real 响应表必须写清：
 - `buffer_km`：`10` / `20` / `30`。
 - `pre7_hours`、`post1_3_hours`、`non_front_control_hours`、`lift_percent`、`enhanced_flag`。
 - `status`：`available` / `missing_coverage` / `not_authorized` / `not_in_sample`。
+- `coverage_status`：`available` 事件必须为 `available`；不可用事件必须与 `status` 一致或省略。
 - `source.kind`：`gfw_public` / `partner_ais_derivative` / `synthetic_fixture`
 - `source.attribution`、`source.license`、`source.accessed_at`
 - `metric = "apparent_fishing_effort"`，`unit = "fishing_hours"`
 - `is_synthetic`：fixture 必须为 `true`
 
-响应表的缺测值不能用 `0` 代替；只有确认为 coverage available 且计算结果为 0 时，才允许出现 `0 fishing hours`。
+响应表校验规则：
+
+- 响应日期必须落在已导出的锋面样本日期内。
+- `front_id` 必须属于该日期的本地锋面对象。
+- `front_event_id` 必须等于 `date:front_id`。
+- `buffer_km` 只能是 `10` / `20` / `30`。
+- `available` 事件的 effort 数值必须是有限非负数，`lift_percent` 必须与 `pre7_hours` / `post1_3_hours` 基本一致。
+- `enhanced_flag` 必须满足当前 P1 规则：`post1_3_hours >= pre7_hours * 1.2` 且 `post1_3_hours > non_front_control_hours`。
+- 不可用事件不能携带 fishing hours、lift 或 enhanced flag；缺测值不能用 `0` 代替。
+- 只有确认为 coverage available 且计算结果为 0 时，才允许出现 `0 fishing hours`。
 
 ---
 
@@ -197,7 +207,7 @@ synthetic fixture / real 响应表必须写清：
 | `OFData.quality(iso)` / `grid(iso)` | 观测覆盖、网格信息 |
 | `OFData.clim` / `climReady()` | 往年同期统计 |
 | `OFData.sst(iso)` / `sstStats(iso)` / `sstCell(iso, lon, lat)` | 真实海温：游程、统计值、某格真实档位温度（无则 `valueC = null`） |
-| `OFData.frontResponse(iso, rangeKm)` / `frontResponseAvailable()` | 锋面事件与 AIS 表观捕捞响应；当前为预留入口，真实样例接入前返回空 |
+| `OFData.frontResponse(iso, rangeKm)` / `frontResponseAvailable()` | 锋面事件与 AIS 表观捕捞响应；当前可读取 synthetic fixture，真实样例接入前必须继续标注不是真实 AIS/GFW 证据 |
 | `OFData.attribution()` | 「依据」页的数据来源、许可、已知问题（含海温产品与「不同源」说明） |
 | `OFData.sstAvailable()` 等 | 明确「还没有」的东西一律返回 false |
 

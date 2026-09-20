@@ -213,6 +213,12 @@ check("生成文件里没有 NaN / Infinity 之类的脏值",
 // ===== AIS/GFW Front Response Table（P1 契约入口） =====
 const frontResponseFile = readJs(join("front_response", "events.js"));
 const FRONT_RESPONSE = frontResponseFile.run().OF_FRONT_RESPONSE;
+const RESPONSE_STATUSES = new Set(["not_available", "synthetic_fixture", "real"]);
+const EVENT_STATUSES = new Set(["available", "missing_coverage", "not_authorized", "not_in_sample"]);
+const AVAILABLE_NUMERIC_FIELDS = ["pre7_hours", "post1_3_hours", "non_front_control_hours", "lift_percent"];
+const EFFORT_FIELDS = ["pre7_hours", "post1_3_hours", "non_front_control_hours"];
+const nullable = (v) => v == null;
+const finiteNumber = (v) => typeof v === "number" && Number.isFinite(v);
 check("front_response/events.js 存在且能解析", !!FRONT_RESPONSE);
 check("front response 写明 schema / metric / unit",
   FRONT_RESPONSE.schema_version === "front-response/v1" &&
@@ -220,33 +226,82 @@ check("front response 写明 schema / metric / unit",
   FRONT_RESPONSE.unit === "fishing_hours",
   JSON.stringify({ schema: FRONT_RESPONSE.schema_version, metric: FRONT_RESPONSE.metric, unit: FRONT_RESPONSE.unit }));
 check("front response 明确数据状态（not_available / synthetic_fixture / real）",
-  ["not_available", "synthetic_fixture", "real"].includes(FRONT_RESPONSE.status),
+  RESPONSE_STATUSES.has(FRONT_RESPONSE.status),
   FRONT_RESPONSE.status);
 if (FRONT_RESPONSE.status === "not_available") {
-  check("front response placeholder 不提供示例数值", !FRONT_RESPONSE.events || FRONT_RESPONSE.events.length === 0,
-    "events=" + ((FRONT_RESPONSE.events || []).length));
+  check("front response placeholder 清楚表达未接入且不提供示例数值",
+    (!FRONT_RESPONSE.events || FRONT_RESPONSE.events.length === 0) &&
+    (!FRONT_RESPONSE.by_date || Object.keys(FRONT_RESPONSE.by_date).length === 0) &&
+    typeof FRONT_RESPONSE.note === "string" && FRONT_RESPONSE.note.length > 0,
+    "events=" + ((FRONT_RESPONSE.events || []).length) +
+    " by_date=" + (FRONT_RESPONSE.by_date ? Object.keys(FRONT_RESPONSE.by_date).length : 0));
 } else {
   const events = FRONT_RESPONSE.events || [];
   const ids = new Set();
   let responseBad = null;
+  const sourceKind = FRONT_RESPONSE.source && FRONT_RESPONSE.source.kind;
+  if (!events.length) responseBad = "非 placeholder 状态必须提供 events";
+  if (FRONT_RESPONSE.status === "synthetic_fixture" &&
+      (FRONT_RESPONSE.is_synthetic !== true || sourceKind !== "synthetic_fixture")) {
+    responseBad = "synthetic_fixture 必须同时声明 is_synthetic=true 和 source.kind=synthetic_fixture";
+  }
   events.forEach((event) => {
     const tag = event.response_id || "(missing response_id)";
     if (!event.response_id || ids.has(event.response_id)) responseBad = tag + " response_id 缺失或重复";
     ids.add(event.response_id);
-    if (!event.front_event_id || !event.date || !event.front_id) responseBad = tag + " 事件身份字段不完整";
-    if (!dayFiles.includes(event.date + ".js")) responseBad = tag + " 日期不在已导出锋面样本中";
-    const day = readJs(join("day", event.date + ".js")).run().OF_DATA_DAYS[event.date];
-    if (!day.objects.some((o) => o.front_id === event.front_id)) responseBad = tag + " front_id 不属于该日对象";
+    if (!event.front_event_id || !event.date || !event.front_id || event.buffer_km == null) {
+      responseBad = tag + " 事件身份字段不完整";
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(event.date || "")) responseBad = tag + " 日期格式非法";
+    const dateInSample = dayFiles.includes(event.date + ".js");
+    if (!dateInSample) responseBad = tag + " 日期不在已导出锋面样本中";
+    if (dateInSample) {
+      const day = readJs(join("day", event.date + ".js")).run().OF_DATA_DAYS[event.date];
+      if (!day.objects.some((o) => o.front_id === event.front_id)) responseBad = tag + " front_id 不属于该日对象";
+    }
+    if (event.front_event_id !== event.date + ":" + event.front_id) {
+      responseBad = tag + " front_event_id 必须等于 date:front_id";
+    }
     if (event.front_id_scope !== "local_day") responseBad = tag + " front_id_scope 必须声明为 local_day";
     if (![10, 20, 30].includes(event.buffer_km)) responseBad = tag + " buffer_km 不在 10/20/30";
-    if (!["available", "missing_coverage", "not_authorized", "not_in_sample"].includes(event.status)) {
+    if (!EVENT_STATUSES.has(event.status)) {
       responseBad = tag + " status 非法：" + event.status;
     }
     if (event.status === "available") {
-      ["pre7_hours", "post1_3_hours", "non_front_control_hours", "lift_percent"].forEach((key) => {
+      if (event.coverage_status !== "available") responseBad = tag + " available 状态必须 coverage_status=available";
+      AVAILABLE_NUMERIC_FIELDS.forEach((key) => {
         if (typeof event[key] !== "number" || !Number.isFinite(event[key])) responseBad = tag + " " + key + " 不是有限数";
       });
+      EFFORT_FIELDS.forEach((key) => {
+        if (finiteNumber(event[key]) && event[key] < 0) responseBad = tag + " " + key + " 不能为负数";
+      });
+      if (finiteNumber(event.lift_percent) && event.lift_percent < -100) responseBad = tag + " lift_percent 小于 -100%";
       if (typeof event.enhanced_flag !== "boolean") responseBad = tag + " enhanced_flag 不是 boolean";
+      if (finiteNumber(event.pre7_hours) && finiteNumber(event.post1_3_hours) && finiteNumber(event.lift_percent)) {
+        const expectedLift = event.pre7_hours === 0
+          ? (event.post1_3_hours === 0 ? 0 : null)
+          : Math.round(((event.post1_3_hours - event.pre7_hours) / event.pre7_hours) * 100);
+        if (expectedLift === null) responseBad = tag + " pre7_hours 为 0 时不能计算有限 lift_percent";
+        if (expectedLift !== null && Math.abs(expectedLift - event.lift_percent) > 1) {
+          responseBad = tag + " lift_percent 与 pre/post 数值不一致";
+        }
+      }
+      if (finiteNumber(event.pre7_hours) && finiteNumber(event.post1_3_hours) &&
+          finiteNumber(event.non_front_control_hours) && typeof event.enhanced_flag === "boolean") {
+        const expectedEnhanced = event.post1_3_hours >= event.pre7_hours * 1.2 &&
+          event.post1_3_hours > event.non_front_control_hours;
+        if (event.enhanced_flag !== expectedEnhanced) {
+          responseBad = tag + " enhanced_flag 与 pre/post/control 规则不一致";
+        }
+      }
+    } else {
+      if (event.coverage_status && event.coverage_status !== event.status) {
+        responseBad = tag + " 不可用状态下 coverage_status 必须与 status 一致或省略";
+      }
+      if (!AVAILABLE_NUMERIC_FIELDS.every((key) => nullable(event[key]))) {
+        responseBad = tag + " 不可用状态不能携带 fishing hours / lift 数值";
+      }
+      if (event.enhanced_flag != null) responseBad = tag + " 不可用状态不能给 enhanced_flag";
     }
   });
   check("front response events 字段完整，front_id 明确是单日临时 ID", responseBad === null,

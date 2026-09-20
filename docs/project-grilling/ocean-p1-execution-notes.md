@@ -32,7 +32,7 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 - 不使用渔获量、产量、收益、鱼群生物量作为真值。
 - 不承诺 business-grade forecast。
 - 不公开发布 raw 或可逆推出 raw 的 GFW 衍生数据。
-- 当前 `data/front_response/events.js` 只是 placeholder，不是真实 AIS/GFW 数据。
+- 当前 `data/front_response/events.js` 是 `synthetic_fixture`，只验证契约和 UI 路径，不是真实 AIS/GFW 数据。
 
 ## 2. 执行票据
 
@@ -40,7 +40,7 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 |---|---|---|---|
 | 01 | 锁定 P1 AIS/GFW 数据输入与公开边界 | 已完成 | 已新增数据治理文档并同步到 spec/schema/需求/agent 入口 |
 | 02 | 让 Front Response Table 契约可执行 | 已完成 | 已用 synthetic fixture 打通 OFData、当前页卡片和 e2e |
-| 03 | 增加响应表数据契约检查 | 待执行 | 防止 malformed artifact 和 missing-as-zero |
+| 03 | 增加响应表数据契约检查 | 已完成 | 已校验日期、半径、字段、状态组合、lift 与 enhanced 规则 |
 | 04 | 实现本地 apparent fishing effort 样例转换到 Front Response Table | 待执行 | 有真实样例用真实样例，没有则用夹具验证流程 |
 | 05 | 计算前后窗口与非锋面对照响应增强 | 待执行 | 核心分析算法闭环 |
 | 06 | 把真实/样例 AIS 响应接入当前页和 AI 证据链 | 待执行 | 产品可见闭环 |
@@ -61,6 +61,9 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 - 执行 02：把 `data/front_response/events.js` 升级为 `front-response/v1` 契约，当前状态为 `synthetic_fixture`，包含 2024-08-05 F001 的 10/20/30 km 三半径样例，以及 2024-08-06 F001 的无明显增强样例。
 - 执行 02：`OFData.frontResponse(date, range)` 现在统一返回标准化对象，覆盖 available、缺日期、缺范围等状态；当前页“历史 AIS 响应”卡片可以展示“夹具 · 响应增强”和“夹具 · 未见明确增强”。
 - 执行 02：新增 data-check 和 e2e 断言，验证 fixture 明确标注 synthetic、不是真实 AIS/GFW 证据，且 `front_id_scope = local_day` 不暗示长期锋面轨迹。
+- 执行 03：强化 `tools/data-check.mjs` 的 front-response 校验：placeholder 必须清楚表达未接入；sample/real 必须通过日期、半径、front_id、字段、状态组合与索引检查。
+- 执行 03：新增数值逻辑检查：available 事件的 effort 必须为有限非负数，`lift_percent` 必须由 pre/post 基本推导得到，`enhanced_flag` 必须符合后 1-3 天高于前 7 天 20% 且高于非锋面对照区的规则。
+- 执行 03：新增 missing-as-zero 防线：`missing_coverage`、`not_authorized`、`not_in_sample` 不能携带 fishing hours、lift 或 enhanced flag，避免 UI/AI 把缺测解释成 0 或“无响应”。
 
 ## 4. 项目真实性准备
 
@@ -100,6 +103,10 @@ AI 不直接生成科学数值，也不替代确定性计算。它负责把用�
 
 它不是为了制造科学结论，而是为了先验证数据契约、`OFData` 适配器和当前页 UI 是否能吃下 response artifact。这样后续真实 GFW/AIS 样例到位时，只需要替换生成流程和数据文件，而不是边拿数据边改界面和字段口径。
 
+### Q9：数据契约检查如何防止 AI/前端编造科学数值？
+
+检查把“能不能展示”前置到数据层：日期必须在样本内，`front_id` 必须属于当天锋面对象，`buffer_km` 只能是 10/20/30，available 事件必须给出有限数值，不可用事件不能给 0 小时或增强标记。这样前端和 AI 只能解释通过校验的确定性结果；缺测、未授权、缺范围都只能显示 unavailable，不能被包装成“无响应”或“响应增强/不增强”。
+
 ## 5. 技术难点记录
 
 ### 难点 1：时空事件匹配
@@ -122,6 +129,7 @@ AIS 覆盖、接收条件、数据授权和下载范围都会造成缺测。缺�
 
 - [x] 执行 01：锁定 P1 AIS/GFW 数据输入与公开边界。
 - [x] 执行 02：让 Front Response Table 契约可执行。
+- [x] 执行 03：增加响应表数据契约检查。
 - [ ] 每完成一张 ticket，更新本文件的执行日志、技术难点和 Q&A。
 - [ ] `gh` 可用后，把本地 tickets 发布到 GitHub Issues，并应用 `ready-for-agent` 标签。
 - [ ] P1 闭环完成后，再回头整理简历项目表达。

@@ -2,7 +2,7 @@
 
 **What to build:** 给本地/手工取得的 2024-07-01 至 2024-08-31 apparent fishing effort 样例提供转换路径，产出 front-response 表。没有真实样例时使用小型夹具验证流程；有真实样例时同一流程可生成真实 P1 表。
 
-**Blocked by:** 01: 锁定 P1 AIS/GFW 数据输入与公开边界; 02: 让 Front Response Table 契约可执行; 03: 增加响应表数据契约检查.
+**Blocked by:** None (01, 02, and 03 are done).
 
 **Status:** ready-for-agent
 
