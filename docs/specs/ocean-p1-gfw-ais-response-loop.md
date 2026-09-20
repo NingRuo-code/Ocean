@@ -72,6 +72,7 @@ The highest test seam is the `OFData frontResponse adapter + prototype UI eviden
 - Apparent fishing effort is not catch, production, biomass, revenue, or guaranteed yield.
 - The P1 sample window is 2024-07-01 through 2024-08-31 in the East China Sea prototype window, matching the current front and SST sample.
 - Raw or fine-grained AIS/GFW source files should not be committed until licensing and public-display boundaries are explicitly cleared.
+- The repository source of truth for this boundary is `docs/data-governance-gfw-ais.md`; implementation tickets must follow it before generating or committing any AIS/GFW-derived artifact.
 - The source of record for response analysis is the event-level front response table, not the display grid.
 - The analytical event row is keyed by a project-local front event identity, date, local front ID, and buffer radius.
 - Local front IDs are temporary per-day IDs; the response table must not imply that they are long-term front tracks.
@@ -83,6 +84,7 @@ The highest test seam is the `OFData frontResponse adapter + prototype UI eviden
 - Response enhancement follows the current ADR baseline: post 1-3 day fishing hours must be at least 20% higher than the pre-7 baseline and higher than same-day non-front control areas.
 - Non-front control areas are same-day comparison regions in the same sea area, at least 50 km away from fronts, with comparable area where practical.
 - Missing AIS/GFW coverage must be represented as unavailable, not as zero fishing activity.
+- Synthetic fixtures may be committed for schema/UI tests, but they must be marked as synthetic and must not be used as real fishery-response evidence.
 - A Fishing Effort Grid Artifact is optional for P1. If implemented, it is for map display only and should be aggregated to the current front grid for display.
 - Buffer-response calculations should preserve the original finer apparent-fishing-effort granularity where data access allows it.
 - The existing `OFData` adapter remains the only UI data entry point.

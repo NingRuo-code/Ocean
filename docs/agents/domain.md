@@ -17,6 +17,7 @@ For product, roadmap, or implementation work, use this current direction:
 - First-stage fishery response signal: Global Fishing Watch-style AIS apparent fishing effort, measured as fishing hours, not catch, production, biomass, revenue, or guaranteed yield.
 - Product wording: use "fishery possibility", "operation cue", "historical AIS response", and "response enhancement"; avoid "production forecast" and "yield prediction".
 - AI boundary: AI organizes tasks and evidence, while deterministic code computes numerical values.
+- Data boundary: follow `docs/data-governance-gfw-ais.md`; do not commit raw AIS/GFW files, 0.01 degree working intermediates, or reconstructable source data unless license/public-display boundaries are explicitly cleared. Missing AIS/GFW coverage means unavailable, not zero activity.
 
 Before changing product behavior or data flow, also read:
 
@@ -24,6 +25,7 @@ Before changing product behavior or data flow, also read:
 - `docs/requirements-fishing-ground.md` for UI and product requirements.
 - `docs/ocean-gfw-response-issues.md` for the GFW/AIS response work breakdown.
 - `docs/adr/0001-use-apparent-fishing-effort-for-front-response.md` for the apparent-fishing-effort decision.
+- `docs/data-governance-gfw-ais.md` for AIS/GFW source, license, artifact commit, and caveat rules.
 
 If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The `/domain-modeling` skill (reached via `/grill-with-docs` and `/improve-codebase-architecture`) creates them lazily when terms or decisions actually get resolved.
 

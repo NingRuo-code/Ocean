@@ -4,10 +4,12 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] 明确 P1 数据来源：GFW 公开 apparent fishing effort、实验室/合作方 AIS 衍生表，或本地小型夹具。
-- [ ] 明确原始数据、0.01 度中间表、0.05 度展示聚合物、事件响应表各自是否允许提交到 Git。
-- [ ] 明确 UI 和数据说明必须出现的 attribution、license、apparent fishing effort caveat。
-- [ ] 明确 missing coverage 不能当作 zero fishing activity。
-- [ ] 更新项目执行记录，写清“为什么第一阶段不使用渔获量/产量作为真值”。
+- [x] 明确 P1 数据来源：GFW 公开 apparent fishing effort、实验室/合作方 AIS 衍生表，或本地小型夹具。
+- [x] 明确原始数据、0.01 度中间表、0.05 度展示聚合物、事件响应表各自是否允许提交到 Git。
+- [x] 明确 UI 和数据说明必须出现的 attribution、license、apparent fishing effort caveat。
+- [x] 明确 missing coverage 不能当作 zero fishing activity。
+- [x] 更新项目执行记录，写清“为什么第一阶段不使用渔获量/产量作为真值”。
+
+**Implementation note:** See `docs/data-governance-gfw-ais.md` for the source/license/artifact boundary and `docs/project-grilling/ocean-p1-execution-notes.md` for the execution record.

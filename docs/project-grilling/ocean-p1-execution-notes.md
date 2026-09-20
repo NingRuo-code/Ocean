@@ -38,7 +38,7 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 
 | 编号 | Ticket | 状态 | 说明 |
 |---|---|---|---|
-| 01 | 锁定 P1 AIS/GFW 数据输入与公开边界 | 待执行 | 先确认数据与公开边界，避免后续实现方向错误 |
+| 01 | 锁定 P1 AIS/GFW 数据输入与公开边界 | 已完成 | 已新增数据治理文档并同步到 spec/schema/需求/agent 入口 |
 | 02 | 让 Front Response Table 契约可执行 | 待执行 | 先用夹具打通 OFData 到 UI |
 | 03 | 增加响应表数据契约检查 | 待执行 | 防止 malformed artifact 和 missing-as-zero |
 | 04 | 实现本地 apparent fishing effort 样例转换到 Front Response Table | 待执行 | 有真实样例用真实样例，没有则用夹具验证流程 |
@@ -55,6 +55,9 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 - 已确认阻塞关系：数据边界 → 表契约 → 数据检查 → 数据转换 → 响应计算 → UI/AI 证据 → 回归检查 → 验证汇报。
 - 已确认不拆分“数据获取”和“许可/公开边界”，统一放在第 01 票中解决。
 - 新增本文档，后续每执行一票都要追加：做了什么、为什么这么做、验证结果、答辩口径。
+- 执行 01：新增 `docs/data-governance-gfw-ais.md`，锁定 P1 只使用 apparent fishing effort / fishing hours 作为渔业活动响应信号；明确 raw AIS/GFW、0.01 度中间表默认不提交，0.05 度展示聚合物和真实 Front Response Table 需 license/public-display 复核后再提交。
+- 执行 01：同步更新 `docs/data-schema.md`、P1 spec、需求文档、路线图和 `docs/agents/domain.md`，确保后续任务进入仓库时能读取同一数据边界。
+- 执行 01：补充 missing coverage 规则：AIS/GFW 覆盖不足或不可用时输出 unavailable / not_available，不能当作 `0 fishing hours` 或“无响应”。
 
 ## 4. 项目真实性准备
 
@@ -65,6 +68,10 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 ### Q2：为什么不是产量预测？
 
 因为第一阶段没有可靠渔获量、鱼群生物量或收益数据。GFW/AIS 能提供的是 apparent fishing effort，也就是由船舶活动估计出的表观捕捞小时数。它可以作为“渔业活动响应”的 proxy，但不能直接等同于产量或收益。
+
+### Q2.1：为什么第一阶段不使用渔获量/产量作为真值？
+
+因为 P1 目前没有可复现、可公开验证、能和锋面事件逐日逐空间匹配的渔获量或产量数据。若直接把 AIS/GFW 的 fishing hours 写成产量，会把“作业活动响应”误读成“捕获结果”。第一阶段的可答辩说法是：用 apparent fishing effort 研究锋面附近是否出现表观作业响应增强，产量/收益预测属于后续有真实业务数据后的扩展。
 
 ### Q3：为什么要做非锋面对照？
 
@@ -77,6 +84,10 @@ AI 不直接生成科学数值，也不替代确定性计算。它负责把用�
 ### Q5：当前最大风险是什么？
 
 第一是数据许可和公开边界：GFW 公开数据存在非商业限制，raw 或细粒度衍生数据不能随意提交和公开。第二是概念误读：apparent fishing effort 很容易被误写成渔获量或产量预测，所以 UI、文档和测试都要守住词汇边界。
+
+### Q6：哪些 AIS/GFW 产物可以进入仓库？
+
+可以提交契约、脚本、placeholder、synthetic fixture 和经过复核的聚合摘要。默认不提交 raw AIS/GFW 下载文件、API 原始响应、0.01 度工作中间表或任何能逆推出源数据的细粒度产物。真实 0.05 度展示聚合物和 Front Response Table 只有在 license、署名、公开展示范围都确认后才提交。
 
 ## 5. 技术难点记录
 
@@ -98,7 +109,7 @@ AIS 覆盖、接收条件、数据授权和下载范围都会造成缺测。缺�
 
 ## 6. Todo
 
-- [ ] 执行 01：锁定 P1 AIS/GFW 数据输入与公开边界。
+- [x] 执行 01：锁定 P1 AIS/GFW 数据输入与公开边界。
 - [ ] 每完成一张 ticket，更新本文件的执行日志、技术难点和 Q&A。
 - [ ] `gh` 可用后，把本地 tickets 发布到 GitHub Issues，并应用 `ready-for-agent` 标签。
 - [ ] P1 闭环完成后，再回头整理简历项目表达。

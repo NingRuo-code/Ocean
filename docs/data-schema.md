@@ -13,11 +13,14 @@
 | 锋面位置（核心） | Zenodo **20356239** · 《A global daily mesoscale front dataset from satellite observations》 | **CC BY 4.0**（需署名） | 0.05° 逐日，全球 3600×7200，1982—2024 |
 | 海表温度 | NOAA CoastWatch / GHRSST `noaacwBLENDEDCsstDaily`（Geo-Polar Blended 夜间融合 L4，免账号） | GHRSST **free and open** | 0.05° 逐日、度 C，2002—至今（本演示取 2024-07-01 ~ 08-31） |
 | 底图（陆地 / 海岸线 / 等深线） | **Natural Earth 1:10m**（`ne_10m_land` / `ne_10m_coastline` / `ne_10m_bathymetry_K_200` / `J_1000`） | **公有领域**（无需署名，可商用） | 1:10m 矢量 |
+| AIS/GFW 响应（P1 规划） | GFW 风格 apparent fishing effort / 合作方 AIS 衍生表 / 本地 synthetic fixture | GFW API/服务默认 **CC BY-NC 4.0 非商业**；合作方数据按授权文件；fixture 仅用于测试 | P1 计算优先保留 0.01° 工作粒度，展示可聚合到 0.05° |
 
 没有接入、也**不会**用示例值冒充的：锋面强度、海况（风/浪/涌）、预报、渔场分布。这些在 `meta.status` 里统一标成 `not_available`。
 海表温度**已接入真实数据**（NOAA GHRSST 0.05° 逐日，与锋面数据集不同源，见 §3.4），`meta.status.sst = "real"`。
+AIS/GFW 响应入口已预留；真实数据接入前只允许 placeholder 或 synthetic fixture，不把 fixture 写成真实证据。数据公开与提交边界以 [`docs/data-governance-gfw-ais.md`](data-governance-gfw-ais.md) 为准。
 
 > 锋面文件里的 `-128` 同时表示**陆地、湖泊、云与缺测**，数据集无法区分「没有锋面」和「没有观测」——页面一律说「没有观测数据」。
+> AIS/GFW 的 missing coverage / unavailable 也只能表示“数据不可用或覆盖不足”，不能解释成 zero fishing activity。
 
 ---
 
@@ -141,6 +144,27 @@ probability  = 有锋面的天数 / 有效天数
 
 `layers.{land|coastline|isobath200|isobath1000}.chains`（经纬度折线数组，已裁剪到 `bbox` 并抽稀，陆地多边形丢弃内环/湖面）。
 
+### 3.6 `front_response/events.js`
+
+P1 响应表用于“历史 AIS 响应”证据块和研究图，不是真实渔获量表。接入前允许保持 placeholder：
+
+```js
+window.OF_FRONT_RESPONSE = {
+  meta: { status: "not_available", metric: "apparent_fishing_effort", unit: "fishing_hours" },
+  events: []
+}
+```
+
+真实或样例响应表必须写清：
+
+- `source.kind`：`gfw_public` / `partner_ais_derivative` / `synthetic_fixture`
+- `source.attribution`、`source.license`、`source.accessed_at`
+- `metric = "apparent_fishing_effort"`，`unit = "fishing_hours"`
+- `coverage_status`：`available` / `missing_coverage` / `not_authorized` / `not_in_sample`
+- `is_synthetic`：fixture 必须为 `true`
+
+响应表的缺测值不能用 `0` 代替；只有确认为 coverage available 且计算结果为 0 时，才允许出现 `0 fishing hours`。
+
 ---
 
 ## 4. 页面侧的读取方式
@@ -167,7 +191,7 @@ probability  = 有锋面的天数 / 有效天数
 
 1. 锋面文件本身不含 SST；海温另用 **NOAA GHRSST 融合产品**（0.05° 逐日，见 §3 说明），两者**不是同一产品**，同屏出现时属于两个来源的观测；温度按 0.5 °C 分档展示、不插值、不参与评分。
 2. `-128` 无法区分陆地、湖泊、云与缺测。
-3. AIS 响应入口已预留，但真实 GFW/AIS 表观捕捞活动样例尚未接入；后续使用的是 fishing hours，不是渔获量、产量或收益。
+3. AIS 响应入口已预留，但真实 GFW/AIS 表观捕捞活动样例尚未接入；后续使用的是 fishing hours，不是渔获量、产量或收益。GFW/API 数据默认按非商业、需署名和 caveat 的公开边界处理，详见 `docs/data-governance-gfw-ais.md`。
 3. 锋面线编码 `-10/10/30` 的物理语义在数据集说明里仍有歧义，原型不解释其含义，只按「锋面线」统一呈现；指针浮层只回答「是否锋面区（是则冷暖侧）」，不解释也不展示原始编码。
 4. 锋面文件时间坐标单位错误（`days since 0000-00-00`），日期以文件名为准。
 5. 对象编号是本地连通域临时编号，不等同于长期锋面轨迹编号。

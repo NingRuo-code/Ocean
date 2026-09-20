@@ -9,6 +9,7 @@
 | `day/<日期>.js` | 同上（扫描 `data/raw/front/`，`--dates` 可指定） | 真实锋面：对象中心线、锋面带、冷暖侧、缺测掩码、质量统计 |
 | `sst/<日期>.js` | 同上（扫描 `data/raw/sst/`，`--no-sst` 可跳过） | 真实海温：NOAA GHRSST 0.05° 逐日，按 0.5 °C 分箱的逐行游程 |
 | `clim/same-period.js` | 同上（`--mode clim`） | 往年同期统计（唯一口径：front_present = 半径内线像元 > 0） |
+| `front_response/events.js` | P1 AIS/GFW 响应闭环（当前为预留入口） | 锋面事件与 apparent fishing effort 响应表；真实数据提交前必须先确认治理边界 |
 | `base/basemap.js` | `tools/build-basemap.mjs` | Natural Earth 公有领域底图（陆地 / 海岸线 / 200 m·1000 m 等深线） |
 
 ```powershell
@@ -26,3 +27,4 @@ node tools\data-check.mjs
 ```
 
 完整结构说明、字段含义、来源与许可见 [`../docs/data-schema.md`](../docs/data-schema.md)。
+AIS/GFW 的 raw 数据、0.01 度中间表、0.05 度展示聚合物和 Front Response Table 的提交边界见 [`../docs/data-governance-gfw-ais.md`](../docs/data-governance-gfw-ais.md)。
