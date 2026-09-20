@@ -791,6 +791,37 @@ function frontRow(f, marker) {
     "<small>" + (f.inRange ? "范围内" : "范围外") + " · 点击在地图上定位</small></span>" +
     '<span class="tag ' + (f.inRange ? "ok" : "plain") + ' side-tag">' + (f.inRange ? "范围内" : "范围外") + "</span></div>";
 }
+function fmtHours(v) {
+  if (v == null || !Number.isFinite(v)) return "—";
+  return (Math.round(v * 10) / 10).toString() + " h";
+}
+function fmtLift(v) {
+  if (v == null || !Number.isFinite(v)) return "—";
+  return (v > 0 ? "+" : "") + v + "%";
+}
+function windowText(w) {
+  if (!w) return "未声明";
+  const rel = w.relative_days ? "相对 " + w.relative_days.join(" ~ ") + " 天" : "相对天数未声明";
+  return w.start + " ~ " + w.end + "（" + rel + "）";
+}
+function aisStatusText(response) {
+  if (!response) return "待接入";
+  if (response.available === false) return "不可用";
+  return response.enhanced ? "响应增强" : "未见明确增强";
+}
+function aisShortCaveat(meta, response) {
+  if (!meta) return "未声明数据来源";
+  if (response && response.available === false) return "缺测/未授权/缺范围只表示证据不可用，不等于 0 fishing hours";
+  if (meta.isSynthetic) return "synthetic fixture 只验证契约与界面路径，不是真实 AIS/GFW 证据";
+  return "用于解释历史表观捕捞活动响应，不参与当前把握度评分";
+}
+function aisEvidenceLine(response) {
+  if (!response) return "AIS 响应待接入";
+  if (response.available === false) return "AIS 响应不可用：" + response.status + "；不生成增强/无增强结论";
+  return aisStatusText(response) + "：post1-3=" + fmtHours(response.post13Hours) +
+    "，pre7=" + fmtHours(response.pre7Hours) + "，control=" + fmtHours(response.controlHours) +
+    "，lift=" + fmtLift(response.liftPercent);
+}
 
 function renderNow() {
   const snap = snapshot();
@@ -891,31 +922,48 @@ function renderAisResponse(snap) {
     list.innerHTML =
       '<div class="row"><span class="i">!</span><span class="grow"><b>当前日期/范围暂无响应表记录</b><small>状态：' +
       response.status + '；不把缺失解释成 0 fishing hours</small></span></div>' +
-      '<div class="row"><span class="i">2</span><span class="grow"><b>保持空态</b><small>缺日期、缺范围或覆盖不足时不生成响应增强结论</small></span></div>';
+      '<div class="row"><span class="i">2</span><span class="grow"><b>保持空态</b><small>' +
+      aisShortCaveat(meta, response) + "</small></span></div>";
   } else {
     const enhanced = response.enhanced ? "响应增强" : "未见明确增强";
     tag.textContent = meta && meta.isSynthetic ? "夹具 · " + enhanced : enhanced;
     tag.className = "tag " + (response.enhanced ? "ok" : "plain");
     list.innerHTML =
-      '<div class="row"><span class="i">1</span><span class="grow"><b>' + enhanced + '</b><small>后 1-3 天 fishing hours 与前 7 天基线、非锋面对照区比较</small></span></div>' +
+      '<div class="row"><span class="i">1</span><span class="grow"><b>' + enhanced +
+      '</b><small>' + aisShortCaveat(meta, response) + "</small></span></div>" +
       '<div class="row"><span class="i">2</span><span class="grow"><b>' +
-      (response.post13Hours == null ? "—" : response.post13Hours + " h") +
-      '</b><small>锋面缓冲区后 1-3 天表观捕捞小时数</small></span></div>' +
-      '<div class="row"><span class="i">3</span><span class="grow"><b>' +
-      (response.liftPercent == null ? "—" : (response.liftPercent > 0 ? "+" : "") + response.liftPercent + "%") +
-      '</b><small>相对前 7 天基线变化</small></span></div>';
-    if (meta && meta.isSynthetic) {
-      list.innerHTML += '<div class="row"><span class="i">T</span><span class="grow"><b>synthetic fixture</b><small>仅验证契约与界面路径，不是真实 AIS/GFW 证据</small></span></div>';
-    }
+      fmtHours(response.post13Hours) + " · " + fmtLift(response.liftPercent) +
+      '</b><small>后 1-3 天 fishing hours 与前 7 天基线比较</small></span></div>' +
+      '<div class="row"><span class="i">3</span><span class="grow"><b>control ' + fmtHours(response.controlHours) +
+      '</b><small>同日非锋面对照区，至少离锋面 ' +
+      (response.control && response.control.min_distance_km ? response.control.min_distance_km : "—") +
+      " km</small></span></div>";
   }
 
-  why.innerHTML =
-    '<div class="line"><span class="k">数据定位</span> → GFW 风格 AIS apparent fishing effort，单位为 fishing hours，不是渔获量</div>' +
-    '<div class="line"><span class="k">空间窗口</span> → 10 / 20 / 30 km 锋面缓冲区，界面当前使用 <b>' + state.range + " km</b></div>" +
-    '<div class="line"><span class="k">时间窗口</span> → 展示前 7 天至后 7 天，默认解释后 1-3 天响应</div>' +
-    '<div class="line"><span class="k">增强判定</span> → 后 1-3 天比前 7 天均值高 20%，且高于同日非锋面对照区域</div>' +
-    '<div class="line"><span class="k">事件身份</span> → front_id 是项目内单日临时编号，不是长期锋面轨迹 ID</div>' +
-    '<div class="line"><span class="k">当前状态</span> → ' + (meta ? meta.note || meta.status : "未声明") + "</div>";
+  const source = meta && meta.source ? meta.source : {};
+  const method = meta && meta.method ? meta.method : {};
+  const boundary = meta && meta.publicBoundary ? meta.publicBoundary : {};
+  const detailRows = [
+    ["数据定位", (meta ? meta.metric + " / " + meta.unit : "apparent_fishing_effort / fishing_hours") + "，不是渔获量、产量或收益"],
+    ["来源", (source.kind || "not_available") + (source.license ? " · " + source.license : "")],
+    ["事件身份", (response && response.frontEventId ? response.frontEventId : state.date + ":—") + "；front_id 是项目内单日临时编号，不是长期锋面轨迹 ID"],
+    ["空间窗口", "10 / 20 / 30 km 锋面缓冲区，界面当前使用 <b>" + state.range + " km</b>"],
+    ["前 7 天基线", windowText(response && response.preWindow)],
+    ["后 1-3 天响应", windowText(response && response.postWindow)],
+    ["前后 7 天探索", windowText(response && response.exploratoryWindow)],
+    ["非锋面对照", response && response.control
+      ? "同日、同海区、至少离锋面 " + response.control.min_distance_km + " km；面积配比 " + response.control.area_ratio
+      : "未声明"],
+    ["数值明细", response && response.available
+      ? "pre7=" + fmtHours(response.pre7Hours) + "；post1-3=" + fmtHours(response.post13Hours) +
+        "；control=" + fmtHours(response.controlHours) + "；lift=" + fmtLift(response.liftPercent)
+      : "不可用状态不输出 fishing hours / lift / enhanced_flag"],
+    ["增强判定", method.enhancement_rule || "post1_3_hours >= pre7_hours * 1.2 and post1_3_hours > non_front_control_hours"],
+    ["公开边界", boundary.note || (meta ? meta.note : "未声明")],
+    ["当前状态", meta ? meta.status + (meta.isSynthetic ? " · synthetic fixture" : "") : "未声明"],
+  ];
+  why.innerHTML = detailRows.map((row) =>
+    '<div class="line"><span class="k">' + row[0] + "</span> → " + row[1] + "</div>").join("");
 }
 
 // ==================== 历史 / 预测共用统计 ====================
@@ -1252,6 +1300,10 @@ function renderBasis() {
   }
   const st = a.status;
   const statusText = (key, real, missing) => (st[key] === "real" ? real : missing);
+  const responseMeta = OFData.frontResponseMeta();
+  const responseSource = responseMeta && responseMeta.source ? responseMeta.source : null;
+  const responseMethod = responseMeta && responseMeta.method ? responseMeta.method : null;
+  const responseBoundary = responseMeta && responseMeta.publicBoundary ? responseMeta.publicBoundary : null;
   $("basisData").innerHTML = tableRows([
     ["锋面数据", "Zenodo " + a.doi + " · " + a.resolutionDeg + "° 逐日 · " + a.license],
     ["水温数据", a.sst && a.sst.ready
@@ -1267,11 +1319,20 @@ function renderBasis() {
         ((a.clim.sample_note || "").match(/实际取样 (\d+) 天/) || [0, "—"])[1] + " 天）"
       : "未导出"],
     ["规则预测参考", "本地规则基线：当前锋面信号 + 近几日持续性 + 历史同期；不等于业务预报"],
-    ["AIS 响应", OFData.frontResponseAvailable()
-      ? (OFData.frontResponseMeta().isSynthetic
+    ["AIS 响应", OFData.frontResponseAvailable() && responseMeta
+      ? (responseMeta.isSynthetic
         ? "已接入 synthetic fixture：用于验证 front-response 表契约与 UI，不是真实 AIS/GFW 证据"
-        : "已接入 front-response 表：GFW 风格 apparent fishing effort，单位 fishing hours")
+        : "已接入 front-response 表：GFW 风格 apparent fishing effort")
       : "待接入：GFW 风格 apparent fishing effort；当前只保留数据入口和展示口径"],
+    ["AIS metric/unit", responseMeta ? responseMeta.metric + " / " + responseMeta.unit : "待接入"],
+    ["AIS 来源/许可", responseSource
+      ? (responseSource.kind || "unknown") + " · " + (responseSource.license || "license 未声明") +
+        (responseSource.attribution ? " · " + responseSource.attribution : "")
+      : "待接入"],
+    ["AIS 公开边界", responseBoundary
+      ? responseBoundary.commit_policy + " · raw/fine-grained committed=" +
+        responseBoundary.raw_or_fine_grained_data_committed + " · " + responseBoundary.note
+      : "待接入"],
     ["AI 分析", "本地证据组织与任务编排，不生成新的科学数值，不调用在线模型"],
     ["锋面强度", "未接入"],
     ["海况", "示例数据，仅供参考"],
@@ -1286,15 +1347,23 @@ function renderBasis() {
     ["4", "<b>历史同期</b>：半径内锋面线格数 > 0 记 front_present = true；比例 = 有锋面的天数 ÷ 有效天数"],
     ["5", "<b>锋面区识别</b>：连通域中心线 + 抽稀（6 km），长度 ≥ " +
       (OFData.quality(a.days[a.days.length - 1]) ? OFData.quality(a.days[a.days.length - 1]).object_min_length_km : 20) + " km 才编号"],
-    ["6", "<b>AIS 响应</b>：接入后按 10 / 20 / 30 km 锋面缓冲区汇总 apparent fishing effort；后 1-3 天与前 7 天均值、同日非锋面对照区比较"],
+    ["6", "<b>AIS 响应</b>：" + (responseMethod
+      ? "按 " + responseMethod.buffer_km.join(" / ") + " km 锋面缓冲区汇总 apparent fishing effort；后 " +
+        responseMethod.post_window_days.join("-") + " 天与前 " + responseMethod.pre_window_days +
+        " 天基线、同日非锋面对照区比较"
+      : "待接入 front-response 方法")],
+    ["7", "<b>AIS 不参与评分</b>：AIS response 是证据来源与解释材料，不改变当前把握度 Product Score"],
   ]);
   $("basisLimits").innerHTML = listRows(
     a.knownIssues.map((text) => ["!", text]).concat([
       ["!", "海表温度数据来自 NOAA GHRSST，与锋面数据不是同一产品；按 0.5 °C 分档展示，不参与评分"],
       ["!", "预测页输出的是规则预测参考，用于演示预测工作流；真实锋面预报、强度场与回测指标尚未接入"],
-      ["!", OFData.frontResponseMeta() && OFData.frontResponseMeta().isSynthetic
+      ["!", responseMeta && responseMeta.isSynthetic
         ? "AIS 响应当前为 synthetic fixture，只验证契约与界面路径；真实 GFW/AIS 样例仍待接入，不代表真实渔获量、产量或收益"
         : "AIS 响应数据待接入；未来使用的是表观捕捞小时数，不代表真实渔获量、产量或收益"],
+      ["!", responseMethod && responseMethod.control_validation
+        ? "非锋面对照边界：" + responseMethod.control_validation
+        : "真实 AIS/GFW 样例接入前必须复核 license、署名、公开展示范围和 50 km 非锋面对照区几何排除"],
       ["!", "海况与预报暂无真实数据源，本页输出仅基于锋面数据"],
       ["!", "底图为 Natural Earth 1:10m（公有领域）；在国内正式发布需替换为带审图号的合规底图"],
     ]));
@@ -1325,6 +1394,8 @@ function renderAI() {
   const climRate = climRateFor(state.date.slice(5), state.range);
   const sea = seaState(state.date);
   const responseMeta = OFData.frontResponseMeta();
+  const response = OFData.frontResponse(state.date, state.range);
+  const responseReady = OFData.frontResponseAvailable() && response;
 
   $("aiTag").textContent = "证据驱动";
   $("aiPlanTag").textContent = "本地规则";
@@ -1338,24 +1409,26 @@ function renderAI() {
       "可放大作业范围或换相邻日期复核") + "</small></span></div>" +
     '<div class="row"><span class="i">3</span><span class="grow"><b>历史参照 ' +
     (climRate == null ? "样本不足" : Math.round(climRate * 100) + "%") +
-    "</b><small>当前月样例 " + month.present + "/" + month.valid + " 天在范围内有锋面</small></span></div>";
+    "</b><small>当前月样例 " + month.present + "/" + month.valid + " 天在范围内有锋面</small></span></div>" +
+    '<div class="row"><span class="i">4</span><span class="grow"><b>' + aisEvidenceLine(response) +
+    "</b><small>AIS response 只作为证据来源，不改变当前把握度评分</small></span></div>";
 
   plan.innerHTML =
     '<div class="row"><span class="i">A</span><span class="grow"><b>解析任务</b><small>' +
     mdText(state.date) + "，" + fmtCoord(state.lon, state.lat) + "，作业范围 " + state.range + " km</small></span></div>" +
-    '<div class="row"><span class="i">B</span><span class="grow"><b>调用工具</b><small>当前查询 → 历史同期 → 规则预测参考 → 限制检查</small></span></div>' +
+    '<div class="row"><span class="i">B</span><span class="grow"><b>调用工具</b><small>当前查询 → 历史同期 → AIS response → 规则预测参考 → 限制检查</small></span></div>' +
     '<div class="row"><span class="i">C</span><span class="grow"><b>证据边界</b><small>海况为示例值（风力 ' +
-    sea.wind + " 级、浪高 " + sea.wave + " m），锋面强度、AIS 响应与真实预报未接入</small></span></div>";
+    sea.wind + " 级、浪高 " + sea.wave + " m），AI 只组织证据，不生成 fishing hours 或科学数值</small></span></div>";
 
   $("aiEvidenceBody").innerHTML =
     '<div class="line"><span class="k">当前证据</span> → <b>当前页</b>：锋面区数量、最近距离、所处侧和数据覆盖</div>' +
     '<div class="line"><span class="k">历史证据</span> → <b>历史页</b>：当日 / 3 日 / 7 日 / 15 日 / 当月 / 整年的可用样例与同期统计</div>' +
     '<div class="line"><span class="k">AIS 响应</span> → <b>当前页</b>：' +
-    (OFData.frontResponseAvailable() ? "已接入 front-response 表" : "已预留数据入口，真实 apparent fishing effort 样例待接入") +
+    (responseReady ? aisEvidenceLine(response) : "已预留数据入口，真实 apparent fishing effort 样例待接入") +
     (responseMeta && responseMeta.note ? "；" + responseMeta.note : "") + "</div>" +
     '<div class="line"><span class="k">预测证据</span> → <b>预测页</b>：' + state.predWindow + " 天规则预测参考，首选 " +
     (bestBase ? mdText(bestBase.date) + " · " + bestBase.score + "%" : "暂无") + "</div>" +
-    '<div class="line"><span class="k">限制证据</span> → <b>数据说明</b>：强度、AIS 响应、真实海况、真实预报尚未接入</div>';
+    '<div class="line"><span class="k">限制证据</span> → <b>数据说明</b>：强度、真实海况、真实预报尚未接入；AIS fixture 不是真实 GFW/AIS 证据</div>';
 
   next.innerHTML =
     '<div class="row clickable" data-pane-jump="future"><span class="i">1</span><span class="grow"><b>查看规则预测参考</b><small>' +

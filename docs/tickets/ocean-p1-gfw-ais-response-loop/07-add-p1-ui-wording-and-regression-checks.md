@@ -2,7 +2,7 @@
 
 **What to build:** 增加端到端/布局检查，验证历史 AIS 响应卡片、AI 证据链、数据说明、日期/范围联动、缺数据空态，以及禁止“产量预测/收益预测/guaranteed catch/yield prediction”等误导措辞。
 
-**Blocked by:** 06: 把真实/样例 AIS 响应接入当前页和 AI 证据链.
+**Blocked by:** None (06 is done).
 
 **Status:** ready-for-agent
 

@@ -42,34 +42,39 @@
 
   function normalizeFrontResponse(raw, iso, rangeKm) {
     if (!raw) return null;
-    if (raw.status && raw.status !== "available") {
-      return {
-        available: false,
-        status: raw.status,
-        reason: raw.reason || raw.status,
-        date: iso || raw.date || null,
-        bufferKm: rangeKm == null ? raw.buffer_km || null : rangeKm,
-      };
-    }
-    return {
-      available: true,
+    const base = {
       status: raw.status || "available",
       responseId: raw.response_id || null,
       frontEventId: raw.front_event_id || null,
       date: raw.date || iso || null,
       frontId: raw.front_id || null,
       frontIdScope: raw.front_id_scope || "local_day",
-      bufferKm: raw.buffer_km,
+      bufferKm: raw.buffer_km == null ? rangeKm || null : raw.buffer_km,
+      preWindow: raw.pre_window || null,
+      postWindow: raw.post_window || null,
+      exploratoryWindow: raw.exploratory_window || null,
+      control: raw.control || null,
+      coverageStatus: raw.coverage_status || raw.status || "available",
+      reason: raw.reason || raw.status || "",
+      evidenceLabel: raw.evidence_label || (raw.enhanced_flag ? "响应增强" : "未见明确增强"),
+      isSynthetic: !!(FRONT_RESPONSE && FRONT_RESPONSE.is_synthetic),
+      note: raw.note || "",
+      raw: raw,
+    };
+    if (raw.status && raw.status !== "available") {
+      return {
+        ...base,
+        available: false,
+      };
+    }
+    return {
+      ...base,
+      available: true,
       pre7Hours: raw.pre7_hours,
       post13Hours: raw.post1_3_hours,
       controlHours: raw.non_front_control_hours,
       liftPercent: raw.lift_percent,
       enhanced: raw.enhanced_flag === true,
-      evidenceLabel: raw.evidence_label || (raw.enhanced_flag ? "响应增强" : "未见明确增强"),
-      coverageStatus: raw.coverage_status || "available",
-      isSynthetic: !!(FRONT_RESPONSE && FRONT_RESPONSE.is_synthetic),
-      note: raw.note || "",
-      raw: raw,
     };
   }
 
@@ -216,7 +221,10 @@
         source: FRONT_RESPONSE.source || null,
         metric: FRONT_RESPONSE.metric || "apparent_fishing_effort",
         unit: FRONT_RESPONSE.unit || "fishing_hours",
+        timeWindow: FRONT_RESPONSE.time_window || null,
+        spatialWindow: FRONT_RESPONSE.spatial_window || null,
         method: FRONT_RESPONSE.method || null,
+        publicBoundary: FRONT_RESPONSE.public_boundary || null,
         isSynthetic: !!FRONT_RESPONSE.is_synthetic,
         note: FRONT_RESPONSE.note || "",
         generatedAt: FRONT_RESPONSE.generated_at || null,

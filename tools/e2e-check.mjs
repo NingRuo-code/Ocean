@@ -234,7 +234,9 @@ check("AIS 响应表通过 OFData 暴露，并明确当前是 synthetic fixture"
   JSON.stringify({ status: ais20.meta.status, synthetic: ais20.meta.isSynthetic, scope: ais20.response.frontIdScope }));
 check("当前页历史 AIS 响应卡片能展示响应增强夹具，并说明不是真实 AIS/GFW 证据",
   /夹具 · 响应增强/.test(ais20.tag) && /57\.8 h/.test(ais20.list) && /\+36%/.test(ais20.list) &&
-  /synthetic fixture/.test(ais20.list) && /不是长期锋面轨迹 ID/.test(ais20.why),
+  /synthetic fixture/.test(ais20.list) && /pre7=42\.5 h/.test(ais20.why) &&
+  /control=36\.4 h/.test(ais20.why) && /2024-07-29 ~ 2024-08-04/.test(ais20.why) &&
+  /不是长期锋面轨迹 ID/.test(ais20.why),
   ais20.tag + " · " + ais20.list.slice(0, 80));
 const ais10 = await evalJS(`document.querySelector('#rangeSeg button[data-range="10"]').click();
   var r = OFData.frontResponse(document.getElementById("timeDate").value, state.range);
@@ -463,7 +465,9 @@ const ai = await evalJS(`return {
   planBox: !!document.getElementById("aiPlanBox") };`);
 check("AI 分析只做证据组织与任务编排",
   /证据驱动/.test(ai.tag) && /解析任务/.test(ai.plan) && /证据边界/.test(ai.plan) &&
-  /查看规则预测参考/.test(ai.next) && /当前证据/.test(ai.evidence) && /预测证据/.test(ai.evidence),
+  /AI 只组织证据/.test(ai.plan) && /查看规则预测参考/.test(ai.next) &&
+  /当前证据/.test(ai.evidence) && /预测证据/.test(ai.evidence) &&
+  /AIS 响应/.test(ai.evidence) && /post1-3=41\.1 h/.test(ai.evidence),
   ai.tag + " · " + ai.plan.slice(0, 36));
 check("AI 页合并为一张复核卡，任务编排放入展开项",
   ai.cards === 1 && ai.planBox === true, "cards=" + ai.cards);
@@ -476,8 +480,8 @@ const basis = await evalJS(`return {
   rulesText: document.getElementById("basisRules").textContent,
   limitsText: document.getElementById("basisLimits").textContent,
   noFuel: !/航时|油耗/.test(document.body.textContent) };`);
-check("数据说明：数据来源至少 14 行 / 算法不少于 5 条（含 AIS 响应时可增加）/ 局限不少于 7 条",
-  basis.data >= 14 && basis.rules >= 5 && basis.limits >= 7,
+check("数据说明：数据来源至少 17 行 / 算法不少于 7 条（含 AIS 响应时可增加）/ 局限不少于 8 条",
+  basis.data >= 17 && basis.rules >= 7 && basis.limits >= 8,
   JSON.stringify({ data: basis.data, rules: basis.rules, limits: basis.limits }));
 check("全页（含隐藏面板）不再出现「航时 / 油耗」文案", basis.noFuel === true, "noFuel=" + basis.noFuel);
 check("数据来源写清产品、许可与底图出处",
@@ -485,6 +489,11 @@ check("数据来源写清产品、许可与底图出处",
   /Natural Earth/.test(basis.dataText), "DOI / 许可 / 底图都有了");
 check("算法说明给出口径（起评分 / 数据覆盖 / front_present）",
   /起评分/.test(basis.rulesText) && /数据覆盖/.test(basis.rulesText) && /front_present/.test(basis.rulesText), "ok");
+check("数据说明写清 AIS response 的 source、metric、unit、公开边界和不入评分",
+  /apparent_fishing_effort/.test(basis.dataText) && /fishing_hours/.test(basis.dataText) &&
+  /synthetic_fixture/.test(basis.dataText) && /not_applicable/.test(basis.dataText) &&
+  /raw\/fine-grained committed=false/.test(basis.dataText) && /不参与评分/.test(basis.rulesText),
+  "AIS source / metric / boundary ok");
 check("局限里逐条写明数据来源与没接入的东西（海温来源 / 规则预测参考 / 强度 / 海况 / 预报 / 渔场 / -128 语义）",
   /-128/.test(basis.limitsText) && /海表温度/.test(basis.limitsText) && /海况/.test(basis.limitsText) &&
   /预报/.test(basis.limitsText) && /规则预测参考/.test(basis.limitsText), basis.limitsText.slice(0, 40));

@@ -4,11 +4,11 @@
 
 **Blocked by:** None (05 is done).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] 当前页卡片 collapsed state 显示响应状态和短 caveat。
-- [ ] 当前页展开明细显示 fishing hours、lift、control value、response window method。
-- [ ] AI 分析页把 AIS response 作为 evidence source，不生成新科学数值。
-- [ ] 数据说明页补齐 source、metric、unit、license/public-display boundary 和 caveat。
-- [ ] 全站不新增第二套日期/范围控件，不改变现有 Product Score。
-- [ ] 更新项目执行记录，补充“AI 为什么只做证据组织”的问答。
+- [x] 当前页卡片 collapsed state 显示响应状态和短 caveat。
+- [x] 当前页展开明细显示 fishing hours、lift、control value、response window method。
+- [x] AI 分析页把 AIS response 作为 evidence source，不生成新科学数值。
+- [x] 数据说明页补齐 source、metric、unit、license/public-display boundary 和 caveat。
+- [x] 全站不新增第二套日期/范围控件，不改变现有 Product Score。
+- [x] 更新项目执行记录，补充“AI 为什么只做证据组织”的问答。
