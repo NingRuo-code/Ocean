@@ -177,8 +177,17 @@ synthetic fixture / real 响应表必须写清：
 - `coverage_status`：`available` 事件必须为 `available`；不可用事件必须与 `status` 一致或省略。
 - `source.kind`：`gfw_public` / `partner_ais_derivative` / `synthetic_fixture`
 - `source.attribution`、`source.license`、`source.accessed_at`
+- `time_window`、`spatial_window`、`public_boundary`、`generated_by`
 - `metric = "apparent_fishing_effort"`，`unit = "fishing_hours"`
 - `is_synthetic`：fixture 必须为 `true`
+
+当前 synthetic fixture 的默认转换流程：
+
+```powershell
+node tools\build-front-response.mjs
+```
+
+默认输入是 `data/front_response/fixture-effort-sample.json`，这是小型聚合夹具，不是 raw AIS/GFW 或 0.01° 细粒度中间表。真实样例到位后可用同一脚本传入 `--input <本地授权样例>`，但提交真实生成物前必须先复核 `docs/data-governance-gfw-ais.md`。
 
 响应表校验规则：
 

@@ -4,10 +4,12 @@
 
 **Blocked by:** None (01, 02, and 03 are done).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] 输入可以来自本地样例文件或小型夹具，不要求把 raw/fine-grained 数据提交到 Git。
-- [ ] 输出符合 Front Response Table 契约，并能被 `OFData` 读取。
-- [ ] 输出保留 10/20/30 km 三个半径的响应记录，产品默认仍使用当前 operation range。
-- [ ] 转换流程记录数据来源、时间窗、空间窗口、处理口径和公开边界。
-- [ ] 更新项目执行记录，补充“从 apparent fishing effort 到产品证据”的链路说明。
+- [x] 输入可以来自本地样例文件或小型夹具，不要求把 raw/fine-grained 数据提交到 Git。
+- [x] 输出符合 Front Response Table 契约，并能被 `OFData` 读取。
+- [x] 输出保留 10/20/30 km 三个半径的响应记录，产品默认仍使用当前 operation range。
+- [x] 转换流程记录数据来源、时间窗、空间窗口、处理口径和公开边界。
+- [x] 更新项目执行记录，补充“从 apparent fishing effort 到产品证据”的链路说明。
+
+**Implementation note:** `tools/build-front-response.mjs` converts `data/front_response/fixture-effort-sample.json` or a caller-provided `--input` file into `data/front_response/events.js`. The committed fixture is aggregated and synthetic; it is not raw/fine-grained AIS/GFW data.

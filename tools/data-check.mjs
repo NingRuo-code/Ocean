@@ -245,6 +245,21 @@ if (FRONT_RESPONSE.status === "not_available") {
       (FRONT_RESPONSE.is_synthetic !== true || sourceKind !== "synthetic_fixture")) {
     responseBad = "synthetic_fixture 必须同时声明 is_synthetic=true 和 source.kind=synthetic_fixture";
   }
+  if (!FRONT_RESPONSE.generated_by || FRONT_RESPONSE.generated_by.script !== "tools/build-front-response.mjs") {
+    responseBad = "必须记录 generated_by.script";
+  }
+  if (!FRONT_RESPONSE.time_window || FRONT_RESPONSE.time_window.sample_start !== "2024-07-01" ||
+      FRONT_RESPONSE.time_window.sample_end !== "2024-08-31") {
+    responseBad = "必须记录 P1 样例时间窗";
+  }
+  if (!FRONT_RESPONSE.spatial_window || !Array.isArray(FRONT_RESPONSE.spatial_window.bbox) ||
+      FRONT_RESPONSE.spatial_window.buffer_km.join(",") !== "10,20,30") {
+    responseBad = "必须记录空间窗口和 10/20/30 km 半径";
+  }
+  if (!FRONT_RESPONSE.public_boundary ||
+      FRONT_RESPONSE.public_boundary.raw_or_fine_grained_data_committed !== false) {
+    responseBad = "必须记录公开边界，且 raw/fine-grained 数据不得标为已提交";
+  }
   events.forEach((event) => {
     const tag = event.response_id || "(missing response_id)";
     if (!event.response_id || ids.has(event.response_id)) responseBad = tag + " response_id 缺失或重复";

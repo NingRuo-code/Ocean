@@ -22,6 +22,8 @@
 .\.venv\Scripts\python.exe scripts\export_prototype_data.py --mode clim
 # 底图（在本仓根目录）
 node tools\build-basemap.mjs
+# Front Response Table（在本仓根目录；默认输入是小型聚合 fixture，不是 raw/fine-grained AIS/GFW）
+node tools\build-front-response.mjs
 # 校验
 node tools\data-check.mjs
 ```

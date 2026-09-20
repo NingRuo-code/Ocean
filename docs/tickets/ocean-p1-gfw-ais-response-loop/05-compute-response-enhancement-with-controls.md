@@ -2,7 +2,7 @@
 
 **What to build:** 对每个锋面事件计算 10/20/30 km buffer 的 `pre7_hours`、`post1_3_hours`、`lift_percent`、`non_front_control_hours`、`enhanced_flag`，并正确处理缺测。完成后能用样例事件展示“响应增强/无明显增强”。
 
-**Blocked by:** 04: 实现本地 apparent fishing effort 样例转换到 Front Response Table.
+**Blocked by:** None (04 is done).
 
 **Status:** ready-for-agent
 
