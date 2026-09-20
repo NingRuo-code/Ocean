@@ -244,7 +244,18 @@ check("切到 10 km 后，同一契约能展示“无明显增强”状态",
   ais10.range === 10 && ais10.response.available === true && ais10.response.enhanced === false &&
   /夹具 · 未见明确增强/.test(ais10.tag) && /34 h/.test(ais10.list),
   ais10.tag + " · range=" + ais10.range);
-await evalJS(`document.querySelector('#rangeSeg button[data-range="20"]').click(); return state.range;`);
+const aisMissing = await evalJS(`document.querySelector('#rangeSeg button[data-range="20"]').click();
+  setDate("2024-08-07");
+  var r = OFData.frontResponse(document.getElementById("timeDate").value, state.range);
+  return { date: state.date, range: state.range, response: r, tag: document.getElementById("aisResponseTag").textContent,
+    list: document.getElementById("aisResponseList").textContent };`);
+check("AIS/GFW 覆盖不足时显示不可用，不输出增强/无增强结论",
+  aisMissing.date === "2024-08-07" && aisMissing.range === 20 && aisMissing.response.available === false &&
+  aisMissing.response.status === "missing_coverage" && /不可用/.test(aisMissing.tag) &&
+  /missing_coverage/.test(aisMissing.list) && /不把缺失解释成 0 fishing hours/.test(aisMissing.list) &&
+  !/夹具 · 响应增强|夹具 · 未见明确增强|^响应增强|^未见明确增强/.test(aisMissing.tag + aisMissing.list),
+  aisMissing.tag + " · " + aisMissing.list.slice(0, 80));
+await evalJS(`setDate("2024-08-05"); document.querySelector('#rangeSeg button[data-range="20"]').click(); return state.range;`);
 
 // ===== 4) 结论块：已并入「当前」页（2026-09-14 起不再常驻） =====
 const hero = await evalJS(`return {

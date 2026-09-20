@@ -42,7 +42,7 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 | 02 | 让 Front Response Table 契约可执行 | 已完成 | 已用 synthetic fixture 打通 OFData、当前页卡片和 e2e |
 | 03 | 增加响应表数据契约检查 | 已完成 | 已校验日期、半径、字段、状态组合、lift 与 enhanced 规则 |
 | 04 | 实现本地 apparent fishing effort 样例转换到 Front Response Table | 已完成 | 已新增 fixture input 与转换脚本，生成 front-response 表 |
-| 05 | 计算前后窗口与非锋面对照响应增强 | 待执行 | 核心分析算法闭环 |
+| 05 | 计算前后窗口与非锋面对照响应增强 | 已完成 | 已固化时间窗口、非锋面对照和缺测不可用规则 |
 | 06 | 把真实/样例 AIS 响应接入当前页和 AI 证据链 | 待执行 | 产品可见闭环 |
 | 07 | 补齐 P1 UI 与文案回归检查 | 待执行 | 保护产品边界和不编造原则 |
 | 08 | 生成 P1 验证与汇报包 | 待执行 | 面向老师/评审/后续简历复盘 |
@@ -67,6 +67,12 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 - 执行 04：新增 `data/front_response/fixture-effort-sample.json` 作为小型聚合输入夹具。它记录 source、time_window、spatial_window、processing 和 public_boundary，不提交 raw/fine-grained AIS/GFW 数据。
 - 执行 04：新增 `tools/build-front-response.mjs`，把本地样例/fixture 转换为 `data/front_response/events.js`。脚本计算 `lift_percent` 和 `enhanced_flag`，生成 `events` 与 `by_date/by_range` 索引，并写入 `generated_by`。
 - 执行 04：`node tools/build-front-response.mjs && node tools/data-check.mjs` 已形成可重复的最小转换闭环；后续真实授权样例可通过 `--input` 走同一转换路径。
+- 执行 05：扩展 `tools/build-front-response.mjs`，每条响应记录都写入 `pre_window`、`post_window` 和 `exploratory_window`。窗口由事件日期确定：前 7 天为 `date-7 ~ date-1`，后 1-3 天为 `date+1 ~ date+3`，探索窗口为 `date-7 ~ date+7`。
+- 执行 05：将非锋面对照区写成可校验契约：同日、同海区、至少离任一锋面 50 km，面积配比为 1，采样口径为 `same-day same-area non-front cells outside every 50 km front exclusion buffer`。
+- 执行 05：新增 2024-08-07 F001 / 20 km 的 `missing_coverage` fixture 行。该行不携带 fishing hours、lift 或 `enhanced_flag`，页面只能显示“不可用”，不能输出“响应增强/未见明确增强”。
+- 执行 05：强化 `tools/data-check.mjs` 与 `tools/e2e-check.mjs`，校验窗口日期边界、50 km 对照区、增强判定公式，以及 missing coverage 不被解释为 `0 fishing hours`。
+- 执行 05 review：补齐每个 `front_event_id` 的 10/20/30 km 三档 buffer 覆盖检查。覆盖不足时也要用 `missing_coverage` 显式占位，不能让缺一档被默默跳过。
+- 执行 05 review：补充 `method.control_validation`，说明当前 synthetic fixture 只声明聚合对照区采样口径；真实输入接入前必须先完成 50 km 锋面排除的地理校验。
 
 ## 4. 项目真实性准备
 
@@ -84,7 +90,7 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 
 ### Q3：为什么要做非锋面对照？
 
-如果只看锋面附近 fishing hours 增加，无法判断这是锋面影响，还是同一天整个海区捕鱼活动都增加。非锋面对照区提供同日、同海区、远离锋面的背景对比，能避免把普通背景活动误读成锋面响应。
+如果只看锋面附近 fishing hours 增加，无法判断这是锋面影响，还是同一天整个海区捕鱼活动都增加。非锋面对照区提供同日、同海区、远离锋面的背景对比，能避免把普通背景活动误读成锋面响应。P1 里要求对照区至少离任一锋面 50 km，并使用同面积采样，是为了让“锋面附近”和“非锋面背景”的差异可解释、可复现，而不是只用绝对 fishing hours 做判断。
 
 ### Q4：AI 在项目里到底做什么？
 
@@ -114,6 +120,10 @@ AI 不直接生成科学数值，也不替代确定性计算。它负责把用�
 
 链路分四步：第一，输入是本地授权样例或小型聚合 fixture，只包含事件级/半径级 fishing hours 摘要，不提交 raw AIS/GFW 或 0.01° 细粒度表；第二，转换脚本按 `date + local front_id + buffer_km` 生成响应记录；第三，脚本计算前 7 天基线、后 1-3 天响应、非锋面对照区和 lift/enhanced 结论；第四，`OFData.frontResponse(date, range)` 把记录提供给当前页和 AI 证据链，UI 只解释确定性数据，不自行生成科学数值。
 
+### Q11：为什么 missing coverage 不能写成“无明显增强”？
+
+missing coverage 表示 AIS/GFW 数据覆盖不足、授权不可用或样本不在当前统计范围内。它只说明“这条响应证据不可用”，不能说明船没有作业，也不能说明锋面没有影响。因此数据层不输出 fishing hours、lift 或 `enhanced_flag`，UI/AI 只能显示 unavailable 和原因说明。
+
 ## 5. 技术难点记录
 
 ### 难点 1：时空事件匹配
@@ -122,7 +132,7 @@ AI 不直接生成科学数值，也不替代确定性计算。它负责把用�
 
 ### 难点 2：响应增强不能只看总量
 
-仅展示 fishing hours 总数没有意义。必须比较前 7 天基线、后 1-3 天响应、同日非锋面对照区，才能解释“响应增强”是否成立。
+仅展示 fishing hours 总数没有意义。必须比较前 7 天基线、后 1-3 天响应、同日非锋面对照区，才能解释“响应增强”是否成立。当前实现把窗口边界写入每条响应记录并由校验脚本复算，避免后续 UI 或 AI 只拿一个汇总数字却说不清楚它来自哪段时间。
 
 ### 难点 3：缺测不能当作 0
 
@@ -138,6 +148,7 @@ AIS 覆盖、接收条件、数据授权和下载范围都会造成缺测。缺�
 - [x] 执行 02：让 Front Response Table 契约可执行。
 - [x] 执行 03：增加响应表数据契约检查。
 - [x] 执行 04：实现本地 apparent fishing effort 样例转换到 Front Response Table。
+- [x] 执行 05：计算前后窗口与非锋面对照响应增强。
 - [ ] 每完成一张 ticket，更新本文件的执行日志、技术难点和 Q&A。
 - [ ] `gh` 可用后，把本地 tickets 发布到 GitHub Issues，并应用 `ready-for-agent` 标签。
 - [ ] P1 闭环完成后，再回头整理简历项目表达。

@@ -9,7 +9,7 @@
 | `day/<日期>.js` | 同上（扫描 `data/raw/front/`，`--dates` 可指定） | 真实锋面：对象中心线、锋面带、冷暖侧、缺测掩码、质量统计 |
 | `sst/<日期>.js` | 同上（扫描 `data/raw/sst/`，`--no-sst` 可跳过） | 真实海温：NOAA GHRSST 0.05° 逐日，按 0.5 °C 分箱的逐行游程 |
 | `clim/same-period.js` | 同上（`--mode clim`） | 往年同期统计（唯一口径：front_present = 半径内线像元 > 0） |
-| `front_response/events.js` | P1 AIS/GFW 响应闭环（当前为 synthetic fixture） | 锋面事件与 apparent fishing effort 响应表；夹具只验证契约和 UI，真实数据提交前必须先确认治理边界 |
+| `front_response/events.js` | P1 AIS/GFW 响应闭环（当前为 synthetic fixture） | 锋面事件与 apparent fishing effort 响应表；包含前 7 天、后 1-3 天、前后 7 天探索窗口、50 km 外非锋面对照和 missing coverage 空态；夹具只验证契约和 UI，真实数据提交前必须先确认治理边界 |
 | `base/basemap.js` | `tools/build-basemap.mjs` | Natural Earth 公有领域底图（陆地 / 海岸线 / 200 m·1000 m 等深线） |
 
 ```powershell

@@ -2,7 +2,7 @@
 
 **What to build:** 当前页“历史 AIS 响应”卡片在有数据时显示定性结论和可展开数值；AI 分析页把 AIS 响应作为证据来源；数据说明页展示来源、metric、unit、限制。不改变现有日期/范围控件，不把 AIS 响应写进最终评分。
 
-**Blocked by:** 05: 计算前后窗口与非锋面对照响应增强.
+**Blocked by:** None (05 is done).
 
 **Status:** ready-for-agent
 

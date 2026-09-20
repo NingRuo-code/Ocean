@@ -173,6 +173,11 @@ synthetic fixture / real 响应表必须写清：
 - `front_id_scope = "local_day"`：明确该 ID 不是长期锋面轨迹。
 - `buffer_km`：`10` / `20` / `30`。
 - `pre7_hours`、`post1_3_hours`、`non_front_control_hours`、`lift_percent`、`enhanced_flag`。
+- `pre_window`：事件日前 7 天，`relative_days = [-7, -1]`，用于 `pre7_hours` 基线。
+- `post_window`：事件日后 1-3 天，`relative_days = [1, 3]`，用于默认响应解释。
+- `exploratory_window`：事件日前后 7 天，`relative_days = [-7, 7]`，用于研究视图和人工复核，不替代默认增强判定。
+- `control`：同日非锋面对照区定义，P1 要求 `min_distance_km >= 50`，并写清 `area_ratio` 与 `sampling`。
+- `method.control_validation`：说明非锋面对照区的验证边界；synthetic fixture 只声明聚合采样口径，真实输入必须在转换前完成 50 km 锋面排除的地理校验。
 - `status`：`available` / `missing_coverage` / `not_authorized` / `not_in_sample`。
 - `coverage_status`：`available` 事件必须为 `available`；不可用事件必须与 `status` 一致或省略。
 - `source.kind`：`gfw_public` / `partner_ais_derivative` / `synthetic_fixture`
@@ -195,8 +200,11 @@ node tools\build-front-response.mjs
 - `front_id` 必须属于该日期的本地锋面对象。
 - `front_event_id` 必须等于 `date:front_id`。
 - `buffer_km` 只能是 `10` / `20` / `30`。
+- 每个 `front_event_id` 必须覆盖 `10` / `20` / `30` 三档 buffer；覆盖不足也要用 `missing_coverage` 等不可用状态显式占位。
 - `available` 事件的 effort 数值必须是有限非负数，`lift_percent` 必须与 `pre7_hours` / `post1_3_hours` 基本一致。
 - `enhanced_flag` 必须满足当前 P1 规则：`post1_3_hours >= pre7_hours * 1.2` 且 `post1_3_hours > non_front_control_hours`。
+- 时间窗口必须由事件日期可复现推出：前 7 天为 `date-7` 到 `date-1`，后 1-3 天为 `date+1` 到 `date+3`，探索窗口为 `date-7` 到 `date+7`。
+- 非锋面对照区必须是同日、同海区、至少离任一锋面 50 km 的背景区域，并写清面积配比/采样口径；否则不能输出 `enhanced_flag`。
 - 不可用事件不能携带 fishing hours、lift 或 enhanced flag；缺测值不能用 `0` 代替。
 - 只有确认为 coverage available 且计算结果为 0 时，才允许出现 `0 fishing hours`。
 

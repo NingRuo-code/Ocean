@@ -19,6 +19,7 @@ const readJs = (rel) => {
 };
 const decoded = (runs) => runs.reduce((sum, r) => sum + r[2], 0);
 const inBox = ([lon, lat], b) => lon >= b[0] - 0.01 && lon <= b[2] + 0.01 && lat >= b[1] - 0.01 && lat <= b[3] + 0.01;
+const addIsoDays = (iso, days) => new Date(Date.parse(iso + "T00:00:00Z") + days * 86400000).toISOString().slice(0, 10);
 
 // ===== meta =====
 const metaFile = readJs("meta.js");
@@ -252,9 +253,25 @@ if (FRONT_RESPONSE.status === "not_available") {
       FRONT_RESPONSE.time_window.sample_end !== "2024-08-31") {
     responseBad = "必须记录 P1 样例时间窗";
   }
+  if (!FRONT_RESPONSE.time_window || FRONT_RESPONSE.time_window.pre_window_days !== 7 ||
+      !Array.isArray(FRONT_RESPONSE.time_window.post_window_days) ||
+      FRONT_RESPONSE.time_window.post_window_days.join(",") !== "1,3" ||
+      !Array.isArray(FRONT_RESPONSE.time_window.exploratory_window_days) ||
+      FRONT_RESPONSE.time_window.exploratory_window_days.join(",") !== "-7,7") {
+    responseBad = "必须记录前 7 天、后 1-3 天、前后 7 天探索窗口";
+  }
   if (!FRONT_RESPONSE.spatial_window || !Array.isArray(FRONT_RESPONSE.spatial_window.bbox) ||
       FRONT_RESPONSE.spatial_window.buffer_km.join(",") !== "10,20,30") {
     responseBad = "必须记录空间窗口和 10/20/30 km 半径";
+  }
+  if (!FRONT_RESPONSE.spatial_window ||
+      !(FRONT_RESPONSE.spatial_window.control_min_distance_km >= 50) ||
+      !(FRONT_RESPONSE.spatial_window.control_area_ratio > 0) ||
+      !FRONT_RESPONSE.spatial_window.control_sampling) {
+    responseBad = "必须记录至少 50 km 外的同日非锋面对照区和面积/采样口径";
+  }
+  if (!FRONT_RESPONSE.method || !FRONT_RESPONSE.method.control_validation) {
+    responseBad = "必须记录非锋面对照区的验证边界";
   }
   if (!FRONT_RESPONSE.public_boundary ||
       FRONT_RESPONSE.public_boundary.raw_or_fine_grained_data_committed !== false) {
@@ -281,6 +298,33 @@ if (FRONT_RESPONSE.status === "not_available") {
     if (![10, 20, 30].includes(event.buffer_km)) responseBad = tag + " buffer_km 不在 10/20/30";
     if (!EVENT_STATUSES.has(event.status)) {
       responseBad = tag + " status 非法：" + event.status;
+    }
+    if (!event.pre_window || !event.post_window || !event.exploratory_window) {
+      responseBad = tag + " 必须携带 pre/post/exploratory 时间窗口";
+    } else {
+      const expectedPreStart = addIsoDays(event.date, -7);
+      const expectedPreEnd = addIsoDays(event.date, -1);
+      const expectedPostStart = addIsoDays(event.date, 1);
+      const expectedPostEnd = addIsoDays(event.date, 3);
+      const expectedExploratoryStart = addIsoDays(event.date, -7);
+      const expectedExploratoryEnd = addIsoDays(event.date, 7);
+      if (event.pre_window.start !== expectedPreStart || event.pre_window.end !== expectedPreEnd ||
+          event.pre_window.relative_days.join(",") !== "-7,-1") {
+        responseBad = tag + " pre_window 边界不符合事件日期";
+      }
+      if (event.post_window.start !== expectedPostStart || event.post_window.end !== expectedPostEnd ||
+          event.post_window.relative_days.join(",") !== "1,3") {
+        responseBad = tag + " post_window 边界不符合事件日期";
+      }
+      if (event.exploratory_window.start !== expectedExploratoryStart ||
+          event.exploratory_window.end !== expectedExploratoryEnd ||
+          event.exploratory_window.relative_days.join(",") !== "-7,7") {
+        responseBad = tag + " exploratory_window 边界不符合事件日期";
+      }
+    }
+    if (!event.control || !(event.control.min_distance_km >= 50) ||
+        !(event.control.area_ratio > 0) || !event.control.sampling) {
+      responseBad = tag + " 必须携带至少 50 km 外的非锋面对照定义";
     }
     if (event.status === "available") {
       if (event.coverage_status !== "available") responseBad = tag + " available 状态必须 coverage_status=available";
@@ -319,13 +363,27 @@ if (FRONT_RESPONSE.status === "not_available") {
       if (event.enhanced_flag != null) responseBad = tag + " 不可用状态不能给 enhanced_flag";
     }
   });
+  const groupedBuffers = events.reduce((acc, event) => {
+    if (!acc[event.front_event_id]) acc[event.front_event_id] = new Set();
+    acc[event.front_event_id].add(event.buffer_km);
+    return acc;
+  }, {});
+  Object.entries(groupedBuffers).forEach(([frontEventId, buffers]) => {
+    if ([10, 20, 30].some((bufferKm) => !buffers.has(bufferKm))) {
+      responseBad = frontEventId + " 必须覆盖 10/20/30 km 三档 buffer";
+    }
+  });
   check("front response events 字段完整，front_id 明确是单日临时 ID", responseBad === null,
     responseBad || events.length + " 条全部通过");
   const hasEnhanced = events.some((e) => e.status === "available" && e.enhanced_flag === true);
   const hasPlain = events.some((e) => e.status === "available" && e.enhanced_flag === false);
+  const hasUnavailable = events.some((e) => e.status === "missing_coverage" || e.coverage_status === "missing_coverage");
   check("front response fixture 覆盖响应增强与无明显增强两种 UI 状态",
     FRONT_RESPONSE.status !== "synthetic_fixture" || (FRONT_RESPONSE.is_synthetic === true && hasEnhanced && hasPlain),
     "synthetic=" + FRONT_RESPONSE.is_synthetic + " enhanced=" + hasEnhanced + " plain=" + hasPlain);
+  check("front response fixture 覆盖 missing coverage，不把缺测当作 0",
+    FRONT_RESPONSE.status !== "synthetic_fixture" || hasUnavailable,
+    "missing_coverage=" + hasUnavailable);
   const indexed = events.every((event) => {
     const day = FRONT_RESPONSE.by_date && FRONT_RESPONSE.by_date[event.date];
     return day && day.by_range && day.by_range[String(event.buffer_km)] &&
