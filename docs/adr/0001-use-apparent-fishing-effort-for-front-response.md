@@ -1,0 +1,3 @@
+# Use apparent fishing effort for front response analysis
+
+We will use Global Fishing Watch daily 0.01 degree apparent fishing hours as the first-stage fishery response signal, rather than raw AIS tracks, catch weight, or production value. Front-response analysis will sum apparent fishing effort inside multi-radius front buffers, compare seven-day before/after windows with a default focus on the one-to-three-day post-front response, and use same-day non-front control areas plus pre-event baselines to avoid treating general fishing activity as a front-driven response. This keeps the product language at "fishery possibility" and "operation cues" while giving the research track a computable, traceable target for studying ocean-front events and AIS operation response.

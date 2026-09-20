@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>渔场向导 · 面向渔场预测的海洋锋面分析系统（原型）</title>
+<style>
+  :root {
+    --bg: #0b1420;
+    --bg-card: #0f1c2b;
+    --panel: rgba(16,28,43,.94);
+    --line: rgba(148,190,226,.16);
+    --line-strong: rgba(148,190,226,.32);
+    --text: #e8f1f7;
+    --text-dim: #8ba6bb;
+    --accent: #4dd4c6;
+    --accent-2: #ffb454;
+    --warn: #ff8f6b;
+    --cold: #3d86d6;
+    --warm: #e2703f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: var(--bg); color: var(--text); height: 100vh; overflow: hidden;
+  }
+  .app { display: flex; flex-direction: column; height: 100vh; }
+
+  /* ============ L0 全局上下文（顶栏：唯一的时间 / 范围真源） ============ */
+  .topbar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 9px 16px;
+    background: linear-gradient(180deg, rgba(20,36,54,.96), rgba(12,22,35,.9));
+    border-bottom: 1px solid var(--line); z-index: 30;
+  }
+  .brand { display: flex; align-items: center; gap: 9px; padding-right: 4px; }
+  .brand .logo {
+    width: 30px; height: 30px; border-radius: 9px; flex: none; display: grid; place-items: center;
+    font-size: 15px; background: linear-gradient(135deg, #12395c, #0a2136);
+    border: 1px solid rgba(77,212,198,.35); color: var(--accent);
+  }
+  .brand h1 { font-size: 14px; font-weight: 600; line-height: 1.25; }
+  .brand small { display: block; color: var(--text-dim); font-weight: 400; font-size: 10.5px; }
+  .ctx {
+    display: flex; align-items: center; gap: 6px; background: rgba(8,16,26,.7);
+    border: 1px solid var(--line); border-radius: 10px; padding: 3px 8px 3px 9px;
+  }
+  .ctx-lab { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+  .ctx input, .ctx select {
+    background: transparent; border: 0; outline: none; color: var(--text);
+    font-size: 13px; font-family: inherit;
+  }
+  .ctx input::placeholder { color: #5f7d92; }
+  .ctx select option { background: #0f1c2b; }
+  .ctx input#locInput { width: 130px; }
+  .ctx input[type="date"], .ctx input[type="month"], .ctx input[type="number"] {
+    background: rgba(8,16,26,.8); border: 1px solid var(--line); border-radius: 8px;
+    padding: 4px 6px; color-scheme: dark;
+  }
+  .seg { display: flex; background: rgba(8,16,26,.75); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+  .seg button {
+    border: 0; background: transparent; color: var(--text-dim); padding: 5px 12px;
+    border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all .18s;
+  }
+  .seg button.active { background: linear-gradient(180deg,#14344d,#0d2336); color: var(--text); }
+  .seg button:not(.active):hover { color: var(--text); background: rgba(148,190,226,.08); }
+  .seg-sm button { padding: 4px 10px; font-size: 12px; }
+  .go {
+    border: 0; background: linear-gradient(135deg, var(--accent), #2aa79b); color: #06231f;
+    font-weight: 700; padding: 6px 13px; border-radius: 8px; cursor: pointer; font-size: 12px;
+    transition: filter .18s, box-shadow .18s;
+  }
+  .go:hover { filter: brightness(1.12); box-shadow: 0 0 0 3px rgba(77,212,198,.18); }
+  .go.ghost {
+    background: rgba(77,212,198,.08); color: var(--accent); border: 1px solid rgba(77,212,198,.35);
+    padding: 5px 10px; font-weight: 650;
+  }
+  .go.ghost.active { background: linear-gradient(135deg, var(--accent), #2aa79b); color: #06231f; }
+  .timebar { margin-left: auto; }
+  .timebar .step {
+    width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--line-strong);
+    background: rgba(12,26,41,.9); color: var(--text); cursor: pointer; font-size: 11px; line-height: 1;
+  }
+  .timebar .step:hover { border-color: var(--accent); color: var(--accent); }
+  .timebar .play {
+    width: 27px; height: 26px; border-radius: 8px; border: 1px solid rgba(77,212,198,.38);
+    background: rgba(77,212,198,.1); color: var(--accent); cursor: pointer; font-size: 11px; line-height: 1;
+  }
+  .timebar .play.on { background: linear-gradient(135deg, var(--accent), #2aa79b); color: #06231f; font-weight: 800; }
+  .time-rail {
+    width: 118px; accent-color: var(--accent); height: 18px; cursor: pointer;
+  }
+  .timebar .rail-text { color: var(--text-dim); font-size: 10.5px; min-width: 38px; text-align: right; }
+
+  /* ============ 主区：地图 + 侧栏 ============ */
+  .main { display: flex; flex: 1; min-height: 0; }
+  .map {
+    position: relative; flex: 1; overflow: hidden;
+    background:
+      radial-gradient(ellipse at 70% 45%, rgba(23,88,140,.35), transparent 60%),
+      linear-gradient(160deg, #0a1828, #0d2138 45%, #0a1828);
+    border-right: 1px solid var(--line);
+  }
+  .map.pick-origin { cursor: crosshair; }
+  .map svg { width: 100%; height: 100%; display: block; }
+  .map-controls { position: absolute; right: 14px; top: 14px; display: flex; flex-direction: column; gap: 7px; z-index: 7; }
+  .ctrl {
+    width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--line-strong);
+    background: rgba(12,26,41,.92); color: var(--text); font-size: 17px; cursor: pointer;
+  }
+  .ctrl:hover { border-color: var(--accent); color: var(--accent); }
+  .map-legend {
+    position: absolute; left: 14px; bottom: 14px; width: 218px; z-index: 7;
+    background: rgba(12,26,41,.92); border: 1px solid var(--line);
+    border-radius: 9px; padding: 8px 10px; font-size: 12px; color: var(--text-dim);
+  }
+  .map-legend h4 { color: var(--text); margin-bottom: 6px; font-size: 12px; }
+  .legend-row { display: flex; align-items: center; gap: 7px; margin: 3px 0; cursor: pointer; }
+  .swatch { width: 15px; height: 15px; border-radius: 4px; flex: none; border: 1px solid transparent; }
+  .swatch.sst { background: linear-gradient(90deg,#2f7fc1,#37b3b8,#7ecb6a,#e8d75a,#f0a341,#e2694a); }
+  .swatch.band { background: rgba(255,236,170,.6); }
+  .swatch.front { background: #0f0f0f; border-color: #fff; }
+  .swatch.cold { background: rgba(40,90,150,.85); }
+  .swatch.warm { background: rgba(190,90,45,.85); }
+  .swatch.nodata { background: repeating-linear-gradient(45deg, rgba(206,222,238,.65) 0 3px, rgba(120,142,166,.25) 3px 6px); border-color: rgba(200,215,230,.5); }
+  .swatch.fishing { background: rgba(255,180,84,.75); }
+  /* 比例尺：长度按当前缩放实时换算，标"图上 50 km" */
+  .map-scale {
+    position: absolute; right: 14px; bottom: 16px; z-index: 7; height: 7px; width: 90px;
+    border-left: 2px solid rgba(206,222,238,.9); border-right: 2px solid rgba(206,222,238,.9);
+    background: linear-gradient(180deg, rgba(206,222,238,.7), rgba(206,222,238,.35));
+    pointer-events: none;
+  }
+  .map-scale-label {
+    position: absolute; right: 14px; bottom: 26px; z-index: 7; font-size: 11px;
+    color: rgba(206,222,238,.8); text-shadow: 0 1px 2px rgba(6,14,24,.9); pointer-events: none;
+  }
+  /* hidden 属性只靠 UA 样式表的 display:none 生效，会被任何带 display 的类规则压掉
+     （.map-empty 就是 display:grid）——这里显式兜底，防止「有数据却一直盖着无数据遮罩」。 */
+  [hidden] { display: none !important; }
+  .map-empty {
+    position: absolute; inset: 0; display: grid; place-content: center; text-align: center;
+    gap: 6px; background: rgba(8,16,26,.55); backdrop-filter: blur(2px); z-index: 6;
+  }
+  .map-empty b { font-size: 15px; }
+  .map-empty small { color: var(--text-dim); font-size: 12px; }
+  .toast {
+    position: absolute; left: 50%; top: 16px; transform: translateX(-50%) translateY(-8px);
+    background: rgba(10,22,34,.95); border: 1px solid var(--line-strong);
+    padding: 7px 15px; border-radius: 999px; font-size: 13px; z-index: 20;
+    opacity: 0; transition: all .25s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast b { color: var(--accent-2); }
+
+  /* ============ 右侧面板 ============ */
+  .side { width: 356px; flex: none; display: flex; flex-direction: column; background: var(--panel); z-index: 10; }
+
+  /* 结论块：2026-09-14 起并入「当前」页「当前渔情」卡，不再常驻（原 .hero 外壳已移除） */
+  .hero-top { display: flex; align-items: center; gap: 8px; margin-top: 9px; }
+  .verdict {
+    font-size: 17px; font-weight: 700; letter-spacing: .5px; padding: 3px 12px; border-radius: 8px;
+    border: 1px solid; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .verdict.ok { color: #6ff0dd; border-color: rgba(77,212,198,.5); background: rgba(77,212,198,.12); }
+  .verdict.caution { color: #ffcb84; border-color: rgba(255,180,84,.5); background: rgba(255,180,84,.12); }
+  .verdict.stop { color: #ffa285; border-color: rgba(255,143,107,.5); background: rgba(255,143,107,.12); }
+  .hero-top .when { margin-left: auto; font-size: 11px; color: var(--text-dim); }
+  .hero-line { font-size: 13px; line-height: 1.6; margin-top: 8px; }
+  .hero-line b { color: var(--accent-2); }
+
+  /* L2 页签：按 9.3 沟通记录收敛为 当前 / 历史 / 预测 / AI 分析 */
+  .tabs { display: flex; align-items: flex-end; gap: 4px; padding: 10px 12px 0; }
+  .tabs button {
+    border: 0; background: transparent; cursor: pointer; transition: all .18s;
+    border-bottom: 2px solid transparent; border-radius: 7px 7px 0 0; padding: 8px 6px 7px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .tabs button.primary { flex: 1; font-size: 13px; font-weight: 600; color: var(--text-dim); }
+  .tabs button.secondary { flex: none; font-size: 12px; font-weight: 500; color: #6d879c; padding: 7px 10px 6px; }
+  .tabs .gap { flex: 0 0 6px; }
+  .tabs button .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tabs button.secondary.active { color: #cfe6e2; background: rgba(148,190,226,.07); }
+  .tabs button:not(.active):hover { color: var(--text); background: rgba(77,212,198,.06); }
+
+  .panes { flex: 1; overflow: auto; padding: 2px 12px 14px; }
+  .pane { display: none; animation: fade .25s ease; }
+  .pane.active { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+
+  /* ---------- 卡片与通用元件 ---------- */
+  .card { background: var(--bg-card); border: 1px solid var(--line); border-radius: 9px; padding: 11px; margin-top: 9px; }
+  .card h3 {
+    font-size: 12px; color: var(--text-dim); font-weight: 600; letter-spacing: .4px;
+    display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    flex-wrap: wrap; row-gap: 4px;   /* 标签变长时换行，不许把文字挤出容器 */
+  }
+  .h-tags { display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+  .metric { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin-top: 9px; }
+  .metric .m { background: rgba(10,20,32,.7); border: 1px solid var(--line); border-radius: 9px; padding: 9px; }
+  .metric .m .k { font-size: 11px; color: var(--text-dim); }
+  .metric .m .v { font-size: 17px; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .metric .m .v small { font-size: 11px; color: var(--text-dim); font-weight: 400; margin-left: 2px; }
+  .metric .m.hot .v { color: var(--accent-2); }
+
+  .tag {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 11px;
+    border-radius: 999px; padding: 3px 9px; border: 1px solid; white-space: nowrap;
+  }
+  .tag.warm { color:#ffd09a; border-color:rgba(255,180,84,.4); background:rgba(255,180,84,.08); }
+  .tag.cold { color:#9ad8ff; border-color:rgba(77,180,255,.35); background:rgba(77,180,255,.08); }
+  .tag.ok   { color:var(--accent); border-color:rgba(77,212,198,.4); background:rgba(77,212,198,.08); }
+  .tag.warn { color:var(--warn); border-color:rgba(255,143,107,.4); background:rgba(255,143,107,.08); }
+  .tag.plain { color:var(--text-dim); border-color:var(--line-strong); background:rgba(148,190,226,.06); }
+
+  .list { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .row {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(10,20,32,.6); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 10px; font-size: 13px;
+  }
+  .row .i { color: var(--accent); flex: none; }
+  .row .grow { flex: 1; }
+  .row small { color: var(--text-dim); font-size: 11px; display: block; margin-top: 1px; }
+  .row.clickable { cursor: pointer; transition: border-color .18s, background .18s; }
+  .row.clickable:hover { border-color: rgba(77,212,198,.45); }
+  .row.clickable.active { border-color: var(--accent); background: rgba(77,212,198,.09); }
+  .row .side-tag { flex: none; }
+  .row.lead { border-color: rgba(77,212,198,.28); background: rgba(77,212,198,.07); }
+  .pane .seg { display: inline-flex; margin-top: 9px; }
+  .bars { display: flex; align-items: flex-end; gap: 4px; height: 62px; margin-top: 9px; }
+  .bars i {
+    flex: 1; min-height: 3px; border-radius: 3px 3px 1px 1px;
+    background: linear-gradient(180deg, var(--accent), rgba(77,212,198,.25));
+    transition: height .3s ease; opacity: .75;
+  }
+  .bars i.active { opacity: 1; outline: 1px solid rgba(255,255,255,.35); }
+  .bars i.future { background: linear-gradient(180deg, var(--accent-2), rgba(255,180,84,.2)); }
+  .bars i.dim { opacity: .25; }
+  .heat {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(12px, 1fr));
+    gap: 3px; margin-top: 9px;
+  }
+  .heat-cell {
+    aspect-ratio: 1; min-width: 12px; border-radius: 3px;
+    background: rgba(148,190,226,.09); border: 1px solid rgba(148,190,226,.1);
+  }
+  .heat-cell.has { background: rgba(77,212,198,.16); border-color: rgba(77,212,198,.22); }
+  .heat-cell.hot { background: rgba(255,180,84,.55); border-color: rgba(255,180,84,.5); }
+  .heat-cell.active { outline: 1px solid rgba(255,255,255,.8); outline-offset: 1px; }
+
+  .empty {
+    margin-top: 8px; border-radius: 9px; padding: 11px 12px; font-size: 12.5px; line-height: 1.6;
+    background: rgba(255,143,107,.06); border: 1px dashed rgba(255,143,107,.35); color: #ffc7b6;
+  }
+  .empty b { color: #ffd9cd; }
+
+  .why { margin-top: 9px; border: 1px solid var(--line); border-radius: 8px; background: rgba(10,20,32,.5); }
+  .why > summary {
+    cursor: pointer; padding: 7px 10px; font-size: 12px; color: var(--text-dim);
+    list-style: none; display: flex; align-items: center; gap: 6px;
+  }
+  .why > summary::-webkit-details-marker { display: none; }
+  .why > summary::before { content: "▸"; color: var(--accent); font-size: 11px; }
+  .why[open] > summary::before { content: "▾"; }
+  .why > summary:hover { color: var(--text); }
+  .why-body { padding: 2px 10px 10px; font-size: 12.5px; line-height: 1.7; color: #c8dced; }
+  .why-body b { color: var(--accent-2); }
+  .why-body .k { color: var(--text-dim); }
+  .why-body .line { padding: 4px 0; border-top: 1px dashed rgba(148,190,226,.14); }
+  .why-body .line:first-child { border-top: 0; }
+
+  .table { margin-top: 8px; display: flex; flex-direction: column; gap: 0; font-size: 12.5px; }
+  .table .tr { display: flex; gap: 8px; padding: 6px 0; border-top: 1px dashed rgba(148,190,226,.14); }
+  .table .tr:first-child { border-top: 0; }
+  .table .th { color: var(--text-dim); flex: 0 0 74px; }
+  .table .td { flex: 1; }
+  .table .td em { font-style: normal; color: var(--text-dim); }
+
+  .footer {
+    padding: 9px 12px; border-top: 1px solid var(--line); color: var(--text-dim); font-size: 11.5px;
+    display: flex; justify-content: space-between; gap: 8px; align-items: center;
+  }
+  .footer a, .footer button.link { color: var(--accent); text-decoration: none; background: none; border: 0; cursor: pointer; font-size: 11.5px; font-family: inherit; }
+  .kbd { font-size: 11px; color: var(--text-dim); }
+
+  /* ============ 顶栏分组序号与分隔：让"先做什么"看得见 ============ */
+  .ctx { position: relative; }
+  .ctx .num {
+    width: 15px; height: 15px; border-radius: 50%; flex: none; display: grid; place-items: center;
+    font-size: 10px; font-style: normal; font-weight: 700; color: var(--accent);
+    background: rgba(77,212,198,.12); border: 1px solid rgba(77,212,198,.35);
+  }
+  .topbar > .ctx + .ctx::before {
+    content: ""; position: absolute; left: -6px; top: 22%; height: 56%;
+    width: 1px; background: var(--line-strong);
+  }
+
+  /* ============ 图例分组：开关是开关，色带是色带 ============ */
+  .legend-row.sub { padding-left: 15px; }
+  .legend-band { display: flex; align-items: center; gap: 7px; margin-top: 7px; }
+  .legend-note {
+    margin-top: 7px; padding-top: 7px; border-top: 1px dashed rgba(148,190,226,.16);
+    font-size: 11px; line-height: 1.5;
+  }
+  .hint { margin-top: 8px; color: var(--text-dim); font-size: 11.5px; line-height: 1.5; }
+
+  /* ============ 鼠标指向地图任意点，看那里的数据 ============ */
+  .map-probe {
+    position: absolute; left: 0; top: 0; z-index: 12; width: 208px; pointer-events: none;
+    background: rgba(9,20,32,.96); border: 1px solid var(--line-strong); border-radius: 9px;
+    padding: 9px 10px; font-size: 12px; box-shadow: 0 8px 22px rgba(0,0,0,.35);
+  }
+  .map-probe .mp-coord { font-weight: 700; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .map-probe .mp-row { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; }
+  .map-probe .mp-k { color: var(--text-dim); white-space: nowrap; }
+  .map-probe .mp-v { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+  .map-probe .mp-note { color: var(--text-dim); font-size: 11px; margin-top: 1px; line-height: 1.45; }
+  .map-probe .mp-foot {
+    margin-top: 7px; padding-top: 6px; border-top: 1px dashed rgba(148,190,226,.16);
+    color: var(--text-dim); font-size: 11px;
+  }
+
+  /* ============ 选中回执卡：点了谁、怎么取消，一眼看到 ============ */
+  .map-pick {
+    position: absolute; right: 64px; top: 14px; z-index: 12; width: 228px;
+    background: rgba(9,20,32,.96); border: 1px solid rgba(77,212,198,.5); border-radius: 9px;
+    padding: 8px 10px; font-size: 12px; box-shadow: 0 8px 22px rgba(0,0,0,.35);
+  }
+  .map-pick .pk-head { display: flex; align-items: center; gap: 6px; }
+  .map-pick .pk-head b { flex: 1; font-size: 12.5px; color: var(--accent); }
+  .map-pick .pk-x {
+    border: 0; background: rgba(148,190,226,.1); color: var(--text); width: 20px; height: 20px;
+    border-radius: 6px; cursor: pointer; font-size: 11px; line-height: 1; flex: none;
+  }
+  .map-pick .pk-x:hover { background: rgba(255,143,107,.25); }
+  .map-pick .pk-body { margin-top: 6px; color: var(--text-dim); line-height: 1.55; }
+  .map-pick .pk-body b { color: var(--text); }
+
+  /* 窄屏（≤1440）压缩上下文条，保持单行不换行 */
+  @media (max-width: 1440px) {
+    .topbar { gap: 8px; padding: 9px 12px; }
+    .brand small { display: none; }
+    .ctx input#locInput { width: 112px; font-size: 12px; }
+    .ctx { padding: 3px 6px 3px 8px; }
+    .ctx-lab { font-size: 10.5px; }
+    .ctx .num { width: 14px; height: 14px; font-size: 9.5px; }
+    .seg button { padding: 5px 9px; }
+    .go { padding: 5px 10px; }
+    .go.ghost { padding: 4px 8px; }
+    .timebar .step { width: 24px; height: 24px; }
+    .timebar .play { width: 25px; height: 24px; }
+    .time-rail { width: 82px; }
+    .timebar .rail-text { display: none; }
+    .legend-note { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ===== L0 全局上下文（唯一真源：定位 / 半径 / 时间） ===== -->
+  <header class="topbar" id="topbar">
+    <div class="brand">
+      <div class="logo">⛵</div>
+      <div>
+        <h1>渔场向导</h1>
+        <small>海洋锋面渔情分析 · 原型</small>
+      </div>
+    </div>
+
+    <div class="ctx">
+      <i class="num">1</i><span class="ctx-lab">出发地</span>
+      <input id="locInput" placeholder="124.50°E, 30.20°N" value="124.50°E, 30.20°N" />
+      <button class="go" id="locateBtn">定位</button>
+      <button class="go ghost" id="pickOriginBtn" title="在地图上点选出发地">点选</button>
+    </div>
+
+    <div class="ctx">
+      <i class="num">2</i><span class="ctx-lab">作业范围</span>
+      <div class="seg seg-sm" id="rangeSeg">
+        <button data-range="10">10 km</button>
+        <button data-range="20" class="active">20 km</button>
+        <button data-range="30">30 km</button>
+      </div>
+    </div>
+
+    <div class="ctx timebar">
+      <i class="num">3</i><span class="ctx-lab">出海日</span>
+      <button class="play" id="datePlay" title="播放逐日变化">▶</button>
+      <button class="step" id="datePrev" title="前一天">◀</button>
+      <input type="date" id="timeDate" value="2024-08-05" min="2024-08-05" max="2024-08-07" />
+      <button class="step" id="dateNext" title="后一天">▶</button>
+      <input class="time-rail" type="range" id="timeRail" min="0" max="0" value="0" title="拖动查看连续日期" />
+      <span class="rail-text" id="timeRailText">—/—</span>
+    </div>
+  </header>
+
+  <div class="main">
+    <!-- ===== 地图 ===== -->
+    <section class="map" id="map">
+      <svg id="mapSvg" viewBox="0 0 1000 640" preserveAspectRatio="xMidYMid slice"></svg>
+      <div class="map-controls">
+        <button class="ctrl" title="放大地图" id="zoomIn">＋</button>
+        <button class="ctrl" title="缩小地图" id="zoomOut">－</button>
+        <button class="ctrl" title="回到定位点" id="recenter">◎</button>
+      </div>
+      <div class="map-legend">
+        <h4>图层</h4>
+        <div class="legend-row" data-layer="sst"><span class="swatch sst"></span> 水温（NOAA GHRSST）</div>
+        <div class="legend-row" data-layer="band"><span class="swatch band"></span> 锋面带（原始数据）</div>
+        <div class="legend-row" data-layer="front"><span class="swatch front"></span> 锋面区 · 编号</div>
+        <div class="legend-row sub" data-layer="coldwarm"><span class="swatch cold"></span><span class="swatch warm"></span> 冷侧 / 暖侧</div>
+        <div class="legend-row" data-layer="nodata"><span class="swatch nodata"></span> 无观测（云 / 未覆盖）</div>
+        <div class="legend-row" data-layer="fishing"><span class="swatch fishing"></span> 推荐水域（示例，默认关）</div>
+        <div class="legend-band">
+          <span class="kbd">陆地</span><span class="kbd">自然地球 1:10m（公有领域）</span>
+        </div>
+        <div class="legend-note">悬停地图任意位置可查看该点数据；陆地＝浅色实色块，斜线＝无观测</div>
+      </div>
+      <div class="map-scale-label" id="mapScaleText">50 km</div>
+      <div class="map-scale" id="mapScale"></div>
+      <div class="map-empty" id="mapEmpty" hidden>
+        <b id="mapEmptyTitle">该时次无数据</b>
+        <small id="mapEmptyDesc"></small>
+      </div>
+      <div class="map-probe" id="mapProbe" hidden></div>
+      <div class="map-pick" id="mapPick" hidden>
+        <div class="pk-head"><b id="pickName">—</b><button class="pk-x" id="pickClose" title="取消选中">✕</button></div>
+        <div class="pk-body" id="pickBody"></div>
+      </div>
+      <div class="toast" id="toast"><b id="toastLoc"></b></div>
+    </section>
+
+    <!-- ===== 右侧：页签面板（结论已并入「当前」页，不再常驻） ===== -->
+    <aside class="side">
+
+      <!-- L2 页签：当前 / 历史 / 预测 / AI 分析；数据说明由页脚进入 -->
+      <nav class="tabs" id="tabs" role="tablist">
+        <button class="primary active" data-pane="now" role="tab" aria-selected="true"><span class="dot" style="background:var(--accent)"></span>当前</button>
+        <button class="primary" data-pane="clim" role="tab" aria-selected="false"><span class="dot" style="background:#8bc7ff"></span>历史</button>
+        <button class="primary" data-pane="future" role="tab" aria-selected="false"><span class="dot" style="background:var(--accent-2)"></span>预测</button>
+        <button class="primary" data-pane="ai" role="tab" aria-selected="false"><span class="dot" style="background:#cda7ff"></span>AI 分析</button>
+      </nav>
+
+      <div class="panes" id="panes">
+        <!-- 当前 -->
+        <section class="pane active" id="pane-now">
+          <div class="card">
+            <h3>当前渔情 <span class="tag ok" id="nowScopeTag">—</span></h3>
+            <!-- 结论块：原常驻 hero 于 2026-09-14 并入本卡（页面上唯一的结论出口） -->
+            <div class="hero-top">
+              <span class="verdict ok" id="heroVerdict">—</span>
+              <span class="when" id="heroWhen">—</span>
+            </div>
+            <p class="hero-line" id="heroLine"></p>
+            <div class="metric" id="nowMetrics"></div>
+            <details class="why" id="heroWhy">
+              <summary>评分依据</summary>
+              <div class="why-body" id="heroWhyBody"></div>
+            </details>
+            <details class="why" id="seaDetails">
+              <summary>海况与安全 <span class="tag" id="seaTag">—</span></summary>
+              <div class="list" id="seaList"></div>
+            </details>
+          </div>
+          <div class="card">
+            <h3>作业线索 <span class="tag plain" id="nowFrontTag">—</span></h3>
+            <div class="list" id="nowLead"></div>
+            <details class="why" id="nowFrontDetails">
+              <summary>全部锋面区</summary>
+              <div class="list" id="nowFronts"></div>
+            </details>
+            <div class="empty" id="nowEmpty" hidden></div>
+          </div>
+          <div class="card">
+            <h3>历史 AIS 响应 <span class="tag plain" id="aisResponseTag">待接入</span></h3>
+            <div class="list" id="aisResponseList"></div>
+            <details class="why" id="aisResponseWhy">
+              <summary>响应口径</summary>
+              <div class="why-body" id="aisResponseWhyBody"></div>
+            </details>
+          </div>
+        </section>
+
+        <!-- 预测 -->
+        <section class="pane" id="pane-future">
+          <div class="card">
+            <h3>规则预测参考 <span class="h-tags"><span class="tag plain" id="futureTag">1 / 3 / 7 天</span><span class="tag ok" id="futureBestTag">—</span></span></h3>
+            <div class="seg seg-sm" id="futureWindow">
+              <button data-window="1">1 天</button>
+              <button data-window="3" class="active">3 天</button>
+              <button data-window="7">7 天</button>
+            </div>
+            <div class="bars" id="futureBars"></div>
+            <div class="list" id="futureList"></div>
+            <details class="why" id="futureWhy">
+              <summary>预测依据</summary>
+              <div class="why-body" id="futureWhyBody"></div>
+            </details>
+            <details class="why" id="futureDaysBox">
+              <summary>逐日参考</summary>
+              <div class="list" id="futureDays"></div>
+            </details>
+          </div>
+        </section>
+
+        <!-- 历史 -->
+        <section class="pane" id="pane-clim">
+          <div class="card">
+            <h3>历史锋面频率 <span class="tag ok" id="climHint">—</span></h3>
+            <div class="seg seg-sm" id="climPeriod">
+              <button data-period="day" class="active">当日</button>
+              <button data-period="period">3 日</button>
+              <button data-period="week">7 日</button>
+              <button data-period="halfmonth">15 日</button>
+              <button data-period="month">当月</button>
+              <button data-period="year">整年</button>
+            </div>
+            <div class="bars" id="climBars"></div>
+            <div class="heat" id="climHeat" aria-label="连续日期格子图"></div>
+            <div class="row" style="margin-top:9px"><span class="i">i</span><span class="grow" id="climStat"></span></div>
+            <details class="why" id="climWhy">
+              <summary>统计明细</summary>
+              <div class="why-body" id="climYears"></div>
+            </details>
+            <div class="hint">自动跟随顶栏「出海日」，无需单独选择日期。</div>
+          </div>
+        </section>
+
+        <!-- AI 分析 -->
+        <section class="pane" id="pane-ai">
+          <div class="card">
+            <h3>AI 分析 <span class="h-tags"><span class="tag plain" id="aiTag">证据驱动</span><span class="tag plain" id="aiNextTag">—</span></span></h3>
+            <div class="list" id="aiSummary"></div>
+            <details class="why" id="aiEvidence">
+              <summary>证据链</summary>
+              <div class="why-body" id="aiEvidenceBody"></div>
+            </details>
+            <details class="why" id="aiPlanBox">
+              <summary>任务编排 <span class="tag ok" id="aiPlanTag">本地规则</span></summary>
+              <div class="list" id="aiPlan"></div>
+            </details>
+            <div class="list" id="aiNext"></div>
+          </div>
+        </section>
+
+        <!-- 数据说明（支撑层：数据来源 / 评分规则 / 使用限制） -->
+        <section class="pane" id="pane-basis">
+          <div class="card">
+            <h3>数据来源</h3>
+            <div class="table" id="basisData"></div>
+          </div>
+          <div class="card">
+            <h3>评分规则</h3>
+            <div class="list" id="basisRules"></div>
+          </div>
+          <div class="card">
+            <h3>使用限制</h3>
+            <div class="list" id="basisLimits"></div>
+          </div>
+        </section>
+
+      </div>
+
+      <footer class="footer">
+        <span>数据 · <b id="dataStamp">—</b></span>
+        <button class="link" id="toBasis">查看数据说明 ↗</button>
+      </footer>
+    </aside>
+  </div>
+</div>
+
+<!-- 真实数据（脚本生成，不要手改） -->
+<script src="data/meta.js"></script>
+<script src="data/base/basemap.js"></script>
+<script src="data/clim/same-period.js"></script>
+<script src="data/front_response/events.js"></script>
+<!-- 数据清单：日期/海温有哪些天由导出脚本写进 data/days.js，
+     这里按清单同步注入（document.write 保证后面脚本执行前加载完，file:// 下也能用）。
+     加日期只需要重跑导出脚本，不用手改本文件。 -->
+<script src="data/days.js"></script>
+<script>
+  (function () {
+    var idx = window.OF_DATA_INDEX || { days: [], sst: [] };
+    (idx.days || []).forEach(function (d) {
+      document.write('<script src="data/day/' + d + '.js"><\/script>');
+    });
+    (idx.sst || []).forEach(function (d) {
+      document.write('<script src="data/sst/' + d + '.js"><\/script>');
+    });
+  })();
+</script>
+<!-- 适配层：页面唯一的数据入口 -->
+<script src="prototype-data.js"></script>
+<script src="prototype-fishing.js"></script>
+</body>
+</html>
+
