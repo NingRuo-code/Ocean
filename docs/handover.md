@@ -16,9 +16,9 @@
 start prototype-fishing.html
 
 # ② 三项检查（Node 18+；e2e 需要本机装有 Edge）
-node tools/data-check.mjs     # 数据文件结构与自洽：890 项断言
-node tools/e2e-check.mjs      # 交互端到端（无头 Edge + CDP）：100 项断言
-node tools/layout-check.mjs   # 布局几何（1280 / 1680 两档）：23 项断言
+node tools/data-check.mjs     # 数据文件结构与自洽：897 项断言
+node tools/e2e-check.mjs      # 交互端到端（无头 Edge + CDP）：108 项断言
+node tools/layout-check.mjs   # 布局几何（1280 / 1680 两档）：25 项断言
 ```
 
 三项都必须 **0 失败**才算改对；`e2e-check` 每次会覆盖写截图到 `%TEMP%\shot-1-now.png` … `shot-10-empty.png`（Windows 上通常是 `C:\temp\`），可以直接拿来看页面长什么样。
@@ -138,9 +138,9 @@ ocean-front-prototype/
 │   └── base/basemap.js         底图（Natural Earth 裁剪抽稀结果）
 ├── tools/
 │   ├── build-basemap.mjs       拉 Natural Earth → 裁剪抽稀 → data/base/basemap.js
-│   ├── data-check.mjs          数据断言（890）
-│   ├── e2e-check.mjs           交互断言（97，无头 Edge + CDP，产出截图）
-│   └── layout-check.mjs        布局断言（22）
+│   ├── data-check.mjs          数据断言（897）
+│   ├── e2e-check.mjs           交互断言（108，无头 Edge + CDP，产出截图）
+│   └── layout-check.mjs        布局断言（25）
 └── docs/
     ├── handover.md             本文件
     ├── data-schema.md          数据契约（字段 / 编码 / 生成方式 / 已知问题）
@@ -193,7 +193,7 @@ node tools\data-check.mjs; node tools\e2e-check.mjs; node tools\layout-check.mjs
 |---|---|---|
 | 中文路径 + netCDF-C | `netCDF4` 打不开含中文的路径（本仓库路径含「海洋锋面」） | 导出脚本内部已做临时 ASCII 路径中转；自己写脚本时同样处理 |
 | CSS `display` 覆盖 `hidden` | 地图遮罩一直显示，页面上看不到数据 | 已加 `[hidden]{display:none!important}`；新增覆盖层不要再写 `display` 覆盖 |
-| 只断言 `el.hidden` 的测试会漏 | 63 项全过但页面实际不可用 | e2e 用 computed style + `elementFromPoint` 命中判断 |
+| 只断言 `el.hidden` 的测试会漏 | 检查全过但页面实际不可用 | e2e 用 computed style + `elementFromPoint` 命中判断 |
 | PowerShell 读文件乱码 | `Get-Content` 默认按 ANSI | 用 `Get-Content -Encoding UTF8`；工具输出用 `Out-File -Encoding utf8` |
 | Zenodo 下载中断 | `ProtocolError` / 半截文件 | 抓取脚本已带重试 + 重新打开归档 + `.part` 原子写入 |
 | `git credential fill` 交互 | 在工具终端里会挂起 | 不要交互式调用；需要凭据时用非交互方式读取 |
@@ -249,9 +249,9 @@ node tools\data-check.mjs; node tools\e2e-check.mjs; node tools\layout-check.mjs
 
 | 项 | 期望值 |
 |---|---|
-| `node tools/data-check.mjs` | 0 失败 / 890 项 |
-| `node tools/e2e-check.mjs` | 0 失败 / 100 项（截图写入 `%TEMP%`） |
-| `node tools/layout-check.mjs` | 0 失败 / 23 项 |
+| `node tools/data-check.mjs` | 0 失败 / 897 项 |
+| `node tools/e2e-check.mjs` | 0 失败 / 108 项（截图写入 `%TEMP%`） |
+| `node tools/layout-check.mjs` | 0 失败 / 25 项 |
 | 数据规模 | `data/` 3.24 MB；`day/*.js` 62 个、`sst/*.js` 62 个 |
 | 日期范围 | 2024-07-01 ~ 2024-08-31（62 天，逐日） |
 | 历史同期样本 | 2015–2024 每年 8/5–7，共 30 天 |

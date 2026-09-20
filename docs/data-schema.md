@@ -249,8 +249,8 @@ node tools\build-front-response.mjs
 
 ```bash
 node tools/data-check.mjs     # 数据文件结构与自洽（每个数据天 14 项 + 海温/清单断言；VERBOSE=1 打全部）
-node tools/e2e-check.mjs      # 页面端到端（63 项，含「没有编造数值」断言）
-node tools/layout-check.mjs   # 布局（20 项，1680/1280 两档）
+node tools/e2e-check.mjs      # 页面端到端（108 项，含「没有编造数值」断言）
+node tools/layout-check.mjs   # 布局（25 项，1680/1280 两档）
 ```
 
 `data-check` 会校验：网格与窗口一致、对象编号唯一且有序、中心线在窗口内、RLE 结构合法并且**还原出的像元数等于 `quality` 里的统计**、`has_sst/has_intensity` 为 false、生成文件里没有 `NaN/Infinity`；海温另有：与 `meta` 声明一致、`bin_c=0.5`、游程还原数 = `valid_cells`、档位落在 0~40 °C、与数据源单点值对得上（2024-08-05 @124.525°E/30.025°N = 30.69 °C）；并校验 `days.js` 清单与目录一致。

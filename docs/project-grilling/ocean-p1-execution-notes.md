@@ -45,7 +45,7 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 | 05 | 计算前后窗口与非锋面对照响应增强 | 已完成 | 已固化时间窗口、非锋面对照和缺测不可用规则 |
 | 06 | 把真实/样例 AIS 响应接入当前页和 AI 证据链 | 已完成 | 当前页、AI 证据链和数据说明页已同步 |
 | 07 | 补齐 P1 UI 与文案回归检查 | 已完成 | 已补齐 placeholder、上下文联动和误导措辞拦截 |
-| 08 | 生成 P1 验证与汇报包 | 待执行 | 面向老师/评审/后续简历复盘 |
+| 08 | 生成 P1 验证与汇报包 | 已完成 | 已沉淀 P1 验证包与阶段答辩口径 |
 
 ## 3. 执行日志
 
@@ -79,6 +79,9 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 - 执行 07：补齐 UI 回归检查。placeholder 状态会临时关闭 Front Response Table，验证历史 AIS 响应卡片只能显示“待接入/暂不参与”，不能输出 fishing hours、lift 或 control 数值。
 - 执行 07：补齐全局上下文联动检查。切换日期和作业范围后，AIS 响应证据必须使用同一个 `state.date + state.range` 查询结果，并展示对应的 pre/post window 与数值明细。
 - 执行 07：新增产品文案边界检查，显式拦截“产量预测”“收益预测”“guaranteed catch”“yield prediction”“保证有鱼”等误导性 UI 措辞，确保 AI 分析页和数据说明页只表达作业线索与证据边界。
+- 执行 08：新增 `docs/reports/ocean-p1-validation-package.md`，汇总典型事件 `2024-08-05:F001` 的前后窗口、10/20/30 km 敏感性、非锋面对照、缺测空态、UI 查看路径和 P1 数据边界。
+- 执行 08：验证包明确当前 `data/front_response/events.js` 是 `synthetic_fixture`，只用于验证契约和界面路径，不是真实 AIS/GFW 证据，也不代表渔获量、产量或收益。
+- 执行 08：同步更新交接与 UX 文档中的验收数量，当前基线为 data-check 897 项、e2e-check 108 项、layout-check 25 项。
 
 ## 4. 项目真实性准备
 
@@ -138,6 +141,14 @@ fishing hours、lift、control value 和 enhanced flag 都必须来自确定性�
 
 P1 不直接测试大模型“会不会想象”，而是把 AI 能说的话限制在可验证证据链里：数值必须来自 Front Response Table，缺数据只能显示 unavailable，placeholder 不能输出 fishing hours、lift 或 control 值。回归检查会覆盖 AI 分析页和数据说明页，确认它们只引用确定性 artifact、数据来源、计算窗口和边界说明，并拦截“产量预测”“收益预测”“guaranteed catch”“yield prediction”“保证有鱼”等越界措辞。
 
+### Q14：P1 完成后项目价值是什么？
+
+P1 把 Ocean 从“锋面地图原型”推进到“渔场作业辅助证据链原型”：用户看到的不只是某一天有无锋面，还能看到历史 AIS response 的方法入口、前后窗口、非锋面对照、三半径敏感性和不可用状态。对外讲法是：产品层帮助用户形成作业线索，技术层验证时空锋面事件与 apparent fishing effort response 的匹配、比较和可解释展示。
+
+### Q15：P1 的技术难点怎么讲？
+
+难点不是把数字放到页面上，而是把跨来源数据变成可追溯事件证据：锋面对象是本地日尺度 front event，AIS/GFW 是另一套时空活动信号；系统需要定义事件身份、buffer、pre/post window、非锋面对照、enhanced rule 和 missing coverage 规则，并用测试防止 UI 或 AI 把 proxy 数据写成产量、收益或保证性结论。
+
 ## 5. 技术难点记录
 
 ### 难点 1：时空事件匹配
@@ -165,6 +176,7 @@ AIS 覆盖、接收条件、数据授权和下载范围都会造成缺测。缺�
 - [x] 执行 05：计算前后窗口与非锋面对照响应增强。
 - [x] 执行 06：把真实/样例 AIS 响应接入当前页和 AI 证据链。
 - [x] 执行 07：补齐 P1 UI 与文案回归检查。
+- [x] 执行 08：生成 P1 验证与汇报包。
 - [ ] 每完成一张 ticket，更新本文件的执行日志、技术难点和 Q&A。
 - [ ] `gh` 可用后，把本地 tickets 发布到 GitHub Issues，并应用 `ready-for-agent` 标签。
 - [ ] P1 闭环完成后，再回头整理简历项目表达。

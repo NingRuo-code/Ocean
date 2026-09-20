@@ -244,7 +244,7 @@
 
 ## 8. 验收清单（已自动化，Edge 无头 + CDP）
 
-`node tools/data-check.mjs`（890 项）+ `node tools/e2e-check.mjs`（97 项）+ `node tools/layout-check.mjs`（22 项），全部 PASS 才算通过。
+`node tools/data-check.mjs`（897 项）+ `node tools/e2e-check.mjs`（108 项）+ `node tools/layout-check.mjs`（25 项），全部 PASS 才算通过。
 
 | 类别 | 断言（要点） |
 |---|---|
