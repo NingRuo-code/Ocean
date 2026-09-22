@@ -46,6 +46,7 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 | 06 | 把真实/样例 AIS 响应接入当前页和 AI 证据链 | 已完成 | 当前页、AI 证据链和数据说明页已同步 |
 | 07 | 补齐 P1 UI 与文案回归检查 | 已完成 | 已补齐 placeholder、上下文联动和误导措辞拦截 |
 | 08 | 生成 P1 验证与汇报包 | 已完成 | 已沉淀 P1 验证包与阶段答辩口径 |
+| 09 | 准备真实授权 AIS/GFW 样例接入边界 | 已完成 | 已新增真实样例接入清单、本地目录规则和提交 go/no-go |
 
 ## 3. 执行日志
 
@@ -84,6 +85,13 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 - 执行 08：同步更新交接与 UX 文档中的验收数量，当前基线为 data-check 897 项、e2e-check 108 项、layout-check 25 项。
 - 汇报准备：新增 `docs/reports/ocean-p1-defense-brief.md`，整理 8-10 分钟讲稿、幻灯片结构、页面演示顺序和高频追问回答。
 - 汇报准备：重写 `docs/演示文稿.md`，移除“推导产量”等早期草稿说法，改为当前 P1 可演示能力和 apparent fishing effort 边界。
+
+### 2026-09-22
+
+- 执行 09：新增 `docs/gfw-ais-real-sample-intake.md`，把真实授权 AIS/GFW 样例接入前必须确认的数据来源、许可、字段、粒度、公开边界、本地目录和审核清单写成可执行文档。
+- 执行 09：明确真实样例只允许以事件级/半径级 Front Response Table 聚合结果进入仓库；raw/API 下载、MMSI、船名、轨迹、0.01° 工作网格和可逆推出源数据的中间表仍只能本地处理。
+- 执行 09：新增 `local_data/gfw_ais/downloads/`、`raw/`、`intermediate/` 的 Git 忽略规则，降低后续误提交敏感或授权不清数据的风险。
+- 执行 09：同步 `docs/data-governance-gfw-ais.md` 与 `docs/data-schema.md`，确保后续任务知道真实样例必须先通过 intake go/no-go，再走 `tools/build-front-response.mjs --input <本地授权样例>`。
 
 ## 4. 项目真实性准备
 
@@ -179,6 +187,7 @@ AIS 覆盖、接收条件、数据授权和下载范围都会造成缺测。缺�
 - [x] 执行 06：把真实/样例 AIS 响应接入当前页和 AI 证据链。
 - [x] 执行 07：补齐 P1 UI 与文案回归检查。
 - [x] 执行 08：生成 P1 验证与汇报包。
+- [x] 执行 09：准备真实授权 AIS/GFW 样例接入边界。
 - [ ] 每完成一张 ticket，更新本文件的执行日志、技术难点和 Q&A。
 - [ ] `gh` 可用后，把本地 tickets 发布到 GitHub Issues，并应用 `ready-for-agent` 标签。
 - [ ] P1 闭环完成后，再回头整理简历项目表达。

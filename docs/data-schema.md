@@ -194,6 +194,8 @@ node tools\build-front-response.mjs
 
 默认输入是 `data/front_response/fixture-effort-sample.json`，这是小型聚合夹具，不是 raw AIS/GFW 或 0.01° 细粒度中间表。真实样例到位后可用同一脚本传入 `--input <本地授权样例>`，但提交真实生成物前必须先复核 `docs/data-governance-gfw-ais.md`。
 
+真实或授权样例的本地输入格式、目录边界和提交 go / no-go 以 [`docs/gfw-ais-real-sample-intake.md`](gfw-ais-real-sample-intake.md) 为准。默认本地目录是 `local_data/gfw_ais/`，其中 raw、download、intermediate 和本地授权聚合输入都只用于本机处理，不直接进入 Git。
+
 响应表校验规则：
 
 - 响应日期必须落在已导出的锋面样本日期内。

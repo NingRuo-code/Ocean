@@ -1,8 +1,9 @@
 # P1 GFW/AIS 数据边界与公开规则
 
 > 适用范围：Ocean P1 “历史 AIS 响应 / Front Response Table”闭环。
-> 最近复核：2026-09-20。
+> 最近复核：2026-09-22。
 > 参考来源：Global Fishing Watch API license/rate limits、GFW data caveats、GFW datasets/user guide。
+> 真实样例接入操作清单：[`docs/gfw-ais-real-sample-intake.md`](gfw-ais-real-sample-intake.md)。
 
 ## 1. P1 数据路线
 
@@ -15,6 +16,8 @@ P1 只把 AIS/GFW 数据作为“渔业活动响应”信号使用，不作为�
 3. **本地小型夹具**：当真实样例暂不可用时，用 synthetic fixture 验证数据契约、UI 空态和证据链；fixture 不能被写成真实响应证据。
 
 P1 默认时间窗仍为 `2024-07-01` 至 `2024-08-31`，默认空间范围仍为东海原型窗口。若数据授权或下载范围变化，必须先更新本文档，再执行数据转换。
+
+真实或授权样例到位后，先按 [`docs/gfw-ais-real-sample-intake.md`](gfw-ais-real-sample-intake.md) 完成来源、许可、字段、粒度、公开边界和本地目录检查，再使用 `tools/build-front-response.mjs --input <本地授权样例>` 生成 Front Response Table。
 
 ## 2. Git 提交边界
 
@@ -75,3 +78,4 @@ P1 目前没有可靠、可复现、可公开验证的渔获量、产量、鱼�
 - 准备把“渔场可能性”升级为产量、收益或业务级预测。
 - 准备把 missing coverage 当作 0 参与评分或增强判定。
 
+真实样例接入的具体字段、目录和 go / no-go 以 [`docs/gfw-ais-real-sample-intake.md`](gfw-ais-real-sample-intake.md) 为准，本文档只保留治理边界。

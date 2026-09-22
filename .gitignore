@@ -19,6 +19,12 @@ data/cache/*
 !data/cache/.gitkeep
 output/
 
+# Local-only AIS/GFW intake workspace
+local_data/gfw_ais/downloads/
+local_data/gfw_ais/raw/
+local_data/gfw_ais/intermediate/
+local_data/gfw_ais/authorized_aggregate/
+
 # Reference papers / private project handouts are kept locally
 paper/*.pdf
 *.docx
