@@ -82,6 +82,8 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 - 执行 08：新增 `docs/reports/ocean-p1-validation-package.md`，汇总典型事件 `2024-08-05:F001` 的前后窗口、10/20/30 km 敏感性、非锋面对照、缺测空态、UI 查看路径和 P1 数据边界。
 - 执行 08：验证包明确当前 `data/front_response/events.js` 是 `synthetic_fixture`，只用于验证契约和界面路径，不是真实 AIS/GFW 证据，也不代表渔获量、产量或收益。
 - 执行 08：同步更新交接与 UX 文档中的验收数量，当前基线为 data-check 897 项、e2e-check 108 项、layout-check 25 项。
+- 汇报准备：新增 `docs/reports/ocean-p1-defense-brief.md`，整理 8-10 分钟讲稿、幻灯片结构、页面演示顺序和高频追问回答。
+- 汇报准备：重写 `docs/演示文稿.md`，移除“推导产量”等早期草稿说法，改为当前 P1 可演示能力和 apparent fishing effort 边界。
 
 ## 4. 项目真实性准备
 
