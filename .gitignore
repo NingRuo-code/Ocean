@@ -28,7 +28,9 @@ local_data/gfw_ais/authorized_aggregate/
 # Server-side data workspaces
 server_data/raw/
 server_data/intermediate/
-server_data/authorized_aggregate/
+server_data/authorized_aggregate/*
+!server_data/authorized_aggregate/examples/
+!server_data/authorized_aggregate/examples/*.example.json
 server_data/logs/
 
 # Reference papers / private project handouts are kept locally

@@ -222,6 +222,7 @@
 - 只有 `public_artifacts/` 中通过校验的产物可以被前端读取或导出到仓库。
 - Front Response Table 必须继续通过确定性脚本生成，不能由 AI 生成。
 - 发布前运行数据契约检查；失败产物不能覆盖上一个可用版本。
+- 第一版提供 `tools/server-process-artifact.mjs` dry-run/process/publish 入口；`front_response` 必须复用 `tools/build-front-response.mjs`，显式 publish 前先写 staging、校验输出并运行 `data-check`。
 
 ### Issue 21：设计前端读取服务器 artifact 的接口
 

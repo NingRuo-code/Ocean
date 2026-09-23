@@ -401,10 +401,12 @@ const sourceRegistryPath = join(SERVER_DATA, "sources", "sources.example.json");
 const artifactManifestPath = join(SERVER_DATA, "public_artifacts", "artifact-manifest.example.json");
 const pullJobRecordPath = join(SERVER_DATA, "job_records", "pull-job-record.example.json");
 const latestCheckJobRecordPath = join(SERVER_DATA, "job_records", "latest-check-job-record.example.json");
+const processJobRecordPath = join(SERVER_DATA, "job_records", "process-job-record.example.json");
 check("服务器数据源登记表示例存在", existsSync(sourceRegistryPath), "server_data/sources/sources.example.json");
 check("服务器公开 artifact manifest 示例存在", existsSync(artifactManifestPath), "server_data/public_artifacts/artifact-manifest.example.json");
 check("服务器 pull job record 示例存在", existsSync(pullJobRecordPath), "server_data/job_records/pull-job-record.example.json");
 check("服务器 latest-check job record 示例存在", existsSync(latestCheckJobRecordPath), "server_data/job_records/latest-check-job-record.example.json");
+check("服务器 process job record 示例存在", existsSync(processJobRecordPath), "server_data/job_records/process-job-record.example.json");
 
 if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
   const registry = readJson(sourceRegistryPath);
@@ -556,6 +558,54 @@ if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
     const outcome = validateServerJob(latestCheckJobRecordPath, "pull_check");
     check("服务器 latest-check job record 记录最新日期检查，且不会自动发布 artifact",
       outcome.ok, outcome.detail);
+  }
+  if (existsSync(processJobRecordPath)) {
+    const processJob = readJson(processJobRecordPath);
+    let processBad = null;
+    if (processJob.schema_version !== "ocean-process-job/v1") processBad = "schema_version 不正确";
+    if (processJob.job_type !== "process") processBad = "job_type 必须是 process";
+    if (processJob.layer !== "front_response") processBad = "第一版 process job 只能处理 front_response";
+    if (!["success", "failed", "partial", "skipped"].includes(processJob.status)) processBad = "status 非法";
+    if (!processJob.started_at || !processJob.finished_at) processBad = "缺 started_at/finished_at";
+    if (!Array.isArray(processJob.input_paths) || processJob.input_paths.length < 1) {
+      processBad = "process job 必须记录 input_paths";
+    }
+    (processJob.input_paths || []).forEach((path) => {
+      if (!/^server_data\/authorized_aggregate\/examples\/.+\.example\.json$/.test(path || "")) {
+        processBad = "process job 示例输入必须来自 authorized_aggregate/examples/*.example.json";
+      }
+      if (/raw|intermediate|mmsi|vessel|track/i.test(path)) {
+        processBad = "process job 示例不得指向 raw/intermediate/可识别轨迹输入";
+      }
+    });
+    if (!Array.isArray(processJob.output_artifacts) || processJob.output_artifacts.length < 1) {
+      processBad = "process job 必须记录 output_artifacts";
+    }
+    (processJob.output_artifacts || []).forEach((artifact) => {
+      if (!/^server_data\/public_artifacts\//.test(artifact.path || "")) {
+        processBad = "process job output 必须指向 server_data/public_artifacts/";
+      }
+      if (artifact.generated_by !== "tools/build-front-response.mjs") {
+        processBad = "Front Response Table 必须由确定性 build-front-response 脚本生成";
+      }
+      if (/raw|intermediate|authorized_aggregate|mmsi|vessel|track/i.test(artifact.path || "")) {
+        processBad = "process job output 不得暴露 raw/intermediate/可识别轨迹路径";
+      }
+    });
+    if (!processJob.publish || processJob.publish.public_artifacts_written !== false ||
+        processJob.publish.replace_existing !== false) {
+      processBad = "process job 示例必须是 dry-run，不得写公开产物或替换现有版本";
+    }
+    if (!processJob.validation_summary ||
+        !Array.isArray(processJob.validation_summary.checks)) {
+      processBad = "process job 必须记录 validation_summary.checks";
+    }
+    const processText = readFileSync(processJobRecordPath, "utf8");
+    if (/bearer\s+|password\s*[:=]|api[_-]?key\s*[:=]|secret\s*[:=]/i.test(processText)) {
+      processBad = "process job record 不得包含凭据值";
+    }
+    check("服务器 process job record 使用确定性脚本，并通过校验门保护 public artifact 发布",
+      processBad === null, processBad || processJob.job_id);
   }
 }
 

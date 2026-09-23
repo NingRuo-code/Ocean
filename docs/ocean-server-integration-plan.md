@@ -51,7 +51,10 @@
 - `server_data/sources/sources.example.json`：数据源登记表示例，覆盖 Zenodo 锋面、锋面强度 planned source、NOAA SST、GFW/AIS apparent fishing effort planned source。
 - `server_data/public_artifacts/artifact-manifest.example.json`：前端可读 artifact manifest 示例，覆盖图层状态、source 引用、公开边界和 caveat。
 - `server_data/job_records/pull-job-record.example.json`：pull job record 示例，覆盖 source/date/status/error/output/publish 字段。
+- `server_data/job_records/process-job-record.example.json`：process job record 示例，覆盖输入、staging、输出 artifact、发布门和 validation summary。
 - `tools/server-pull-job.mjs`：手动 pull job 与 latest-date check 入口，默认 dry-run，只生成 job record，不下载 raw，不发布 public artifact。
+- `server_data/authorized_aggregate/examples/front-response-authorized.example.json`：synthetic 授权聚合示例，用于验证 process job；真实 authorized aggregate 仍默认不进入 Git。
+- `tools/server-process-artifact.mjs`：服务器处理与发布入口，第一版只支持 `front_response`，复用 `tools/build-front-response.mjs`，默认 dry-run；只有显式 `--execute --publish`、staging 校验通过且 `data-check` 通过后才替换 public artifact。
 - `tools/data-check.mjs`：已校验上述示例，不允许 manifest 指向 raw/intermediate/轨迹类路径，也要求 GFW/AIS 继续使用 apparent fishing effort / fishing hours 口径。
 
 建议目录：
@@ -271,10 +274,11 @@ GET /api/jobs/recent
 5. 编写手动 pull job，不做自动发布。
 6. 编写 job record 示例与校验，确保 source/date/status/error/output/publish 字段可追溯。
 7. 编写 process job，将授权聚合输入转为 public artifacts。
-8. 编写 validate job，复用现有数据契约检查。
-9. 编写 manifest 生成脚本。
-10. 前端增加可选 server manifest 读取，不可用时回退本地数据。
-11. 增加 jobs/recent 或本地日志查看入口。
+8. 编写 process job record 示例与校验，确保失败产物不能覆盖上一个可用版本。
+9. 编写 validate job，复用现有数据契约检查。
+10. 编写 manifest 生成脚本。
+11. 前端增加可选 server manifest 读取，不可用时回退本地数据。
+12. 增加 jobs/recent 或本地日志查看入口。
 
 ## 12. 阶段验收
 

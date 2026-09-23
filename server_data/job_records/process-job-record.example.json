@@ -1,0 +1,39 @@
+{
+  "schema_version": "ocean-process-job/v1",
+  "job_id": "process_20260923000000_front_response",
+  "job_type": "process",
+  "mode": "dry_run",
+  "layer": "front_response",
+  "started_at": "2026-09-23T00:00:00Z",
+  "finished_at": "2026-09-23T00:00:00Z",
+  "status": "success",
+  "error": null,
+  "input_paths": [
+    "server_data/authorized_aggregate/examples/front-response-authorized.example.json"
+  ],
+  "staging_paths": [],
+  "output_artifacts": [
+    {
+      "path": "server_data/public_artifacts/front_response/events.js",
+      "status": "planned",
+      "layer": "front_response",
+      "generated_by": "tools/build-front-response.mjs"
+    }
+  ],
+  "publish": {
+    "requested": false,
+    "public_artifacts_written": false,
+    "replace_existing": false,
+    "reason": "Dry-run or validation-only process job did not publish."
+  },
+  "validation_summary": {
+    "data_contract_checked": false,
+    "checks": [
+      {
+        "label": "dry_run_plan",
+        "status": "pass",
+        "detail": "No public artifact was written."
+      }
+    ]
+  }
+}
