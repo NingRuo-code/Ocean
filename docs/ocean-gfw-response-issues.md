@@ -210,6 +210,7 @@
 - 支持定时检查最新日期，但默认不自动发布未校验数据。
 - 每次运行生成 job record，记录 started_at、finished_at、source、date_range、status、error 和 output artifact。
 - 网络失败、授权失败、数据缺失时输出明确状态，不生成伪数据。
+- 第一版提供 `tools/server-pull-job.mjs` dry-run/manual 入口与 pull job record 示例；真实下载 connector 未实现前，execute 模式必须显式 skipped，不能伪造 raw 或 public artifact。
 
 ### Issue 20：实现服务器端处理工作区与 artifact 发布
 

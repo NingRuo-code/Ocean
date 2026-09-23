@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DATA = join(ROOT, "data");
 const SERVER_DATA = join(ROOT, "server_data");
+const VALID_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const results = [];
 const check = (label, cond, detail) => results.push(`${cond ? "PASS" : "FAIL"}  ${label}${detail ? "  → " + detail : ""}`);
 const readJs = (rel) => {
@@ -398,8 +399,12 @@ if (FRONT_RESPONSE.status === "not_available") {
 // ===== 服务器数据源登记表与公开 artifact manifest 契约 =====
 const sourceRegistryPath = join(SERVER_DATA, "sources", "sources.example.json");
 const artifactManifestPath = join(SERVER_DATA, "public_artifacts", "artifact-manifest.example.json");
+const pullJobRecordPath = join(SERVER_DATA, "job_records", "pull-job-record.example.json");
+const latestCheckJobRecordPath = join(SERVER_DATA, "job_records", "latest-check-job-record.example.json");
 check("服务器数据源登记表示例存在", existsSync(sourceRegistryPath), "server_data/sources/sources.example.json");
 check("服务器公开 artifact manifest 示例存在", existsSync(artifactManifestPath), "server_data/public_artifacts/artifact-manifest.example.json");
+check("服务器 pull job record 示例存在", existsSync(pullJobRecordPath), "server_data/job_records/pull-job-record.example.json");
+check("服务器 latest-check job record 示例存在", existsSync(latestCheckJobRecordPath), "server_data/job_records/latest-check-job-record.example.json");
 
 if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
   const registry = readJson(sourceRegistryPath);
@@ -482,6 +487,76 @@ if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
   }
   check("服务器公开 artifact manifest 不暴露 raw/轨迹数据，且图层状态可解释",
     manifestBad === null, manifestBad || Object.keys(layers).join(","));
+
+  const validateServerJob = (jobPath, expectedType) => {
+    const pullJob = readJson(jobPath);
+    const jobStatuses = new Set(["success", "failed", "partial", "skipped"]);
+    let jobBad = null;
+    if (pullJob.schema_version !== "ocean-pull-job/v1") jobBad = "schema_version 不正确";
+    if (pullJob.job_type !== expectedType) jobBad = "job_type 必须是 " + expectedType;
+    if (!sourceIds.has(pullJob.source_id)) jobBad = "source_id 未登记";
+    if (!jobStatuses.has(pullJob.status)) jobBad = "status 非法";
+    if (!pullJob.started_at || !pullJob.finished_at) jobBad = "缺 started_at/finished_at";
+    if (expectedType === "pull") {
+      if (!pullJob.date_range || !VALID_DATE.test(pullJob.date_range.start || "") ||
+          !VALID_DATE.test(pullJob.date_range.end || "") || !(pullJob.date_range.days > 0)) {
+        jobBad = "date_range 不完整";
+      }
+    } else {
+      if (pullJob.date_range !== null) jobBad = "pull_check 不应携带 date_range";
+      if (!pullJob.latest_check ||
+          !VALID_DATE.test(pullJob.latest_check.known_latest_available_date || "") ||
+          pullJob.latest_check.auto_publish !== false) {
+        jobBad = "pull_check 必须记录 latest_check 且不得自动发布";
+      }
+    }
+    if (["failed", "partial", "skipped"].includes(pullJob.status) &&
+        (!pullJob.error || !pullJob.error.code || !pullJob.error.message)) {
+      jobBad = "非 success 状态必须写 error code/message";
+    }
+    if (!pullJob.publish || pullJob.publish.auto_publish !== false ||
+        pullJob.publish.public_artifacts_written !== false) {
+      jobBad = "pull job 不得自动发布 public artifact";
+    }
+    if (!Array.isArray(pullJob.output_artifacts) || pullJob.output_artifacts.length !== 0) {
+      jobBad = "dry-run pull job 不应产生 output_artifacts";
+    }
+    if (expectedType === "pull" && (!Array.isArray(pullJob.planned_downloads) ||
+        pullJob.planned_downloads.length !== pullJob.date_range.days)) {
+      jobBad = "planned_downloads 必须覆盖 date_range.days";
+    }
+    if (expectedType === "pull_check" && (!Array.isArray(pullJob.planned_downloads) ||
+        pullJob.planned_downloads.length !== 0)) {
+      jobBad = "pull_check 不应生成 planned_downloads";
+    }
+    (pullJob.planned_downloads || []).forEach((item) => {
+      if (!VALID_DATE.test(item.date || "")) jobBad = "planned_downloads 日期非法";
+      if (!/^server_data\/raw\//.test(item.target_path || "")) {
+        jobBad = "planned download 只能指向 server_data/raw/";
+      }
+      if (/public_artifacts|mmsi|vessel|track/i.test(item.target_path || "")) {
+        jobBad = "planned download 不得指向公开产物或可识别轨迹数据";
+      }
+      if (item.artifact_status !== "planned_raw_only") {
+        jobBad = "planned download 必须标成 planned_raw_only";
+      }
+    });
+    const jobText = readFileSync(jobPath, "utf8");
+    if (/bearer\s+|password\s*[:=]|api[_-]?key\s*[:=]|secret\s*[:=]/i.test(jobText)) {
+      jobBad = "job record 不得包含凭据值";
+    }
+    return { ok: jobBad === null, detail: jobBad || pullJob.job_id };
+  };
+  if (existsSync(pullJobRecordPath)) {
+    const outcome = validateServerJob(pullJobRecordPath, "pull");
+    check("服务器 pull job record 记录 source/date/status/error，且不会自动发布或伪造 artifact",
+      outcome.ok, outcome.detail);
+  }
+  if (existsSync(latestCheckJobRecordPath)) {
+    const outcome = validateServerJob(latestCheckJobRecordPath, "pull_check");
+    check("服务器 latest-check job record 记录最新日期检查，且不会自动发布 artifact",
+      outcome.ok, outcome.detail);
+  }
 }
 
 // ===== 汇总 =====

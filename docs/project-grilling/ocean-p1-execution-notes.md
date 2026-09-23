@@ -48,6 +48,7 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 | 08 | 生成 P1 验证与汇报包 | 已完成 | 已沉淀 P1 验证包与阶段答辩口径 |
 | 09 | 准备真实授权 AIS/GFW 样例接入边界 | 已完成 | 已新增真实样例接入清单、本地目录规则和提交 go/no-go |
 | 10 | 建立服务器数据源与公开 artifact 契约 | 已完成 | 已新增 source registry、artifact manifest 示例，并纳入 data-check |
+| 11 | 建立服务器手动 pull job 与 job record 契约 | 已完成 | 已新增 dry-run pull 脚本、job record 示例，并纳入 data-check |
 
 ## 3. 执行日志
 
@@ -102,6 +103,9 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 - 执行 10：新增 `server_data/sources/sources.example.json`，登记 Zenodo front、front intensity planned source、NOAA SST 和 GFW/AIS apparent fishing effort planned source；继续明确 GFW/AIS 只能作为 fishing hours 响应信号，不是产量、收益或保证性结果。
 - 执行 10：新增 `server_data/public_artifacts/artifact-manifest.example.json`，定义前端未来读取服务器产物时可见的图层状态、source、可用日期、caveat 和 fallback 规则。
 - 执行 10：扩展 `tools/data-check.mjs`，校验 source registry 和 artifact manifest，防止公开 manifest 指向 raw/intermediate/authorized aggregate、MMSI、船名或轨迹类数据。
+- 执行 11：新增 `tools/server-pull-job.mjs`，支持按 `source_id + start/end` 手动触发 dry-run pull job，也支持 `--check-latest` 生成最新日期检查记录；默认只生成 job record，不联网下载 raw，也不发布 public artifact。
+- 执行 11：新增 `server_data/job_records/pull-job-record.example.json`，固化 job record 字段：`job_id`、`job_type`、`source_id`、`date_range`、`started_at/finished_at`、`status`、`error`、`planned_downloads`、`output_artifacts` 和 `publish`。
+- 执行 11：扩展 `tools/data-check.mjs`，校验 pull/latest-check job record 必须引用已登记 source，非 success 状态必须写 error，dry-run 不得产生 output artifact，planned download 只能指向 `server_data/raw/`。
 
 ## 4. 项目真实性准备
 
@@ -200,6 +204,7 @@ AIS 覆盖、接收条件、数据授权和下载范围都会造成缺测。缺�
 - [x] 执行 09：准备真实授权 AIS/GFW 样例接入边界。
 - [x] 补充实验课反馈 tickets 与服务器接入规划。
 - [x] 执行 10：建立服务器数据源与公开 artifact 契约。
+- [x] 执行 11：建立服务器手动 pull job 与 job record 契约。
 - [ ] 每完成一张 ticket，更新本文件的执行日志、技术难点和 Q&A。
 - [ ] `gh` 可用后，把本地 tickets 发布到 GitHub Issues，并应用 `ready-for-agent` 标签。
 - [ ] P1 闭环完成后，再回头整理简历项目表达。
