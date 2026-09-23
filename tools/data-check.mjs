@@ -402,11 +402,33 @@ const artifactManifestPath = join(SERVER_DATA, "public_artifacts", "artifact-man
 const pullJobRecordPath = join(SERVER_DATA, "job_records", "pull-job-record.example.json");
 const latestCheckJobRecordPath = join(SERVER_DATA, "job_records", "latest-check-job-record.example.json");
 const processJobRecordPath = join(SERVER_DATA, "job_records", "process-job-record.example.json");
+const prototypeHtmlPath = join(ROOT, "prototype-fishing.html");
+const prototypeDataPath = join(ROOT, "prototype-data.js");
 check("服务器数据源登记表示例存在", existsSync(sourceRegistryPath), "server_data/sources/sources.example.json");
 check("服务器公开 artifact manifest 示例存在", existsSync(artifactManifestPath), "server_data/public_artifacts/artifact-manifest.example.json");
 check("服务器 pull job record 示例存在", existsSync(pullJobRecordPath), "server_data/job_records/pull-job-record.example.json");
 check("服务器 latest-check job record 示例存在", existsSync(latestCheckJobRecordPath), "server_data/job_records/latest-check-job-record.example.json");
 check("服务器 process job record 示例存在", existsSync(processJobRecordPath), "server_data/job_records/process-job-record.example.json");
+
+if (existsSync(prototypeHtmlPath) && existsSync(prototypeDataPath)) {
+  const html = readFileSync(prototypeHtmlPath, "utf8");
+  const adapter = readFileSync(prototypeDataPath, "utf8");
+  check("前端提供可选 server manifest 读取入口，且默认不破坏离线静态模式",
+    /serverManifest/.test(html) && !/params\.get\("manifest"\)/.test(html) &&
+    /OF_SERVER_MANIFEST_STATE/.test(html) && /validateManifest/.test(html) &&
+    /not_configured/.test(html) && /local_static/.test(html) &&
+    /serverManifestState/.test(adapter) && /serverLayerStatus/.test(adapter),
+    "prototype-fishing.html + prototype-data.js");
+  check("前端 server manifest 入口拒绝 raw/intermediate/authorized aggregate 或轨迹类公开路径",
+    /unsafeManifest/.test(html) &&
+    /artifact_pattern/.test(html) && /href/.test(html) && /path/.test(html) &&
+    /raw\|intermediate\|authorized_aggregate\)|mmsi/.test(html) &&
+    /manifest 指向了非公开路径或轨迹类字段/.test(html),
+    "unsafeManifest guard");
+  check("前端 server manifest 失败文案说明回退本地数据，且不把失败解释为 0 或无响应",
+    /已回退本地静态数据/.test(html) && /不代表数据为 0 或无响应/.test(html),
+    "fallback copy");
+}
 
 if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
   const registry = readJson(sourceRegistryPath);
@@ -452,7 +474,9 @@ if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
 
   let manifestBad = null;
   if (manifest.schema_version !== "ocean-artifact-manifest/v1") manifestBad = "schema_version 不正确";
-  if (!manifest.generated_at || !manifest.latest_available_date) manifestBad = "缺 generated_at/latest_available_date";
+  if (!manifest.version || !manifest.generated_at || !manifest.latest_available_date) {
+    manifestBad = "缺 version/generated_at/latest_available_date";
+  }
   if (!manifest.public_boundary ||
       manifest.public_boundary.raw_committed !== false ||
       manifest.public_boundary.fine_grained_committed !== false) {
@@ -462,8 +486,14 @@ if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
   ["front", "sst", "front_response", "front_intensity", "fishing_effort_grid"].forEach((name) => {
     const layer = layers[name];
     if (!layer) manifestBad = "缺少图层 " + name;
+    if (layer && !layer.version) manifestBad = name + " 缺 version";
     if (layer && !layerStatuses.has(layer.status)) manifestBad = name + " status 非法";
     if (layer && layer.source_id && !sourceIds.has(layer.source_id)) manifestBad = name + " source_id 未登记";
+    if (layer && !layer.source_id) manifestBad = name + " 缺 source_id";
+    if (layer && !layer.caveat) manifestBad = name + " 缺 caveat";
+    if (layer && !["not_available", "pending_authorization"].includes(layer.status) && !layer.available_dates) {
+      manifestBad = name + " 可用状态缺 available_dates";
+    }
     if (layer && ["not_available", "pending_authorization"].includes(layer.status) && !layer.reason) {
       manifestBad = name + " 不可用状态必须写 reason";
     }

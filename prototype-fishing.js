@@ -123,6 +123,45 @@ function timeLabel() {
   const tail = state.date === DATE_MAX ? "（最新数据）" : "";
   return base + (n > 0 ? "（+" + n + " 天）" : "（" + n + " 天）") + "· 实况观测" + tail;
 }
+function serverManifestState() {
+  return OFData.serverManifestState ? OFData.serverManifestState() : {
+    mode: "local_static",
+    status: "not_configured",
+    message: "未配置服务器 manifest，使用本地静态数据。",
+  };
+}
+function serverManifestLabel() {
+  const s = serverManifestState();
+  if (s.status === "available") return "服务器 manifest 最新 " + (s.latestAvailableDate || "未知日期") + " · 本地静态数据";
+  if (s.status === "loading") return "正在读取服务器 manifest · 本地静态数据";
+  if (s.status === "unavailable" || s.status === "invalid") return "服务器不可用，已回退本地静态数据";
+  return "本地静态数据";
+}
+function serverManifestDescription() {
+  const s = serverManifestState();
+  if (s.status === "available") {
+    return "已读取" + (s.version ? " · version " + s.version : "") +
+      (s.latestAvailableDate ? " · latest_available_date " + s.latestAvailableDate : "") +
+      (s.generatedAt ? " · generated_at " + s.generatedAt : "") +
+      "；当前页面仍从已加载的本地静态 artifact 取数";
+  }
+  if (s.status === "loading") return "正在读取；读取期间继续使用本地静态 artifact";
+  if (s.status === "unavailable" || s.status === "invalid") {
+    const a = OFData.attribution ? OFData.attribution() : null;
+    const localVersion = a && a.generatedAt ? " · 本地 generated_at " + a.generatedAt : "";
+    return "不可用，已回退本地静态 artifact" + localVersion + "；服务器读取失败不解释成 0 或无响应";
+  }
+  return "未配置，完全使用本地静态 artifact";
+}
+function serverManifestLimit() {
+  const s = serverManifestState();
+  if (s.status === "available") return "服务器 manifest 只说明可用 artifact 与数据新鲜度；数值仍由确定性 artifact 提供";
+  if (s.status === "loading") return "服务器 manifest 读取期间不改变当前结论；页面继续显示本地静态数据";
+  if (s.status === "unavailable" || s.status === "invalid") {
+    return "服务器 manifest 读取失败只表示服务器不可用或数据未更新，不代表 fishing hours 为 0 或无响应";
+  }
+  return "未配置服务器 manifest 时页面完全离线运行，后续可用 ?serverManifest=URL 接入服务器清单";
+}
 function dayObjects() { return OFData.objects(state.date); }
 function originCell() { return OFData.cellInfo(state.date, state.lon, state.lat); }
 function qualityOf() { return OFData.quality(state.date); }
@@ -1318,6 +1357,7 @@ function renderBasis() {
       ? a.clim.years[0] + "–" + a.clim.years[a.clim.years.length - 1] + " 年 · 每年 8 月 5—7 日取样（实际取样 " +
         ((a.clim.sample_note || "").match(/实际取样 (\d+) 天/) || [0, "—"])[1] + " 天）"
       : "未导出"],
+    ["服务器 manifest", serverManifestDescription()],
     ["规则预测参考", "本地规则基线：当前锋面信号 + 近几日持续性 + 历史同期；不等于业务预报"],
     ["AIS 响应", OFData.frontResponseAvailable() && responseMeta
       ? (responseMeta.isSynthetic
@@ -1364,6 +1404,7 @@ function renderBasis() {
       ["!", responseMethod && responseMethod.control_validation
         ? "非锋面对照边界：" + responseMethod.control_validation
         : "真实 AIS/GFW 样例接入前必须复核 license、署名、公开展示范围和 50 km 非锋面对照区几何排除"],
+      ["!", serverManifestLimit()],
       ["!", "海况与预报暂无真实数据源，本页输出仅基于锋面数据"],
       ["!", "底图为 Natural Earth 1:10m（公有领域）；在国内正式发布需替换为带审图号的合规底图"],
     ]));
@@ -1508,7 +1549,7 @@ function refresh() {
   renderAI();
   renderProbe();
   renderPick();
-  $("dataStamp").textContent = timeLabel() + " · 真实锋面数据";
+  $("dataStamp").textContent = timeLabel() + " · " + serverManifestLabel();
   document.querySelectorAll("#rangeSeg button").forEach((b) => b.classList.toggle("active", Number(b.dataset.range) === state.range));
   $("timeDate").value = state.date;
   $("timeDate").min = DATE_MIN;
@@ -1777,6 +1818,7 @@ function bind() {
     });
   });
   $("toBasis").addEventListener("click", () => switchTab("basis"));
+  window.addEventListener("of-server-manifest", () => refresh());
 }
 
 // ==================== 启动 ====================

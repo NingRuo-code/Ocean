@@ -1,7 +1,7 @@
 # Ocean 服务器接入规划
 
 > 适用范围：Ocean 后续从离线静态原型扩展到服务器辅助数据更新、处理和 artifact 发布。
-> 当前状态：S1 契约入口已建立。真实服务器未接入，当前原型仍可离线运行。
+> 当前状态：S1 契约入口与前端 manifest 状态接口已建立。真实服务器未接入，当前原型仍可离线运行。
 > 最近复核：2026-09-23。
 
 ## 1. 服务器在项目中的角色
@@ -55,6 +55,7 @@
 - `tools/server-pull-job.mjs`：手动 pull job 与 latest-date check 入口，默认 dry-run，只生成 job record，不下载 raw，不发布 public artifact。
 - `server_data/authorized_aggregate/examples/front-response-authorized.example.json`：synthetic 授权聚合示例，用于验证 process job；真实 authorized aggregate 仍默认不进入 Git。
 - `tools/server-process-artifact.mjs`：服务器处理与发布入口，第一版只支持 `front_response`，复用 `tools/build-front-response.mjs`，默认 dry-run；只有显式 `--execute --publish`、staging 校验通过且 `data-check` 通过后才替换 public artifact。
+- `prototype-fishing.html` / `prototype-data.js`：前端支持可选 `?serverManifest=URL` 或 `?manifest=URL` 读取服务器 manifest；默认仍优先使用本地静态 `data/`，服务器不可用时只显示回退和新鲜度提示。
 - `tools/data-check.mjs`：已校验上述示例，不允许 manifest 指向 raw/intermediate/轨迹类路径，也要求 GFW/AIS 继续使用 apparent fishing effort / fishing hours 口径。
 
 建议目录：
@@ -277,7 +278,7 @@ GET /api/jobs/recent
 8. 编写 process job record 示例与校验，确保失败产物不能覆盖上一个可用版本。
 9. 编写 validate job，复用现有数据契约检查。
 10. 编写 manifest 生成脚本。
-11. 前端增加可选 server manifest 读取，不可用时回退本地数据。
+11. 前端增加可选 server manifest 读取，不可用时回退本地数据。（已完成第一版状态接口）
 12. 增加 jobs/recent 或本地日志查看入口。
 
 ## 12. 阶段验收

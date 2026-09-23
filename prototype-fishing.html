@@ -591,6 +591,92 @@
     });
   })();
 </script>
+<script>
+  (function () {
+    var params = new URLSearchParams(window.location.search || "");
+    var manifestUrl = params.get("serverManifest");
+    var state = window.OF_SERVER_MANIFEST_STATE = {
+      mode: "local_static",
+      status: "not_configured",
+      url: null,
+      version: null,
+      generated_at: null,
+      latest_available_date: null,
+      error: null,
+      message: "未配置服务器 manifest，使用本地静态数据。"
+    };
+    window.OF_SERVER_MANIFEST = null;
+
+    function notify() {
+      window.dispatchEvent(new CustomEvent("of-server-manifest"));
+    }
+
+    function unsafeManifest(manifest) {
+      var badPath = /(?:^|\/)(?:raw|intermediate|authorized_aggregate)(?:\/|$)|mmsi|vessel|track/i;
+      var layers = manifest && manifest.layers ? manifest.layers : {};
+      return Object.keys(layers).some(function (name) {
+        var layer = layers[name] || {};
+        var candidates = [layer.artifact_pattern, layer.href, layer.path, layer.url];
+        (layer.artifacts || []).forEach(function (artifact) {
+          candidates.push(artifact && (artifact.artifact_pattern || artifact.href || artifact.path || artifact.url));
+        });
+        return candidates.some(function (value) {
+          return typeof value === "string" && badPath.test(value);
+        });
+      });
+    }
+
+    function validateManifest(manifest) {
+      if (!manifest || manifest.schema_version !== "ocean-artifact-manifest/v1") {
+        throw new Error("manifest schema_version 不匹配");
+      }
+      if (!manifest.version || !manifest.generated_at || !manifest.latest_available_date || !manifest.layers) {
+        throw new Error("manifest 缺少 version/generated_at/latest_available_date/layers");
+      }
+      if (unsafeManifest(manifest)) {
+        throw new Error("manifest 指向了非公开路径或轨迹类字段");
+      }
+      Object.keys(manifest.layers).forEach(function (name) {
+        var layer = manifest.layers[name] || {};
+        if (!layer.status || !layer.source_id || !layer.version || !layer.caveat) {
+          throw new Error("manifest layer " + name + " 缺少 status/source_id/version/caveat");
+        }
+        if (layer.status !== "not_available" && layer.status !== "pending_authorization" && !layer.available_dates) {
+          throw new Error("manifest layer " + name + " 缺少 available_dates");
+        }
+      });
+    }
+
+    if (!manifestUrl) return;
+    state.mode = "server_manifest";
+    state.status = "loading";
+    state.url = manifestUrl;
+    state.message = "正在读取服务器 manifest；本地静态数据继续可用。";
+
+    fetch(manifestUrl, { cache: "no-store" })
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (manifest) {
+        validateManifest(manifest);
+        window.OF_SERVER_MANIFEST = manifest;
+        state.status = "available";
+        state.version = manifest.version || null;
+        state.generated_at = manifest.generated_at || null;
+        state.latest_available_date = manifest.latest_available_date || null;
+        state.message = "服务器 manifest 已读取；页面继续以本地静态 artifact 为基础。";
+        notify();
+      })
+      .catch(function (error) {
+        window.OF_SERVER_MANIFEST = null;
+        state.status = "unavailable";
+        state.error = String(error && error.message || error);
+        state.message = "服务器 manifest 不可用，已回退本地静态数据；这不代表数据为 0 或无响应。";
+        notify();
+      });
+  })();
+</script>
 <!-- 适配层：页面唯一的数据入口 -->
 <script src="prototype-data.js"></script>
 <script src="prototype-fishing.js"></script>

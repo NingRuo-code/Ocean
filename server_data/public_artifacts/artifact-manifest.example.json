@@ -1,5 +1,6 @@
 {
   "schema_version": "ocean-artifact-manifest/v1",
+  "version": "2026-09-23T00:00:00Z-local-static-v1",
   "generated_at": "2026-09-23T00:00:00Z",
   "latest_available_date": "2024-08-31",
   "fallback_mode": "local_static_data",
@@ -11,6 +12,7 @@
   "layers": {
     "front": {
       "status": "real",
+      "version": "2024-07-01_2024-08-31-front-v1",
       "source_id": "zenodo_front_location",
       "available_dates": {
         "start": "2024-07-01",
@@ -22,6 +24,7 @@
     },
     "sst": {
       "status": "real",
+      "version": "2024-07-01_2024-08-31-sst-v1",
       "source_id": "noaa_sst_blended_daily",
       "available_dates": {
         "start": "2024-07-01",
@@ -33,6 +36,7 @@
     },
     "front_response": {
       "status": "synthetic_fixture",
+      "version": "2024-08-05_2024-08-07-front-response-fixture-v1",
       "source_id": "gfw_effort_public_planned",
       "metric": "apparent_fishing_effort",
       "unit": "fishing_hours",
@@ -46,12 +50,14 @@
     },
     "front_intensity": {
       "status": "not_available",
+      "version": "not_available",
       "source_id": "zenodo_front_intensity_planned",
       "reason": "Front intensity archive has not been connected to the prototype pipeline.",
       "caveat": "Do not infer intensity values until a validated artifact exists."
     },
     "fishing_effort_grid": {
       "status": "pending_authorization",
+      "version": "pending_authorization",
       "source_id": "gfw_effort_public_planned",
       "metric": "apparent_fishing_effort",
       "unit": "fishing_hours",

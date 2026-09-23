@@ -236,6 +236,13 @@
 - 不把服务器读取失败解释为数据为 0 或无响应。
 - manifest 示例纳入 `tools/data-check.mjs`，确保公开 artifact 不指向 raw/intermediate/轨迹类路径。
 
+当前落地（2026-09-23）：
+
+- 已在前端增加可选 `?serverManifest=URL` / `?manifest=URL` manifest 状态读取入口。
+- 已在 `OFData` 暴露 `serverManifestState()`、`serverManifest()` 和 `serverLayerStatus(layer)`。
+- 已在页脚和数据说明页展示服务器 manifest 新鲜度、回退状态和不可用边界。
+- 已纳入 `data-check` 与 `e2e-check`，覆盖离线默认、服务器不可用回退和服务器 manifest 可用状态。
+
 ### Issue 22：建立服务器凭据与权限管理
 
 目标：避免 GFW/API token、合作方数据凭据或内部服务器地址进入仓库。

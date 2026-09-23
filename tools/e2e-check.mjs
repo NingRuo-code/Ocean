@@ -131,6 +131,8 @@ const boot = await evalJS(`var m = OFData.meta, days = OFData.availableDates();
   return { hasAdapter: typeof OFData === "object", doi: m.product.doi, license: m.product.license,
     days: days, status: m.status, grid: OFData.grid(days[0]),
     input: { value: document.getElementById("timeDate").value, min: document.getElementById("timeDate").min, max: document.getElementById("timeDate").max },
+    server: OFData.serverManifestState(),
+    dataStamp: document.getElementById("dataStamp").textContent,
     paths: { coast: document.querySelectorAll('#mapSvg path[data-layer="coast"]').length,
       land: document.querySelectorAll('#mapSvg path[data-layer="land"]').length,
       landFill: (document.querySelector('#mapSvg path[data-layer="land"]') || { getAttribute: function () { return null; } }).getAttribute("fill"),
@@ -152,6 +154,9 @@ check("日期控件范围 = 已导出观测日期（不写死日期）",
   boot.input.min === boot.days[0] && boot.input.max === boot.days[boot.days.length - 1] &&
   boot.days.indexOf(boot.input.value) >= 0,
   JSON.stringify(boot.input) + " · 共 " + boot.days.length + " 天");
+check("未配置服务器 manifest 时默认本地静态数据，不影响离线原型",
+  boot.server.status === "not_configured" && /本地静态数据/.test(boot.dataStamp),
+  JSON.stringify(boot.server) + " · " + boot.dataStamp);
 check("地图用的是真实底图（海岸线 / 冷暖侧 / 锋面带 / 缺测掩码都画出来了）",
   boot.paths.coast === 1 && boot.paths.cold === 1 && boot.paths.warm === 1 && boot.paths.band === 1 && boot.paths.nodata === 1,
   JSON.stringify(boot.paths));
@@ -553,6 +558,64 @@ check("数据说明写清 AIS response 的 source、metric、unit、公开边界
   /synthetic_fixture/.test(basis.dataText) && /not_applicable/.test(basis.dataText) &&
   /raw\/fine-grained committed=false/.test(basis.dataText) && /不参与评分/.test(basis.rulesText),
   "AIS source / metric / boundary ok");
+check("数据说明写清服务器 manifest 的离线默认与失败回退口径",
+  /服务器 manifest/.test(basis.dataText) && /本地静态 artifact/.test(basis.dataText + basis.limitsText) &&
+  /未配置服务器 manifest/.test(basis.dataText + basis.limitsText),
+  "server manifest fallback ok");
+const serverUnavailable = await evalJS(`var s = window.OF_SERVER_MANIFEST_STATE;
+  s.mode = "server_manifest";
+  s.status = "unavailable";
+  s.url = "https://example.invalid/artifact-manifest.json";
+  s.error = "network unavailable";
+  s.message = "服务器 manifest 不可用，已回退本地静态数据；这不代表数据为 0 或无响应。";
+  refresh();
+  return { state: OFData.serverManifestState(), stamp: document.getElementById("dataStamp").textContent,
+    dataText: document.getElementById("basisData").textContent,
+    limitsText: document.getElementById("basisLimits").textContent };`);
+check("服务器 manifest 不可用时回退本地静态数据，不解释成 0 或无响应",
+  serverUnavailable.state.status === "unavailable" &&
+  /服务器不可用，已回退本地静态数据/.test(serverUnavailable.stamp) &&
+  /服务器读取失败不解释成 0 或无响应/.test(serverUnavailable.dataText) &&
+  /不代表 fishing hours 为 0 或无响应/.test(serverUnavailable.limitsText),
+  serverUnavailable.stamp);
+const serverAvailable = await evalJS(`window.OF_SERVER_MANIFEST = {
+    schema_version: "ocean-artifact-manifest/v1",
+    version: "test-manifest-v1",
+    generated_at: "2026-09-23T00:00:00Z",
+    latest_available_date: "2024-08-07",
+    public_boundary: { note: "Raw AIS/GFW, vessel identifiers and tracks must not be exposed." },
+    layers: { front_response: {
+      status: "synthetic_fixture",
+      version: "test-front-response-v1",
+      source_id: "gfw_effort_public_planned",
+      metric: "apparent_fishing_effort",
+      unit: "fishing_hours",
+      available_dates: { start: "2024-08-05", end: "2024-08-07", count: 3 },
+      artifact_pattern: "data/front_response/events.js",
+      caveat: "Do not expose vessel identifiers or tracks."
+    } }
+  };
+  var s = window.OF_SERVER_MANIFEST_STATE;
+  s.mode = "server_manifest";
+  s.status = "available";
+  s.version = "test-manifest-v1";
+  s.generated_at = "2026-09-23T00:00:00Z";
+  s.latest_available_date = "2024-08-07";
+  s.message = "服务器 manifest 已读取；页面继续以本地静态 artifact 为基础。";
+  s.error = null;
+  refresh();
+  return { state: OFData.serverManifestState(), layer: OFData.serverLayerStatus("front_response"),
+    stamp: document.getElementById("dataStamp").textContent,
+    dataText: document.getElementById("basisData").textContent,
+    limitsText: document.getElementById("basisLimits").textContent };`);
+check("服务器 manifest 可用时前端能读取最新日期和图层状态",
+  serverAvailable.state.status === "available" &&
+  serverAvailable.state.latestAvailableDate === "2024-08-07" &&
+  serverAvailable.layer.metric === "apparent_fishing_effort" &&
+  /服务器 manifest 最新 2024-08-07/.test(serverAvailable.stamp) &&
+  /version test-manifest-v1/.test(serverAvailable.dataText) &&
+  /generated_at 2026-09-23T00:00:00Z/.test(serverAvailable.dataText),
+  serverAvailable.stamp);
 const unsupportedClaims = await evalJS(`var re = new RegExp(${JSON.stringify(unsupportedClaimPattern)}, "ig");
   var areas = {
     page: document.body.textContent,

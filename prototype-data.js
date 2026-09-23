@@ -40,6 +40,24 @@
     return !!(FRONT_RESPONSE && ["real", "synthetic_fixture"].indexOf(FRONT_RESPONSE.status) >= 0);
   }
 
+  function serverManifestState() {
+    const state = window.OF_SERVER_MANIFEST_STATE || {};
+    return {
+      mode: state.mode || "local_static",
+      status: state.status || "not_configured",
+      url: state.url || null,
+      version: state.version || null,
+      generatedAt: state.generated_at || null,
+      latestAvailableDate: state.latest_available_date || null,
+      error: state.error || null,
+      message: state.message || "",
+    };
+  }
+
+  function serverManifest() {
+    return window.OF_SERVER_MANIFEST || null;
+  }
+
   function normalizeFrontResponse(raw, iso, rangeKm) {
     if (!raw) return null;
     const base = {
@@ -229,6 +247,12 @@
         note: FRONT_RESPONSE.note || "",
         generatedAt: FRONT_RESPONSE.generated_at || null,
       } : null;
+    },
+    serverManifestState: serverManifestState,
+    serverManifest: serverManifest,
+    serverLayerStatus: function (layerName) {
+      const manifest = serverManifest();
+      return manifest && manifest.layers ? (manifest.layers[layerName] || null) : null;
     },
     climReady: function () { return !!(META && META.availability && META.availability.clim && META.availability.clim.ready && CLIM); },
 
