@@ -51,11 +51,13 @@
 - `server_data/sources/sources.example.json`：数据源登记表示例，覆盖 Zenodo 锋面、锋面强度 planned source、NOAA SST、GFW/AIS apparent fishing effort planned source。
 - `server_data/public_artifacts/artifact-manifest.example.json`：前端可读 artifact manifest 示例，覆盖图层状态、source 引用、公开边界和 caveat。
 - `server_data/job_records/pull-job-record.example.json`：pull job record 示例，覆盖 source/date/status/error/output/publish 字段。
+- `server_data/job_records/restricted-pull-job-record.example.json`：restricted source 凭据门示例，只记录 env var 名和是否已配置，不记录 token 值。
 - `server_data/job_records/process-job-record.example.json`：process job record 示例，覆盖输入、staging、输出 artifact、发布门和 validation summary。
 - `tools/server-pull-job.mjs`：手动 pull job 与 latest-date check 入口，默认 dry-run，只生成 job record，不下载 raw，不发布 public artifact。
 - `server_data/authorized_aggregate/examples/front-response-authorized.example.json`：synthetic 授权聚合示例，用于验证 process job；真实 authorized aggregate 仍默认不进入 Git。
 - `tools/server-process-artifact.mjs`：服务器处理与发布入口，第一版只支持 `front_response`，复用 `tools/build-front-response.mjs`，默认 dry-run；只有显式 `--execute --publish`、staging 校验通过且 `data-check` 通过后才替换 public artifact。
-- `prototype-fishing.html` / `prototype-data.js`：前端支持可选 `?serverManifest=URL` 或 `?manifest=URL` 读取服务器 manifest；默认仍优先使用本地静态 `data/`，服务器不可用时只显示回退和新鲜度提示。
+- `prototype-fishing.html` / `prototype-data.js`：前端支持可选 `?serverManifest=URL` 读取服务器 manifest；默认仍优先使用本地静态 `data/`，服务器不可用时只显示回退和新鲜度提示。
+- `.env.example`：只登记服务器凭据变量名；真实 `.env`、token、合作方凭据和内部服务器地址不得进入 Git。
 - `tools/data-check.mjs`：已校验上述示例，不允许 manifest 指向 raw/intermediate/轨迹类路径，也要求 GFW/AIS 继续使用 apparent fishing effort / fishing hours 口径。
 
 建议目录：
@@ -129,6 +131,10 @@ server_data/
 | `source_type` | `front`、`sst`、`gfw_ais_effort`、`partner_ais_derivative` |
 | `license` | 许可和署名要求 |
 | `credential_mode` | `none`、`env_token`、`server_secret` |
+| `access_level` | `public`、`restricted`、`partner` |
+| `credential_env_var` | 服务器侧环境变量名，仅记录变量名，不记录值 |
+| `authorization_scope` | 数据授权范围和 go/no-go 边界 |
+| `publish_requires_go_no_go` | restricted / partner 数据公开前是否必须审核 |
 | `update_cadence` | 手动、每日、每周或按需 |
 | `date_coverage` | 可用日期范围 |
 | `spatial_coverage` | 空间范围 |
@@ -232,6 +238,7 @@ GET /api/jobs/recent
 - 运行日志不得打印 token。
 - restricted 或 partner 数据源必须有单独的 `authorization_scope`。
 - 发布到 public artifacts 前必须经过人工或脚本化 go/no-go。
+- source registry 记录 `credential_env_var` 变量名；pull/process job 可以记录该变量名和 `credential_configured` 布尔值，但不得记录凭据值。
 
 ## 9. 前端降级策略
 

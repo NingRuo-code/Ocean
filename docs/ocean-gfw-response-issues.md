@@ -254,6 +254,13 @@
 - 不同数据源区分 public、restricted、partner 三类访问级别。
 - 任何 restricted 或 partner 数据在公开展示前必须经过 go/no-go 审核。
 
+当前落地（2026-09-23）：
+
+- 已在 source registry 中增加 `access_level`、`credential_env_var`、`authorization_scope` 和 `publish_requires_go_no_go`。
+- 已提供 `.env.example` 作为本地/服务器凭据变量名模板，真实 `.env` 继续由 `.gitignore` 排除。
+- 已让 pull job 按 `source_id` 找到对应 `credential_env_var`，job record 只记录是否配置，不记录 token 值。
+- 已新增 restricted pull job record 示例，验证 restricted 数据未配置凭据时不会下载；即使后续可下载，公开发布前仍必须 go/no-go。
+
 ### Issue 23：增加服务器运行观测与人工复核入口
 
 目标：让开发者能判断服务器数据是否新鲜、失败在哪里、是否可以发布。

@@ -7,7 +7,11 @@
       "source_type": "front",
       "display_name": "Zenodo global daily mesoscale front location dataset",
       "license": "CC BY 4.0",
+      "access_level": "public",
       "credential_mode": "none",
+      "credential_env_var": null,
+      "authorization_scope": "public_open_data",
+      "publish_requires_go_no_go": false,
       "update_cadence": "manual",
       "date_coverage": {
         "start": "1982-01-01",
@@ -27,7 +31,11 @@
       "source_type": "front_intensity",
       "display_name": "Zenodo global daily mesoscale front intensity archive planned source",
       "license": "CC BY 4.0",
+      "access_level": "public",
       "credential_mode": "none",
+      "credential_env_var": null,
+      "authorization_scope": "public_open_data_after_storage_review",
+      "publish_requires_go_no_go": false,
       "update_cadence": "manual_after_storage_review",
       "date_coverage": {
         "start": "1982-01-01",
@@ -47,7 +55,11 @@
       "source_type": "sst",
       "display_name": "NOAA GHRSST Geo-Polar Blended nighttime L4 SST",
       "license": "free and open",
+      "access_level": "public",
       "credential_mode": "none",
+      "credential_env_var": null,
+      "authorization_scope": "public_open_data",
+      "publish_requires_go_no_go": false,
       "update_cadence": "manual_or_daily",
       "date_coverage": {
         "start": "2002-01-01",
@@ -67,7 +79,11 @@
       "source_type": "gfw_ais_effort",
       "display_name": "Global Fishing Watch apparent fishing effort planned sample",
       "license": "CC BY-NC 4.0 or confirmed project-specific license",
+      "access_level": "restricted",
       "credential_mode": "env_token",
+      "credential_env_var": "OCEAN_SOURCE_GFW_EFFORT_PUBLIC_PLANNED_CREDENTIAL",
+      "authorization_scope": "restricted_go_no_go_required_event_or_radius_aggregate_only",
+      "publish_requires_go_no_go": true,
       "update_cadence": "manual_until_authorized",
       "date_coverage": {
         "start": "2024-07-01",
@@ -83,6 +99,32 @@
       "metric": "apparent_fishing_effort",
       "unit": "fishing_hours",
       "caveat": "Apparent fishing effort is estimated from AIS behavior and is not catch, production, biomass, revenue, or guaranteed fishing result."
+    },
+    {
+      "source_id": "partner_ais_derivative_planned",
+      "source_type": "partner_ais_derivative",
+      "display_name": "Partner AIS derivative planned restricted aggregate",
+      "license": "partner-specific agreement required before use",
+      "access_level": "partner",
+      "credential_mode": "server_secret",
+      "credential_env_var": "OCEAN_SOURCE_PARTNER_AIS_DERIVATIVE_PLANNED_CREDENTIAL",
+      "authorization_scope": "partner_go_no_go_required_event_or_radius_aggregate_only",
+      "publish_requires_go_no_go": true,
+      "update_cadence": "manual_until_partner_authorized",
+      "date_coverage": {
+        "start": null,
+        "end": null,
+        "status": "not_authorized"
+      },
+      "spatial_coverage": {
+        "scope": "partner-defined prototype window",
+        "prototype_bbox": [120, 27, 128, 34]
+      },
+      "raw_retention": "server_data/raw/partner_ais/ only after partner authorization; do not commit API responses, vessel identifiers, tracks, or reconstructable source data",
+      "public_display_boundary": "Only event-level or radius-level aggregate rows may be published after partner go/no-go review.",
+      "metric": "apparent_fishing_effort",
+      "unit": "fishing_hours",
+      "caveat": "Partner AIS derivatives are authorization-bound apparent fishing effort signals and are not catch, production, biomass, revenue, or guaranteed fishing result."
     }
   ]
 }

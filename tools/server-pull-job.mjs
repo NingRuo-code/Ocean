@@ -94,13 +94,16 @@ const rawTargetFor = (source, date) => {
 };
 const credentialConfigured = (source) => {
   if (source.credential_mode === "none") return true;
-  const name = "OCEAN_SOURCE_" + source.source_id.toUpperCase().replace(/[^A-Z0-9]+/g, "_") + "_CREDENTIAL";
-  return Boolean(process.env[name]);
+  return Boolean(process.env[source.credential_env_var]);
 };
 
 const sourceSnapshot = (source) => source ? {
   license: source.license,
+  access_level: source.access_level,
   credential_mode: source.credential_mode,
+  credential_env_var: source.credential_env_var || null,
+  authorization_scope: source.authorization_scope || null,
+  publish_requires_go_no_go: source.publish_requires_go_no_go === true,
   update_cadence: source.update_cadence,
   public_display_boundary: source.public_display_boundary,
   caveat: source.caveat
@@ -120,6 +123,10 @@ const baseJob = (args, source, now) => ({
     source_snapshot: sourceSnapshot(source),
     credential_required: source ? source.credential_mode !== "none" : false,
     credential_configured: source && source.credential_mode !== "none" ? credentialConfigured(source) : null,
+    access_level: source ? source.access_level : null,
+    authorization_scope: source ? source.authorization_scope || null : null,
+    go_no_go_required: source ? source.publish_requires_go_no_go === true : false,
+    go_no_go_status: source && source.publish_requires_go_no_go === true ? "required_before_public_artifact" : "not_required_for_public_source",
     planned_downloads: [],
     input_paths: [],
     output_artifacts: [],

@@ -51,6 +51,7 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 | 11 | 建立服务器手动 pull job 与 job record 契约 | 已完成 | 已新增 dry-run pull 脚本、job record 示例，并纳入 data-check |
 | 12 | 建立服务器 process job 与发布门契约 | 已完成 | 已新增 dry-run process 脚本、process job 示例，并纳入 data-check |
 | 13 | 设计前端读取服务器 artifact 的接口 | 已完成 | 前端已支持可选 server manifest 状态读取、数据新鲜度提示和本地静态回退 |
+| 14 | 建立服务器凭据与权限管理 | 已完成 | source registry 已区分 public/restricted/partner，pull job 只记录 env var 名和配置状态 |
 
 ## 3. 执行日志
 
@@ -113,6 +114,10 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 - 执行 13：在 `prototype-data.js` 暴露 `serverManifestState()`、`serverManifest()` 和 `serverLayerStatus(layer)`，作为前端读取服务器 artifact 状态的统一接口。
 - 执行 13：在页脚和“数据说明”页展示服务器 manifest 状态、最新可用日期、生成时间与回退说明；服务器不可用时明确回退本地静态数据，不解释为 `0 fishing hours` 或“无响应”。
 - 执行 13：扩展 `tools/e2e-check.mjs` 和 `tools/data-check.mjs`，覆盖默认离线、服务器不可用回退、manifest 可用读取，以及公开 manifest 不指向 raw/intermediate/轨迹类路径的检查。
+- 执行 14：在 `server_data/sources/sources.example.json` 中为每个 source 增加 `access_level`、`credential_env_var`、`authorization_scope` 和 `publish_requires_go_no_go`，覆盖 public、restricted、partner 三类访问级别。
+- 执行 14：新增 `.env.example` 作为本地/服务器凭据变量名模板；真实 `.env` 仍由 `.gitignore` 排除，仓库不记录 token、API key、合作方凭据或内部服务器地址。
+- 执行 14：更新 `tools/server-pull-job.mjs`，pull job 只按 `source_id` 读取登记表里的 `credential_env_var`，job record 只写 `credential_configured` 布尔值与 go/no-go 状态，不打印凭据值。
+- 执行 14：新增 `server_data/job_records/restricted-pull-job-record.example.json`，验证 restricted source 在凭据未配置或 go/no-go 未完成时不会下载 raw，也不会发布 public artifact。
 - 执行 12：新增 `tools/server-process-artifact.mjs`，第一版只支持 `front_response`，复用 `tools/build-front-response.mjs` 生成公开产物；默认 dry-run，不写 public artifact。
 - 执行 12：process job 在 execute 模式下先写入忽略目录 `server_data/logs/staging/`，校验通过后，只有显式 `--publish` 且 `data-check` 通过才替换 `server_data/public_artifacts/front_response/events.js`，失败不会覆盖上一个可用版本。
 - 执行 12：新增 `server_data/job_records/process-job-record.example.json`，并扩展 `tools/data-check.mjs` 校验 process job 必须记录 input、output、publish 和 validation summary，且 Front Response Table 必须由确定性脚本生成。
@@ -217,6 +222,7 @@ AIS 覆盖、接收条件、数据授权和下载范围都会造成缺测。缺�
 - [x] 执行 11：建立服务器手动 pull job 与 job record 契约。
 - [x] 执行 12：建立服务器 process job 与发布门契约。
 - [x] 执行 13：设计前端读取服务器 artifact 的接口。
+- [x] 执行 14：建立服务器凭据与权限管理。
 - [ ] 每完成一张 ticket，更新本文件的执行日志、技术难点和 Q&A。
 - [ ] `gh` 可用后，把本地 tickets 发布到 GitHub Issues，并应用 `ready-for-agent` 标签。
 - [ ] P1 闭环完成后，再回头整理简历项目表达。

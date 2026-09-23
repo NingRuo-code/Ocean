@@ -401,14 +401,34 @@ const sourceRegistryPath = join(SERVER_DATA, "sources", "sources.example.json");
 const artifactManifestPath = join(SERVER_DATA, "public_artifacts", "artifact-manifest.example.json");
 const pullJobRecordPath = join(SERVER_DATA, "job_records", "pull-job-record.example.json");
 const latestCheckJobRecordPath = join(SERVER_DATA, "job_records", "latest-check-job-record.example.json");
+const restrictedPullJobRecordPath = join(SERVER_DATA, "job_records", "restricted-pull-job-record.example.json");
 const processJobRecordPath = join(SERVER_DATA, "job_records", "process-job-record.example.json");
 const prototypeHtmlPath = join(ROOT, "prototype-fishing.html");
 const prototypeDataPath = join(ROOT, "prototype-data.js");
+const envExamplePath = join(ROOT, ".env.example");
+const gitignorePath = join(ROOT, ".gitignore");
 check("服务器数据源登记表示例存在", existsSync(sourceRegistryPath), "server_data/sources/sources.example.json");
 check("服务器公开 artifact manifest 示例存在", existsSync(artifactManifestPath), "server_data/public_artifacts/artifact-manifest.example.json");
 check("服务器 pull job record 示例存在", existsSync(pullJobRecordPath), "server_data/job_records/pull-job-record.example.json");
 check("服务器 latest-check job record 示例存在", existsSync(latestCheckJobRecordPath), "server_data/job_records/latest-check-job-record.example.json");
+check("服务器 restricted pull job record 示例存在", existsSync(restrictedPullJobRecordPath), "server_data/job_records/restricted-pull-job-record.example.json");
 check("服务器 process job record 示例存在", existsSync(processJobRecordPath), "server_data/job_records/process-job-record.example.json");
+check("本地凭据模板存在且真实 .env 被 Git 忽略",
+  existsSync(envExamplePath) && existsSync(gitignorePath) &&
+  /^\.env$/m.test(readFileSync(gitignorePath, "utf8")) &&
+  /^\.env\.local$/m.test(readFileSync(gitignorePath, "utf8")) &&
+  /^\.env\.\*$/m.test(readFileSync(gitignorePath, "utf8")) &&
+  /^!\.env\.example$/m.test(readFileSync(gitignorePath, "utf8")),
+  ".env.example + .gitignore");
+
+if (existsSync(envExamplePath)) {
+  const envExample = readFileSync(envExamplePath, "utf8");
+  const envLines = envExample.split(/\r?\n/).filter((line) => /^OCEAN_SOURCE_[A-Z0-9_]+_CREDENTIAL=/.test(line));
+  check(".env.example 只登记凭据变量名，不包含 token/API key 值",
+    envLines.length >= 2 && envLines.every((line) => line.endsWith("=")) &&
+    !/bearer\s+|password\s*[:=]\s*\S|api[_-]?key\s*[:=]\s*\S|secret\s*[:=]\s*\S/i.test(envExample),
+    envLines.join(","));
+}
 
 if (existsSync(prototypeHtmlPath) && existsSync(prototypeDataPath)) {
   const html = readFileSync(prototypeHtmlPath, "utf8");
@@ -435,9 +455,11 @@ if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
   const manifest = readJson(artifactManifestPath);
   const sourceTypes = new Set(["front", "front_intensity", "sst", "gfw_ais_effort", "partner_ais_derivative", "basemap"]);
   const credentialModes = new Set(["none", "env_token", "server_secret"]);
+  const accessLevels = new Set(["public", "restricted", "partner"]);
   const layerStatuses = new Set(["real", "synthetic_fixture", "not_available", "pending_authorization"]);
   const requiredSourceFields = [
-    "source_id", "source_type", "display_name", "license", "credential_mode", "update_cadence",
+    "source_id", "source_type", "display_name", "license", "access_level", "credential_mode",
+    "authorization_scope", "publish_requires_go_no_go", "update_cadence",
     "date_coverage", "spatial_coverage", "raw_retention", "public_display_boundary", "caveat"
   ];
   const sensitiveKeyPattern = /^(token|api_key|secret|password|credential|authorization)$/i;
@@ -452,7 +474,29 @@ if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
     const missing = requiredSourceFields.filter((field) => source[field] == null || source[field] === "");
     if (missing.length) registryBad = source.source_id + " 缺字段 " + missing.join(",");
     if (!sourceTypes.has(source.source_type)) registryBad = source.source_id + " source_type 非法";
+    if (!accessLevels.has(source.access_level)) registryBad = source.source_id + " access_level 非法";
     if (!credentialModes.has(source.credential_mode)) registryBad = source.source_id + " credential_mode 非法";
+    if (source.credential_mode === "none" && source.credential_env_var !== null) {
+      registryBad = source.source_id + " public/no-credential source 不应配置 credential_env_var";
+    }
+    if (source.credential_mode !== "none" &&
+        !new RegExp("^OCEAN_SOURCE_" + source.source_id.toUpperCase().replace(/[^A-Z0-9]+/g, "_") + "_CREDENTIAL$").test(source.credential_env_var || "")) {
+      registryBad = source.source_id + " credential_env_var 必须按 source_id 命名";
+    }
+    if (source.access_level === "public" && source.publish_requires_go_no_go !== false) {
+      registryBad = source.source_id + " public source 不应要求 go/no-go";
+    }
+    if (["restricted", "partner"].includes(source.access_level)) {
+      if (source.publish_requires_go_no_go !== true) {
+        registryBad = source.source_id + " restricted/partner source 必须要求 go/no-go";
+      }
+      if (!/go_no_go_required|go-no-go|required/i.test(source.authorization_scope || "")) {
+        registryBad = source.source_id + " authorization_scope 必须写明 go/no-go";
+      }
+      if (source.credential_mode === "none") {
+        registryBad = source.source_id + " restricted/partner source 必须使用服务器侧凭据模式";
+      }
+    }
     Object.keys(source).forEach((key) => {
       if (sensitiveKeyPattern.test(key)) registryBad = source.source_id + " 不应包含敏感字段名 " + key;
     });
@@ -469,6 +513,10 @@ if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
       }
     }
   });
+  const accessSeen = new Set(sourceList.map((source) => source.access_level));
+  if (!["public", "restricted", "partner"].every((level) => accessSeen.has(level))) {
+    registryBad = "source registry 必须覆盖 public/restricted/partner 三类访问级别";
+  }
   check("服务器数据源登记表字段、许可、凭据模式和 GFW/AIS 边界可校验",
     registryBad === null, registryBad || sourceIds.size + " 个 source 全部通过");
 
@@ -527,6 +575,7 @@ if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
     if (pullJob.schema_version !== "ocean-pull-job/v1") jobBad = "schema_version 不正确";
     if (pullJob.job_type !== expectedType) jobBad = "job_type 必须是 " + expectedType;
     if (!sourceIds.has(pullJob.source_id)) jobBad = "source_id 未登记";
+    const jobSource = sourceList.find((source) => source.source_id === pullJob.source_id);
     if (!jobStatuses.has(pullJob.status)) jobBad = "status 非法";
     if (!pullJob.started_at || !pullJob.finished_at) jobBad = "缺 started_at/finished_at";
     if (expectedType === "pull") {
@@ -550,12 +599,35 @@ if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
         pullJob.publish.public_artifacts_written !== false) {
       jobBad = "pull job 不得自动发布 public artifact";
     }
+    if (!["public", "restricted", "partner"].includes(pullJob.access_level)) {
+      jobBad = "job record 必须记录 access_level";
+    }
+    if (!pullJob.authorization_scope) jobBad = "job record 必须记录 authorization_scope";
+    if (typeof pullJob.go_no_go_required !== "boolean" || !pullJob.go_no_go_status) {
+      jobBad = "job record 必须记录 go/no-go 状态";
+    }
+    if (jobSource) {
+      if (pullJob.access_level !== jobSource.access_level) jobBad = "job access_level 必须来自 source registry";
+      if (pullJob.go_no_go_required !== (jobSource.publish_requires_go_no_go === true)) {
+        jobBad = "job go_no_go_required 必须来自 source registry";
+      }
+      if (pullJob.credential_required !== (jobSource.credential_mode !== "none")) {
+        jobBad = "job credential_required 必须来自 source registry";
+      }
+      if ((pullJob.source_snapshot || {}).credential_env_var !== (jobSource.credential_env_var || null)) {
+        jobBad = "job 只能记录 source registry 中的 credential_env_var 名称";
+      }
+    }
     if (!Array.isArray(pullJob.output_artifacts) || pullJob.output_artifacts.length !== 0) {
       jobBad = "dry-run pull job 不应产生 output_artifacts";
     }
-    if (expectedType === "pull" && (!Array.isArray(pullJob.planned_downloads) ||
+    if (expectedType === "pull" && pullJob.status === "success" && (!Array.isArray(pullJob.planned_downloads) ||
         pullJob.planned_downloads.length !== pullJob.date_range.days)) {
-      jobBad = "planned_downloads 必须覆盖 date_range.days";
+      jobBad = "success pull 的 planned_downloads 必须覆盖 date_range.days";
+    }
+    if (expectedType === "pull" && pullJob.status !== "success" &&
+        (!Array.isArray(pullJob.planned_downloads) || pullJob.planned_downloads.length !== 0)) {
+      jobBad = "skipped/failed pull 不应保留 planned_downloads";
     }
     if (expectedType === "pull_check" && (!Array.isArray(pullJob.planned_downloads) ||
         pullJob.planned_downloads.length !== 0)) {
@@ -577,6 +649,9 @@ if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
     if (/bearer\s+|password\s*[:=]|api[_-]?key\s*[:=]|secret\s*[:=]/i.test(jobText)) {
       jobBad = "job record 不得包含凭据值";
     }
+    if (/OCEAN_SOURCE_[A-Z0-9_]+_CREDENTIAL[^\n"]*[:=]\s*[^",\s}]/.test(jobText)) {
+      jobBad = "job record 不得在 credential_env_var 后记录凭据值";
+    }
     return { ok: jobBad === null, detail: jobBad || pullJob.job_id };
   };
   if (existsSync(pullJobRecordPath)) {
@@ -587,6 +662,11 @@ if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
   if (existsSync(latestCheckJobRecordPath)) {
     const outcome = validateServerJob(latestCheckJobRecordPath, "pull_check");
     check("服务器 latest-check job record 记录最新日期检查，且不会自动发布 artifact",
+      outcome.ok, outcome.detail);
+  }
+  if (existsSync(restrictedPullJobRecordPath)) {
+    const outcome = validateServerJob(restrictedPullJobRecordPath, "pull");
+    check("服务器 restricted pull job record 只记录凭据变量名和 go/no-go 门，不泄露 token",
       outcome.ok, outcome.detail);
   }
   if (existsSync(processJobRecordPath)) {

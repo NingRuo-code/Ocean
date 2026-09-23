@@ -7,6 +7,7 @@ Tracked files in this directory are only examples and public contracts:
 - `sources/sources.example.json`: source registry example. It records source identity, license, credential mode, retention policy, and public display boundary.
 - `public_artifacts/artifact-manifest.example.json`: frontend-facing artifact manifest example. It records public layer status, source references, caveats, and fallback behavior.
 - `job_records/pull-job-record.example.json`: pull job record example. It records source/date/status/error fields without exposing credentials or publishing artifacts.
+- `job_records/restricted-pull-job-record.example.json`: restricted pull example. It records the required environment variable name and skipped status without exposing token values.
 - `job_records/process-job-record.example.json`: process job record example. It records deterministic processing and the validation gate before public artifact publication.
 - `authorized_aggregate/examples/*.example.json`: synthetic aggregate examples used to validate process jobs. Real authorized aggregate inputs remain local/server-only and ignored.
 
@@ -18,6 +19,8 @@ The following directories are local/server workspaces and must not be committed:
 - `logs/`: job records, audit logs, and failure reports.
 
 GFW/AIS raw data, API responses, MMSI, vessel names, tracks, 0.01 degree working grids, and reconstructable source data must stay outside Git unless a later go/no-go review explicitly clears a narrower aggregate artifact.
+
+Credentials stay outside Git. Use root `.env.example` as a variable-name template, copy it to a local `.env`, and fill values only on the server or local machine. Job records may mention `credential_env_var` and `credential_configured`, but must never print token values.
 
 Run `node tools/data-check.mjs` to validate the example registry and manifest together with the existing offline data artifacts.
 

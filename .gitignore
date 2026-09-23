@@ -40,6 +40,8 @@ paper/*.pdf
 # Local configuration
 .env
 .env.local
+.env.*
+!.env.example
 
 # Office and review temporary files
 ~$*
