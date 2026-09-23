@@ -25,6 +25,12 @@ local_data/gfw_ais/raw/
 local_data/gfw_ais/intermediate/
 local_data/gfw_ais/authorized_aggregate/
 
+# Server-side data workspaces
+server_data/raw/
+server_data/intermediate/
+server_data/authorized_aggregate/
+server_data/logs/
+
 # Reference papers / private project handouts are kept locally
 paper/*.pdf
 *.docx

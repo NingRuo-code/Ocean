@@ -134,3 +134,124 @@
 - 记录新增数据文件结构。
 - 更新验收命令和演示脚本。
 - 保留 GFW 数据公开边界说明。
+
+## Milestone 5：实验课反馈补充任务
+
+### Issue 14：建立每日数据更新与自动抓取机制
+
+目标：把“数据每天更新，可以自动抓取”的需求拆成可控的数据更新流程，而不是让前端直接依赖远端文件。
+
+验收：
+
+- 建立数据源登记表，记录锋面、SST、GFW/AIS 或合作方样例的来源、许可、更新时间、覆盖范围和失败处理方式。
+- 支持按日期增量检查和下载，重复运行不会覆盖已校验产物。
+- 输出数据新鲜度状态，例如 `latest_available_date`、`last_checked_at`、`missing_dates` 和 `source_status`。
+- raw/API 原始响应、0.01 度工作表和授权聚合输入仍只进入本地或服务器受控目录，不进入 Git。
+- 前端只能读取经过校验和发布的静态 artifact 或 API 响应，不能直接读取 raw 数据目录。
+
+### Issue 15：实现左侧可呼出的完整图层控制栏
+
+目标：把地图图层管理从当前紧凑图例扩展为左侧隐藏式图层面板，平时收起，需要时呼出。
+
+验收：
+
+- 面板至少管理海温、锋面带、锋面线、冷暖侧、缺测、渔场示例、后续 fishing effort、后续强度/梯度图层。
+- 面板默认收起，不遮挡主地图和右侧分析面板。
+- 每个图层显示数据状态：`real`、`synthetic_fixture`、`not_available`、`pending_authorization`。
+- 不可用图层不能伪造数值；应显示缺口原因和后续接入条件。
+- `e2e-check` 和 `layout-check` 增加图层面板开关、窄屏不裁切和图层状态文案检查。
+
+### Issue 16：改造为模块内 AI 分析入口
+
+目标：满足“当前、历史、预测各自带 AI 分析，但暂时不做对话形式”的需求。
+
+验收：
+
+- 当前页、历史页、预测页分别提供一个非对话式 AI 解释区域。
+- 每个 AI 区域只组织该模块已有的确定性证据，不生成 fishing hours、概率、强度或预测数值。
+- 当前页 AI 解释当前锋面、SST、作业范围和历史 AIS 响应。
+- 历史页 AI 解释历史同期频率、相似锋面事件和历史 AIS 响应。
+- 预测页 AI 解释规则预测参考、真实预报缺口和不确定性边界。
+- 保留统一 AI 分析页作为全局复核视图，但不得替代模块内解释入口。
+
+### Issue 17：验证锋面强度或梯度图层可用性
+
+目标：回应“锋面持续时间短，不一定和鱼形成关联，还是要把锋面强度设计出来”的需求，先验证数据可得性，再决定实现路线。
+
+验收：
+
+- 调查现有锋面数据集是否具备可接入的 front intensity 字段或分年强度包。
+- 若强度数据可得，定义 `front_intensity` artifact 的字段、单位、色标、缺测规则和生成流程。
+- 若强度数据暂不可得，定义 SST 梯度的替代图层口径，并明确它只是梯度参考，不等同于官方锋面强度。
+- 数据说明页必须写清强度/梯度来源、单位、可用日期和局限。
+- 强度或梯度图层不直接参与 Product Score，除非后续回测证明其解释价值。
+
+## Milestone 6：服务器接入与数据管线
+
+### Issue 18：定义服务器接入边界与数据源登记表
+
+目标：在接入服务器前先明确服务器角色、数据权限、目录边界和 artifact 发布方式。
+
+验收：
+
+- 新增服务器数据源登记表，至少包含 source id、source type、license、credential mode、update cadence、retention policy 和 public display boundary。
+- 明确服务器不公开 raw AIS/GFW、MMSI、船名、轨迹或可逆推出源数据的中间表。
+- 明确前端读取的是发布后的 artifact manifest 或受控 API，不直接访问服务器 raw 目录。
+- 与 `docs/gfw-ais-real-sample-intake.md` 的本地目录和 go/no-go 保持一致。
+- source registry 示例纳入 `tools/data-check.mjs`，字段、凭据模式和 GFW/AIS apparent fishing effort 边界可自动校验。
+
+### Issue 19：实现服务器端数据拉取任务
+
+目标：让服务器负责定时或手动拉取锋面、SST、GFW/AIS 授权样例等数据，并记录运行状态。
+
+验收：
+
+- 支持手动触发指定日期范围的数据拉取。
+- 支持定时检查最新日期，但默认不自动发布未校验数据。
+- 每次运行生成 job record，记录 started_at、finished_at、source、date_range、status、error 和 output artifact。
+- 网络失败、授权失败、数据缺失时输出明确状态，不生成伪数据。
+
+### Issue 20：实现服务器端处理工作区与 artifact 发布
+
+目标：把服务器上的 raw、intermediate、authorized aggregate 和 public artifact 分层管理。
+
+验收：
+
+- 服务器目录至少分为 `raw/`、`intermediate/`、`authorized_aggregate/`、`public_artifacts/` 和 `logs/`。
+- 只有 `public_artifacts/` 中通过校验的产物可以被前端读取或导出到仓库。
+- Front Response Table 必须继续通过确定性脚本生成，不能由 AI 生成。
+- 发布前运行数据契约检查；失败产物不能覆盖上一个可用版本。
+
+### Issue 21：设计前端读取服务器 artifact 的接口
+
+目标：在保留离线静态原型能力的同时，允许前端读取服务器发布的最新 artifact。
+
+验收：
+
+- 提供 artifact manifest，列出可用日期、图层状态、版本、生成时间、source 和 caveat。
+- 前端启动时优先读取本地静态 artifact；若配置了服务器地址，再读取服务器 manifest。
+- 服务器不可用时前端降级到本地静态数据，并提示数据新鲜度。
+- 不把服务器读取失败解释为数据为 0 或无响应。
+- manifest 示例纳入 `tools/data-check.mjs`，确保公开 artifact 不指向 raw/intermediate/轨迹类路径。
+
+### Issue 22：建立服务器凭据与权限管理
+
+目标：避免 GFW/API token、合作方数据凭据或内部服务器地址进入仓库。
+
+验收：
+
+- 凭据只保存在服务器环境变量或本地 `.env`，不得提交到 Git。
+- 数据拉取任务按 source id 读取凭据，不在日志中打印 token。
+- 不同数据源区分 public、restricted、partner 三类访问级别。
+- 任何 restricted 或 partner 数据在公开展示前必须经过 go/no-go 审核。
+
+### Issue 23：增加服务器运行观测与人工复核入口
+
+目标：让开发者能判断服务器数据是否新鲜、失败在哪里、是否可以发布。
+
+验收：
+
+- 提供最近任务列表、失败原因、缺失日期和 artifact 版本摘要。
+- 支持人工标记某批 authorized aggregate 为可发布或不可发布。
+- 支持回滚到上一版 public artifact。
+- 文档记录服务器接入、运行、复核和回滚步骤。

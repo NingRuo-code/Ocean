@@ -62,6 +62,20 @@ Ocean 的产品定位是面向渔场作业的海洋锋面分析与辅助决策�
 
 该权重是第一版可解释权重，后续可根据回测结果调整。
 
+### 阶段 4：服务器辅助数据更新
+
+当真实授权样例接入流程稳定后，引入服务器作为数据更新、处理、校验和 artifact 发布层。服务器不替代离线静态原型，也不向前端暴露 raw AIS/GFW、MMSI、船名、轨迹或 0.01 度工作网格。
+
+服务器路线：
+
+- 建立数据源登记表，记录来源、许可、凭据模式、更新频率、覆盖范围和公开边界。
+- 支持手动或定时拉取锋面、SST、GFW/AIS 授权样例数据。
+- 将 raw、intermediate、authorized aggregate 和 public artifact 分层存储。
+- 只发布通过校验、不可逆推出 raw 的 public artifact。
+- 前端可选读取服务器 manifest；服务器不可用时回退本地静态数据。
+
+详见 `docs/ocean-server-integration-plan.md`。
+
 ## 4. 数据产物
 
 ### Fishing Effort Grid Artifact
@@ -120,3 +134,4 @@ data/front_response/events.js
 - 不把 AIS/GFW missing coverage 当成 zero fishing activity。
 - 不把规则预测参考包装成业务预报。
 - 不让 AI 直接生成科学数值。
+- 不让服务器绕过数据许可、公开边界和 artifact 校验。

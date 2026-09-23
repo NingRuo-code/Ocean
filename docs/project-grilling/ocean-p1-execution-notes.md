@@ -47,6 +47,7 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 | 07 | 补齐 P1 UI 与文案回归检查 | 已完成 | 已补齐 placeholder、上下文联动和误导措辞拦截 |
 | 08 | 生成 P1 验证与汇报包 | 已完成 | 已沉淀 P1 验证包与阶段答辩口径 |
 | 09 | 准备真实授权 AIS/GFW 样例接入边界 | 已完成 | 已新增真实样例接入清单、本地目录规则和提交 go/no-go |
+| 10 | 建立服务器数据源与公开 artifact 契约 | 已完成 | 已新增 source registry、artifact manifest 示例，并纳入 data-check |
 
 ## 3. 执行日志
 
@@ -92,6 +93,15 @@ Ocean 是一个面向渔场作业辅助的海洋锋面分析原型。当前主�
 - 执行 09：明确真实样例只允许以事件级/半径级 Front Response Table 聚合结果进入仓库；raw/API 下载、MMSI、船名、轨迹、0.01° 工作网格和可逆推出源数据的中间表仍只能本地处理。
 - 执行 09：新增 `local_data/gfw_ais/downloads/`、`raw/`、`intermediate/` 的 Git 忽略规则，降低后续误提交敏感或授权不清数据的风险。
 - 执行 09：同步 `docs/data-governance-gfw-ais.md` 与 `docs/data-schema.md`，确保后续任务知道真实样例必须先通过 intake go/no-go，再走 `tools/build-front-response.mjs --input <本地授权样例>`。
+- 规划补充：根据 `demand/9.16 实验课内容.md`，在 `docs/ocean-gfw-response-issues.md` 追加实验课反馈 tickets：每日数据更新与自动抓取、左侧可呼出图层控制栏、模块内 AI 分析入口、锋面强度/梯度图层可用性验证。
+- 规划补充：新增 `docs/ocean-server-integration-plan.md`，明确服务器只负责数据源登记、拉取、处理、校验和 artifact 发布；前端仍保留离线静态模式，服务器不可用时不能输出假数值。
+
+### 2026-09-23
+
+- 执行 10：新增 `server_data/README.md`，把服务器侧 raw、intermediate、authorized aggregate、public artifact 和 logs 的目录边界写成仓库内可读取约定。
+- 执行 10：新增 `server_data/sources/sources.example.json`，登记 Zenodo front、front intensity planned source、NOAA SST 和 GFW/AIS apparent fishing effort planned source；继续明确 GFW/AIS 只能作为 fishing hours 响应信号，不是产量、收益或保证性结果。
+- 执行 10：新增 `server_data/public_artifacts/artifact-manifest.example.json`，定义前端未来读取服务器产物时可见的图层状态、source、可用日期、caveat 和 fallback 规则。
+- 执行 10：扩展 `tools/data-check.mjs`，校验 source registry 和 artifact manifest，防止公开 manifest 指向 raw/intermediate/authorized aggregate、MMSI、船名或轨迹类数据。
 
 ## 4. 项目真实性准备
 
@@ -188,6 +198,8 @@ AIS 覆盖、接收条件、数据授权和下载范围都会造成缺测。缺�
 - [x] 执行 07：补齐 P1 UI 与文案回归检查。
 - [x] 执行 08：生成 P1 验证与汇报包。
 - [x] 执行 09：准备真实授权 AIS/GFW 样例接入边界。
+- [x] 补充实验课反馈 tickets 与服务器接入规划。
+- [x] 执行 10：建立服务器数据源与公开 artifact 契约。
 - [ ] 每完成一张 ticket，更新本文件的执行日志、技术难点和 Q&A。
 - [ ] `gh` 可用后，把本地 tickets 发布到 GitHub Issues，并应用 `ready-for-agent` 标签。
 - [ ] P1 闭环完成后，再回头整理简历项目表达。

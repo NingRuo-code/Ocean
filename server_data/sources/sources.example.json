@@ -1,0 +1,88 @@
+{
+  "schema_version": "ocean-source-registry/v1",
+  "generated_at": "2026-09-23T00:00:00Z",
+  "sources": [
+    {
+      "source_id": "zenodo_front_location",
+      "source_type": "front",
+      "display_name": "Zenodo global daily mesoscale front location dataset",
+      "license": "CC BY 4.0",
+      "credential_mode": "none",
+      "update_cadence": "manual",
+      "date_coverage": {
+        "start": "1982-01-01",
+        "end": "2024-12-31",
+        "status": "historical_archive"
+      },
+      "spatial_coverage": {
+        "scope": "global",
+        "prototype_bbox": [120, 27, 128, 34]
+      },
+      "raw_retention": "server_data/raw/front_location/ only; do not commit raw NetCDF or derived fine-grained working files",
+      "public_display_boundary": "Public artifacts may expose front lines, cold/warm side, nodata masks, and aggregated object metadata.",
+      "caveat": "Front IDs exported by the prototype are local-day object identifiers, not long-term tracked fronts."
+    },
+    {
+      "source_id": "zenodo_front_intensity_planned",
+      "source_type": "front_intensity",
+      "display_name": "Zenodo global daily mesoscale front intensity archive planned source",
+      "license": "CC BY 4.0",
+      "credential_mode": "none",
+      "update_cadence": "manual_after_storage_review",
+      "date_coverage": {
+        "start": "1982-01-01",
+        "end": "2024-12-31",
+        "status": "not_connected"
+      },
+      "spatial_coverage": {
+        "scope": "global",
+        "prototype_bbox": [120, 27, 128, 34]
+      },
+      "raw_retention": "server_data/raw/front_intensity/ only after storage review; do not commit raw NetCDF or extracted fine-grained grids",
+      "public_display_boundary": "No public artifact is available until intensity semantics, units, and display risk are validated.",
+      "caveat": "The source is registered for planning only. Do not infer intensity values until a validated artifact exists."
+    },
+    {
+      "source_id": "noaa_sst_blended_daily",
+      "source_type": "sst",
+      "display_name": "NOAA GHRSST Geo-Polar Blended nighttime L4 SST",
+      "license": "free and open",
+      "credential_mode": "none",
+      "update_cadence": "manual_or_daily",
+      "date_coverage": {
+        "start": "2002-01-01",
+        "end": null,
+        "status": "ongoing_service"
+      },
+      "spatial_coverage": {
+        "scope": "subset",
+        "prototype_bbox": [120, 27, 128, 34]
+      },
+      "raw_retention": "server_data/raw/sst/ only; do not commit raw NetCDF",
+      "public_display_boundary": "Public artifacts may expose binned 0.5 degree C SST runs and aggregate statistics.",
+      "caveat": "SST is displayed as environmental context and does not by itself prove fishery activity."
+    },
+    {
+      "source_id": "gfw_effort_public_planned",
+      "source_type": "gfw_ais_effort",
+      "display_name": "Global Fishing Watch apparent fishing effort planned sample",
+      "license": "CC BY-NC 4.0 or confirmed project-specific license",
+      "credential_mode": "env_token",
+      "update_cadence": "manual_until_authorized",
+      "date_coverage": {
+        "start": "2024-07-01",
+        "end": "2024-08-31",
+        "status": "planned_authorized_sample"
+      },
+      "spatial_coverage": {
+        "scope": "East China Sea prototype window",
+        "prototype_bbox": [120, 27, 128, 34]
+      },
+      "raw_retention": "server_data/raw/gfw_ais/ only; do not commit API responses, 0.01 degree working grids, MMSI, vessel names, tracks, or reconstructable source data",
+      "public_display_boundary": "Only event-level or radius-level aggregate Front Response Table rows may be published after go/no-go review.",
+      "metric": "apparent_fishing_effort",
+      "unit": "fishing_hours",
+      "caveat": "Apparent fishing effort is estimated from AIS behavior and is not catch, production, biomass, revenue, or guaranteed fishing result."
+    }
+  ]
+}

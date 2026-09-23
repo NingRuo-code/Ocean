@@ -1,0 +1,62 @@
+{
+  "schema_version": "ocean-artifact-manifest/v1",
+  "generated_at": "2026-09-23T00:00:00Z",
+  "latest_available_date": "2024-08-31",
+  "fallback_mode": "local_static_data",
+  "public_boundary": {
+    "raw_committed": false,
+    "fine_grained_committed": false,
+    "note": "Manifest exposes only public artifacts or aggregate status. Raw AIS/GFW, 0.01 degree working grids, vessel identifiers, tracks, and reconstructable source data must not be exposed."
+  },
+  "layers": {
+    "front": {
+      "status": "real",
+      "source_id": "zenodo_front_location",
+      "available_dates": {
+        "start": "2024-07-01",
+        "end": "2024-08-31",
+        "count": 62
+      },
+      "artifact_pattern": "data/day/<date>.js",
+      "caveat": "Front object IDs are local-day identifiers."
+    },
+    "sst": {
+      "status": "real",
+      "source_id": "noaa_sst_blended_daily",
+      "available_dates": {
+        "start": "2024-07-01",
+        "end": "2024-08-31",
+        "count": 62
+      },
+      "artifact_pattern": "data/sst/<date>.js",
+      "caveat": "SST is environmental context and not a fishery outcome."
+    },
+    "front_response": {
+      "status": "synthetic_fixture",
+      "source_id": "gfw_effort_public_planned",
+      "metric": "apparent_fishing_effort",
+      "unit": "fishing_hours",
+      "available_dates": {
+        "start": "2024-08-05",
+        "end": "2024-08-07",
+        "count": 3
+      },
+      "artifact_pattern": "data/front_response/events.js",
+      "caveat": "Current fixture validates the contract and UI path only; it is not real AIS/GFW evidence and is not catch, production, revenue, biomass, or guaranteed result."
+    },
+    "front_intensity": {
+      "status": "not_available",
+      "source_id": "zenodo_front_intensity_planned",
+      "reason": "Front intensity archive has not been connected to the prototype pipeline.",
+      "caveat": "Do not infer intensity values until a validated artifact exists."
+    },
+    "fishing_effort_grid": {
+      "status": "pending_authorization",
+      "source_id": "gfw_effort_public_planned",
+      "metric": "apparent_fishing_effort",
+      "unit": "fishing_hours",
+      "reason": "Map-facing fishing effort grid requires data authorization and public-display review before publication.",
+      "caveat": "Do not publish raw or reconstructable GFW-derived data."
+    }
+  }
+}

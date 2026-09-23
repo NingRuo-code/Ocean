@@ -11,12 +11,14 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DATA = join(ROOT, "data");
+const SERVER_DATA = join(ROOT, "server_data");
 const results = [];
 const check = (label, cond, detail) => results.push(`${cond ? "PASS" : "FAIL"}  ${label}${detail ? "  → " + detail : ""}`);
 const readJs = (rel) => {
   const text = readFileSync(join(DATA, rel), "utf8");
   return { text, run: () => { const win = {}; new Function("window", text)(win); return win; } };
 };
+const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 const decoded = (runs) => runs.reduce((sum, r) => sum + r[2], 0);
 const inBox = ([lon, lat], b) => lon >= b[0] - 0.01 && lon <= b[2] + 0.01 && lat >= b[1] - 0.01 && lat <= b[3] + 0.01;
 const addIsoDays = (iso, days) => new Date(Date.parse(iso + "T00:00:00Z") + days * 86400000).toISOString().slice(0, 10);
@@ -391,6 +393,95 @@ if (FRONT_RESPONSE.status === "not_available") {
   });
   check("front response by_date / by_range 索引能按日期与半径找到事件", indexed,
     indexed ? "全部通过" : "索引缺失或指向错误");
+}
+
+// ===== 服务器数据源登记表与公开 artifact manifest 契约 =====
+const sourceRegistryPath = join(SERVER_DATA, "sources", "sources.example.json");
+const artifactManifestPath = join(SERVER_DATA, "public_artifacts", "artifact-manifest.example.json");
+check("服务器数据源登记表示例存在", existsSync(sourceRegistryPath), "server_data/sources/sources.example.json");
+check("服务器公开 artifact manifest 示例存在", existsSync(artifactManifestPath), "server_data/public_artifacts/artifact-manifest.example.json");
+
+if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
+  const registry = readJson(sourceRegistryPath);
+  const manifest = readJson(artifactManifestPath);
+  const sourceTypes = new Set(["front", "front_intensity", "sst", "gfw_ais_effort", "partner_ais_derivative", "basemap"]);
+  const credentialModes = new Set(["none", "env_token", "server_secret"]);
+  const layerStatuses = new Set(["real", "synthetic_fixture", "not_available", "pending_authorization"]);
+  const requiredSourceFields = [
+    "source_id", "source_type", "display_name", "license", "credential_mode", "update_cadence",
+    "date_coverage", "spatial_coverage", "raw_retention", "public_display_boundary", "caveat"
+  ];
+  const sensitiveKeyPattern = /^(token|api_key|secret|password|credential|authorization)$/i;
+  const sourceList = Array.isArray(registry.sources) ? registry.sources : [];
+  const sourceIds = new Set(sourceList.map((source) => source.source_id));
+
+  let registryBad = null;
+  if (registry.schema_version !== "ocean-source-registry/v1") registryBad = "schema_version 不正确";
+  if (!Array.isArray(registry.sources) || sourceList.length < 4) registryBad = "sources 数量不足";
+  if (sourceIds.size !== sourceList.length) registryBad = "source_id 不应重复";
+  sourceList.forEach((source) => {
+    const missing = requiredSourceFields.filter((field) => source[field] == null || source[field] === "");
+    if (missing.length) registryBad = source.source_id + " 缺字段 " + missing.join(",");
+    if (!sourceTypes.has(source.source_type)) registryBad = source.source_id + " source_type 非法";
+    if (!credentialModes.has(source.credential_mode)) registryBad = source.source_id + " credential_mode 非法";
+    Object.keys(source).forEach((key) => {
+      if (sensitiveKeyPattern.test(key)) registryBad = source.source_id + " 不应包含敏感字段名 " + key;
+    });
+    if (/gfw|ais/i.test(source.source_id + " " + source.source_type)) {
+      if (source.metric !== "apparent_fishing_effort" || source.unit !== "fishing_hours") {
+        registryBad = source.source_id + " 必须声明 apparent_fishing_effort / fishing_hours";
+      }
+      if (!/not catch/i.test(source.caveat) || !/production/i.test(source.caveat) ||
+          !/revenue/i.test(source.caveat) || !/guaranteed/i.test(source.caveat)) {
+        registryBad = source.source_id + " caveat 必须排除产量/收益/保证性解释";
+      }
+      if (!/event-level|radius-level/i.test(source.public_display_boundary)) {
+        registryBad = source.source_id + " 公开边界必须限制到事件级/半径级聚合";
+      }
+    }
+  });
+  check("服务器数据源登记表字段、许可、凭据模式和 GFW/AIS 边界可校验",
+    registryBad === null, registryBad || sourceIds.size + " 个 source 全部通过");
+
+  let manifestBad = null;
+  if (manifest.schema_version !== "ocean-artifact-manifest/v1") manifestBad = "schema_version 不正确";
+  if (!manifest.generated_at || !manifest.latest_available_date) manifestBad = "缺 generated_at/latest_available_date";
+  if (!manifest.public_boundary ||
+      manifest.public_boundary.raw_committed !== false ||
+      manifest.public_boundary.fine_grained_committed !== false) {
+    manifestBad = "public_boundary 必须声明 raw/fine-grained 未提交";
+  }
+  const layers = manifest.layers || {};
+  ["front", "sst", "front_response", "front_intensity", "fishing_effort_grid"].forEach((name) => {
+    const layer = layers[name];
+    if (!layer) manifestBad = "缺少图层 " + name;
+    if (layer && !layerStatuses.has(layer.status)) manifestBad = name + " status 非法";
+    if (layer && layer.source_id && !sourceIds.has(layer.source_id)) manifestBad = name + " source_id 未登记";
+    if (layer && ["not_available", "pending_authorization"].includes(layer.status) && !layer.reason) {
+      manifestBad = name + " 不可用状态必须写 reason";
+    }
+    const publicPath = layer && (layer.artifact_pattern || layer.href || layer.path || "");
+    if (/raw|intermediate|authorized_aggregate|mmsi|vessel|track/i.test(publicPath)) {
+      manifestBad = name + " artifact 指向了非公开路径或可识别轨迹数据";
+    }
+  });
+  if (layers.front_response) {
+    if (layers.front_response.metric !== "apparent_fishing_effort" ||
+        layers.front_response.unit !== "fishing_hours") {
+      manifestBad = "front_response 必须声明 apparent_fishing_effort / fishing_hours";
+    }
+    if (layers.front_response.status === "synthetic_fixture" &&
+        !/not real AIS\/GFW evidence/i.test(layers.front_response.caveat || "")) {
+      manifestBad = "synthetic front_response 必须说明不是真实 AIS/GFW 证据";
+    }
+    if (!/not catch/i.test(layers.front_response.caveat || "") ||
+        !/production/i.test(layers.front_response.caveat || "") ||
+        !/revenue/i.test(layers.front_response.caveat || "")) {
+      manifestBad = "front_response caveat 必须排除产量/收益解释";
+    }
+  }
+  check("服务器公开 artifact manifest 不暴露 raw/轨迹数据，且图层状态可解释",
+    manifestBad === null, manifestBad || Object.keys(layers).join(","));
 }
 
 // ===== 汇总 =====
