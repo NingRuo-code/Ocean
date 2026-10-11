@@ -19,3 +19,19 @@ Import the collaborator frontend interaction improvements after the layout is st
 - The map remains usable offline.
 - Regression checks pass or blockers are recorded.
 
+## Progress
+
+2026-10-11:
+
+- Imported the low-risk layer-drawer interaction pattern into `frontend/prototype/prototype-fishing.html` and `frontend/prototype/prototype-fishing.js`.
+- The drawer opens from the `☰` button or left-edge hover, and closes from `✕` or mouse leave.
+- Existing layer toggles still drive the same offline `state.layers` rendering path.
+- Globe/projection, server bbox loading, and real GFW fishing-effort layer are intentionally deferred to later sub-batches.
+
+Checks:
+
+- `node tools/data-check.mjs`: 0 failures / 914.
+- `node tools/e2e-check.mjs`: 0 failures / 112.
+- `node tools/layout-check.mjs`: 0 failures.
+- `git diff --check`: pass.
+

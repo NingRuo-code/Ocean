@@ -109,12 +109,26 @@
     background: rgba(12,26,41,.92); color: var(--text); font-size: 17px; cursor: pointer;
   }
   .ctrl:hover { border-color: var(--accent); color: var(--accent); }
+  .layer-toggle { position: absolute; left: 14px; top: 14px; z-index: 8; }
   .map-legend {
     position: absolute; left: 14px; bottom: 14px; width: 218px; z-index: 7;
     background: rgba(12,26,41,.92); border: 1px solid var(--line);
     border-radius: 9px; padding: 8px 10px; font-size: 12px; color: var(--text-dim);
   }
   .map-legend h4 { color: var(--text); margin-bottom: 6px; font-size: 12px; }
+  .layer-drawer {
+    left: 14px; right: auto; top: 62px; bottom: auto; width: 236px;
+    transform: translateX(-112%); opacity: 0; pointer-events: none;
+    transition: transform .18s ease, opacity .18s ease;
+  }
+  .layer-drawer.open { transform: none; opacity: 1; pointer-events: auto; }
+  .layer-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .layer-head h4 { margin: 0; }
+  .layer-head .link {
+    border: 0; background: transparent; color: var(--text-dim); cursor: pointer;
+    font-size: 13px; line-height: 1; padding: 3px 5px; border-radius: 5px;
+  }
+  .layer-head .link:hover { color: var(--accent); background: rgba(77,212,198,.08); }
   .legend-row { display: flex; align-items: center; gap: 7px; margin: 3px 0; cursor: pointer; }
   .swatch { width: 15px; height: 15px; border-radius: 4px; flex: none; border: 1px solid transparent; }
   .swatch.sst { background: linear-gradient(90deg,#2f7fc1,#37b3b8,#7ecb6a,#e8d75a,#f0a341,#e2694a); }
@@ -409,8 +423,12 @@
         <button class="ctrl" title="缩小地图" id="zoomOut">－</button>
         <button class="ctrl" title="回到定位点" id="recenter">◎</button>
       </div>
-      <div class="map-legend">
-        <h4>图层</h4>
+      <button class="ctrl layer-toggle" id="layerToggle" title="图层开关" aria-controls="layerDrawer" aria-expanded="false">☰</button>
+      <aside class="map-legend layer-drawer" id="layerDrawer" aria-hidden="true">
+        <div class="layer-head">
+          <h4>图层</h4>
+          <button class="link" id="layerClose" type="button" title="收起">✕</button>
+        </div>
         <div class="legend-row" data-layer="sst"><span class="swatch sst"></span> 水温（NOAA GHRSST）</div>
         <div class="legend-row" data-layer="band"><span class="swatch band"></span> 锋面带（原始数据）</div>
         <div class="legend-row" data-layer="front"><span class="swatch front"></span> 锋面区 · 编号</div>
@@ -421,7 +439,7 @@
           <span class="kbd">陆地</span><span class="kbd">自然地球 1:10m（公有领域）</span>
         </div>
         <div class="legend-note">悬停地图任意位置可查看该点数据；陆地＝浅色实色块，斜线＝无观测</div>
-      </div>
+      </aside>
       <div class="map-scale-label" id="mapScaleText">50 km</div>
       <div class="map-scale" id="mapScale"></div>
       <div class="map-empty" id="mapEmpty" hidden>

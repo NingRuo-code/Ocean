@@ -758,6 +758,14 @@ function renderLegend() {
     row.style.textDecoration = on ? "none" : "line-through";
   });
 }
+function setLayerDrawer(open) {
+  const drawer = $("layerDrawer");
+  const toggle = $("layerToggle");
+  if (!drawer || !toggle) return;
+  drawer.classList.toggle("open", open);
+  drawer.setAttribute("aria-hidden", open ? "false" : "true");
+  toggle.setAttribute("aria-expanded", open ? "true" : "false");
+}
 
 // ==================== 结论块（已并入「当前」页，随页签切换显示） ====================
 function heroTarget() {
@@ -1686,7 +1694,7 @@ function bind() {
 
   // ===== 地图：拖拽平移 / 滚轮以光标为中心缩放 =====
   let drag = null, suppressClick = false;
-  const interactive = (t) => !!(t && t.closest && t.closest(".map-legend, .map-controls, .map-pick, .map-probe"));
+  const interactive = (t) => !!(t && t.closest && t.closest(".map-legend, .layer-toggle, .map-controls, .map-pick, .map-probe"));
   $("map").addEventListener("mousedown", (e) => {
     if (e.button !== 0 || interactive(e.target)) return;
     drag = { x: e.clientX, y: e.clientY, moved: 0 };
@@ -1736,7 +1744,7 @@ function bind() {
   map.addEventListener("mouseleave", () => { hoverPt = null; renderProbe(); });
   map.addEventListener("click", (e) => {
     if (suppressClick) { suppressClick = false; return; }   // 拖动之后的那一下不算点击
-    if (e.target.closest && e.target.closest(".map-legend, .map-controls, .map-pick, .map-probe, .map-empty")) return;
+    if (e.target.closest && e.target.closest(".map-legend, .layer-toggle, .map-controls, .map-pick, .map-probe, .map-empty")) return;
     const g = geoOfScreen(e.clientX, e.clientY);
     if (state.pickOrigin) {
       setOrigin(g[0], g[1], "map");
@@ -1781,6 +1789,15 @@ function bind() {
   $("zoomIn").addEventListener("click", () => { const c = mapCenter(); zoomAt(c[0], c[1], 1.25); });
   $("zoomOut").addEventListener("click", () => { const c = mapCenter(); zoomAt(c[0], c[1], 1 / 1.25); });
   $("recenter").addEventListener("click", () => centerOn(state.lon, state.lat, DEFAULT_ZOOM));
+  $("layerToggle").addEventListener("click", () => {
+    setLayerDrawer(!$("layerDrawer").classList.contains("open"));
+  });
+  $("layerClose").addEventListener("click", () => setLayerDrawer(false));
+  $("map").addEventListener("mousemove", (e) => {
+    const r = $("map").getBoundingClientRect();
+    if (e.clientX - r.left <= 42) setLayerDrawer(true);
+  });
+  $("layerDrawer").addEventListener("mouseleave", () => setLayerDrawer(false));
 
   // 图层开关（图例）
   document.querySelectorAll(".legend-row[data-layer]").forEach((row) => {
