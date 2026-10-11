@@ -1,0 +1,5 @@
+# Keep deployment scripts portable across Windows and Linux checkouts.
+deploy/*.sh text eol=lf
+tools/ops/*.sh text eol=lf
+deploy/nginx/*.conf text eol=lf
+deploy/*.ps1 text eol=crlf
