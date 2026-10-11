@@ -5,9 +5,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 // 用法：node tools/layout-check.mjs  （可用环境变量 EDGE / PAGE 覆盖）
 const EDGE = process.env.EDGE || "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
-const PAGE = process.env.PAGE || pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), "..", "prototype-fishing.html")).href;
-const PORT = 9341;
-const PROFILE = join(process.env.TEMP || "C:\\temp", "_edge_profile_layout");
+const PAGE = process.env.PAGE || pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), "..", "frontend", "prototype", "prototype-fishing.html")).href;
+const PORT = Number(process.env.CDP_PORT || (9341 + Math.floor(Math.random() * 1000)));
+const PROFILE = join(process.env.TEMP || "C:\\temp", "_edge_profile_layout_" + PORT);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 try { rmSync(PROFILE, { recursive: true, force: true }); } catch (e) {}
 
@@ -136,6 +136,7 @@ check("1280 宽：历史 AIS 响应卡片入口仍可见且文案不裁切",
 check("1280 宽：卡片区可滚动", g2.panesH >= 150, "panesH=" + g2.panesH);
 check("1280 宽：3 个序号仍可见（顺序不因窄屏丢失）", g2.numBadges === 3, "badges=" + g2.numBadges);
 
+const failCount = results.filter((r) => r.indexOf("FAIL") === 0).length;
 console.log(results.join("\n"));
-console.log("\nFAIL 总数 = " + results.filter((r) => r.indexOf("FAIL") === 0).length);
-ws.close(); child.kill(); process.exit(0);
+console.log("\nFAIL 总数 = " + failCount);
+ws.close(); child.kill(); process.exit(failCount ? 1 : 0);

@@ -11,3 +11,7 @@ This repo uses the default five canonical triage labels. See `docs/agents/triage
 ### Domain docs
 
 This repo uses a single-context domain-doc layout. See `docs/agents/domain.md`.
+
+### Restructure integration
+
+When integrating `JustPlayinger/ocean-front-prototype` or the `restructure` branch, follow `docs/collab-restructure-integration.md`.

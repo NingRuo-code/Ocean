@@ -13,7 +13,7 @@
 
 ```powershell
 # ① 打开页面（无需服务器）
-start prototype-fishing.html
+start frontend\prototype\prototype-fishing.html
 
 # ② 三项检查（Node 18+；e2e 需要本机装有 Edge）
 node tools/data-check.mjs     # 数据文件结构与自洽：897 项断言
@@ -126,16 +126,17 @@ node tools/layout-check.mjs   # 布局几何（1280 / 1680 两档）：25 项断
 
 ```
 ocean-front-prototype/
-├── prototype-fishing.html      结构 + 样式（L0 顶栏 / 地图 / L1 结论 / L2 页签）
-├── prototype-fishing.js        状态机 + 渲染 + 交互（唯一改动入口，只从 OFData 取数）
-├── prototype-data.js           数据适配层：页面唯一数据入口 window.OFData
-├── data/                       脚本生成的数据（**不要手改**）
-│   ├── meta.js                 数据产品 / 许可 / 可用日期 / 已知问题（数据说明读它）
-│   ├── days.js                 清单：已导出的锋面与水温日期（HTML 按它注入 <script>）
-│   ├── day/<日期>.js           单日锋面：对象中心线、锋面带、冷暖侧、缺测掩码、质量统计
-│   ├── sst/<日期>.js           单日水温：按 0.5 °C 分箱的逐行游程
-│   ├── clim/same-period.js     历史同期统计（front_present 口径）
-│   └── base/basemap.js         底图（Natural Earth 裁剪抽稀结果）
+├── frontend/prototype/
+│   ├── prototype-fishing.html  结构 + 样式（L0 顶栏 / 地图 / L1 结论 / L2 页签）
+│   ├── prototype-fishing.js    状态机 + 渲染 + 交互（唯一改动入口，只从 OFData 取数）
+│   ├── prototype-data.js       数据适配层：页面唯一数据入口 window.OFData
+│   └── data/                   脚本生成的数据（**不要手改**）
+│       ├── meta.js             数据产品 / 许可 / 可用日期 / 已知问题（数据说明读它）
+│       ├── days.js             清单：已导出的锋面与水温日期（HTML 按它注入 <script>）
+│       ├── day/<日期>.js       单日锋面：对象中心线、锋面带、冷暖侧、缺测掩码、质量统计
+│       ├── sst/<日期>.js       单日水温：按 0.5 °C 分箱的逐行游程
+│       ├── clim/same-period.js 历史同期统计（front_present 口径）
+│       └── base/basemap.js     底图（Natural Earth 裁剪抽稀结果）
 ├── tools/
 │   ├── build-basemap.mjs       拉 Natural Earth → 裁剪抽稀 → data/base/basemap.js
 │   ├── data-check.mjs          数据断言（897）

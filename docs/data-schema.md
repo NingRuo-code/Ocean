@@ -1,7 +1,7 @@
 # 原型数据契约（v1）
 
-> 适用对象：`prototype-fishing.html` 这个纯前端原型。
-> 生成方式：**两个脚本 + 零手工编辑**，页面只通过 `prototype-data.js`（`window.OFData`）读数据。
+> 适用对象：`frontend/prototype/prototype-fishing.html` 这个纯前端原型。
+> 生成方式：**两个脚本 + 零手工编辑**，页面只通过 `frontend/prototype/prototype-data.js`（`window.OFData`）读数据。
 > 相关文档：主项目契约见 `Ocean/docs/data-contract.md`（同一批数据、后端接口口径）。
 
 ---
@@ -44,7 +44,7 @@ node tools\build-basemap.mjs
 - 首次需要环境：`python -m venv .venv` + `.\.venv\Scripts\python.exe -m pip install -e .`（依赖见 `Ocean/backend/pyproject.toml`）
 - 缺少的历史日期按需补下载（支持 HTTP Range，单日约 1.3 MB）：
   `.\.venv\Scripts\python.exe scripts\fetch_zenodo_front_samples.py 2019-08-05 2019-08-06`
-- 出参全部落在本仓 `data/`，可离线双击 `prototype-fishing.html` 直接跑（`<script>` 引入，不走 fetch，无 CORS 问题）
+- 出参落在本仓 `frontend/prototype/data/`，可离线双击 `frontend/prototype/prototype-fishing.html` 直接跑（`<script>` 引入，不走 fetch，无 CORS 问题）
 
 **参数**：`--bbox 120,27,128,34`（东海窗口）、`--anchor 124.5,30.2`（往年同期锚点＝顶栏定位点）、`--ranges 10,20,30`（找鱼范围）、`--clim-radii 10,20,30,50,100`（同期统计半径，含参照用大半径）、`--tolerance-km 6`（中心线抽稀）、`--min-length-km 20`（对象最短长度）、`--sst-raw-dir`（海温原始目录）、`--no-sst`（只出锋面）。
 
@@ -53,7 +53,7 @@ node tools\build-basemap.mjs
 ## 3. 文件结构
 
 ```
-data/
+frontend/prototype/data/
 ├── meta.js                  window.OF_DATA_META    产品/许可/可用日期/缺什么
 ├── days.js                  window.OF_DATA_INDEX   清单：有哪些天（页面按它注入 <script>）
 ├── day/<日期>.js             window.OF_DATA_DAYS    单日真实锋面图层（每天一个文件）

@@ -1,4 +1,4 @@
-/* 数据完整性校验：确认 data/ 下生成的文件结构正确、数值自洽、没有编造字段
+/* 数据完整性校验：确认 frontend/prototype/data/ 下生成的文件结构正确、数值自洽、没有编造字段
  *
  * 用法：node tools/data-check.mjs
  *
@@ -10,7 +10,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const DATA = join(ROOT, "data");
+const PROTOTYPE = join(ROOT, "frontend", "prototype");
+const DATA = process.env.OCEAN_PROTOTYPE_DATA || join(PROTOTYPE, "data");
 const SERVER_DATA = join(ROOT, "server_data");
 const VALID_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const results = [];
@@ -403,8 +404,8 @@ const pullJobRecordPath = join(SERVER_DATA, "job_records", "pull-job-record.exam
 const latestCheckJobRecordPath = join(SERVER_DATA, "job_records", "latest-check-job-record.example.json");
 const restrictedPullJobRecordPath = join(SERVER_DATA, "job_records", "restricted-pull-job-record.example.json");
 const processJobRecordPath = join(SERVER_DATA, "job_records", "process-job-record.example.json");
-const prototypeHtmlPath = join(ROOT, "prototype-fishing.html");
-const prototypeDataPath = join(ROOT, "prototype-data.js");
+const prototypeHtmlPath = join(PROTOTYPE, "prototype-fishing.html");
+const prototypeDataPath = join(PROTOTYPE, "prototype-data.js");
 const envExamplePath = join(ROOT, ".env.example");
 const gitignorePath = join(ROOT, ".gitignore");
 check("服务器数据源登记表示例存在", existsSync(sourceRegistryPath), "server_data/sources/sources.example.json");
@@ -438,7 +439,7 @@ if (existsSync(prototypeHtmlPath) && existsSync(prototypeDataPath)) {
     /OF_SERVER_MANIFEST_STATE/.test(html) && /validateManifest/.test(html) &&
     /not_configured/.test(html) && /local_static/.test(html) &&
     /serverManifestState/.test(adapter) && /serverLayerStatus/.test(adapter),
-    "prototype-fishing.html + prototype-data.js");
+    "frontend/prototype/prototype-fishing.html + frontend/prototype/prototype-data.js");
   check("前端 server manifest 入口拒绝 raw/intermediate/authorized aggregate 或轨迹类公开路径",
     /unsafeManifest/.test(html) &&
     /artifact_pattern/.test(html) && /href/.test(html) && /path/.test(html) &&

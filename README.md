@@ -33,7 +33,8 @@
 
 ```text
 backend/          Python 数据服务
-frontend/         React + TypeScript 界面
+frontend/prototype/
+                  纯前端离线原型入口与生成数据（当前 canonical 静态界面）
 docs/             范围、架构和数据契约
 data/raw/         本地原始样例数据（不提交 Git）
 data/processed/   预处理数据（不提交 Git）
@@ -50,6 +51,14 @@ paper/            参考论文
 当前历史同期概率会同时给出样本覆盖可信度：例如查询 `2024-08-05` 时，同期覆盖为 `30/43` 年，属于“较高”，可用于说明流程和阶段成果，但不应宣称为完整 1982—2024 统计结论。当前本地数据尚未放入 front_intensity 实测文件，系统会显示强度层占位和缺口规划；一旦把强度 NetCDF 放入 `data/raw/front_intensity/年份/`，单日分析、对象识别、数据索引和 UI 会自动接入。
 
 ## 本地运行
+
+离线原型入口：
+
+```powershell
+start frontend\prototype\prototype-fishing.html
+```
+
+根目录下的 `prototype-fishing.html` 暂时保留为迁移过渡入口；新开发和检查默认使用 `frontend/prototype/`。
 
 安装前端依赖：
 

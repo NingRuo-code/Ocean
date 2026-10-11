@@ -5,9 +5,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 // 用法：node tools/e2e-check.mjs   （可用环境变量 EDGE / PAGE 覆盖）
 const EDGE = process.env.EDGE || "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
-const PAGE = process.env.PAGE || pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), "..", "prototype-fishing.html")).href;
-const PORT = 9337;
-const PROFILE = join(process.env.TEMP || "C:\\temp", "_edge_profile_e2e");
+const PAGE = process.env.PAGE || pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), "..", "frontend", "prototype", "prototype-fishing.html")).href;
+const PORT = Number(process.env.CDP_PORT || (9337 + Math.floor(Math.random() * 1000)));
+const PROFILE = join(process.env.TEMP || "C:\\temp", "_edge_profile_e2e_" + PORT);
 const OUT = process.env.TEMP || "C:\\temp";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const addIsoDays = (iso, n) => new Date(Date.parse(iso + "T00:00:00Z") + n * 86400000).toISOString().slice(0, 10);
@@ -885,8 +885,9 @@ check("播放按钮会推进日期，暂停后按钮复位",
 // ===== 18) 运行期异常 =====
 check("无运行期 JS 异常（含资源加载失败）", errors.length === 0, errors.slice(0, 3).join(" || ") || "none");
 
+const failCount = results.filter((r) => r.startsWith("FAIL")).length;
 console.log(results.join("\n"));
-console.log("\nFAIL 总数 = " + results.filter((r) => r.startsWith("FAIL")).length + " / " + results.length);
+console.log("\nFAIL 总数 = " + failCount + " / " + results.length);
 ws.close();
 child.kill();
-process.exit(0);
+process.exit(failCount ? 1 : 0);
