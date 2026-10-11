@@ -1,0 +1,48 @@
+[build-system]
+# 上游 pyproject 没有 [build-system]，pip 会退回 legacy 后端、忽略 PEP 621 的 [project] 表，
+# 结果是「装上了但没有依赖」。这里显式声明，并限定只打包 app 包（避免 flat-layout 自动发现报错）。
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["app"]
+
+[project]
+name = "ocean-front-backend"
+version = "0.1.0"
+description = "Offline data service for the ocean front analysis prototype"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.116,<1",
+  "uvicorn[standard]>=0.35,<1",
+  "xarray>=2025.6,<2027",
+  "h5netcdf>=1.6,<2",
+  "h5py>=3.14,<4",
+  # 新增：SST 是 NetCDF-3 classic（文件头 CDF\x01），锋面是 NetCDF-4/HDF5（文件头 \x89HDF），
+  # 需要「scipy + h5netcdf」双引擎才能都读。
+  # 刻意不装 netcdf4：它的 C 库在 Windows 上打不开非 ASCII 路径（本仓位于中文目录），
+  # 一旦装上会被 xarray 优先选中，导致 SST 与锋面一起读不了。
+  "scipy>=1.13,<2",
+  "numpy>=2.2,<3",
+  "pydantic-settings>=2.10,<3",
+  "remotezip>=0.12,<1",
+  "requests>=2.32,<3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.28,<1",
+  "pytest>=8.4,<9",
+  "ruff>=0.12,<1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+filterwarnings = [
+  "ignore:Using `httpx` with `starlette.testclient` is deprecated.*:Warning",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
