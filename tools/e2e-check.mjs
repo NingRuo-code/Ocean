@@ -128,7 +128,10 @@ const unsupportedClaimPattern = unsupportedClaimTerms.map(escapeRegExp).join("|"
 
 // ===== 1) 真实数据接进来了 =====
 const boot = await evalJS(`var m = OFData.meta, days = OFData.availableDates();
-  return { hasAdapter: typeof OFData === "object", doi: m.product.doi, license: m.product.license,
+  var p = typeof OFMap === "object" ? OFMap.xyPlane(124.5, 30.2) : null;
+  var g = typeof OFMap === "object" ? OFMap.geoOfPlane(500, 320) : null;
+  return { hasAdapter: typeof OFData === "object", hasMap: typeof OFMap === "object",
+    mapAnchorPx: p, mapAnchorGeo: g, doi: m.product.doi, license: m.product.license,
     days: days, status: m.status, grid: OFData.grid(days[0]),
     input: { value: document.getElementById("timeDate").value, min: document.getElementById("timeDate").min, max: document.getElementById("timeDate").max },
     server: OFData.serverManifestState(),
@@ -157,6 +160,10 @@ check("日期控件范围 = 已导出观测日期（不写死日期）",
 check("未配置服务器 manifest 时默认本地静态数据，不影响离线原型",
   boot.server.status === "not_configured" && /本地静态数据/.test(boot.dataStamp),
   JSON.stringify(boot.server) + " · " + boot.dataStamp);
+check("地图投影模块 OFMap 已加载，且平面投影与当前锚点一致",
+  boot.hasMap === true && boot.mapAnchorPx && boot.mapAnchorPx[0] === 500 && boot.mapAnchorPx[1] === 320 &&
+  boot.mapAnchorGeo && Math.abs(boot.mapAnchorGeo[0] - 124.5) < 1e-9 && Math.abs(boot.mapAnchorGeo[1] - 30.2) < 1e-9,
+  JSON.stringify({ px: boot.mapAnchorPx, geo: boot.mapAnchorGeo }));
 check("地图用的是真实底图（海岸线 / 冷暖侧 / 锋面带 / 缺测掩码都画出来了）",
   boot.paths.coast === 1 && boot.paths.cold === 1 && boot.paths.warm === 1 && boot.paths.band === 1 && boot.paths.nodata === 1,
   JSON.stringify(boot.paths));

@@ -18,13 +18,14 @@
 "use strict";
 
 // ==================== 常量 ====================
-const KM_PER_DEG = 111.195;
+const MAP = window.OFMap;
+const KM_PER_DEG = MAP ? MAP.KM_PER_DEG : 111.195;
 
 // 地图投影：东西向与南北向 1 km 一样长，半径圈才是正圆
-const ANCHOR = { lon: 124.5, lat: 30.2 };
-const PX_LON = 180;
+const ANCHOR = MAP ? MAP.ANCHOR : { lon: 124.5, lat: 30.2 };
+const PX_LON = MAP ? MAP.PX_LON : 180;
 const KM2PX = PX_LON / (KM_PER_DEG * Math.cos((ANCHOR.lat * Math.PI) / 180));
-const PX_LAT = KM2PX * KM_PER_DEG;
+const PX_LAT = MAP ? MAP.PX_LAT : KM2PX * KM_PER_DEG;
 
 // 时间范围直接来自数据（有几天就只让选几天）
 const AVAILABLE_DATES = OFData.availableDates();
@@ -72,8 +73,8 @@ function addDays(iso, n) {
 }
 function mdText(iso) { const p = iso.split("-"); return Number(p[1]) + " 月 " + Number(p[2]) + " 日"; }
 function kmPerLon(lat) { return KM_PER_DEG * Math.cos((lat * Math.PI) / 180); }
-function xy(lon, lat) { return [500 + (lon - ANCHOR.lon) * PX_LON, 320 - (lat - ANCHOR.lat) * PX_LAT]; }
-function geoOfXY(x, y) { return [ANCHOR.lon + (x - 500) / PX_LON, ANCHOR.lat - (y - 320) / PX_LAT]; }
+function xy(lon, lat) { return MAP ? MAP.xyPlane(lon, lat) : [500 + (lon - ANCHOR.lon) * PX_LON, 320 - (lat - ANCHOR.lat) * PX_LAT]; }
+function geoOfXY(x, y) { return MAP ? MAP.geoOfPlane(x, y) : [ANCHOR.lon + (x - 500) / PX_LON, ANCHOR.lat - (y - 320) / PX_LAT]; }
 function fmtCoord(lon, lat) { return lon.toFixed(2) + "°E, " + lat.toFixed(2) + "°N"; }
 function parseCoord(raw) {
   const text = String(raw || "").replace(/[，；;]/g, ",");
