@@ -16,7 +16,7 @@ Prepare the sanitized deployment path for the new Alibaba Cloud server.
 ## Acceptance
 
 - A new developer can provision the server from the runbook using placeholders.
-- `/api/health`, viewport API, and at least one Agent tool endpoint are included in smoke checks.
+- `/api/health`, viewport API, and response-analysis/basic-query smoke checks are included.
 - Data sync and cache directories are documented.
 
 ## Checks

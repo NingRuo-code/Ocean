@@ -2,7 +2,7 @@
 
 ## Goal
 
-Keep server/Agent backend work reviewable as the project moves back to one shared repo.
+Keep server/basic-backend work reviewable as the project moves back to one shared repo.
 
 ## Scope
 

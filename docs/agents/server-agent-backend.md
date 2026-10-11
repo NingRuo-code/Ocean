@@ -1,6 +1,6 @@
-# Server / Agent Backend
+# Server / Basic Backend
 
-Use this when work touches server deployment, viewport APIs, data/cache pipelines, response-analysis experiments, or Agent tool contracts.
+Use this when work touches server deployment, viewport APIs, data/cache pipelines, response-analysis experiments, or later Agent tool contracts.
 
 ## Current Direction
 
@@ -11,14 +11,16 @@ Use this when work touches server deployment, viewport APIs, data/cache pipeline
 - Deployment path: public IP + HTTP first, then domain + HTTPS after API/data behavior is stable.
 - Storage path: keep code under `/opt/ocean`; mount or reserve data storage for `/srv/ocean/data`.
 - Credentials: begin without server-side GFW/AIS credentials; later store them in a server-only env file such as `/etc/ocean/gfw.env`. Credentials, server IPs, key paths, and incident notes stay out of Git.
+- Agent/AI priority: deferred. Do not implement AI-specific tooling before viewport API, frontend server mode, data/cache behavior, response-analysis experiments, and deployment basics are working.
 
 ## Execution Order
 
 1. Update docs and tickets before implementation.
 2. Implement viewport API: `date + bbox + step`, returning light render/query payloads with source/status/caveats.
 3. Add frontend server mode: auto-detect `/api/health`, show offline/server state, allow manual fallback.
-4. Add Agent tool contracts: Python functions first, HTTP boundary where useful, schema/docs for future LLM/MCP callers.
-5. Add response-analysis experiment package: controls, bootstrap, permutation test, reproducible outputs.
+4. Add response-analysis experiment package: controls, bootstrap, permutation test, reproducible outputs.
+5. Prepare deployment runbook and server smoke path.
+6. Revisit Agent tool contracts only after the basic backend is demonstrably stable.
 
 ## Data Scope
 
@@ -31,7 +33,7 @@ First deployment data scope is:
 
 ## API Boundary
 
-Viewport responses should be designed for rendering and Agent querying, not as a clone of the static `frontend/prototype/data/day/*.js` shape.
+Viewport responses should be designed for rendering and deterministic backend querying, not as a clone of the static `frontend/prototype/data/day/*.js` shape.
 
 Required response behavior:
 
@@ -40,22 +42,24 @@ Required response behavior:
 - Return partial/empty status when a requested window exceeds available data. Do not fake global coverage.
 - Cache first as `date + bbox + step` JSON; tile/pyramid caching is a later optimization.
 
-## Agent Boundary
+## Deferred Agent Boundary
 
-Agent tools are deterministic wrappers over project computations:
+Agent tools are a later layer over stable project computations. Do not introduce LLM calls, MCP contracts, or AI-specific orchestration in the first backend wave.
+
+When this layer is eventually revisited, tools should be deterministic wrappers over already-tested computations:
 
 - `query_current_state`
 - `compare_history`
 - `analyze_front_response`
 - `explain_evidence`
 
-AI may organize tasks and evidence. Deterministic code computes numerical values. Tool outputs must expose caveats and unavailable states.
+AI may organize tasks and evidence only after the basic functionality is stable. Deterministic code computes numerical values. Tool outputs must expose caveats and unavailable states.
 
 ## Done Criteria
 
-A server/Agent backend change is not done until:
+A server/basic-backend change is not done until:
 
 - Offline mode still works.
-- Backend tests or smoke checks cover the new API/tool path.
+- Backend tests or smoke checks cover the new API or experiment path.
 - Data and credential boundaries are documented.
 - The corresponding ticket records checks and residual risks.

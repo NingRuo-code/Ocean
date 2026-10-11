@@ -2,7 +2,7 @@
 
 ## Goal
 
-Implement a backend viewport API for server mode and future Agent queries.
+Implement a backend viewport API for server mode, frontend rendering, and deterministic research queries.
 
 ## Scope
 

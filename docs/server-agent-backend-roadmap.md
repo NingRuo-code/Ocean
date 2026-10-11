@@ -1,7 +1,7 @@
-# Ocean Server / Agent Backend Roadmap
+# Ocean Server / Basic Backend Roadmap
 
 > Status: planned on `codex/server-agent-backend`.
-> Purpose: move Ocean from a strong offline prototype to a server-assisted, research-verifiable, Agent-ready system without losing offline fallback.
+> Purpose: move Ocean from a strong offline prototype to a server-assisted and research-verifiable system without losing offline fallback. Agent/AI work is deferred until the basic server, viewport, frontend server mode, data/cache, and response-analysis loop are stable.
 
 ## 0. Decisions So Far
 
@@ -11,7 +11,7 @@ The current project direction is:
 - Research: front-event representation, historical comparison, apparent fishing-effort response, and human-AI evidence analysis.
 - Server: frontend + FastAPI backend API, with server-side data production/cache.
 - Viewport: `date + bbox + step` API returning light render/query payloads.
-- Agent: Python functions as the core, HTTP API as the service boundary, tool schema as the future Agent contract.
+- AI/Agent: not part of the first implementation wave. Later Agent tools may wrap stable deterministic APIs, but they should not gate basic backend work.
 - Response analysis: non-front controls plus bootstrap and permutation tests, first on the sample region/window.
 - Frontend mode: auto-detect `/api/health`, show offline/server state, and allow manual fallback.
 - Collaboration: one main repo, topic branches and ticket-driven PRs.
@@ -71,7 +71,7 @@ Security and credential boundary:
 Deliverables:
 
 - This roadmap.
-- Server/Agent backend agent instructions.
+- Server/basic-backend agent instructions.
 - Ticket set under `docs/tickets/server-agent-backend/`.
 - Updated server plan pointing to the new direction.
 
@@ -85,7 +85,7 @@ Acceptance:
 Deliverables:
 
 - `GET /api/viewport?date=...&bbox=...&step=...`.
-- Light payload for map rendering and Agent querying.
+- Light payload for map rendering and deterministic backend querying.
 - JSON cache by `date + bbox + step`.
 - Tests for in-range, partial, empty, invalid bbox, and cache hit.
 
@@ -109,43 +109,32 @@ Acceptance:
 - Server failure leaves the page usable in offline mode.
 - Large/globe windows request viewport payloads only when server mode is active.
 
-### M4. Agent Tool Contract
+### M4. Response Analysis API And Experiment Package
 
 Deliverables:
 
-- Python functions for current-state query, historical comparison, front-response analysis, and evidence explanation.
-- Tool schema docs with inputs, outputs, caveats, and unavailable states.
-- At least three example calls and snapshots.
-
-Acceptance:
-
-- Numerical values come from deterministic code.
-- Tool outputs are suitable for later LLM/MCP callers.
-
-### M5. Response Analysis Experiment Package
-
-Deliverables:
-
+- Backend or script entrypoint for response-analysis runs over the sample region/window.
 - 10/20/30 km buffers.
 - Front vs non-front controls.
 - Before/after 7-day windows.
 - Lift/difference/sample/coverage metrics.
 - Bootstrap confidence interval and permutation-test p value.
 - Outputs under `outputs/experiments/front-response-*`.
-- Markdown/Word report source.
+- Markdown/Word-ready report source.
 
 Acceptance:
 
 - Results are reproducible from committed code and permitted data.
 - Claims stay at apparent fishing-effort response, not catch/yield.
+- The output can be reviewed without an AI layer.
 
-### M6. Server Deployment
+### M5. Server Deployment
 
 Deliverables:
 
 - New Alibaba Cloud Ubuntu server prepared with `/opt/ocean` and `/srv/ocean/data`.
 - Nginx + systemd FastAPI service.
-- `/api/health`, viewport API, and at least one Agent tool reachable through Nginx.
+- `/api/health`, viewport API, and response-analysis smoke path reachable through Nginx.
 - Updated sanitized runbook.
 
 Acceptance:
@@ -154,6 +143,18 @@ Acceptance:
 - Domain + HTTPS path is documented for later.
 - Data and credentials remain outside Git.
 
+### M6. Deferred Agent/AI Extension
+
+Deliverables:
+
+- After M2-M5 are stable, define deterministic tool wrappers over existing APIs and experiments.
+- Document tool schemas only when the underlying behavior is already implemented and tested.
+
+Acceptance:
+
+- Agent/AI work does not change numerical computation semantics.
+- Agent/AI work remains optional for product demo and research validation.
+
 ## 4. Work Order
 
 1. Finish M1.
@@ -161,6 +162,6 @@ Acceptance:
 3. Implement M3.
 4. Implement M4.
 5. Implement M5.
-6. Prepare M6 when server access exists.
+6. Revisit M6 only after the basic backend and deployment are working.
 
 This order is deliberate: deployment waits until the API/data contract is useful enough to deploy.

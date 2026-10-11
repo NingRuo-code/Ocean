@@ -2,7 +2,7 @@
 
 ## Goal
 
-Lock the first server/Agent backend direction before implementation starts.
+Lock the first server/basic-backend direction before implementation starts.
 
 ## Scope
 

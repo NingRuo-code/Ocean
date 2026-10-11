@@ -6,7 +6,7 @@
 
 ## 0. 2026-10-11 规划更新
 
-服务器路线已从早期“静态 artifact 发布”升级为“服务器 API + 数据生产/缓存 + Agent 工具协议”的阶段目标。后续实现以 [`docs/server-agent-backend-roadmap.md`](server-agent-backend-roadmap.md) 和 `docs/tickets/server-agent-backend/` 为准；本文保留早期 S0/S1/S2/S3 边界，避免丢失 raw/intermediate/public artifact 的安全边界。
+服务器路线已从早期“静态 artifact 发布”升级为“服务器 API + 数据生产/缓存 + 研究验证闭环”的阶段目标。后续实现以 [`docs/server-agent-backend-roadmap.md`](server-agent-backend-roadmap.md) 和 `docs/tickets/server-agent-backend/` 为准；本文保留早期 S0/S1/S2/S3 边界，避免丢失 raw/intermediate/public artifact 的安全边界。
 
 当前确认：
 
@@ -16,7 +16,7 @@
 - 数据路径：`/opt/ocean` 放应用，`/srv/ocean/data` 放 raw/processed/cache/outputs，`/etc/ocean` 放服务器本地 env。
 - 数据范围：第一阶段只放演示窗口和往年同期样本；`frontal_intensity` 约 100 GB，暂不进入第一阶段。
 - 数据生产：本地生产为主，服务器补小缺口与生成缓存。
-- Agent 边界：Python 函数为核心，HTTP API 为服务边界，schema 文档作为未来 LLM/MCP 调用合同。
+- Agent/AI 边界：在基本服务器、viewport、前端服务器模式、数据/缓存和响应分析实验稳定前不实现 AI 专属工具；后续只把 Agent 作为稳定确定性能力之上的编排层。
 
 ## 1. 服务器在项目中的角色
 
