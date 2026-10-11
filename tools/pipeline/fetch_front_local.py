@@ -98,7 +98,7 @@ def main() -> int:
     parser.add_argument("--min-free-gb", type=float, default=8.0, help="本地磁盘低于此值就停")
     parser.add_argument("--limit-days", type=int, default=0, help="只抓前 N 天（冒烟测试用，0=不限）")
     parser.add_argument("--no-sync", action="store_true", help="只抓不传服务器")
-    parser.add_argument("--server", default="root@116.62.54.140", help="同步目标（与 sync-front-to-server.ps1 一致）")
+    parser.add_argument("--server", default="root@<server-ip>", help="同步目标（与 sync-front-to-server.ps1 一致）")
     parser.add_argument("--key", default=str(Path.home() / ".ssh" / "id_ed25519_ocean"))
     parser.add_argument("--server-min-free-gb", type=float, default=5.0,
                         help="服务器 /srv 可用空间低于此值就停止上传（别把服务盘塞满）")

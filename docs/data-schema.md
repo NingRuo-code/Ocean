@@ -1,8 +1,8 @@
 # 原型数据契约（v1）
 
-> 适用对象：`frontend/prototype/prototype-fishing.html` 这个纯前端原型。
-> 生成方式：**两个脚本 + 零手工编辑**，页面只通过 `frontend/prototype/prototype-data.js`（`window.OFData`）读数据。
-> 相关文档：主项目契约见 `Ocean/docs/data-contract.md`（同一批数据、后端接口口径）。
+> 适用对象：`prototype-fishing.html` 这个纯前端原型。
+> 生成方式：**两个脚本 + 零手工编辑**，页面只通过 `prototype-data.js`（`window.OFData`）读数据。
+> 相关文档：主项目（Ocean 仓）契约见该仓 `docs/data-contract.md`（同一批数据、后端接口口径）。
 
 ---
 
@@ -28,23 +28,23 @@ AIS/GFW 响应入口已预留；真实数据接入前只允许 placeholder 或 s
 
 ```powershell
 # ① 拉数据 + 单日图层（真实锋面 → 对象中心线 / 冷暖侧 RLE；真实海温 → 分档游程）
-cd Ocean\backend
-.\.venv\Scripts\python.exe scripts\fetch_zenodo_front_samples.py 2024-08-05 2024-08-06   # 锋面（Zenodo Range 抽取）
-.\.venv\Scripts\python.exe scripts\fetch_sst_samples.py 2024-08-05 2024-08-06           # 海温（NOAA ERDDAP 子集，免账号）
-.\.venv\Scripts\python.exe scripts\export_prototype_data.py                             # 扫 raw 全量导出（含海温）
+
+backend\.venv\Scripts\python.exe backend\scripts\fetch_zenodo_front_samples.py 2024-08-05 2024-08-06   # 锋面（Zenodo Range 抽取）
+backend\.venv\Scripts\python.exe backend\scripts\fetch_sst_samples.py 2024-08-05 2024-08-06           # 海温（NOAA ERDDAP 子集，免账号）
+backend\.venv\Scripts\python.exe backend\scripts\export_prototype_data.py                             # 扫 raw 全量导出（含海温）
 
 # ③ 往年同期统计（显式给取样日期；不给就扫 raw 全量，会把整月也算进“同期”）
-.\.venv\Scripts\python.exe scripts\export_prototype_data.py --mode clim --clim-dates 2015-08-05 2015-08-06 ...
+backend\.venv\Scripts\python.exe backend\scripts\export_prototype_data.py --mode clim --clim-dates 2015-08-05 2015-08-06 ...
 
 # ④ 底图（Natural Earth 公有领域 → 裁剪 + 抽稀）
-cd ..\..\ocean-front-prototype
+
 node tools\build-basemap.mjs
 ```
 
-- 首次需要环境：`python -m venv .venv` + `.\.venv\Scripts\python.exe -m pip install -e .`（依赖见 `Ocean/backend/pyproject.toml`）
+- 首次需要环境：`python -m venv backend\.venv` + `backend\.venv\Scripts\python.exe -m pip install -e backend`（依赖见 `backend\pyproject.toml`）
 - 缺少的历史日期按需补下载（支持 HTTP Range，单日约 1.3 MB）：
-  `.\.venv\Scripts\python.exe scripts\fetch_zenodo_front_samples.py 2019-08-05 2019-08-06`
-- 出参落在本仓 `frontend/prototype/data/`，可离线双击 `frontend/prototype/prototype-fishing.html` 直接跑（`<script>` 引入，不走 fetch，无 CORS 问题）
+  `backend\.venv\Scripts\python.exe backend\scripts\fetch_zenodo_front_samples.py 2019-08-05 2019-08-06`
+- 出参全部落在本仓 `frontend/prototype/data/`，可离线双击 `frontend\prototype\prototype-fishing.html` 直接跑（`<script>` 引入，不走 fetch，无 CORS 问题）
 
 **参数**：`--bbox 120,27,128,34`（东海窗口）、`--anchor 124.5,30.2`（往年同期锚点＝顶栏定位点）、`--ranges 10,20,30`（找鱼范围）、`--clim-radii 10,20,30,50,100`（同期统计半径，含参照用大半径）、`--tolerance-km 6`（中心线抽稀）、`--min-length-km 20`（对象最短长度）、`--sst-raw-dir`（海温原始目录）、`--no-sst`（只出锋面）。
 
@@ -53,19 +53,27 @@ node tools\build-basemap.mjs
 ## 3. 文件结构
 
 ```
-frontend/prototype/data/
+data/
 ├── meta.js                  window.OF_DATA_META    产品/许可/可用日期/缺什么
 ├── days.js                  window.OF_DATA_INDEX   清单：有哪些天（页面按它注入 <script>）
 ├── day/<日期>.js             window.OF_DATA_DAYS    单日真实锋面图层（每天一个文件）
 ├── sst/<日期>.js             window.OF_DATA_SST     单日真实海温（0.5 °C 分档游程）
 ├── clim/same-period.js      window.OF_DATA_CLIM    往年同期统计（唯一口径）
 ├── front_response/events.js window.OF_FRONT_RESPONSE 锋面事件与 AIS 表观捕捞响应表（预留入口）
-├── base/basemap.js          window.OF_DATA_BASE    陆地/海岸线/等深线
+├── base/basemap.js          window.OF_DATA_BASE    陆地/海岸线/等深线（1:10m 东海细节档）
+├── base/asia.js             window.OF_DATA_ASIA    陆地/海岸线（1:50m 西太平洋区域档）
+├── base/world.js            window.OF_DATA_WORLD   陆地/海岸线（1:110m 全球，球面档用）
 └── README.md
 ```
 
+> **底图三级 LOD**（都由 `tools/build-basemap.mjs` 生成，公有领域、离线提交）：
+> 视野跨度 ≤ 10° 只用 `basemap.js`（1:10m，含 200 m / 1000 m 等深线）；
+> 10°–40° 叠一层 `asia.js`（1:50m，裁到 95°E–155°E / 10°S–50°N）；
+> > 40° 进入球面档，只画 `world.js`（1:110m，全球不裁剪，跨 ±180° 的环已切开）。
+> 三级都只画在页面上，不参与任何数值计算。
+
 > **加日期不用改 HTML**：`prototype-fishing.html` 只引入 `data/days.js`，
-> 页面按清单用 `document.write` 同步注入 `data/day/*.js` 与 `data/sst/*.js`
+> 页面按清单用 `document.write` 同步注入 `frontend/prototype/data/day/*.js` 与 `frontend/prototype/data/sst/*.js`
 > （file:// 下同样可用，不依赖 fetch）。数据变了只需要重跑导出脚本。
 
 > **海温来自另一个产品**：`sst/` 是 NOAA CoastWatch ERDDAP 的
@@ -140,9 +148,58 @@ probability  = 有锋面的天数 / 有效天数
 - 海温网格的起点是 `.025` 结尾（如 120.025 / 27.025），与锋面网格错开半格，绘制时各按自己的真实坐标
 - `OFData.sstCell(iso, lon, lat)` 直接在这份游程里查那一格的真实档位温度（不插值）
 
-### 3.5 `base/basemap.js`
+### 3.4.1 服务器按视野出数（v1.10）：`/api/frontend/day/{date}?bbox=&step=`
 
-`layers.{land|coastline|isobath200|isobath1000}.chains`（经纬度折线数组，已裁剪到 `bbox` 并抽稀，陆地多边形丢弃内环/湖面）。
+离线文件是「导出好的那一块」，服务器模式则**按请求窗口现算**（同一套 `export_prototype_data.py` 函数，
+所以结构与离线文件逐字段一致）。原始锋面 NetCDF 本身是全球 0.05°（7200×3600），因此任意海域都有真实数据。
+
+| 参数 | 规则 |
+|---|---|
+| `bbox` | `minLon,minLat,maxLon,maxLat`（-180~180 / -90~90，要求 min<max）；省略 = 默认作业窗口 `105,3,150,45` |
+| `step` | 降采样步长（格），只能取 `1/2/4/10/20/40` → 分辨率 0.05°~2°；省略 = 按窗口宽度自动（`≤25°`→1、`≤60°`→4、`≤120°`→20、更大→40）；**默认作业窗口永远 1（0.05° 明细）** |
+| 响应头 | `X-Payload-Cache: hit/miss`（便于核对缓存） |
+| 错误 | `bbox`/`step` 不合法 → 422；当日锋面原始文件缺失 → 404（前端回退本地数据，不给空图） |
+
+响应 = 离线结构 + 两个新字段：
+
+```js
+{ date, front: {...与 data/day/<date>.js 同构...}, sst: {...或 null...},
+  window: { bbox: [minLon,minLat,maxLon,maxLat], step, resolution_deg, mode: "detail"|"overview", default: bool },
+  cached: bool }
+```
+
+- **概览窗口**（`step > 1`）额外带 `front.overview = {step, resolution_deg, source_resolution_deg, method, note}`，
+  并且 `objects`/`front_line` **恒为空**——降采样是显示层聚合（口径：块内锋面线 > 冷暖侧 > 整块缺测 > 无锋面），
+  1° 的聚合格不是锋面对象；统计与对象清单请始终用 0.05° 窗口（前端就是这么做的）。
+- **海温**只返回「请求窗口 ∩ 该文件实际范围」的交集；没有交集时 `sst = null`、`front.has_sst = false`
+  （海温是按需下载的子集，当前只有东海/西太平洋那块——不假装全球都有）。
+- **两级海温（v1.11）**：另有可选字段 `sst_coarse`（结构与 `sst` 完全一致），来源是
+  `raw/sst_global/<分辨率>/`（全球，**目录名 = `0.05°×stride` 去掉小数点 + `deg`**：`1deg`=1°、
+  `0p2deg`=0.2°(=stride 4)、`0p25deg`=0.25°(=stride 5)；后端取最细的可用档），
+  前端把它**垫在** `sst`（东海 0.05°）下面：于是"作业海域很细、别处也有海温"，而不是二选一。
+  **粗格也做显示层 LOD**：窗口像元数超过 20 万格就隔格取样（起点与步长整齐，前端按返回的 grid 画），
+  否则球面档的整球请求会产出几十万条游程。抓取：
+  `tools/pipeline/sst_global_pipeline.py --stride 4 --years 2024 2023`（后台常驻、可续跑；也可用
+  `tools/pipeline/sst_plan.sh` 按阶段自动排队并探测上游是否可用）。
+- **降采样选档为什么不用"像元数最小可行档"**：游程数与**锋面总长度**相关。全球 0.2° 只有 162 万像元，
+  但会产出 7.6 万条游程（≈4 MB）；1° 是 1.3 万条、2° 只有 3.6 千条 —— 按像元数会选错档，所以按窗口宽度定档。
+- **缓存**：按 `(date, bbox, step)` 落盘到 `data/cache/frontend_payload/v1_<date>_<bbox>_<step>.json`，
+  超过 150 个按最后修改时间淘汰最旧；改出数口径时请把 `CACHE_VERSION` +1。实测：默认窗口 1.0 s / 360 KB、
+  全球 1° 首次 2.5 s、命中 0.025 s。
+
+前端侧对应 `OFData.patches(iso)`（一天多片，每片自带 `grid`/`resolutionDeg`/`mode`，按「粗 → 细」渲染）与
+`OFData.cellInfo(iso, lon, lat).resolutionDeg`（这一点来自哪一片、什么分辨率）。
+
+### 3.5 `base/basemap.js` / `base/asia.js` / `base/world.js`
+
+三档同构：`layers.{land|coastline|…}.chains`（经纬度折线数组，已抽稀并定点化）。
+`basemap.js` = Natural Earth **1:10m**，裁剪到 `bbox` `[117.5, 25, 131.5, 35]`，含 `isobath200` / `isobath1000`，陆地多边形丢弃内环/湖面；
+`asia.js` = **1:50m**，裁剪到 `[95, -10, 155, 50]`，只有陆地与海岸线；
+`world.js` = **1:110m**，`bbox` 记为 `[-180, -90, 180, 90]` 且**不做矩形裁剪**（裁剪会把跨 ±180° 的环拆坏），
+生成时按反经线切开（`splitAtAntimeridian`），保证球面上不会连出横穿全球的假线；
+坐标精度：`world.js` 2 位小数（0.01°≈1.1 km，球面档够用），其余 3 位。
+
+三个文件都由 `node tools/build-basemap.mjs [--set all|world,asia,donghai]` 生成，`license` 均为 Natural Earth 公有领域。
 
 ### 3.6 `front_response/events.js`
 
@@ -192,7 +249,7 @@ synthetic fixture / real 响应表必须写清：
 node tools\build-front-response.mjs
 ```
 
-默认输入是 `data/front_response/fixture-effort-sample.json`，这是小型聚合夹具，不是 raw AIS/GFW 或 0.01° 细粒度中间表。真实样例到位后可用同一脚本传入 `--input <本地授权样例>`，但提交真实生成物前必须先复核 `docs/data-governance-gfw-ais.md`。
+默认输入是 `frontend/prototype/data/front_response/fixture-effort-sample.json`，这是小型聚合夹具，不是 raw AIS/GFW 或 0.01° 细粒度中间表。真实样例到位后可用同一脚本传入 `--input <本地授权样例>`，但提交真实生成物前必须先复核 `docs/data-governance-gfw-ais.md`。
 
 真实或授权样例的本地输入格式、目录边界和提交 go / no-go 以 [`docs/gfw-ais-real-sample-intake.md`](gfw-ais-real-sample-intake.md) 为准。默认本地目录是 `local_data/gfw_ais/`，其中 raw、download、intermediate 和本地授权聚合输入都只用于本机处理，不直接进入 Git。
 

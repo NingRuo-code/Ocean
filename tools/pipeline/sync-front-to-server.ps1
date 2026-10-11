@@ -1,4 +1,4 @@
-﻿# 把本地已下载的锋面 .nc 增量同步到服务器，并重建后端数据索引。
+# 把本地已下载的锋面 .nc 增量同步到服务器，并重建后端数据索引。
 #
 # 为什么需要它：服务器直连 Zenodo 读 front_location.zip（18.3 GB）的中央目录会反复
 # IncompleteRead，remotezip 开不了归档，所以锋面只能在本地取、再传上去（见 deploy/RUNBOOK.md）。
@@ -9,7 +9,7 @@
 #   powershell -File tools\pipeline\sync-front-to-server.ps1
 #   powershell -File tools\pipeline\sync-front-to-server.ps1 -Years 2023,2024 -BatchSize 60
 param(
-    [string]$Server = 'root@116.62.54.140',
+    [string]$Server = 'root@<server-ip>',
     [string]$RemoteRoot = '/srv/ocean/data/raw/front',
     [string[]]$Years = @(),
     [string]$KeyPath = (Join-Path $env:USERPROFILE '.ssh\id_ed25519_ocean'),

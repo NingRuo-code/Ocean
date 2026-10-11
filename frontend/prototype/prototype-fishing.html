@@ -100,6 +100,15 @@
       radial-gradient(ellipse at 70% 45%, rgba(23,88,140,.35), transparent 60%),
       linear-gradient(160deg, #0a1828, #0d2138 45%, #0a1828);
     border-right: 1px solid var(--line);
+    touch-action: none;              /* 单指拖动 = 平移地图，不触发页面手势 */
+  }
+  .map:focus-visible { outline: 1px solid rgba(77,212,198,.5); outline-offset: -2px; }
+  /* 球面视图的口径提示（球上只画轮廓与覆盖框，栅格数据要放大才显示） */
+  .map-view-hint {
+    position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
+    max-width: min(640px, calc(100% - 240px)); z-index: 6; pointer-events: none;
+    background: rgba(10,22,36,.86); border: 1px solid var(--line); border-radius: 9px;
+    padding: 5px 10px; font-size: 11.5px; line-height: 1.5; color: var(--text-dim); text-align: center;
   }
   .map.pick-origin { cursor: crosshair; }
   .map svg { width: 100%; height: 100%; display: block; }
@@ -109,26 +118,24 @@
     background: rgba(12,26,41,.92); color: var(--text); font-size: 17px; cursor: pointer;
   }
   .ctrl:hover { border-color: var(--accent); color: var(--accent); }
-  .layer-toggle { position: absolute; left: 14px; top: 14px; z-index: 8; }
   .map-legend {
     position: absolute; left: 14px; bottom: 14px; width: 218px; z-index: 7;
     background: rgba(12,26,41,.92); border: 1px solid var(--line);
     border-radius: 9px; padding: 8px 10px; font-size: 12px; color: var(--text-dim);
   }
   .map-legend h4 { color: var(--text); margin-bottom: 6px; font-size: 12px; }
+  /* 图层抽屉：默认收起在左侧，鼠标靠近左边缘自动呼出；保留 .map-legend 类以便复用行样式 */
+  .layer-toggle { position: absolute; left: 14px; top: 14px; z-index: 8; }
   .layer-drawer {
     left: 14px; right: auto; top: 62px; bottom: auto; width: 236px;
-    transform: translateX(-112%); opacity: 0; pointer-events: none;
-    transition: transform .18s ease, opacity .18s ease;
+    max-height: calc(100% - 96px); overflow: auto;
+    background: rgba(12,26,41,.95);
+    transform: translateX(calc(-100% - 22px)); opacity: 0; pointer-events: none;
+    transition: transform .2s ease, opacity .2s ease;
   }
   .layer-drawer.open { transform: none; opacity: 1; pointer-events: auto; }
   .layer-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
   .layer-head h4 { margin: 0; }
-  .layer-head .link {
-    border: 0; background: transparent; color: var(--text-dim); cursor: pointer;
-    font-size: 13px; line-height: 1; padding: 3px 5px; border-radius: 5px;
-  }
-  .layer-head .link:hover { color: var(--accent); background: rgba(77,212,198,.08); }
   .legend-row { display: flex; align-items: center; gap: 7px; margin: 3px 0; cursor: pointer; }
   .swatch { width: 15px; height: 15px; border-radius: 4px; flex: none; border: 1px solid transparent; }
   .swatch.sst { background: linear-gradient(90deg,#2f7fc1,#37b3b8,#7ecb6a,#e8d75a,#f0a341,#e2694a); }
@@ -137,8 +144,9 @@
   .swatch.cold { background: rgba(40,90,150,.85); }
   .swatch.warm { background: rgba(190,90,45,.85); }
   .swatch.nodata { background: repeating-linear-gradient(45deg, rgba(206,222,238,.65) 0 3px, rgba(120,142,166,.25) 3px 6px); border-color: rgba(200,215,230,.5); }
-  .swatch.ground { background: radial-gradient(circle at 45% 45%, rgba(255,112,86,.95) 0 35%, rgba(255,190,92,.72) 36% 70%, transparent 71%); border-color: rgba(255,218,150,.45); }
   .swatch.fishing { background: rgba(255,180,84,.75); }
+  /* 渔场线索：暖色实心点，与 SST 的连续色带刻意区分（点阵 vs 色带） */
+  .swatch.ground { background: radial-gradient(circle at 50% 50%, #ffdf9a 0 32%, rgba(255,126,58,.85) 34% 100%); }
   /* 比例尺：长度按当前缩放实时换算，标"图上 50 km" */
   .map-scale {
     position: absolute; right: 14px; bottom: 16px; z-index: 7; height: 7px; width: 90px;
@@ -369,10 +377,6 @@
     .time-rail { width: 82px; }
     .timebar .rail-text { display: none; }
     .legend-note { display: none; }
-    .panes { padding-bottom: 10px; }
-    .card { padding: 10px; margin-top: 8px; }
-    .metric { gap: 6px; margin-top: 8px; }
-    .metric .m { padding: 8px; }
   }
 </style>
 </head>
@@ -423,8 +427,11 @@
         <button class="ctrl" title="放大地图" id="zoomIn">＋</button>
         <button class="ctrl" title="缩小地图" id="zoomOut">－</button>
         <button class="ctrl" title="回到定位点" id="recenter">◎</button>
+        <button class="ctrl" title="看整颗地球 / 回到数据窗口" id="globeReset">🌍</button>
       </div>
-      <button class="ctrl layer-toggle" id="layerToggle" title="图层开关" aria-controls="layerDrawer" aria-expanded="false">☰</button>
+      <div class="map-view-hint" id="mapViewHint" hidden></div>
+      <button class="ctrl layer-toggle" id="layerToggle" title="图层开关（鼠标移到左边缘也会自动展开）" aria-controls="layerDrawer" aria-expanded="false">☰</button>
+      <!-- 图层抽屉：默认收起在左侧，鼠标靠近左边缘自动呼出，✕ 或移开自动收起 -->
       <aside class="map-legend layer-drawer" id="layerDrawer" aria-hidden="true">
         <div class="layer-head">
           <h4>图层</h4>
@@ -432,15 +439,18 @@
         </div>
         <div class="legend-row" data-layer="sst"><span class="swatch sst"></span> 水温（NOAA GHRSST）</div>
         <div class="legend-row" data-layer="band"><span class="swatch band"></span> 锋面带（原始数据）</div>
-        <div class="legend-row" data-layer="front"><span class="swatch front"></span> 锋面区 · 编号</div>
+        <div class="legend-row" data-layer="front"><span class="swatch front"></span> 锋面区 · 编号 · 强度</div>
         <div class="legend-row sub" data-layer="coldwarm"><span class="swatch cold"></span><span class="swatch warm"></span> 冷侧 / 暖侧</div>
         <div class="legend-row" data-layer="nodata"><span class="swatch nodata"></span> 无观测（云 / 未覆盖）</div>
-        <div class="legend-row" data-layer="ground"><span class="swatch ground"></span> 渔场线索（GFW/AIS fishing hours）</div>
+        <div class="legend-row" data-layer="ground"><span class="swatch ground"></span> 渔场线索（表观捕捞活动）</div>
         <div class="legend-row" data-layer="fishing"><span class="swatch fishing"></span> 推荐水域（示例，默认关）</div>
         <div class="legend-band">
           <span class="kbd">陆地</span><span class="kbd">自然地球 1:10m（公有领域）</span>
         </div>
-        <div class="legend-note">悬停地图任意位置可查看该点数据；陆地＝浅色实色块，斜线＝无观测</div>
+        <div class="legend-note">
+          悬停地图任意位置可查看该点数据；陆地＝浅色实色块，斜线＝无观测。<br>
+          渔场线索＝GFW 表观捕捞活动（fishing hours），<b>不等于渔获量 / 产量</b>；无覆盖的日期不按 0 处理。
+        </div>
       </aside>
       <div class="map-scale-label" id="mapScaleText">50 km</div>
       <div class="map-scale" id="mapScale"></div>
@@ -489,14 +499,6 @@
             </details>
           </div>
           <div class="card">
-            <h3>历史 AIS 响应 <span class="tag plain" id="aisResponseTag">待接入</span></h3>
-            <div class="list" id="aisResponseList"></div>
-            <details class="why" id="aisResponseWhy">
-              <summary>响应明细与口径</summary>
-              <div class="why-body" id="aisResponseWhyBody"></div>
-            </details>
-          </div>
-          <div class="card">
             <h3>作业线索 <span class="tag plain" id="nowFrontTag">—</span></h3>
             <div class="list" id="nowLead"></div>
             <details class="why" id="nowFrontDetails">
@@ -504,6 +506,14 @@
               <div class="list" id="nowFronts"></div>
             </details>
             <div class="empty" id="nowEmpty" hidden></div>
+          </div>
+          <div class="card">
+            <h3>历史 AIS 响应 <span class="tag plain" id="aisResponseTag">待接入</span></h3>
+            <div class="list" id="aisResponseList"></div>
+            <details class="why" id="aisResponseWhy">
+              <summary>响应明细与口径</summary>
+              <div class="why-body" id="aisResponseWhyBody"></div>
+            </details>
           </div>
         </section>
 
@@ -597,9 +607,9 @@
 
 <!-- 真实数据（脚本生成，不要手改） -->
 <script src="data/meta.js"></script>
-<script src="data/base/basemap.js"></script>
-<script src="data/base/asia.js"></script>
 <script src="data/base/world.js"></script>
+<script src="data/base/asia.js"></script>
+<script src="data/base/basemap.js"></script>
 <script src="data/clim/same-period.js"></script>
 <script src="data/front_response/events.js"></script>
 <!-- 数据清单：日期/海温有哪些天由导出脚本写进 data/days.js，
@@ -617,94 +627,9 @@
     });
   })();
 </script>
-<script>
-  (function () {
-    var params = new URLSearchParams(window.location.search || "");
-    var manifestUrl = params.get("serverManifest");
-    var state = window.OF_SERVER_MANIFEST_STATE = {
-      mode: "local_static",
-      status: "not_configured",
-      url: null,
-      version: null,
-      generated_at: null,
-      latest_available_date: null,
-      error: null,
-      message: "未配置服务器 manifest，使用本地静态数据。"
-    };
-    window.OF_SERVER_MANIFEST = null;
-
-    function notify() {
-      window.dispatchEvent(new CustomEvent("of-server-manifest"));
-    }
-
-    function unsafeManifest(manifest) {
-      var badPath = /(?:^|\/)(?:raw|intermediate|authorized_aggregate)(?:\/|$)|mmsi|vessel|track/i;
-      var layers = manifest && manifest.layers ? manifest.layers : {};
-      return Object.keys(layers).some(function (name) {
-        var layer = layers[name] || {};
-        var candidates = [layer.artifact_pattern, layer.href, layer.path, layer.url];
-        (layer.artifacts || []).forEach(function (artifact) {
-          candidates.push(artifact && (artifact.artifact_pattern || artifact.href || artifact.path || artifact.url));
-        });
-        return candidates.some(function (value) {
-          return typeof value === "string" && badPath.test(value);
-        });
-      });
-    }
-
-    function validateManifest(manifest) {
-      if (!manifest || manifest.schema_version !== "ocean-artifact-manifest/v1") {
-        throw new Error("manifest schema_version 不匹配");
-      }
-      if (!manifest.version || !manifest.generated_at || !manifest.latest_available_date || !manifest.layers) {
-        throw new Error("manifest 缺少 version/generated_at/latest_available_date/layers");
-      }
-      if (unsafeManifest(manifest)) {
-        throw new Error("manifest 指向了非公开路径或轨迹类字段");
-      }
-      Object.keys(manifest.layers).forEach(function (name) {
-        var layer = manifest.layers[name] || {};
-        if (!layer.status || !layer.source_id || !layer.version || !layer.caveat) {
-          throw new Error("manifest layer " + name + " 缺少 status/source_id/version/caveat");
-        }
-        if (layer.status !== "not_available" && layer.status !== "pending_authorization" && !layer.available_dates) {
-          throw new Error("manifest layer " + name + " 缺少 available_dates");
-        }
-      });
-    }
-
-    if (!manifestUrl) return;
-    state.mode = "server_manifest";
-    state.status = "loading";
-    state.url = manifestUrl;
-    state.message = "正在读取服务器 manifest；本地静态数据继续可用。";
-
-    fetch(manifestUrl, { cache: "no-store" })
-      .then(function (res) {
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return res.json();
-      })
-      .then(function (manifest) {
-        validateManifest(manifest);
-        window.OF_SERVER_MANIFEST = manifest;
-        state.status = "available";
-        state.version = manifest.version || null;
-        state.generated_at = manifest.generated_at || null;
-        state.latest_available_date = manifest.latest_available_date || null;
-        state.message = "服务器 manifest 已读取；页面继续以本地静态 artifact 为基础。";
-        notify();
-      })
-      .catch(function (error) {
-        window.OF_SERVER_MANIFEST = null;
-        state.status = "unavailable";
-        state.error = String(error && error.message || error);
-        state.message = "服务器 manifest 不可用，已回退本地静态数据；这不代表数据为 0 或无响应。";
-        notify();
-      });
-  })();
-</script>
 <!-- 适配层：页面唯一的数据入口 -->
 <script src="prototype-data.js"></script>
+<!-- 地图投影与视野（平面档 ↔ 球面档、经纬网、视野夹取） -->
 <script src="prototype-map.js"></script>
 <script src="prototype-fishing.js"></script>
 </body>

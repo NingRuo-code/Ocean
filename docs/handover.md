@@ -16,12 +16,12 @@
 start frontend\prototype\prototype-fishing.html
 
 # ② 三项检查（Node 18+；e2e 需要本机装有 Edge）
-node tools/data-check.mjs     # 数据文件结构与自洽：897 项断言
-node tools/e2e-check.mjs      # 交互端到端（无头 Edge + CDP）：108 项断言
-node tools/layout-check.mjs   # 布局几何（1280 / 1680 两档）：25 项断言
+node tools/data-check.mjs     # 数据文件结构与自洽：914 项断言
+node tools/e2e-check.mjs      # 交互端到端（无头 Edge + CDP）：127 项断言
+node tools/layout-check.mjs   # 布局几何（1280 / 1680 两档）：26 项断言
 ```
 
-三项都必须 **0 失败**才算改对；`e2e-check` 每次会覆盖写截图到 `%TEMP%\shot-1-now.png` … `shot-10-empty.png`（Windows 上通常是 `C:\temp\`），可以直接拿来看页面长什么样。
+三项都必须 **0 失败**才算改对；`e2e-check` 每次会覆盖写截图到 `%TEMP%\shot-1-now.png` … `shot-13-memory.png`（Windows 上通常是 `C:\temp\`），可以直接拿来看页面长什么样（`shot-11-globe.png` 是球面档）。
 
 检查脚本本身就是回归网：数据一致性、地图是否真的画出来（含光栅化后数像素）、交互状态、文案关键口径、布局是否重叠或裁切。**改文案时如果断言挂了，先判断是"文案变了断言该更新"还是"信息丢了"**——口径类关键词（起评分、数据覆盖、front_present、-128、审图号等）是故意被断言的。
 
@@ -31,12 +31,13 @@ node tools/layout-check.mjs   # 布局几何（1280 / 1680 两档）：25 项断
 
 | 能力 | 实现说明 | 验证 |
 |---|---|---|
-| 真实底图 | Natural Earth 1:10m 陆地（浅色实色块 `#3a5068`）/ 海岸线（亮色 `rgba(196,229,252,.9)`）/ 200 m·1000 m 等深线；默认视野缩放 0.8，保证海岸线在画面内 | e2e：陆地填充 ≠ 海面底色；光栅化后陆地像素 > 2 万 |
+| 真实底图 | Natural Earth **三级 LOD**：1:10m 东海（浅色实色块 `#3a5068` / 亮色海岸线 / 200 m·1000 m 等深线，≤10° 跨度用）、1:50m 西太平洋 `asia.js`（10–40° 跨度叠上）、1:110m 全球 `world.js`（球面档、以及平面档拖出前两档覆盖时兜底）；默认视野缩放 0.8，保证海岸线在画面内 | e2e：陆地填充 ≠ 海面底色；光栅化后陆地像素 > 2 万；default 视野下 land 路径只有 1 条 |
 | 真实水温场 | NOAA GHRSST 0.05° 逐日，按 0.5 °C 分箱 → 逐行游程 → 同档相邻行合并绘制 | e2e：路径数 = 数据文件里的档位数 |
 | 真实锋面 | 锋面带（原始像元）、锋面区中心线 + 编号（F001…，标注真实长度）、冷侧 / 暖侧（−20 / 20 编码） | e2e：地图对象数 = 数据文件对象数 |
 | 无观测掩码 | 数据里 −128 用斜线纹理，**只画在海上**（陆地画在其上，避免把陆地也标成"缺测"） | e2e：缺测层存在且与陆地分层 |
 | 读数辅助 | 真实整数度经纬网（带 °E / °N 标注）、比例尺（随缩放实时换算）、10 / 20 / 30 km 作业范围环、出发地标记；出发地可输入坐标（支持方向标注与中文逗号），也可进入“点选”模式后点地图设置 | e2e：格网线 ≥ 4 条且带 °E/°N；比例尺随缩放变化；点地图后坐标输入与结论同步 |
-| 视图操作 | 滚轮缩放（以指针为中心）、拖拽平移、◎ 回到出发地（含复位默认缩放） | e2e：缩放后 viewBox 变化、复位后与初始一致 |
+| 视图操作 | 滚轮/触控板**连续缩放**（以指针为中心）、拖拽平移（指针事件：鼠标 / 触摸 / 笔，平面档可拖到任何海域）、双击放大、`+/-` 与方向键、◎ 回到出发地（含复位默认缩放）、🌍 整颗地球 ↔ 数据窗口；**停止 0.5 s 记住视野**（`localStorage["of.view.v1"]`），下次打开自动回到上次停留的区域 | e2e：缩放后 viewBox 变化、复位后与初始一致；缩到最小进入球面档（世界轮廓 + 数据片"已取"框 + 球面经纬网 + 口径提示、km 比例尺收起）；球面档屏幕↔经纬度往返误差 <0.5°；拖动改变中心经纬度；刷新后视野恢复 |
+| 按视野取数（v1.10） | 一天可有多片数据：作业海域**主片**（0.05°）+ 按当前视野取的概览/明细片（每片自带 `grid` 与 `resolutionDeg`，最多 4 片、主片永不淘汰）；**所有栅格都按当前投影重建**（球面档逐条正交投影 + ≤15° 切段 + 背面丢弃 + 贴球缘→早期"球面上只有东海、还有假三角形"就是这个坑）；球面档只画概览片，且概览的锋面带按行中线画细线（不把 2° 的块铺满）；视野跑出作业海域时地图顶部明说「图上数据按该窗口取，右侧结论仍基于作业海域」；启动/换日期后台预热全球 2° 概览，取数失败 20s 后可重试 | e2e：离线只有 1 片且被标主片、作业海域范围=主片网格、像元查询回报分辨率、降采样档位 1/4/20/40、离线不设视野窗口、**球面档拖动后球心仍在画面正中（±2px）**；线上探针：球面自动取全球 2° 概览、四层栅格包围盒都在球内且覆盖全盘、锋面带像素占盘 0.9%（细线，不是块）、四象限都有锋面像素（全球铺开）、东亚 60° 取 0.2°、黑潮 8° 取 0.05°（39 个对象）、北大西洋 8° 取 0.05°（61 个对象）、drawMs 10ms、0 运行期错误 |
 | 图层开关 | 6 个可切换图层（水温 / 锋面带 / 锋面区 / 冷暖侧 / 无观测 / 推荐水域）；推荐水域是示例层，默认关闭；图例写明陆地来源 | layout：图例 6 行、开关可点；e2e：示例渔场不在首屏默认展示 |
 | 任意点查询 | 鼠标悬停**只显示 4 项**：经纬度 / 该格真实水温（NOAA GHRSST，与锋面不同源）/ 最近锋面距离 / 是否锋面区（是则冷暖侧）；缺测像元只说「这里没有观测数据」，不给任何数值；**点击钉住**（十字标记），Esc 或再点取消 | e2e：锋面区判定与数据同源、水温与数据一致、浮层恰好 4 项（坐标 + 3 行信息）且不含方位/编码/推荐水域 |
 | 选中回执 | 点任何目标（地图要素、结论卡、清单）→ 地图上出回执卡（名称 / 长度 / 距离 / 方位 / ✕），全站共用一套选中语义 | e2e：地图点击、卡片点击、✕/Esc 取消 |
@@ -125,65 +126,88 @@ node tools/layout-check.mjs   # 布局几何（1280 / 1680 两档）：25 项断
 ### 6.1 目录与文件职责
 
 ```
-ocean-front-prototype/
-├── frontend/prototype/
-│   ├── prototype-fishing.html  结构 + 样式（L0 顶栏 / 地图 / L1 结论 / L2 页签）
-│   ├── prototype-fishing.js    状态机 + 渲染 + 交互（唯一改动入口，只从 OFData 取数）
-│   ├── prototype-data.js       数据适配层：页面唯一数据入口 window.OFData
-│   └── data/                   脚本生成的数据（**不要手改**）
-│       ├── meta.js             数据产品 / 许可 / 可用日期 / 已知问题（数据说明读它）
-│       ├── days.js             清单：已导出的锋面与水温日期（HTML 按它注入 <script>）
-│       ├── day/<日期>.js       单日锋面：对象中心线、锋面带、冷暖侧、缺测掩码、质量统计
-│       ├── sst/<日期>.js       单日水温：按 0.5 °C 分箱的逐行游程
-│       ├── clim/same-period.js 历史同期统计（front_present 口径）
-│       └── base/basemap.js     底图（Natural Earth 裁剪抽稀结果）
+Ocean/                                  主仓（前端 + vendored 后端 + 脱敏部署件）
+├── frontend/prototype/                 唯一主界面「渔场向导」（纯静态、无构建）
+│   ├── prototype-fishing.html          结构 + 样式（L0 顶栏 / 地图 / L1 结论 / L2 页签）
+│   ├── prototype-fishing.js            状态机 + 渲染 + 交互（唯一改动入口，只从 OFData 取数）
+│   ├── prototype-data.js               数据适配层：页面唯一数据入口 window.OFData
+│   ├── prototype-map.js                投影与视野：OFMap（平面档 ↔ 正射球面、经纬网、视野夹取、屏幕↔经纬度反算）
+│   └── data/                           脚本生成的数据（**不要手改**，随页面一起发布）
+│       ├── meta.js                     数据产品 / 许可 / 可用日期 / 已知问题（数据说明读它）
+│       ├── days.js                     清单：已导出的锋面与水温日期（HTML 按它注入 <script>）
+│       ├── day/<日期>.js               单日锋面：对象中心线、锋面带、冷暖侧、缺测掩码、质量统计
+│       ├── sst/<日期>.js               单日水温：按 0.5 °C 分箱的逐行游程
+│       ├── clim/same-period.js         历史同期统计（front_present 口径）
+│       └── base/{basemap,asia,world}.js 底图三级 LOD（Natural Earth 公有领域裁剪抽稀结果）
+├── backend/                            后端（上游 Ocean 仓快照，来源与改动见 UPSTREAM.md）
+│   ├── app/                            FastAPI：服务器端渲染 PNG + GeoJSON + 点查询 + 历史统计
+│   ├── scripts/                        数据拉取与导出（fetch_* / export_prototype_data.py）
+│   ├── tests/                          pytest（4 项）
+│   └── UPSTREAM.md
+├── data/                               运行时数据（不入 git，本地与服务器同路径）
+│   ├── raw/{front,sst}/                原始 NetCDF（front 89 天 + sst 62 天 ≈ 118 MB）
+│   ├── processed/ · cache/ · manifest/
+│   └── README.md
 ├── tools/
-│   ├── build-basemap.mjs       拉 Natural Earth → 裁剪抽稀 → data/base/basemap.js
-│   ├── data-check.mjs          数据断言（897）
-│   ├── e2e-check.mjs           交互断言（108，无头 Edge + CDP，产出截图）
-│   └── layout-check.mjs        布局断言（25）
+│   ├── build-basemap.mjs               拉 Natural Earth → 三级 LOD 裁剪抽稀 → frontend/prototype/data/base/{basemap,asia,world}.js
+│   ├── data-check.mjs                  数据断言（914）
+│   ├── e2e-check.mjs                   交互断言（100，无头浏览器 + CDP，产出截图）
+│   └── layout-check.mjs                布局断言（23）
+├── deploy/                             部署件（Windows → 阿里云 Ubuntu）
+│   ├── deploy.ps1 · remote-setup.sh
+│   ├── nginx/ocean.conf · systemd/ocean-api.service
+│   └── RUNBOOK.md                      实施手册 + 排错对照表
 └── docs/
-    ├── handover.md             本文件
-    ├── data-schema.md          数据契约（字段 / 编码 / 生成方式 / 已知问题）
-    ├── requirements-fishing-ground.md   需求规格（v0.10）
-    └── ux-spec.md              信息架构与交互规范（v1.8）
+    ├── handover.md                     本文件
+    ├── data-schema.md                  数据契约（字段 / 编码 / 生成方式 / 已知问题）
+    ├── requirements-fishing-ground.md  需求规格（v0.10）
+    └── ux-spec.md                      信息架构与交互规范（v1.8）
 ```
 
-上游数据脚本在**另一个仓库**：`Ocean/backend/scripts/`（`fetch_zenodo_front_samples.py`、`fetch_sst_samples.py`、`export_prototype_data.py`）。原型仓只消费 `data/`，不包含抓取逻辑。
+上游数据脚本（`fetch_zenodo_front_samples.py`、`fetch_sst_samples.py`、`export_prototype_data.py`）已连同 FastAPI 服务**一并 vendor 进本仓 `backend/`**，来源 commit 与本仓改动清单见 `backend/UPSTREAM.md`；上游仓 `Ocean` 仍是它们的权威版本。
 
 ### 6.2 环境与常用命令
 
 ```powershell
-# 上游（Ocean 仓）：虚拟环境在 Ocean/backend/.venv（已装 netCDF4、requests）
-cd Ocean\backend
+# 首次准备 Python 环境（在仓根目录）
+python -m venv backend\.venv
+backend\.venv\Scripts\python.exe -m pip install -e backend
 
-# ① 拉数据（示例：一天 / 一段日期）
-.\.venv\Scripts\python.exe scripts\fetch_zenodo_front_samples.py 2024-08-05
-.\.venv\Scripts\python.exe scripts\fetch_sst_samples.py 2024-08-05 2024-08-06
+# ① 拉数据（示例：一天 / 一段日期）→ 落在 data/raw
+backend\.venv\Scripts\python.exe backend\scripts\fetch_zenodo_front_samples.py 2024-08-05
+backend\.venv\Scripts\python.exe backend\scripts\fetch_sst_samples.py 2024-08-05 2024-08-06
 
-# ② 导出到原型仓 data/
-.\.venv\Scripts\python.exe scripts\export_prototype_data.py            # days 模式：扫描 data/raw 全量导出
-.\.venv\Scripts\python.exe scripts\export_prototype_data.py --mode clim --clim-dates ...   # 历史同期统计
+# ② 导出到前端目录 frontend/prototype/data
+backend\.venv\Scripts\python.exe backend\scripts\export_prototype_data.py            # days 模式：扫描 data/raw 全量导出
+backend\.venv\Scripts\python.exe backend\scripts\export_prototype_data.py --mode clim --clim-dates ...   # 历史同期统计
 # 快通道（只重生成 meta.js / days.js，几十秒）：
-.\.venv\Scripts\python.exe scripts\export_prototype_data.py --mode days --dates 2024-08-05 --no-sst --out-dir ..\..\ocean-front-prototype\data
+backend\.venv\Scripts\python.exe backend\scripts\export_prototype_data.py --mode days --dates 2024-08-05 --no-sst
 
 # ③ 底图（需要网络，走 jsDelivr 上的 Natural Earth）
 node tools\build-basemap.mjs
 
-# ④ 三项检查（原型仓）
+# ④ 三项检查
 node tools\data-check.mjs; node tools\e2e-check.mjs; node tools\layout-check.mjs
+
+# ⑤ 后端（本地起服务，验证服务器端渲染那条链路）
+backend\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+curl.exe -sS "http://127.0.0.1:8000/api/analysis/2024-08-05?longitude=124.5&latitude=30.2&radius_deg=1"
+backend\.venv\Scripts\python.exe -m pytest backend\tests -q
+
+# ⑥ 部署（见 deploy/RUNBOOK.md）
+powershell -ExecutionPolicy Bypass -File .\deploy\deploy.ps1 -ServerIp <公网IP>
 ```
 
 ### 6.3 数据更新流程（照这个顺序做）
 
-1. `fetch_zenodo_front_samples.py <日期…>` 拉到 `Ocean/data/raw/front/`；水温用 `fetch_sst_samples.py` 拉到 `Ocean/data/raw/sst/`。
+1. 在产品仓 `backend/` 下运行 `scripts/fetch_zenodo_front_samples.py <日期…>`，默认拉到仓根 `data/raw/front/`；水温用 `scripts/fetch_sst_samples.py` 拉到仓根 `data/raw/sst/`。服务器设置 `OCEAN_RAW_DATA_DIR` 时按该配置存储。
 2. 跑 `export_prototype_data.py`（可加 `--dates` 只导指定日期；`--no-sst` 跳过水温）。
 3. 跑三项检查；`data-check` 会验证新日期的结构与自洽，`e2e-check` 会验证页面确实用上了新数据（日期范围、对象数与文件一致）。
-4. 提交 `data/**` 与（如改了）`docs/**`、`tools/**`；`data/**` 一律由脚本产出，不要在编辑器里改。
+4. 提交 `frontend/prototype/data/**` 与（如改了）`docs/**`、`tools/**`；前端数据由脚本产出，不要手改。仓根 `data/raw`、`data/processed`、`data/cache` 不提交。
 
 ### 6.4 四条硬约束（改代码前先接受）
 
-1. **不手改生成文件**：`data/**`、`data/base/basemap.js` 都是脚本产物；要改内容就改脚本再重跑。
+1. **不手改生成文件**：`data/**`、`data/base/{basemap,asia,world}.js` 都是脚本产物；要改内容就改脚本再重跑（`node tools/build-basemap.mjs --set all`）。
 2. **不编数字**：没有数据源的变量一律标「未接入」或「示例数据 · 仅供参考」，不得插值、不得用样例值冒充真实值；预测页只能写明是规则预测参考，不能冒充业务预报。
 3. **缺数据要明说**：无观测、超范围、样本不足都必须给出原因与可行动作（换日期 / 放大范围 / 先补数据），并且不给结论。
 4. **单一真源**：时间 / 范围 / 图层在界面上各只出现一处；新增功能不得再引入第二套控件。
@@ -194,20 +218,27 @@ node tools\data-check.mjs; node tools\e2e-check.mjs; node tools\layout-check.mjs
 |---|---|---|
 | 中文路径 + netCDF-C | `netCDF4` 打不开含中文的路径（本仓库路径含「海洋锋面」） | 导出脚本内部已做临时 ASCII 路径中转；自己写脚本时同样处理 |
 | CSS `display` 覆盖 `hidden` | 地图遮罩一直显示，页面上看不到数据 | 已加 `[hidden]{display:none!important}`；新增覆盖层不要再写 `display` 覆盖 |
-| 只断言 `el.hidden` 的测试会漏 | 检查全过但页面实际不可用 | e2e 用 computed style + `elementFromPoint` 命中判断 |
+| 只断言 `el.hidden` 的测试会漏 | 63 项全过但页面实际不可用 | e2e 用 computed style + `elementFromPoint` 命中判断 |
 | PowerShell 读文件乱码 | `Get-Content` 默认按 ANSI | 用 `Get-Content -Encoding UTF8`；工具输出用 `Out-File -Encoding utf8` |
 | Zenodo 下载中断 | `ProtocolError` / 半截文件 | 抓取脚本已带重试 + 重新打开归档 + `.part` 原子写入 |
 | `git credential fill` 交互 | 在工具终端里会挂起 | 不要交互式调用；需要凭据时用非交互方式读取 |
 | 无头 Edge 偶发不稳 | CDP 连接超时 | e2e 启动后轮询 `/json/list`，并等待页面就绪标记再断言 |
+| 环境变量 `PAGE` 残留 | 本地跑 `e2e-check` 却打到线上页面，断言在服务端模式下"随机"失败（日期范围/底图档数跟着变），看起来像代码竞态 | 跑前先看 e2e 开头的「目标页面」提示行；`Remove-Item Env:PAGE`（跑线上时才显式设） |
+| PowerShell 写文件把 UTF-8 写坏 | 用 `Get-Content`+`Set-Content` 改含中文的源码 → 注释变乱码、`node --check` 报 `Unexpected identifier '冷侧'` | 改文件一律用编辑器工具；必须用 PowerShell 时先 `[IO.File]::ReadAllText($p, [Text.Encoding]::UTF8)` 显式指定编码 |
+| 回环核对前端版本出错 | `curl 127.0.0.1/…` + `Host:` 头拿到的是另一份内容，误判"改了没生效" | 用公网 URL 核对（`curl -s http://<server-ip>/prototype-fishing.js \| md5sum`），或按版本特征串 `grep -c` |
+| 栅格图层忘了走投影 | 球面档看到"几条直线把区域切开"的假三角形、球面上数据只剩作业海域附近（矩形是按平面常量摆的） | 画 RLE 一律经 `rlePath()`（球面档走 `rlePathGlobe()`：≤15° 切段 + 背面丢弃 + 贴球缘）；新增栅格图层不要在页面里自己拼屏幕矩形 |
+| 球面档拖动把球拖出画面 | 拖完球心不在画面正中（球被拖走、只剩半颗） | 球面档拖动/松手都必须走 `applyZoom()`（同步 viewBox），不能只调 `drawMap()`；e2e 有"球心 ±2px"回归断言 |
+| Windows 写的 `.sh` 带 CRLF | 传上服务器执行报 `$'\r': command not found` / `syntax error near unexpected token` | 传前转 LF，或服务器上 `tr -d '\r' < f > f.tmp && mv f.tmp f`；`bash -n f` 先验语法 |
+| 上游 ERDDAP 数据集重载 | 抓取日志全是 `404 Currently unknown datasetID=noaacwBLENDEDCsstDaily`，任务空烧重试、进度不涨 | 用 `tools/pipeline/sst_plan.sh`（先探上游再跑）；大面积 404 时先等上游恢复，别急着改代码 |
 ### 6.6 当前状态：待你决定 / 未推送的东西
 
 | 事项 | 现状 | 建议 |
 |---|---|---|
-| 原型仓远端 | `origin` = `JustPlayinger/ocean-front-prototype`，`demo` = `JustPlayinger/ocean-front-demo`（**public**），两者 `main` 同步 | 若担心数据/品牌外泄，把 demo 仓改为 private 或删除 |
+| 仓库远端 | `origin` = `NingRuo-code/Ocean`；协作者来源为 `JustPlayinger/ocean-front-prototype@restructure`，集成记录见 `docs/collab-restructure-integration.md` | 不直接原样覆盖协作者仓，按主题集成并保留数据/凭据边界 |
 | GitHub Pages | **故意未开启** | 国内发布需先换合规底图 + 审图号；内网演示可直接双击 HTML |
 | Ocean 仓脚本 | `fetch_zenodo_front_samples.py`（已修改）、`export_prototype_data.py`、`fetch_sst_samples.py`（未跟踪）**尚未提交** | 该仓是协作者共享仓（`NingRuo-code/Ocean`，当前在 `chore/collab-baseline` 分支），提交前先与协作者确认分支；否则至少把这 3 个脚本备份/冻结到原型仓的 `tools/upstream/` |
 | `data/meta.js` 与脚本版本 | meta 的「已知问题」文案由 `export_prototype_data.py` 生成 | 若上游脚本长期不受控，重跑导出会覆盖文案；改文案要改脚本 |
-| **UI 基线来源** | 本版页面结构（当前 / 历史 / 预测 / AI 分析 + 时间轴播放 + 地图点选）来自协作者仓 `NingRuo-code/Ocean-front-prototype-f` 的提交 `e9c55db`（对齐 9.3 沟通），在我们 `ac06676` 之上 fast-forward 合入 | 该远端已登记为 `friend`；后续同步用 `git fetch friend && git diff friend/main` 看增量 |
+| **UI / 球面视图来源** | 本版页面结构、球面视图、视野记忆与视野取数逻辑来自协作者 `JustPlayinger/ocean-front-prototype@restructure` 的 `4a907a1`，按主题集成进 `NingRuo-code/Ocean` | 后续同步看 `docs/collab-restructure-integration.md`，不要直接覆盖敏感部署/交接材料 |
 | **待办：预测页缺回测** | 「预测」页给出 7 天规则参考（5–85% + 依据完整度），口径已在页内与使用限制中标注"不等于业务预报"，但**没有回测指标**（命中率 / 与持续性基线对照） | 接入预报输入场前，先补规则基线与「今天有→明天有」持续性基线的命中率对照；没有回测就把百分数降级为风险窗口提示 |
 | **待办：AI 页命名** | 「AI 分析」实际是本地证据组织与任务编排（页内已标"本地规则"、不生成新科学数值） | 建议改名或加副标（如「分析过程 · 本地规则，不调用在线模型」），避免被读成有模型推理 |
 | **待办：历史「整年」口径** | 「整年」按钮展示的是样例年实况聚合，不是完整全年统计（文档已写明，界面按钮文字仍易误读） | 按钮改「样例年」或在结果区首行写明"非完整年度统计" |
@@ -250,15 +281,12 @@ node tools\data-check.mjs; node tools\e2e-check.mjs; node tools\layout-check.mjs
 
 | 项 | 期望值 |
 |---|---|
-| `node tools/data-check.mjs` | 0 失败 / 897 项 |
-| `node tools/e2e-check.mjs` | 0 失败 / 108 项（截图写入 `%TEMP%`） |
-| `node tools/layout-check.mjs` | 0 失败 / 25 项 |
+| `node tools/data-check.mjs` | 0 失败 / 914 项 |
+| `node tools/e2e-check.mjs` | 0 失败 / 127 项（截图写入 `%TEMP%`） |
+| `node tools/layout-check.mjs` | 0 失败 / 26 项 |
 | 数据规模 | `data/` 3.24 MB；`day/*.js` 62 个、`sst/*.js` 62 个 |
 | 日期范围 | 2024-07-01 ~ 2024-08-31（62 天，逐日） |
 | 历史同期样本 | 2015–2024 每年 8/5–7，共 30 天 |
 | 默认视图 | 缩放 0.8，可见经度约 121.0–128.0°E，东海海岸线在画面内 |
 
 任何一项对不上，先查数据是否重导过、`data/days.js` 清单是否与 `data/day/` 一致，再查页面是否读的是同一份 state。
-
-
-

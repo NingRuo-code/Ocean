@@ -1,166 +1,168 @@
-# Ocean Front Offline Analysis
+# 渔场向导 · 海洋锋面分析系统（交互原型）
 
-面向海洋锋面时空任务的离线智能分析系统。当前已完成前四周基础闭环、第 5—8 周历史统计分析、第 9—12 周离线 AI 分析智能体，并补齐了从数据覆盖规划到预测 baseline 的前十二周统筹细节：可在本地离线数据上完成局地查询、历史概率、月度统计、对象追踪、缓存追溯、自然语言任务组织和可解释预测演示。
+面向**渔场作业决策**的海洋锋面分析系统 · 纯前端交互原型。
+数据：**真实锋面数据**（Zenodo 20356239 · CC BY 4.0，0.05° 逐日）+ **真实海温**（NOAA GHRSST 0.05° 逐日，与锋面不同源）+ **公有领域底图**（Natural Earth，三级 LOD 1:10m / 1:50m / 1:110m），由脚本预生成到 `frontend/prototype/data/`，双击即可离线打开。
+地图视野从**整颗地球**（纯 SVG 正射球面）一直到 **0.05° 像元**，并记住上次停留的区域（`localStorage`）。
+锋面强度 / 真实预报 / 渔场**没有真实数据**，海况为明确标注的示例值；页面对这些一律标「待接入」或「示例」，**不插值、不把示例冒充实测、不编业务预报**（需求 FR-7）。
 
-## 当前范围
+## 快速运行
 
-- 浏览器中的离线分析界面；
-- FastAPI 本地数据服务；
-- NetCDF 样例数据检查与局部读取；
-- SST 面场、锋面带、锋面中心线、冷侧区、暖侧区图像图层，以及可选 front_intensity 强度叠加层；
-- 后端 PNG raster 温度场、离线数据 manifest 和 front/SST 配对检查；
-- SQLite 本地元数据索引：按文件、日期、数据集类型记录本地资产，支持按日期快速定位源文件；
-- 下一步数据准备计划：目标日期窗口、跨年同期缺失年份、强度数据缺口、重复文件、就绪评分、优先动作和参考下载/验收命令；
-- 跨年份同期样本准备脚本：默认 dry-run，支持按年批量规划 Zenodo front 与 Copernicus SST 下载；
-- raster 本地 PNG 缓存，降低重复查询渲染成本；
-- 锋面对象识别：临时 front_id、质心、包围框、长度和最近距离；
-- 连续日期锋面对象追踪：首日按查询点锚定，后续综合质心距离、形态相似度和 bbox 重叠率匹配，并输出速度、方位角、缺测次数和可信度；
-- 历史概率口径可配置：支持“有锋面线即命中”“锋面线密度阈值”“最近锋面距离阈值”三种口径；
-- 预测 baseline：基于历史同期概率、月度 climatology、近期锋面状态和当前 SST 梯度，生成未来 1—14 日透明预测结果，并提供本地样本内回测评估；
-- HTML/Markdown 汇报报告：汇总单日分析、对象追踪、历史统计、预测 baseline 和源文件，前端支持预览与下载；
-- 10 km、0.25°、0.5°、1° 空间范围切换；
-- 一键演示模式与 Tab 化功能侧栏，便于向老师按“当前/历史/追踪/预测/数据/AI”顺序展示；
-- 查询点、查询区域、经纬网格、比例尺和局地温差/温度梯度；
-- 历史时间索引、空间索引、历史统计接口、月度概率和缓存面板；
-- 同期概率计算过程、参与样本记录和源文件追溯；
-- 年份命中图、预测驱动因子权重条、baseline 回测卡片和数据就绪度仪表盘；
-- 自然语言任务输入、结构化任务 JSON、工具调用流程、AI 分析卡、本地知识库和 AI 健康检查；
-- AI 层可调度当前锋面、对象识别、对象追踪、历史概率、月度统计、时间线和预测 baseline 工具。
+浏览器直接打开 `frontend/prototype/prototype-fishing.html` 即可（改完建议 `Ctrl+F5` 强刷）；页面内的数据路径全是相对路径，移动整个 `frontend/prototype/` 目录也不影响。
+重新生成数据见 [`docs/data-schema.md`](docs/data-schema.md) 与 [`frontend/prototype/data/README.md`](frontend/prototype/data/README.md)。
+**服务器部署**（公网访问 + 服务器端渲染）见 [`deploy/RUNBOOK.md`](deploy/RUNBOOK.md)。
+**项目交接**见 [`docs/handover.md`](docs/handover.md)；服务器部署/运维只使用脱敏后的 [`deploy/RUNBOOK.md`](deploy/RUNBOOK.md)。
+**与协作者 restructure 分支的集成记录**见 [`docs/collab-restructure-integration.md`](docs/collab-restructure-integration.md)。
 
-当前不重新实现论文锋面识别算法，不把全量 1982—2024 数据提交到仓库；已实现的对象追踪是“首日查询点锚定、后续综合质心/形态/bbox 打分”的工程演示版，不等同于论文级长期轨迹算法。预测模块是可解释 baseline，不等同于论文级预报模型。默认 AI 使用离线规则解析器；后端已支持 Ollama、llama.cpp 和 OpenAI-compatible 本地模型适配，但本轮按计划暂不接入真实模型服务。若本地只放少量样例文件，历史概率和预测结果只代表这些本地样本。
+## 服务器增强模式（可选，同源部署自动启用）
 
-## 目录
+页面默认纯离线（`file://` 双击即可）。同源部署时会自动探测 `/api` 并切换：日期范围扩展到服务器上的**全量日期**
+（当前 15,706 天 / 1982-01-01 ~ 2024-12-31），切到本地没导出的日期时**按需**从 `GET /api/frontend/day/<date>` 拉取
+（结构与离线 `data/**` 完全一致，渲染层无差异），加载中显示「正在从服务器取这一天」。
+探测失败或 `file://` 打开时自动回退纯离线，行为与上面完全一致。跨域部署用 `window.OF_API_BASE` 指定 API 前缀。
 
-```text
-backend/          Python 数据服务
-frontend/prototype/
-                  纯前端离线原型入口与生成数据（当前 canonical 静态界面）
-docs/             范围、架构和数据契约
-data/raw/         本地原始样例数据（不提交 Git）
-data/processed/   预处理数据（不提交 Git）
-data/cache/       查询缓存（不提交 Git）
-paper/            参考论文
+## 数据（真实接入部分）
+
+| 数据 | 来源 | 许可 | 本演示覆盖 |
+|---|---|---|---|
+| 锋面位置 / 冷暖侧 / 锋面对象 | Zenodo **20356239**（上海海洋大学 Xing 等） | **CC BY 4.0** | 东海 120–128°E / 27–34°N，0.05°，观测 **2024-07-01 ~ 08-31（62 天逐日）** |
+| 海表温度 | **NOAA CoastWatch / GHRSST** `noaacwBLENDEDCsstDaily`（免账号） | GHRSST free and open | 同窗口、0.05°、逐日；按 **0.5 °C 分档**展示（**与锋面数据集不是同一产品**） |
+| 往年同期统计 | 同一锋面产品，另取 2015–2024 的 8 月 5—7 日 | CC BY 4.0 | 口径：`front_present = 半径内锋面线像元数 > 0` |
+| 底图 · 陆地 / 海岸线 / 等深线（三级 LOD） | **Natural Earth** 1:10m + 1:50m + 1:110m | **公有领域** | 东海 117.5–131.5°E / 25–35°N（`base/basemap.js`，含 200 m·1000 m 等深线）；西太平洋 95–155°E / 10°S–50°N（`base/asia.js`）；全球（`base/world.js`） |
+
+- 前端只通过 `prototype-data.js`（`window.OFData`）取数，页面不直接读原始文件
+- 数据结构、字段、编号规则、已知坑：见 [`docs/data-schema.md`](docs/data-schema.md)
+
+## 信息架构（三层 · 主次分明）
+
+```
+L0 全局上下文（顶栏，唯一真源，按使用顺序编号）
+   ① 从哪出发 · ② 找多远 10/20/30 km · ③ 出海日（播放 / ◀ 日期 ▶ / 时间轴）
+        │
+L1 结论块（**2026-09-14 起并入「当前」页，不再常驻**）
+   「这天值不值得去」结论 + 首选锋面区（方位/距离）+ 为什么这么判断
+        │
+L2 分层细节（页签）
+   ┌ 当前 ───────────────┬ 历史 ───────────────┐
+   │ 当前（真实观测）        │ 历史（当日/近三日/当月/整年）│
+   │ 预测（规则预测参考）     │ AI 分析（证据组织）          │
+   └─────────────────────┴────────────────────┘
+   数据说明：作为页脚支撑入口，集中放数据来源、评分规则与限制
 ```
 
-## 开发状态
+- **唯一真源**：时间只有顶栏「出海日」一个控件；范围/图层同样各只有一处（目标鱼种本期不做，见 `docs/ux-spec.md` §3.2）
+- **数据来源由页签决定**：「当前」页=观测；「历史」页=实况聚合+同期统计；「预测」页=规则预测参考；「AI 分析」页=证据组织
+- **单向数据流**：`state` → `render*()`；渲染函数只读 state，不写 state
+- **数据说明**：数据来源（含 DOI 与许可）、判定规则、现在还做不到的
 
-项目骨架已建立，前十二周核心链路已有可运行版本，并继续补齐了数据状态面板、SQLite 元数据索引、数据准备计划、跨年份样本准备脚本、历史缓存预热脚本、raster 缓存、front_intensity 可选接入、综合匹配对象追踪 v2、概率口径配置、预测 baseline 与回测评估、HTML 汇报预览/导出和本地模型健康检查。下一步是继续补齐更多历史样本、按老师反馈调整概率/追踪/预测口径，并在需要时再接入真实本地小模型。
+## 原型能力
 
-当前本地演示数据已扩展为 104 个 front/SST 配对日期：包括 `2024-08-05` 至 `2024-08-19` 的连续样本，以及 `1982—2010` 每年 `08-05` 至 `08-07` 的跨年份同期样本；其中 `1982`、`1983` 额外具备 `08-08` 样本。完整历史概率展示仍需要继续补充 1982—2024 同月同日窗口数据，下一批缺口从 `2011-08-05` 开始。
+| 区域 | 能力 |
+|---|---|
+| 顶栏 | 经纬度输入定位（支持 `124.50°E, 30.20°N` 与 `30.20N，124.50E`）、地图点选出发地、作业范围切换（10/20/30 km）、**出海日**（播放 / 暂停、◀▶ 步进、时间轴拖动，越界自动钳制并提示）|
+| 地图 | **视野从整颗地球到 0.05° 像元**：跨度 ≤ 40° 走等距平面（比例尺与 10/20/30 km 半径圈仍是真实 km），> 40° 自动切**正射球面**（纯 SVG，缩到最小＝整颗地球，可拖动转动）；底图三级 LOD（1:10m 东海含等深线 / 1:50m 西太平洋 / 1:110m 全球）；球面档只画轮廓 + **数据覆盖框** + 当天锋面对象线，并在顶部写明「放大到 40° 以内显示 0.05° 栅格」。操作：滚轮/触控板连续缩放、拖拽平移（鼠标 / 触摸 / 笔）、双击放大、`+/-` 与方向键、`◎` 回定位点、`🌍` 整颗地球 ↔ 数据窗口；**停止 0.5 s 记住视野，下次打开回到上次停留的区域**。图层同前：真实海温场（0.5 °C 分档）+ 真实锋面带/对象中心线（F001…）+ 冷侧/暖侧 + 缺测纹理（−128）+ 真实整数度经纬网 + 比例尺 + 6 个图层开关 |
+| **地图指针查询** | 鼠标移到任意点**只显示 4 项**：**经纬度 / 该格真实水温（NOAA GHRSST，与锋面不同源；缺测直说「该格无水温数据」）/ 最近锋面距离 / 是否锋面区（是则给出冷侧或暖侧）**；**点一下钉住**（十字标记），Esc 或再点取消。方位、原始锋面编码、是否在作业范围内、推荐水域一律不进浮层（缺测像元只说「这里没有观测数据」，不给任何数值）|
+| 结论块（在「当前」页内） | 三档结论（值得去/可以看看/线索不足）+ 作业范围内锋面区数量 + 首选锋面区（方位/距离）+「评分依据」逐项加分（含数据覆盖）；点位入口用「作业线索」列表 |
+| 当前 | 默认两张卡：当前渔情 4 格（锋面区数/最近锋面/所处侧/把握度）+ 作业线索；范围标签含数据覆盖与**定位点水温**；海况安全（**示例数据 · 仅供参考**）和全部锋面区清单放入展开项 |
+| 历史 | 当日 / 3 日 / 7 日 / 15 日 / 当月 / 整年：当日与 3 日保留同期统计口径，7 日 / 15 日 / 当月 / 整年展示已导出的实况样例，带连续日期格子图，并明确说明多年样本缺口（**页内没有任何日期输入框**）|
+| 预测 | 一张预测卡承载未来 7 天规则预测参考：可切换 1 / 3 / 7 天窗口，使用当前锋面信号、近几日持续性、历史同期生成可解释基线；逐日明细可展开，已有样例日期可点回看实况 |
+| AI 分析 | 一张复核卡组织当前结论、历史参照、规则预测参考和数据限制；任务编排与证据链可展开，不生成新的科学数值，不调用在线模型 |
+| 数据说明 | 页脚入口；数据来源（14 行，含 DOI/许可/底图出处/规则预测参考/AI 边界）、评分规则（5 条）、使用限制（逐条列出未接入项与合规要求）|
+| 交互回执 | 选中任何目标后地图上出现回执卡（名称/长度/距离/侧别/✕ 取消）；Toast 只用于操作确认 |
+| 状态 | 空态（没导出的日期 → 说明可选范围）、范围回退（范围内无对象→先给最近的并标注）|
 
-当前历史同期概率会同时给出样本覆盖可信度：例如查询 `2024-08-05` 时，同期覆盖为 `30/43` 年，属于“较高”，可用于说明流程和阶段成果，但不应宣称为完整 1982—2024 统计结论。当前本地数据尚未放入 front_intensity 实测文件，系统会显示强度层占位和缺口规划；一旦把强度 NetCDF 放入 `data/raw/front_intensity/年份/`，单日分析、对象识别、数据索引和 UI 会自动接入。
+## 交互逻辑要点
 
-## 本地运行
+1. **单一选中语义 + 必有回执**：地图要素与卡片条目共用 `state.select`，点击后地图上出现回执卡，`✕`/Esc 都能取消
+2. **几何同源**：距离/方位由经纬度实时计算；地图投影保证东西/南北向 1 km 等长，半径圈是正圆；锋面中心线、卡片距离、指针查询用的是同一份数据
+3. **时间语义**：只剩「出海日」一个真源；日期输入、步进、播放和时间轴都写同一个 `state.date`，可选范围＝`frontend/prototype/data/day/` 里实际导出的日期
+4. **不编造**：锋面与海温都是真实数据（海温标明与锋面数据不同源）；强度 / 海况 / 真实预报 / 渔场一律标注；预测页只给规则预测参考，不冒充业务预报
+5. **可访问性**：页签 `role=tab`、支持 ←/→ 方向键切换；Esc 取消钉住/选中
+6. **视野与投影分层（v1.9）**：投影与视野全在 `prototype-map.js`（`window.OFMap`）里，页面只调 `toSvg / fromSvg / graticule / clampCenter / path`；
+   两档（等距平面 ↔ 正射球面）在**同一个视野真源** `{lon0, lat0, zoom}` 下自动切换，km 半径圈、距离、方位全部仍按经纬度实时计算；
+   球面档不画 0.05° 栅格、也不给 km 比例尺（球面上比例随纬度变化）——宁可少画，也不编一个假的精确值
+7. **视野记忆**：`localStorage["of.view.v1"]`（中心 + 缩放），无痕/禁用存储时静默降级；「◎」任何时候都能回到出发地默认视野
+8. **数据铺满（v1.10）**：原始锋面数据本身是全球 0.05°，所以前端**按当前视野取数**（`/api/frontend/day/{date}?bbox=&step=`）：
+   视野停稳 0.42 s 后取这一片（窗口 5° 吸附 + 2° 余量，平移不重复取），大窗口自动降采样成**概览**
+   （≤25°→0.05°、≤60°→0.2°、≤120°→1°、更大→2°）；概览只画栅格、`objects` 恒为空（1° 的聚合格不是锋面对象，
+   返回 `front.overview` 标明口径），卡片统计与对象清单永远用 0.05° 主片 —— 结论口径不跟着视野漂；
+   球面档画全球 2° 概览而不是空球，平面档也能拖到任何海域（底图按覆盖范围叠加 + 世界轮廓兜底）
 
-离线原型入口：
+## 目录结构
 
-```powershell
-start frontend\prototype\prototype-fishing.html
+```
+Ocean/                                    # 主仓（origin: NingRuo-code/Ocean；协作者来源：JustPlayinger/ocean-front-prototype@restructure）
+├── frontend/prototype/                   # 唯一主界面「渔场向导」（纯静态、无构建、无依赖）
+│   ├── prototype-fishing.html            # 结构 + 样式（L0/L1/L2 三层布局）
+│   ├── prototype-fishing.js              # 状态机 + 渲染与交互（数据只从 OFData 拿）
+│   ├── prototype-data.js                 # 数据适配层：唯一入口 window.OFData
+│   ├── prototype-map.js                  # 投影与视野：OFMap（平面档 ↔ 球面档、经纬网、视野夹取、反算）
+│   └── data/                             # 脚本生成的真实数据（勿手改，随页面一起发布）
+│       ├── meta.js · days.js · day/*.js · sst/*.js · clim/same-period.js
+│       ├── base/{basemap,asia,world}.js  # 底图三级 LOD（1:10m 东海 / 1:50m 西太平洋 / 1:110m 全球）
+│       └── README.md
+├── backend/                              # 后端：服务器端渲染 PNG + GeoJSON + 点查询 + 历史统计
+│   ├── app/                              # FastAPI 数据服务
+│   ├── scripts/                          # 数据拉取与导出（export_prototype_data.py 等）
+│   ├── tests/                            # pytest
+│   └── UPSTREAM.md                       # 上游来源、快照 commit、同步纪律
+├── data/                                 # 运行时数据（不入 git，本地与服务器同路径）
+│   ├── raw/{front,sst}/                  # 原始 NetCDF（front 89 天 + sst 62 天，约 118 MB）
+│   ├── processed/ · cache/ · manifest/   # SQLite 索引、raster 缓存、清单
+│   └── README.md
+├── tools/
+│   ├── build-basemap.mjs                 # 拉 Natural Earth 公有领域底图 → 三级 LOD（1:10m 东海 / 1:50m 西太平洋 / 1:110m 全球）裁剪抽稀
+│   ├── data-check.mjs                    # 数据文件结构与自洽断言（914 项）
+│   ├── e2e-check.mjs                     # 交互端到端断言（127 项，无头浏览器 + CDP）
+│   └── layout-check.mjs                  # 布局几何断言（26 项）
+├── deploy/                               # 部署件（Windows → 阿里云 Ubuntu）
+│   ├── deploy.ps1 · remote-setup.sh      # 本地编排 / 服务器端幂等安装
+│   ├── probe-ports.ps1                   # 端口探测（安全组放行了吗 / 服务起来了吗）
+│   ├── nginx/ocean.conf                  # 站点：/ → 前端，/api/ → 127.0.0.1:8000
+│   ├── systemd/ocean-api.service         # uvicorn 常驻
+│   └── RUNBOOK.md                        # 脱敏部署/运维手册（不含真实服务器 IP / 密钥交接材料）
+├── docs/
+│   ├── handover.md                       # 交接文档（已实现 / 欠缺 / 交接事项）
+│   ├── data-schema.md                    # 数据契约（来源/结构/生成/已知问题）
+│   ├── requirements-fishing-ground.md    # 需求规格 v0.10
+│   ├── ux-spec.md                        # 信息架构与交互规范 v1.8
+│   └── 演示文稿.md
+└── README.md
 ```
 
-这是当前唯一受控的静态原型入口；根目录旧版 `prototype-*.html/js` 与旧静态 `data/**` 副本已移除。
+> 交接先看 **`docs/handover.md`**；部署和服务器运维先看脱敏后的 **`deploy/RUNBOOK.md`**。
 
-安装前端依赖：
+> 两处 `data/` 的分工：`frontend/prototype/data/` 是**随页面发布的离线兜底导出物**（入库）；
+> `data/raw` 是**原始 NetCDF 与运行产物**（不入库，只在本地与服务器之间同步，服务器上是 `/srv/ocean/data`）。
+> 生成这些导出物的脚本已随本仓 vendor 进来：`backend/scripts/export_prototype_data.py`（来源与同步方式见 `backend/UPSTREAM.md`）。
 
-```powershell
-cd frontend
-pnpm install
-pnpm run dev
+## 技术说明
+
+- 纯原生 HTML + JS（ES2017+，无依赖、无构建）；数据以 `<script>` 引入，`file://` 双击可跑
+- 演示投影：`500 + (lon − 124.5) × 180`、`320 − (lat − 30.2) × 208`；比例 `1.877 px/km`（东西/南北等长，半径圈才是正圆）
+- 图层渲染：栅格类（海温 / 冷暖侧 / 锋面带 / 缺测）用**逐行 RLE 还原成矩形并合成单个 `<path>`**——相邻行同起止的游程会合并，一个 DOM 节点承载上千格且不露缝；线要素（对象中心线）画折线，**只在显示层做 Catmull-Rom 平滑**，距离/命中判定仍用原始点
+- 海温图层：按数据里的 **0.5 °C 档位**取色（一档一个 `<path>`，档位数 = 数据文件里的档位数），指针查询给该格真实档位值
+- 地图：真实整数度经纬网（含度数标注）、比例尺（图上 50 km 实时换算）、滚轮以光标为中心缩放、拖拽平移、`◎` 回到定位点
+- 地图指针查询用 `svg.getScreenCTM()` 反算经纬度（缩放后依然准确），`mousemove` 走 `requestAnimationFrame` 节流
+- 「数据把握」全部由真实锋面数据算出：范围内对象数、最近锋面距离、范围内最长对象、观测覆盖；海温虽已接入但**不参与评分**（没有真实渔获/适温数据时不拿温度下结论）
+- 唯一保留的示例值是海况（风/浪/涌），用确定性哈希生成，页面标注「示例数据 · 不参与结论」
+- 预测页的 7 天数值是规则预测参考：当前把握度 + 近几日持续性 + 历史同期，扣除未接入数据项后生成；1 / 3 / 7 天窗口只改变评估范围，不改变数据来源；它用于演示预测流程，不是实况预报
+- 结论块只出现在「当前」页（2026-09-14 起不再常驻）；「航时 / 油耗」这类估算内容已删除，页面只给数据支持的方位与距离
+
+## 自检方式
+
+```bash
+node --check frontend/prototype/prototype-fishing.js   # 语法检查
+node --check frontend/prototype/prototype-data.js
+node --check frontend/prototype/prototype-map.js
+node tools/data-check.mjs                # 数据文件结构与自洽（914 项：每个数据天 14 项 + 海温 / 清单 / 三级底图断言）
+node tools/e2e-check.mjs                 # 交互端到端（127 项，含覆盖层可见性、海温与数据一致、球面档与视野记忆、截图到 %TEMP%）
+node tools/layout-check.mjs              # 布局几何（26 项，1680/1280 两档）
+
+# 后端（需要 venv；服务器上同理）
+python -m pytest backend/tests -q
 ```
 
-安装并启动后端：
-
-```powershell
-cd backend
-python -m pip install -e ".[dev]"
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
-```
-
-浏览器访问 `http://127.0.0.1:5173/`。开发服务器会把 `/api` 请求转发到本地后端。\n\n服务器增强部署路径见 [deploy/RUNBOOK.md](deploy/RUNBOOK.md)：Nginx 提供 `frontend/prototype/` 静态页面，FastAPI 只监听 `127.0.0.1:8000`，公网统一经 `/api/` 反代进入后端。
-
-如需接入真实本地小模型，可复制 [.env.example](D:/VscodeProject/Ocean/.env.example) 为 `.env`，按 Ollama、llama.cpp 或 OpenAI-compatible 服务修改 `OCEAN_AI_PROVIDER` 和 `OCEAN_LOCAL_LLM_ENDPOINT`。
-
-## 阶段验收 smoke
-
-前 1—12 周总体验收：
-
-```powershell
-cd backend
-python scripts/phase1_12_smoke.py
-```
-
-第 5—8 周历史统计：
-
-```powershell
-cd backend
-python scripts/phase2_smoke.py
-```
-
-第 9—12 周离线 AI 智能体：
-
-```powershell
-cd backend
-python scripts/phase3_smoke.py
-```
-
-生成离线数据清单：
-
-```powershell
-cd backend
-python scripts/build_data_manifest.py
-```
-
-生成 SQLite 元数据索引：
-
-```powershell
-cd backend
-python scripts/build_data_index.py
-```
-
-预热历史查询缓存，适合演示前执行：
-
-```powershell
-cd backend
-python scripts/precompute_history_cache.py --date 2024-08-05 --days 3 --longitude 124.5 --latitude 30.2 --radius 1
-```
-
-导出静态演示报告，适合提前发给老师：
-
-```powershell
-cd backend
-python scripts/export_demo_report.py --date 2024-08-05 --longitude 124.5 --latitude 30.2 --radius 1 --days 3
-```
-
-规划跨年份同期历史样本，默认只 dry-run：
-
-```powershell
-cd backend
-python scripts/prepare_historical_samples.py --reference-date 2024-08-05 --year-start 1982 --year-end 2024 --window-days 3
-```
-
-如果只想试跑少量日期，可加 `--limit-dates 6`；确认账号、网络和磁盘空间后，再显式加入 `--execute-front` 或 `--execute-sst`。
-
-## 检查真实样例
-
-将一个真实逐日 NetCDF 文件放入 `data/raw`，然后执行：
-
-```powershell
-cd backend
-python scripts/inspect_netcdf.py ..\data\raw\示例文件.nc
-```
-
-检查输出中的维度、坐标、变量、数据类型和取值范围，再据此完善读取逻辑。不要把全量原始数据提交到 Git。
-
-参见：
-
-- [第一阶段实施范围](docs/phase-1-scope.md)
-- [技术架构](docs/architecture.md)
-- [数据契约](docs/data-contract.md)
-- [前 1—12 周整体统筹与补充验收](docs/week-1-12-integrated-acceptance.md)
-- [图形化界面优化说明](docs/ui-visual-optimization.md)
-- [第 1 周输入文件需求](docs/week-1-input-checklist.md)
-- [2024-08-05 锋面样例检查记录](docs/data-inspection-2024-08-05.md)
-- [第 5—8 周历史统计验收说明](docs/week-5-8-acceptance.md)
-- [第 9—12 周离线 AI 智能体验收说明](docs/week-9-12-acceptance.md)
-- [离线 AI 分析智能体说明](docs/offline-ai-agent.md)
-- [预测 baseline 说明](docs/prediction-baseline.md)
+- 三个浏览器脚本通过无头浏览器 + CDP 驱动，仅依赖 Node 18+（使用内置 `fetch` / `WebSocket`）；可用环境变量 `EDGE`、`PAGE` 覆盖浏览器路径与页面地址
+- 默认按平台探测浏览器（Edge → Chromium → Chrome）。**Linux 上**：`export TEMP=/tmp EDGE=/usr/bin/chromium`，且**不要用 root 跑**（Chromium 沙箱会拒绝；脚本已自动追加 `--no-sandbox`，但仍建议用普通用户）
+- 覆盖：真实数据接入（DOI/许可/日期范围/图层数量与数据一致）、顶栏 3 组编号与时间入口唯一性、出发地地图点选、坐标输入格式兼容、播放/时间轴同步、页签层级、三档结论与逐项加分、四个页签内容、当前页默认两张卡、预测页一张卡、AI 页一张复核卡、预测 1/3/7 天窗口、历史 7/15 日连续窗口与月/年格子图、AI 证据链、指针查询（4 项精简、水温与数据一致、缺测不给数值、钉住/Esc/边界）、选中回执、示例推荐水域默认关闭、图层重绘、范围联动、日期钳制与空态、**覆盖层可见性（computed style + 命中测试）**、方向键可访问性、运行期异常、两档宽度的溢出与裁切
+- **不编造断言**：页面里不允许出现插值温度；预测页必须标注为规则预测参考，数据说明必须写清真实预报未接入

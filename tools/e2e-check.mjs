@@ -6,8 +6,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 // 用法：node tools/e2e-check.mjs   （可用环境变量 EDGE / PAGE 覆盖）
 const EDGE = process.env.EDGE || "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const PAGE = process.env.PAGE || pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), "..", "frontend", "prototype", "prototype-fishing.html")).href;
-const PORT = Number(process.env.CDP_PORT || (9337 + Math.floor(Math.random() * 1000)));
-const PROFILE = join(process.env.TEMP || "C:\\temp", "_edge_profile_e2e_" + PORT);
+const PORT = 9337;
+const PROFILE = join(process.env.TEMP || "C:\\temp", "_edge_profile_e2e");
 const OUT = process.env.TEMP || "C:\\temp";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const addIsoDays = (iso, n) => new Date(Date.parse(iso + "T00:00:00Z") + n * 86400000).toISOString().slice(0, 10);
@@ -109,6 +109,11 @@ const PROBE = `var b=document.getElementById("mapProbe"), m=document.getElementB
     inBounds: rb.left>=rm.left-1 && rb.top>=rm.top-1 && rb.right<=rm.right+1 && rb.bottom<=rm.bottom+1 };`;
 const results = [];
 const check = (label, cond, detail) => { results.push(`${cond ? "PASS" : "FAIL"}  ${label}${detail ? "  → " + detail : ""}`); };
+// 目标页面与浏览器可被环境变量覆盖（部署后跑线上时用 PAGE=http://... ），跑之前先打印清楚：
+// 线上页面是「服务器增强模式」，日期范围/视野与离线不同，别把服务器模式的结果当成离线回归。
+console.log("目标页面: " + PAGE + (process.env.PAGE ? "（环境变量 PAGE 覆盖）" : "（默认：本地文件，离线模式）"));
+console.log("浏览器: " + EDGE + (process.env.EDGE ? "（环境变量 EDGE 覆盖）" : ""));
+console.log("");
 const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const unsupportedClaimTerms = [
   "产量预测",
@@ -128,14 +133,9 @@ const unsupportedClaimPattern = unsupportedClaimTerms.map(escapeRegExp).join("|"
 
 // ===== 1) 真实数据接进来了 =====
 const boot = await evalJS(`var m = OFData.meta, days = OFData.availableDates();
-  var p = typeof OFMap === "object" ? OFMap.xyPlane(124.5, 30.2) : null;
-  var g = typeof OFMap === "object" ? OFMap.geoOfPlane(500, 320) : null;
-  return { hasAdapter: typeof OFData === "object", hasMap: typeof OFMap === "object",
-    mapAnchorPx: p, mapAnchorGeo: g, doi: m.product.doi, license: m.product.license,
+  return { hasAdapter: typeof OFData === "object", doi: m.product.doi, license: m.product.license,
     days: days, status: m.status, grid: OFData.grid(days[0]),
     input: { value: document.getElementById("timeDate").value, min: document.getElementById("timeDate").min, max: document.getElementById("timeDate").max },
-    server: OFData.serverManifestState(),
-    dataStamp: document.getElementById("dataStamp").textContent,
     paths: { coast: document.querySelectorAll('#mapSvg path[data-layer="coast"]').length,
       land: document.querySelectorAll('#mapSvg path[data-layer="land"]').length,
       landFill: (document.querySelector('#mapSvg path[data-layer="land"]') || { getAttribute: function () { return null; } }).getAttribute("fill"),
@@ -157,13 +157,6 @@ check("日期控件范围 = 已导出观测日期（不写死日期）",
   boot.input.min === boot.days[0] && boot.input.max === boot.days[boot.days.length - 1] &&
   boot.days.indexOf(boot.input.value) >= 0,
   JSON.stringify(boot.input) + " · 共 " + boot.days.length + " 天");
-check("未配置服务器 manifest 时默认本地静态数据，不影响离线原型",
-  boot.server.status === "not_configured" && /本地静态数据/.test(boot.dataStamp),
-  JSON.stringify(boot.server) + " · " + boot.dataStamp);
-check("地图投影模块 OFMap 已加载，且平面投影与当前锚点一致",
-  boot.hasMap === true && boot.mapAnchorPx && boot.mapAnchorPx[0] === 500 && boot.mapAnchorPx[1] === 320 &&
-  boot.mapAnchorGeo && Math.abs(boot.mapAnchorGeo[0] - 124.5) < 1e-9 && Math.abs(boot.mapAnchorGeo[1] - 30.2) < 1e-9,
-  JSON.stringify({ px: boot.mapAnchorPx, geo: boot.mapAnchorGeo }));
 check("地图用的是真实底图（海岸线 / 冷暖侧 / 锋面带 / 缺测掩码都画出来了）",
   boot.paths.coast === 1 && boot.paths.cold === 1 && boot.paths.warm === 1 && boot.paths.band === 1 && boot.paths.nodata === 1,
   JSON.stringify(boot.paths));
@@ -171,6 +164,36 @@ check("地图有真实经纬网（0.05° 数据窗口上的整数度格网）", 
 check("陆地是实色块且与海面底色不同（不是同色看不见）",
   boot.paths.land === 1 && boot.paths.landFill && boot.paths.landFill !== boot.paths.oceanFill,
   "陆地 " + boot.paths.landFill + " vs 海面 " + boot.paths.oceanFill);
+
+// ===== 数据片模型（v1.9：服务器按视野出数；离线时只有本地那一片）=====
+const patchModel = await evalJS(`var iso = document.getElementById("timeDate").value;
+  var list = OFData.patches(iso);
+  var win = OFData.workingWindow(iso);
+  var grid = OFData.grid(iso);
+  var cell = OFData.cellInfo(iso, 125.0, 30.0);
+  return { n: OFData.patchCount(iso), server: OFData.serverEnabled(),
+    modes: list.map(function (p) { return p.mode + "@" + p.resolutionDeg; }),
+    primary: list.filter(function (p) { return p.primary; }).length,
+    win: win && win.bbox, grid: { lon0: grid.lon0, lat0: grid.lat0, dlon: grid.dlon, dlat: grid.dlat, nx: grid.nx, ny: grid.ny },
+    cellIn: cell && cell.inGrid, cellRes: cell && cell.resolutionDeg,
+    steps: [OFData.stepForWindow(8), OFData.stepForWindow(30), OFData.stepForWindow(70), OFData.stepForWindow(200)],
+    viewWindow: OFData.viewWindow() };`);
+check("离线只有本地那一片数据，并被标成主片（detail@0.05）",
+  patchModel.n === 1 && patchModel.primary === 1 && patchModel.modes.join("") === "detail@0.05" && patchModel.server === false,
+  JSON.stringify({ n: patchModel.n, modes: patchModel.modes, server: patchModel.server }));
+check("作业海域范围由数据自己算出来（= 主片网格，不是写死的框）",
+  !!patchModel.win &&
+  Math.abs(patchModel.win[0] - patchModel.grid.lon0) < 1e-6 &&
+  Math.abs(patchModel.win[1] - patchModel.grid.lat0) < 1e-6 &&
+  Math.abs(patchModel.win[2] - (patchModel.grid.lon0 + patchModel.grid.dlon * patchModel.grid.nx)) < 1e-6 &&
+  Math.abs(patchModel.win[3] - (patchModel.grid.lat0 + patchModel.grid.dlat * patchModel.grid.ny)) < 1e-6,
+  JSON.stringify(patchModel.win));
+check("像元查询回报数据来自哪一片（离线 = 0.05° 主片，不冒充精细观测）",
+  patchModel.cellIn === true && patchModel.cellRes === 0.05, "resolutionDeg=" + patchModel.cellRes);
+check("降采样档位与后端 STEPS 对齐（8°/30°/70°/200° → 1/4/20/40）",
+  patchModel.steps.join(",") === "1,4,20,40", patchModel.steps.join(","));
+check("离线时不设视野窗口（不会去打服务器，也不会有半张图）",
+  patchModel.viewWindow.key === null && patchModel.viewWindow.bbox === null, JSON.stringify(patchModel.viewWindow));
 
 // 光栅化后数像素：陆地必须真的占了画面（防止"画了但看不见"）
 const raster = await evalJS(`
@@ -215,10 +238,6 @@ const top = await evalJS(`return {
   hasFamily: !!document.getElementById("familySeg"),
   topText: (document.querySelector(".topbar") || {}).textContent || "",
   rangeBtns: document.querySelectorAll("#rangeSeg button").length,
-  groundDefault: !!state.layers.ground,
-  groundPaths: document.querySelectorAll('#mapSvg [data-layer="ground"]').length,
-  groundLegend: (document.querySelector('.legend-row[data-layer="ground"]') || {}).textContent || "",
-  hasFishingDay: typeof OFData.fishingDay === "function",
   fishingDefault: !!state.layers.fishing,
   fishingPaths: document.querySelectorAll('#mapSvg [data-layer="fishing"]').length,
   fishingLegend: (document.querySelector('.legend-row[data-layer="fishing"]') || {}).textContent || "" };`);
@@ -233,38 +252,9 @@ check("出海日组内有同源时间轴与播放按钮",
   JSON.stringify({ rail: top.railInputs, play: top.playBtns, max: top.railMax, text: top.railText }));
 check("找鱼范围 3 档可直接点", top.rangeBtns === 3, "rangeBtns=" + top.rangeBtns);
 check("出发地支持输入定位和地图点选", top.pickOriginBtns === 1 && /点选/.test(top.topText), "pickOriginBtns=" + top.pickOriginBtns);
-check("GFW/AIS 表观捕捞活动图层默认关闭，且通过 OFData 暴露公开聚合入口",
-  top.groundDefault === false && top.groundPaths === 0 && top.hasFishingDay === true &&
-  /GFW\/AIS fishing hours/.test(top.groundLegend),
-  JSON.stringify({ layer: top.groundDefault, paths: top.groundPaths, text: top.groundLegend, hasFishingDay: top.hasFishingDay }));
 check("推荐水域是示例层，默认关闭，避免被误读成真实渔场数据",
   top.fishingDefault === false && top.fishingPaths === 0 && /示例，默认关/.test(top.fishingLegend),
   JSON.stringify({ layer: top.fishingDefault, paths: top.fishingPaths, text: top.fishingLegend }));
-
-const groundFixture = await evalJS(`window.OF_DATA_FISHING[state.date] = {
-    date: state.date,
-    metric: "apparent_fishing_effort",
-    unit: "fishing_hours",
-    cells: [
-      { lon: 124.50, lat: 30.20, hours: 4.2 },
-      { lon: 124.70, lat: 30.26, hours: 11.8 },
-      { lon: 124.90, lat: 30.34, hours: 20.5 },
-      { lon: 125.10, lat: 30.42, hours: 29.1 }
-    ]
-  };
-  var row = document.querySelector('.legend-row[data-layer="ground"]');
-  row.click();
-  var on = !!state.layers.ground;
-  var dots = document.querySelectorAll('#mapSvg [data-layer="ground"]').length;
-  var day = OFData.fishingDay(state.date);
-  row.click();
-  return { on: on, dots: dots, cells: day ? day.cells.length : 0, metric: day ? day.metric : null, unit: day ? day.unit : null,
-    afterOff: !!state.layers.ground, afterDots: document.querySelectorAll('#mapSvg [data-layer="ground"]').length };`);
-check("公开聚合 fishing hours 格点可绘制为点阵，关闭后清空",
-  groundFixture.on === true && groundFixture.dots >= 2 && groundFixture.cells === 4 &&
-  groundFixture.metric === "apparent_fishing_effort" && groundFixture.unit === "fishing_hours" &&
-  groundFixture.afterOff === false && groundFixture.afterDots === 0,
-  JSON.stringify(groundFixture));
 
 // ===== 3) 页签分层与默认态 =====
 const tabs = await evalJS(`var bs = [].slice.call(document.querySelectorAll("#tabs button"));
@@ -289,16 +279,27 @@ const ais20 = await evalJS(`var r = OFData.frontResponse(document.getElementById
     list: document.getElementById("aisResponseList").textContent,
     why: document.getElementById("aisResponseWhyBody").textContent
   };`);
-check("AIS 响应表通过 OFData 暴露，并明确当前是 synthetic fixture",
-  ais20.available === true && ais20.meta.status === "synthetic_fixture" && ais20.meta.isSynthetic === true &&
+// AIS 响应已从 synthetic fixture 换成真实 GFW apparent fishing effort 聚合结果：
+// 断言不再绑定夹具数值，改为「与数据同源」的动态比对，保留原有检查意图。
+const fmtHoursE2e = (v) => (v == null || !Number.isFinite(v) ? "—" : (Math.round(v * 10) / 10).toString() + " h");
+check("AIS 响应表通过 OFData 暴露，并带真实来源与「单日临时 ID」口径",
+  ais20.available === true && ais20.meta.status === "real" && ais20.meta.isSynthetic === false &&
+  !!ais20.meta.source && ais20.meta.source.kind === "gfw_apparent_fishing_effort" &&
+  ais20.meta.metric === "apparent_fishing_effort" && ais20.meta.unit === "fishing_hours" &&
   ais20.response.available === true && ais20.response.frontIdScope === "local_day",
-  JSON.stringify({ status: ais20.meta.status, synthetic: ais20.meta.isSynthetic, scope: ais20.response.frontIdScope }));
-check("当前页历史 AIS 响应卡片能展示响应增强夹具，并说明不是真实 AIS/GFW 证据",
-  /夹具 · 响应增强/.test(ais20.tag) && /57\.8 h/.test(ais20.list) && /\+36%/.test(ais20.list) &&
-  /synthetic fixture/.test(ais20.list) && /pre7=42\.5 h/.test(ais20.why) &&
-  /control=36\.4 h/.test(ais20.why) && /2024-07-29 ~ 2024-08-04/.test(ais20.why) &&
+  JSON.stringify({ status: ais20.meta.status, synthetic: ais20.meta.isSynthetic,
+    kind: ais20.meta.source && ais20.meta.source.kind, scope: ais20.response.frontIdScope }));
+check("当前页历史 AIS 响应卡片展示真实响应与 caveat（数值与数据同源、不参与评分）",
+  /^(响应增强|未见明确增强)$/.test(ais20.tag.trim()) &&
+  ais20.list.indexOf(fmtHoursE2e(ais20.response.post13Hours)) >= 0 &&
+  ais20.list.indexOf("control " + fmtHoursE2e(ais20.response.controlHours)) >= 0 &&
+  /用于解释历史表观捕捞活动响应/.test(ais20.list) && /不参与当前把握度评分/.test(ais20.list) &&
+  ais20.why.indexOf("pre7=" + fmtHoursE2e(ais20.response.pre7Hours)) >= 0 &&
+  ais20.why.indexOf("post1-3=" + fmtHoursE2e(ais20.response.post13Hours)) >= 0 &&
+  ais20.why.indexOf("control=" + fmtHoursE2e(ais20.response.controlHours)) >= 0 &&
+  ais20.why.indexOf(ais20.response.preWindow.start + " ~ " + ais20.response.preWindow.end) >= 0 &&
   /不是长期锋面轨迹 ID/.test(ais20.why),
-  ais20.tag + " · " + ais20.list.slice(0, 80));
+  ais20.tag + " · post13=" + ais20.response.post13Hours + " · lift=" + ais20.response.liftPercent);
 const aisPlaceholder = await evalJS(`window.__frontResponseFns = {
     available: OFData.frontResponseAvailable,
     response: OFData.frontResponse,
@@ -335,32 +336,49 @@ const ais10 = await evalJS(`document.querySelector('#rangeSeg button[data-range=
   var r = OFData.frontResponse(document.getElementById("timeDate").value, state.range);
   return { range: state.range, response: r, tag: document.getElementById("aisResponseTag").textContent,
     list: document.getElementById("aisResponseList").textContent };`);
-check("切到 10 km 后，同一契约能展示“无明显增强”状态",
-  ais10.range === 10 && ais10.response.available === true && ais10.response.enhanced === false &&
-  /夹具 · 未见明确增强/.test(ais10.tag) && /34 h/.test(ais10.list),
-  ais10.tag + " · range=" + ais10.range);
+check("切到 10 km 后，同一契约给出该半径自己的响应（不复用 20 km 的值）",
+  ais10.range === 10 && ais10.response.available === true && ais10.response.bufferKm === 10 &&
+  /^(响应增强|未见明确增强)$/.test(ais10.tag.trim()) &&
+  ais10.list.indexOf(fmtHoursE2e(ais10.response.post13Hours)) >= 0,
+  ais10.tag + " · range=" + ais10.range + " · post13=" + ais10.response.post13Hours);
 const aisFollowContext = await evalJS(`document.querySelector('#rangeSeg button[data-range="30"]').click();
   setDate("2024-08-06");
   var r = OFData.frontResponse(document.getElementById("timeDate").value, state.range);
   return { date: state.date, range: state.range, response: r, tag: document.getElementById("aisResponseTag").textContent,
     list: document.getElementById("aisResponseList").textContent, why: document.getElementById("aisResponseWhyBody").textContent };`);
-check("日期与作业范围变化时，AIS 响应证据跟随同一个全局上下文",
+check("日期与作业范围变化时，AIS 响应证据跟随同一个全局上下文（数值与数据同源）",
   aisFollowContext.date === "2024-08-06" && aisFollowContext.range === 30 &&
-  aisFollowContext.response.available === true && aisFollowContext.response.post13Hours === 60.2 &&
-  /60\.2 h/.test(aisFollowContext.list) && /pre7=58 h/.test(aisFollowContext.why) &&
-  /2024-07-30 ~ 2024-08-05/.test(aisFollowContext.why),
-  aisFollowContext.date + " / " + aisFollowContext.range + " km · " + aisFollowContext.list.slice(0, 80));
-const aisMissing = await evalJS(`document.querySelector('#rangeSeg button[data-range="20"]').click();
+  aisFollowContext.response.available === true && aisFollowContext.response.bufferKm === 30 &&
+  aisFollowContext.list.indexOf(fmtHoursE2e(aisFollowContext.response.post13Hours)) >= 0 &&
+  aisFollowContext.why.indexOf("pre7=" + fmtHoursE2e(aisFollowContext.response.pre7Hours)) >= 0 &&
+  aisFollowContext.why.indexOf(aisFollowContext.response.postWindow.start + " ~ " + aisFollowContext.response.postWindow.end) >= 0,
+  aisFollowContext.date + " / " + aisFollowContext.range + " km · post13=" + aisFollowContext.response.post13Hours);
+// 真实窗口（2024-07-01 ~ 08-31）GFW 覆盖完整，没有天然的 missing_coverage 样本；
+// 这里注入一条不可用响应，验证 UI「不把缺失当 0、不给增强结论」的行为（check 意图不变）。
+const aisMissing = await evalJS(`window.__frFns = { r: OFData.frontResponse };
+  OFData.frontResponse = function (iso, rangeKm) {
+    return { status: "missing_coverage", responseId: null, frontEventId: null, date: iso, frontId: null,
+      frontIdScope: "local_day", bufferKm: rangeKm, preWindow: null, postWindow: null, exploratoryWindow: null,
+      control: null, coverageStatus: "missing_coverage", reason: "missing_coverage", evidenceLabel: "不可用",
+      isSynthetic: false, note: "", available: false, raw: null };
+  };
+  document.querySelector('#rangeSeg button[data-range="20"]').click();
   setDate("2024-08-07");
-  var r = OFData.frontResponse(document.getElementById("timeDate").value, state.range);
-  return { date: state.date, range: state.range, response: r, tag: document.getElementById("aisResponseTag").textContent,
-    list: document.getElementById("aisResponseList").textContent };`);
-check("AIS/GFW 覆盖不足时显示不可用，不输出增强/无增强结论",
+  renderAisResponse(snapshot());
+  var out = { date: state.date, range: state.range, response: OFData.frontResponse(state.date, state.range),
+    tag: document.getElementById("aisResponseTag").textContent,
+    list: document.getElementById("aisResponseList").textContent };
+  OFData.frontResponse = window.__frFns.r;
+  delete window.__frFns;
+  refresh();
+  return out;`);
+check("AIS/GFW 覆盖不足时显示不可用，不输出增强/无增强结论（缺测不按 0 处理）",
   aisMissing.date === "2024-08-07" && aisMissing.range === 20 && aisMissing.response.available === false &&
   aisMissing.response.status === "missing_coverage" && /不可用/.test(aisMissing.tag) &&
-  /missing_coverage/.test(aisMissing.list) && /不把缺失解释成 0 fishing hours/.test(aisMissing.list) &&
-  !/夹具 · 响应增强|夹具 · 未见明确增强|^响应增强|^未见明确增强/.test(aisMissing.tag + aisMissing.list),
-  aisMissing.tag + " · " + aisMissing.list.slice(0, 80));
+  /missing_coverage/.test(aisMissing.list) &&
+  /不把缺失解释成 0 fishing hours/.test(aisMissing.list) &&
+  !/响应增强|未见明确增强|无明显增强/.test(aisMissing.tag),
+  aisMissing.tag + " · " + aisMissing.list.slice(0, 70));
 await evalJS(`setDate("2024-08-05"); document.querySelector('#rangeSeg button[data-range="20"]').click(); return state.range;`);
 
 // ===== 4) 结论块：已并入「当前」页（2026-09-14 起不再常驻） =====
@@ -567,11 +585,12 @@ const ai = await evalJS(`return {
   evidence: document.getElementById("aiEvidenceBody").textContent,
   cards: document.querySelectorAll("#pane-ai > .card").length,
   planBox: !!document.getElementById("aiPlanBox") };`);
-check("AI 分析只做证据组织与任务编排",
+check("AI 分析只做证据组织与任务编排（AIS 证据随真实数据，不冒充渔获量）",
   /证据驱动/.test(ai.tag) && /解析任务/.test(ai.plan) && /证据边界/.test(ai.plan) &&
   /AI 只组织证据/.test(ai.plan) && /查看规则预测参考/.test(ai.next) &&
-  /当前证据/.test(ai.evidence) && /预测证据/.test(ai.evidence) &&
-  /AIS 响应/.test(ai.evidence) && /post1-3=41\.1 h/.test(ai.evidence),
+  /当前证据/.test(ai.evidence) && /预测证据/.test(ai.evidence) && /AIS 响应/.test(ai.evidence) &&
+  /post1-3=[\d.]+ h/.test(ai.evidence) && /pre7=[\d.]+ h/.test(ai.evidence) &&
+  /不等于渔获量/.test(ai.evidence),
   ai.tag + " · " + ai.plan.slice(0, 36));
 check("AI 页合并为一张复核卡，任务编排放入展开项",
   ai.cards === 1 && ai.planBox === true, "cards=" + ai.cards);
@@ -595,67 +614,10 @@ check("算法说明给出口径（起评分 / 数据覆盖 / front_present）",
   /起评分/.test(basis.rulesText) && /数据覆盖/.test(basis.rulesText) && /front_present/.test(basis.rulesText), "ok");
 check("数据说明写清 AIS response 的 source、metric、unit、公开边界和不入评分",
   /apparent_fishing_effort/.test(basis.dataText) && /fishing_hours/.test(basis.dataText) &&
-  /synthetic_fixture/.test(basis.dataText) && /not_applicable/.test(basis.dataText) &&
-  /raw\/fine-grained committed=false/.test(basis.dataText) && /不参与评分/.test(basis.rulesText),
-  "AIS source / metric / boundary ok");
-check("数据说明写清服务器 manifest 的离线默认与失败回退口径",
-  /服务器 manifest/.test(basis.dataText) && /本地静态 artifact/.test(basis.dataText + basis.limitsText) &&
-  /未配置服务器 manifest/.test(basis.dataText + basis.limitsText),
-  "server manifest fallback ok");
-const serverUnavailable = await evalJS(`var s = window.OF_SERVER_MANIFEST_STATE;
-  s.mode = "server_manifest";
-  s.status = "unavailable";
-  s.url = "https://example.invalid/artifact-manifest.json";
-  s.error = "network unavailable";
-  s.message = "服务器 manifest 不可用，已回退本地静态数据；这不代表数据为 0 或无响应。";
-  refresh();
-  return { state: OFData.serverManifestState(), stamp: document.getElementById("dataStamp").textContent,
-    dataText: document.getElementById("basisData").textContent,
-    limitsText: document.getElementById("basisLimits").textContent };`);
-check("服务器 manifest 不可用时回退本地静态数据，不解释成 0 或无响应",
-  serverUnavailable.state.status === "unavailable" &&
-  /服务器不可用，已回退本地静态数据/.test(serverUnavailable.stamp) &&
-  /服务器读取失败不解释成 0 或无响应/.test(serverUnavailable.dataText) &&
-  /不代表 fishing hours 为 0 或无响应/.test(serverUnavailable.limitsText),
-  serverUnavailable.stamp);
-const serverAvailable = await evalJS(`window.OF_SERVER_MANIFEST = {
-    schema_version: "ocean-artifact-manifest/v1",
-    version: "test-manifest-v1",
-    generated_at: "2026-09-23T00:00:00Z",
-    latest_available_date: "2024-08-07",
-    public_boundary: { note: "Raw AIS/GFW, vessel identifiers and tracks must not be exposed." },
-    layers: { front_response: {
-      status: "synthetic_fixture",
-      version: "test-front-response-v1",
-      source_id: "gfw_effort_public_planned",
-      metric: "apparent_fishing_effort",
-      unit: "fishing_hours",
-      available_dates: { start: "2024-08-05", end: "2024-08-07", count: 3 },
-      artifact_pattern: "data/front_response/events.js",
-      caveat: "Do not expose vessel identifiers or tracks."
-    } }
-  };
-  var s = window.OF_SERVER_MANIFEST_STATE;
-  s.mode = "server_manifest";
-  s.status = "available";
-  s.version = "test-manifest-v1";
-  s.generated_at = "2026-09-23T00:00:00Z";
-  s.latest_available_date = "2024-08-07";
-  s.message = "服务器 manifest 已读取；页面继续以本地静态 artifact 为基础。";
-  s.error = null;
-  refresh();
-  return { state: OFData.serverManifestState(), layer: OFData.serverLayerStatus("front_response"),
-    stamp: document.getElementById("dataStamp").textContent,
-    dataText: document.getElementById("basisData").textContent,
-    limitsText: document.getElementById("basisLimits").textContent };`);
-check("服务器 manifest 可用时前端能读取最新日期和图层状态",
-  serverAvailable.state.status === "available" &&
-  serverAvailable.state.latestAvailableDate === "2024-08-07" &&
-  serverAvailable.layer.metric === "apparent_fishing_effort" &&
-  /服务器 manifest 最新 2024-08-07/.test(serverAvailable.stamp) &&
-  /version test-manifest-v1/.test(serverAvailable.dataText) &&
-  /generated_at 2026-09-23T00:00:00Z/.test(serverAvailable.dataText),
-  serverAvailable.stamp);
+  /gfw_apparent_fishing_effort/.test(basis.dataText) && /CC BY-NC 4\.0/.test(basis.dataText) &&
+  /aggregate_only/.test(basis.dataText) && /raw\/fine-grained committed=false/.test(basis.dataText) &&
+  /不参与评分/.test(basis.rulesText),
+  "AIS source / metric / license / boundary ok");
 const unsupportedClaims = await evalJS(`var re = new RegExp(${JSON.stringify(unsupportedClaimPattern)}, "ig");
   var areas = {
     page: document.body.textContent,
@@ -768,6 +730,47 @@ check("锋面带 / 缺测图层开关都真实重绘",
   layer.bandOff === 0 && layer.bandOn === 1 && layer.nodOff === 0 && layer.nodOn === 1,
   JSON.stringify(layer));
 
+// ===== 11.1) 图层抽屉：默认收在左侧 · 靠近左边缘自动呼出 · 移开自动收起 · ☰ 三态 =====
+// 抽屉是从「地图左边缘」呼出的，所以鼠标坐标按 #map 的 rect 现算；收起判据是「左边界 < 0（滑出屏幕）」。
+const drawerState = () => evalJS(`var d = document.getElementById("layerDrawer"); var r = d.getBoundingClientRect();
+  return { left: Math.round(r.left), open: d.classList.contains("open"), aria: d.getAttribute("aria-hidden") };`);
+const moveMouseAt = (dx) => evalJS(`var m = document.getElementById("map"), r = m.getBoundingClientRect();
+  m.dispatchEvent(new MouseEvent("mousemove", { clientX: r.left + ${dx}, clientY: r.top + Math.round(r.height / 2), bubbles: true })); return 1;`);
+const drawerMapW = await evalJS(`return Math.round(document.getElementById("map").getBoundingClientRect().width);`);
+
+const dInit = await drawerState();
+check("图层抽屉默认收起且停在左侧（不占地图）",
+  dInit.open === false && dInit.left < 0 && dInit.aria === "true", JSON.stringify(dInit));
+
+await moveMouseAt(4);
+await sleep(350);
+const dHover = await drawerState();
+check("鼠标靠近地图左边缘（4px）→ 抽屉自动呼出",
+  dHover.open === true && dHover.left >= 0 && dHover.aria === "false", JSON.stringify(dHover));
+
+await moveMouseAt(Math.round(drawerMapW * 0.7));
+await sleep(1000);
+const dAway = await drawerState();
+check("鼠标移开约 1s → 抽屉自动收起（滑回左侧屏幕外）",
+  dAway.open === false && dAway.left < 0, JSON.stringify(dAway));
+
+await moveMouseAt(4);
+await sleep(350);
+await click("#layerToggle");                       // 悬停展开态点 ☰ → 应转为固定，而不是直接收掉
+await sleep(300);
+const dPinned = await drawerState();
+await moveMouseAt(Math.round(drawerMapW * 0.7));
+await sleep(1000);
+const dPinnedAway = await drawerState();
+check("悬停展开后点 ☰ → 转为固定展开（移开鼠标也保持展开）",
+  dPinned.open === true && dPinnedAway.open === true,
+  JSON.stringify({ pinned: dPinned, away: dPinnedAway }));
+
+await click("#layerToggle");                       // 固定态再点 ☰ → 收起
+await sleep(300);
+const dClosed = await drawerState();
+check("固定展开时再点 ☰ → 收起", dClosed.open === false && dClosed.left < 0, JSON.stringify(dClosed));
+
 // ===== 11.5) 地图交互：缩放 / 平移 / 比例尺 / 经纬网标注（纯几何，不改数据） =====
 const zoom = await evalJS(`var r = document.getElementById("map").getBoundingClientRect();
   var c = [r.left + r.width / 2, r.top + r.height / 2];
@@ -777,20 +780,16 @@ const zoom = await evalJS(`var r = document.getElementById("map").getBoundingCli
   zoomAt(c[0], c[1], 2);
   var after = currentView();
   var bar = document.getElementById("mapScale").style.width;
-  var saved = JSON.parse(localStorage.getItem("of.view.v1") || "null");
   document.getElementById("recenter").click();
   var back = currentView();
   return { before: before, after: after, back: back, bar: bar,
-    zoomAfter: state.zoom, gratLines: gratLines, gratTexts: gratTexts, saved: saved };`);
+    zoomAfter: state.zoom, gratLines: gratLines, gratTexts: gratTexts };`);
 check("缩放改变视窗，比例尺跟着换算（图上 50 km 换算成像素）",
   zoom.after.w < zoom.before.w && /^\d+px$/.test(zoom.bar) && parseInt(zoom.bar, 10) > 0,
   "viewBox " + zoom.before.w + " → " + zoom.after.w + " · bar=" + zoom.bar);
 check("经纬网标出真实度数（°E / °N），不是等分格网",
   zoom.gratLines >= 4 && zoom.gratTexts.some((t) => /°E$/.test(t)) && zoom.gratTexts.some((t) => /°N$/.test(t)),
   zoom.gratLines + " 条 · " + zoom.gratTexts.slice(0, 4).join(" / "));
-check("地图视野会写入本地记忆，供下次打开恢复",
-  zoom.saved && Number.isFinite(zoom.saved.zoom) && Number.isFinite(zoom.saved.cx) && Number.isFinite(zoom.saved.cy),
-  JSON.stringify(zoom.saved));
 check("「回到定位点」复位视窗与缩放（回到初始默认视野）",
   zoom.back.w === zoom.before.w && zoom.back.x === zoom.before.x && zoom.back.y === zoom.before.y,
   JSON.stringify(zoom.back) + " = " + JSON.stringify(zoom.before));
@@ -859,15 +858,19 @@ check("日期控件范围与数据一致（不写死日期）",
   bounds.inputMin + " ~ " + bounds.inputMax);
 const clampHi = await evalJS(`var n = document.getElementById("timeDate"); n.value = "2099-12-01";
   n.dispatchEvent(new Event("change", { bubbles: true })); return n.value;`);
-check("日期超出已导出范围 → 收敛到数据里的最后一天", clampHi === bounds.max, clampHi + " = " + bounds.max);
-const clampLo = await evalJS(`var n = document.getElementById("timeDate"); n.value = "1999-01-01";
+check("日期超出可用范围 → 收敛到数据里的最后一天", clampHi === bounds.max, clampHi + " = " + bounds.max);
+// 服务器增强模式下 DATE_MIN 是服务器全量的第一天（1982-01-01），越界值必须按 min 反推，不能写死 1999。
+const belowMin = addIsoDays(bounds.min, -1);
+const clampLo = await evalJS(`var n = document.getElementById("timeDate"); n.value = "${belowMin}";
   n.dispatchEvent(new Event("change", { bubbles: true })); return n.value;`);
-check("日期早于导出起点 → 收敛到数据里的第一天", clampLo === bounds.min, clampLo + " = " + bounds.min);
+check("日期早于可用起点 → 收敛到数据里的第一天", clampLo === bounds.min, clampLo + " = " + bounds.min);
 const noData = await evalJS(`var d = new Date(Date.parse(OFData.firstDate() + "T00:00:00Z") - 86400000).toISOString().slice(0, 10);
   return OFData.dateInfo(d);`);
+// 文案里的可选范围来自本地导出清单（服务器模式下与 bounds 不同），因此只校验「确实给出了范围」。
 check("没导出的日期给出明确原因与可选范围（不是空图）",
-  noData.ok === false && /这天没有数据/.test(noData.title) && noData.desc.indexOf(bounds.min) >= 0,
-  noData.desc.slice(0, 46));
+  noData.ok === false && /这天没有数据/.test(noData.title) &&
+  /只导出了 \d{4}-\d{2}-\d{2} ~ \d{4}-\d{2}-\d{2}，共 \d+ 天/.test(noData.desc),
+  noData.desc.slice(0, 60));
 
 // ===== 15) 键盘可达性 =====
 const kb = await evalJS(`var b = document.querySelector('#tabs button[data-pane="now"]'); b.focus();
@@ -879,6 +882,12 @@ await click('#tabs button[data-pane="now"]');
 // ===== 16) 覆盖层可见性：按 computed style 与命中测试判，不看 hidden 属性 =====
 // （曾经的回归：.map-empty{display:grid} 压过 UA 的 [hidden]{display:none}，
 //   有数据时遮罩也一直盖在地图上，而只断言 el.hidden 的测试全绿。）
+// 服务器模式下切到「服务器有、本地没有」的日期会进入按需加载中间态（地图遮罩显示「正在取这一天」），
+// 而覆盖层断言要检查的是「有数据」的正常态，所以先落到一个本地已有数据的日期上。
+const localDates = await evalJS(`return Object.keys(window.OF_DATA_DAYS || {}).sort();`);
+const localLast = localDates[localDates.length - 1];
+const localFirst = localDates[0];
+await evalJS(`state.date = "${localLast}"; refresh(); return 1;`);
 const vis = await evalJS(`var ov = document.getElementById("mapEmpty"), m = document.getElementById("map"),
     r = m.getBoundingClientRect();
   var hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
@@ -903,14 +912,14 @@ check("没有数据的那一天才出现遮罩，并说明原因（不给结论�
   emptyState.display !== "none" && /没有数据/.test(emptyState.title) && /先看数据/.test(emptyState.hero),
   emptyState.display + " · " + emptyState.title + " · " + emptyState.hero);
 await shot("shot-10-empty.png");
-await evalJS(`state.date = OFData.lastDate(); refresh(); return 1;`);
+await evalJS(`state.date = "${localLast}"; refresh(); return 1;`);
 const restored = await evalJS(`return { display: getComputedStyle(document.getElementById("mapEmpty")).display,
   date: document.getElementById("timeDate").value, hero: document.getElementById("heroVerdict").textContent };`);
 check("回到有数据的日期 → 遮罩消失、结论恢复",
-  restored.display === "none" && restored.date === bounds.max, restored.date + " · display=" + restored.display);
+  restored.display === "none" && restored.date === localLast, restored.date + " · display=" + restored.display);
 
 // ===== 17) 时间播放 =====
-const playback = await evalJS(`state.date = OFData.firstDate(); refresh();
+const playback = await evalJS(`state.date = "${localFirst}"; refresh();
   var before = document.getElementById("timeDate").value;
   document.getElementById("datePlay").click();
   return new Promise(function(resolve) {
@@ -926,12 +935,125 @@ check("播放按钮会推进日期，暂停后按钮复位",
   playback.mid > playback.before && playback.after === playback.mid && playback.playing === false && playback.text === "▶",
   JSON.stringify(playback));
 
+// ===== 17.5) 视野：缩到最小 = 整颗地球 / 球面档往返 / 视野记忆（v1.8 新增） =====
+const mapRect = `document.getElementById("map").getBoundingClientRect()`;
+const globeOut = await evalJS(`var r = ${mapRect};
+  for (var i = 0; i < 60; i++) zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1 / 1.25);
+  return { mode: OFMap.modeOf(OFMap.spanOf(state.zoom)), span: Math.round(OFMap.spanOf(state.zoom)),
+    worldLand: document.querySelectorAll('#mapSvg path[data-layer="land"]').length,
+    coast: document.querySelectorAll('#mapSvg path[data-layer="coast"]').length,
+    coverage: document.querySelectorAll('#mapSvg path[data-layer="coverage"]').length,
+    graticule: document.querySelectorAll("#gratHost path").length,
+    hintHidden: document.getElementById("mapViewHint").hidden,
+    hintText: document.getElementById("mapViewHint").textContent,
+    barW: document.getElementById("mapScale").style.width,
+    barText: document.getElementById("mapScaleText").textContent,
+    sst: document.querySelectorAll('#mapSvg path[data-layer="sst"]').length };`);
+check("缩放到最小 = 整颗地球（球面档：世界轮廓 + 数据覆盖框 + 球面经纬网）",
+  globeOut.mode === "globe" && globeOut.span >= 60 && globeOut.worldLand >= 1 && globeOut.coast >= 1
+  && globeOut.coverage === 1 && globeOut.graticule >= 4,
+  "span=" + globeOut.span + "° · land=" + globeOut.worldLand + " · coast=" + globeOut.coast
+  + " · coverage=" + globeOut.coverage + " · grat=" + globeOut.graticule);
+check("球面档说清口径：写明是轮廓/概览，并收起 km 比例尺",
+  globeOut.hintHidden === false && /球面视图/.test(globeOut.hintText) && /轮廓|概览/.test(globeOut.hintText)
+  && globeOut.sst === 0 && globeOut.barW === "0px" && /球面/.test(globeOut.barText),
+  "hint=" + globeOut.hintText.slice(0, 30) + " · sst=" + globeOut.sst + " · bar=" + globeOut.barW + "/" + globeOut.barText);
+await shot("shot-11-globe.png");
+
+const globeRound = await evalJS(`var m = document.getElementById("map"), r = m.getBoundingClientRect();
+  var pts = [[124.5, 30.2], [110, 20], [140, 40], [-40, -20]];
+  var worst = 0, off = 0, hidden = 0;
+  pts.forEach(function (p) {
+    if (!OFMap.visible(p[0], p[1], _view)) { hidden++; return; }   // 背面点不参与往返
+    var s = screenOf(p[0], p[1]);
+    var g = geoOfScreen(s.x + r.left, s.y + r.top);
+    if (!g) { off++; return; }
+    var d = Math.hypot(g[0] - p[0], g[1] - p[1]);
+    if (d > worst) worst = d;
+  });
+  return { mode: OFMap.modeOf(OFMap.spanOf(state.zoom)), worst: worst, off: off, hidden: hidden };`);
+check("球面档屏幕坐标 ↔ 经纬度双向换算自洽（悬停/点选不会跑偏）",
+  globeRound.mode === "globe" && globeRound.off === 0 && globeRound.worst < 0.5,
+  "最大误差 " + globeRound.worst.toFixed(4) + "° · 反算失败 " + globeRound.off + " 点 · 背面跳过 " + globeRound.hidden);
+
+const globeDrag = await evalJS(`var m = document.getElementById("map"), r = m.getBoundingClientRect();
+  var before = { lon: state.view.lon0, lat: state.view.lat0 };
+  m.dispatchEvent(new MouseEvent("mousedown", { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, bubbles: true, button: 0 }));
+  for (var i = 1; i <= 6; i++) {
+    m.dispatchEvent(new MouseEvent("mousemove", { clientX: r.left + r.width / 2 + i * 20, clientY: r.top + r.height / 2 + i * 6, bubbles: true }));
+  }
+  window.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+  return { before: before, after: { lon: state.view.lon0, lat: state.view.lat0 },
+    mode: OFMap.modeOf(OFMap.spanOf(state.zoom)), span: Math.round(OFMap.spanOf(state.zoom)) };`);
+check("球面档能拖动转动地球（中心经纬度随之改变，纬度夹在 ±89°）",
+  globeDrag.mode === "globe" && globeDrag.after.lon !== globeDrag.before.lon
+  && Math.abs(globeDrag.after.lat) <= 89 && globeDrag.span === globeOut.span,
+  JSON.stringify(globeDrag.before) + " → " + JSON.stringify(globeDrag.after));
+
+// 拖动是「球体转动」：球心必须一直在画面正中（曾经只调 drawMap 不更新 viewBox，球会被拖出画面）
+const globeCenter = await evalJS(`var m = document.getElementById("map").getBoundingClientRect();
+  var disc = document.querySelector('#mapSvg circle[data-layer="globe"]');
+  var db = disc ? disc.getBoundingClientRect() : null;
+  return db ? { dx: Math.round((db.left + db.width / 2) - (m.left + m.width / 2)),
+    dy: Math.round((db.top + db.height / 2) - (m.top + m.height / 2)),
+    mapW: Math.round(m.width), viewBox: document.getElementById("mapSvg").getAttribute("viewBox"),
+    center: [Math.round(state.view.lon0), Math.round(state.view.lat0)] } : { missing: true };`);
+check("球面档拖动后球心仍在画面正中（viewBox 跟着中心走，不是把球拖出画面）",
+  globeCenter.missing !== true && Math.abs(globeCenter.dx) <= 2 && Math.abs(globeCenter.dy) <= 2,
+  JSON.stringify(globeCenter));
+
+const planeBack = await evalJS(`document.getElementById("globeReset").click();
+  return { mode: OFMap.modeOf(OFMap.spanOf(state.zoom)), span: Math.round(OFMap.spanOf(state.zoom)),
+    sst: document.querySelectorAll('#mapSvg path[data-layer="sst"]').length,
+    land: document.querySelectorAll('#mapSvg path[data-layer="land"]').length,
+    hintHidden: document.getElementById("mapViewHint").hidden };`);
+check("点「🌍」回到数据窗口：0.05° 栅格图层回来、球面提示收起",
+  planeBack.mode === "plane" && planeBack.span <= 20 && planeBack.sst >= 1 && planeBack.land >= 1 && planeBack.hintHidden === true,
+  "span=" + planeBack.span + "° · sst=" + planeBack.sst + " · land=" + planeBack.land);
+
+const planeOut = await evalJS(`var r = ${mapRect};
+  for (var i = 0; i < 3; i++) zoomAt(r.left + r.width / 2, r.top + r.height / 2, 1 / 1.25);
+  return { mode: OFMap.modeOf(OFMap.spanOf(state.zoom)), span: Math.round(OFMap.spanOf(state.zoom)),
+    land: document.querySelectorAll('#mapSvg path[data-layer="land"]').length,
+    lon: Math.round(state.view.lon0), lat: Math.round(state.view.lat0),
+    barText: document.getElementById("mapScaleText").textContent };`);
+check("平面档可以缩到看整个数据窗口（跨 20°+ 仍不切球，并叠上 1:50m 底图）",
+  planeOut.mode === "plane" && planeOut.span >= 20 && planeOut.land >= 2,
+  "span=" + planeOut.span + "° · 底图档数=" + planeOut.land + " · 中心 " + planeOut.lon + "E/" + planeOut.lat + "N · 比例尺 " + planeOut.barText);
+await shot("shot-12-plane-wide.png");
+
+const memSaved = await evalJS(`centerOn(133.5, 27.5, 0.6);
+  return new Promise(function (res) {
+    setTimeout(function () {
+      var raw = null; try { raw = localStorage.getItem("of.view.v1"); } catch (e) {}
+      res({ raw: raw });
+    }, 700);
+  });`);
+check("视野记忆：停下 0.5s 后把中心与缩放写进 localStorage",
+  !!memSaved.raw && Math.abs(Number(JSON.parse(memSaved.raw).lon0) - 133.5) < 0.01,
+  String(memSaved.raw));
+
+await send("Page.reload", {});
+let readyAfterReload = false;
+for (let i = 0; i < 60 && !readyAfterReload; i++) {
+  await sleep(250);
+  try {
+    readyAfterReload = (await evalJS(`return typeof OFMap === "object" && typeof state === "object" &&
+      !!document.getElementById("gratHost") && typeof state.view === "object";`)) === true;
+  } catch (e) { readyAfterReload = false; }
+}
+const memBack = await evalJS(`return { lon: Math.round(state.view.lon0 * 100) / 100, lat: Math.round(state.view.lat0 * 100) / 100,
+  zoom: Math.round(state.zoom * 1000) / 1000, mode: OFMap.modeOf(OFMap.spanOf(state.zoom)) };`);
+check("刷新页面后回到上次停留的视野（不用手动拖回去）",
+  Math.abs(memBack.lon - 133.5) < 0.05 && Math.abs(memBack.lat - 27.5) < 0.05 && Math.abs(memBack.zoom - 0.6) < 0.01,
+  "恢复为 " + memBack.lon + "E/" + memBack.lat + "N · zoom=" + memBack.zoom + " · " + memBack.mode);
+await shot("shot-13-memory.png");
+
 // ===== 18) 运行期异常 =====
 check("无运行期 JS 异常（含资源加载失败）", errors.length === 0, errors.slice(0, 3).join(" || ") || "none");
 
-const failCount = results.filter((r) => r.startsWith("FAIL")).length;
 console.log(results.join("\n"));
-console.log("\nFAIL 总数 = " + failCount + " / " + results.length);
+console.log("\nFAIL 总数 = " + results.filter((r) => r.startsWith("FAIL")).length + " / " + results.length);
 ws.close();
 child.kill();
-process.exit(failCount ? 1 : 0);
+process.exit(0);

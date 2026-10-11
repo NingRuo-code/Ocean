@@ -92,3 +92,18 @@ Checks:
 - `node tools/layout-check.mjs`: 0 failures.
 - `git diff --check`: pass.
 
+2026-10-11:
+
+- Imported the full SVG orthographic globe viewport from collaborator commit `4a907a1`.
+- Added the `🌍` globe/data-window control, plane/globe view switching, globe drag rotation, globe coverage boxes, globe scale caveat, and persisted `{lon0, lat0, zoom}` view memory.
+- Aligned frontend data loading with viewport patches: offline remains local-only, while server mode can request `bbox` + `step` overview payloads for large-area/globe windows.
+- Imported the real aggregate front-response input and regenerated `events.js` from public GFW apparent fishing-effort aggregates; raw/fine-grained AIS/GFW data remains out of repo.
+- Updated data/e2e/layout checks so globe behavior is regression-tested, including whole-earth view, globe round-trip projection, drag rotation, center stability, return-to-data-window, and view-memory restore.
+
+Checks:
+
+- `node tools/data-check.mjs`: 0 failures / 914.
+- `node tools/e2e-check.mjs`: 0 failures / 127.
+- `node tools/layout-check.mjs`: 0 failures.
+- Sensitive scan for real server/key/personal-path material: no matches after sanitizing one documentation example.
+- `git diff --check`: pass.

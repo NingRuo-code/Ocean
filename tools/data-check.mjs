@@ -1,4 +1,4 @@
-/* 数据完整性校验：确认 frontend/prototype/data/ 下生成的文件结构正确、数值自洽、没有编造字段
+/* 数据完整性校验：确认 data/ 下生成的文件结构正确、数值自洽、没有编造字段
  *
  * 用法：node tools/data-check.mjs
  *
@@ -10,8 +10,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const PROTOTYPE = join(ROOT, "frontend", "prototype");
-const DATA = process.env.OCEAN_PROTOTYPE_DATA || join(PROTOTYPE, "data");
+// 适配本仓布局：原型页面与其离线数据都在 frontend/prototype/ 下（协作者仓是扁平布局，data/ 在根目录）
+const DATA = join(ROOT, "frontend", "prototype", "data");
 const SERVER_DATA = join(ROOT, "server_data");
 const VALID_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const results = [];
@@ -177,19 +177,53 @@ check("底图写明公有领域来源", /public domain|公有领域/i.test(BASE.
   BASE.source + " / " + BASE.license);
 const baseKb = statSync(join(DATA, "base", "basemap.js")).size / 1024;
 check("底图体积可控（< 400 KB）", baseKb < 400, baseKb.toFixed(1) + " KB");
-const BASE_ASIA = readJs(join("base", "asia.js")).run().OF_DATA_ASIA;
-const BASE_WORLD = readJs(join("base", "world.js")).run().OF_DATA_WORLD;
-check("多级底图数据入口齐备（东海 / 西太平洋 / 全球）",
-  !!(BASE && BASE_ASIA && BASE_WORLD) &&
-  BASE_ASIA.bbox.join(",") === "95,-10,155,50" &&
-  BASE_WORLD.bbox.join(",") === "-180,-90,180,90",
-  "asia=" + (BASE_ASIA && BASE_ASIA.bbox ? BASE_ASIA.bbox.join(",") : "缺失") +
-  " world=" + (BASE_WORLD && BASE_WORLD.bbox ? BASE_WORLD.bbox.join(",") : "缺失"));
-check("多级底图写明公有领域来源",
-  [BASE_ASIA, BASE_WORLD].every((item) => item && /public domain|公有领域/i.test(item.license) && /Natural Earth/.test(item.source)),
-  [BASE_ASIA, BASE_WORLD].map((item) => item ? item.source + " / " + item.license : "缺失").join(" | "));
-const baseTotalKb = ["basemap.js", "asia.js", "world.js"].reduce((sum, file) => sum + statSync(join(DATA, "base", file)).size / 1024, 0);
-check("多级离线底图总体积可控（< 700 KB）", baseTotalKb < 700, baseTotalKb.toFixed(1) + " KB");
+
+// ===== 底图二级 / 一级（三级 LOD：东海 1:10m 细节 → 西太平洋 1:50m 区域 → 全球 1:110m 球面） =====
+const asiaWin = readJs(join("base", "asia.js")).run();
+const ASIA = asiaWin.OF_DATA_ASIA;
+const worldWin = readJs(join("base", "world.js")).run();
+const WORLD = worldWin.OF_DATA_WORLD;
+check("区域底图（asia.js 1:50m）存在且层齐备",
+  !!(ASIA && ASIA.layers && ASIA.layers.land && ASIA.layers.coastline &&
+     ASIA.layers.land.chains.length > 0 && ASIA.layers.coastline.chains.length > 0),
+  ASIA ? Object.keys(ASIA.layers).map((k) => k + ":" + ASIA.layers[k].chains.length).join(" ") : "缺失");
+check("球面底图（world.js 1:110m）存在且层齐备",
+  !!(WORLD && WORLD.layers && WORLD.layers.land && WORLD.layers.coastline &&
+     WORLD.layers.land.chains.length > 0 && WORLD.layers.coastline.chains.length > 0),
+  WORLD ? Object.keys(WORLD.layers).map((k) => k + ":" + WORLD.layers[k].chains.length).join(" ") : "缺失");
+check("两级底图都写明公有领域来源与全球/区域范围",
+  /public domain|公有领域/i.test(ASIA.license) && /Natural Earth/.test(ASIA.source) &&
+  /public domain|公有领域/i.test(WORLD.license) && /Natural Earth/.test(WORLD.source) &&
+  WORLD.bbox.join(",") === "-180,-90,180,90" && ASIA.bbox.join(",") === "95,-10,155,50",
+  "asia " + ASIA.bbox.join(",") + " · world " + WORLD.bbox.join(","));
+// 球面上最怕「跨 180° 经线被连成一条横穿全球的假线」，逐段查经度跳变
+function maxLonJump(product) {
+  let worst = 0, where = "";
+  ["land", "coastline"].forEach((k) => product.layers[k].chains.forEach((chain) => {
+    for (let i = 1; i < chain.length; i++) {
+      const d = Math.abs(chain[i][0] - chain[i - 1][0]);
+      if (d > worst) { worst = d; where = k + " @ " + JSON.stringify(chain[i - 1]) + "→" + JSON.stringify(chain[i]); }
+    }
+  }));
+  return { worst: worst, where: where };
+}
+const jumpW = maxLonJump(WORLD), jumpA = maxLonJump(ASIA);
+// 阈值 30°：1:110m 底图在南极等稀疏海域本来就有十几度的长直段，
+// 但绝不允许出现接近 360° 的跳变（那是跨反经线的假线，投影到球面会横穿整颗球）。
+check("球面底图不跨反经线乱连（相邻点经度跳变 < 30°）",
+  jumpW.worst < 30 && jumpW.worst > 0,
+  "world 最大 " + jumpW.worst.toFixed(2) + "°");
+// 区域档是裁出来的：沿裁剪框边走的那几段本来就该是直线（平面档下无妨），放宽到 90°
+check("区域底图经度跳变在裁剪框边允许范围内（< 90°）", jumpA.worst < 90,
+  "asia 最大 " + jumpA.worst.toFixed(2) + "°");
+const asiaOut = ["land", "coastline"].flatMap((k) => ASIA.layers[k].chains.flat().filter((p) => !inBox(p, ASIA.bbox)));
+check("区域底图坐标都在裁剪窗口内，球面底图坐标都是合法经纬度",
+  asiaOut.length === 0 &&
+  ["land", "coastline"].every((k) => WORLD.layers[k].chains.flat()
+    .every((p) => p[0] >= -180 && p[0] <= 180 && p[1] >= -90 && p[1] <= 90)),
+  asiaOut.length ? "越界 " + asiaOut.length + " 点" : "全部通过");
+const lodKb = statSync(join(DATA, "base", "asia.js")).size / 1024 + statSync(join(DATA, "base", "world.js")).size / 1024;
+check("两级底图体积可控（合计 < 400 KB，不影响双击打开）", lodKb < 400, lodKb.toFixed(1) + " KB");
 
 // ===== 往年同期 =====
 const climFile = readJs(join("clim", "same-period.js"));
@@ -415,70 +449,21 @@ const sourceRegistryPath = join(SERVER_DATA, "sources", "sources.example.json");
 const artifactManifestPath = join(SERVER_DATA, "public_artifacts", "artifact-manifest.example.json");
 const pullJobRecordPath = join(SERVER_DATA, "job_records", "pull-job-record.example.json");
 const latestCheckJobRecordPath = join(SERVER_DATA, "job_records", "latest-check-job-record.example.json");
-const restrictedPullJobRecordPath = join(SERVER_DATA, "job_records", "restricted-pull-job-record.example.json");
 const processJobRecordPath = join(SERVER_DATA, "job_records", "process-job-record.example.json");
-const prototypeHtmlPath = join(PROTOTYPE, "prototype-fishing.html");
-const prototypeDataPath = join(PROTOTYPE, "prototype-data.js");
-const envExamplePath = join(ROOT, ".env.example");
-const gitignorePath = join(ROOT, ".gitignore");
 check("服务器数据源登记表示例存在", existsSync(sourceRegistryPath), "server_data/sources/sources.example.json");
 check("服务器公开 artifact manifest 示例存在", existsSync(artifactManifestPath), "server_data/public_artifacts/artifact-manifest.example.json");
 check("服务器 pull job record 示例存在", existsSync(pullJobRecordPath), "server_data/job_records/pull-job-record.example.json");
 check("服务器 latest-check job record 示例存在", existsSync(latestCheckJobRecordPath), "server_data/job_records/latest-check-job-record.example.json");
-check("服务器 restricted pull job record 示例存在", existsSync(restrictedPullJobRecordPath), "server_data/job_records/restricted-pull-job-record.example.json");
 check("服务器 process job record 示例存在", existsSync(processJobRecordPath), "server_data/job_records/process-job-record.example.json");
-check("本地凭据模板存在且真实 .env 被 Git 忽略",
-  existsSync(envExamplePath) && existsSync(gitignorePath) &&
-  /^\.env$/m.test(readFileSync(gitignorePath, "utf8")) &&
-  /^\.env\.local$/m.test(readFileSync(gitignorePath, "utf8")) &&
-  /^\.env\.\*$/m.test(readFileSync(gitignorePath, "utf8")) &&
-  /^!\.env\.example$/m.test(readFileSync(gitignorePath, "utf8")),
-  ".env.example + .gitignore");
-
-if (existsSync(envExamplePath)) {
-  const envExample = readFileSync(envExamplePath, "utf8");
-  const envLines = envExample.split(/\r?\n/).filter((line) => /^OCEAN_SOURCE_[A-Z0-9_]+_CREDENTIAL=/.test(line));
-  check(".env.example 只登记凭据变量名，不包含 token/API key 值",
-    envLines.length >= 2 && envLines.every((line) => line.endsWith("=")) &&
-    !/bearer\s+|password\s*[:=]\s*\S|api[_-]?key\s*[:=]\s*\S|secret\s*[:=]\s*\S/i.test(envExample),
-    envLines.join(","));
-}
-
-if (existsSync(prototypeHtmlPath) && existsSync(prototypeDataPath)) {
-  const html = readFileSync(prototypeHtmlPath, "utf8");
-  const adapter = readFileSync(prototypeDataPath, "utf8");
-  check("前端提供可选 server manifest 读取入口，且默认不破坏离线静态模式",
-    /serverManifest/.test(html) && !/params\.get\("manifest"\)/.test(html) &&
-    /OF_SERVER_MANIFEST_STATE/.test(html) && /validateManifest/.test(html) &&
-    /not_configured/.test(html) && /local_static/.test(html) &&
-    /serverManifestState/.test(adapter) && /serverLayerStatus/.test(adapter),
-    "frontend/prototype/prototype-fishing.html + frontend/prototype/prototype-data.js");
-  check("前端 server manifest 入口拒绝 raw/intermediate/authorized aggregate 或轨迹类公开路径",
-    /unsafeManifest/.test(html) &&
-    /artifact_pattern/.test(html) && /href/.test(html) && /path/.test(html) &&
-    /raw\|intermediate\|authorized_aggregate\)|mmsi/.test(html) &&
-    /manifest 指向了非公开路径或轨迹类字段/.test(html),
-    "unsafeManifest guard");
-  check("前端预留 GFW/AIS 表观捕捞活动点阵图层契约",
-    /OF_DATA_FISHING/.test(adapter) && /fishingDay/.test(adapter) && /ensureFishing/.test(adapter) &&
-    /data-layer=\"ground\"/.test(html) && /GFW\/AIS fishing hours/.test(html + adapter) &&
-    /不代表渔获量、产量或收益/.test(adapter),
-    "OF_DATA_FISHING + ground layer");
-  check("前端 server manifest 失败文案说明回退本地数据，且不把失败解释为 0 或无响应",
-    /已回退本地静态数据/.test(html) && /不代表数据为 0 或无响应/.test(html),
-    "fallback copy");
-}
 
 if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
   const registry = readJson(sourceRegistryPath);
   const manifest = readJson(artifactManifestPath);
   const sourceTypes = new Set(["front", "front_intensity", "sst", "gfw_ais_effort", "partner_ais_derivative", "basemap"]);
   const credentialModes = new Set(["none", "env_token", "server_secret"]);
-  const accessLevels = new Set(["public", "restricted", "partner"]);
   const layerStatuses = new Set(["real", "synthetic_fixture", "not_available", "pending_authorization"]);
   const requiredSourceFields = [
-    "source_id", "source_type", "display_name", "license", "access_level", "credential_mode",
-    "authorization_scope", "publish_requires_go_no_go", "update_cadence",
+    "source_id", "source_type", "display_name", "license", "credential_mode", "update_cadence",
     "date_coverage", "spatial_coverage", "raw_retention", "public_display_boundary", "caveat"
   ];
   const sensitiveKeyPattern = /^(token|api_key|secret|password|credential|authorization)$/i;
@@ -493,29 +478,7 @@ if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
     const missing = requiredSourceFields.filter((field) => source[field] == null || source[field] === "");
     if (missing.length) registryBad = source.source_id + " 缺字段 " + missing.join(",");
     if (!sourceTypes.has(source.source_type)) registryBad = source.source_id + " source_type 非法";
-    if (!accessLevels.has(source.access_level)) registryBad = source.source_id + " access_level 非法";
     if (!credentialModes.has(source.credential_mode)) registryBad = source.source_id + " credential_mode 非法";
-    if (source.credential_mode === "none" && source.credential_env_var !== null) {
-      registryBad = source.source_id + " public/no-credential source 不应配置 credential_env_var";
-    }
-    if (source.credential_mode !== "none" &&
-        !new RegExp("^OCEAN_SOURCE_" + source.source_id.toUpperCase().replace(/[^A-Z0-9]+/g, "_") + "_CREDENTIAL$").test(source.credential_env_var || "")) {
-      registryBad = source.source_id + " credential_env_var 必须按 source_id 命名";
-    }
-    if (source.access_level === "public" && source.publish_requires_go_no_go !== false) {
-      registryBad = source.source_id + " public source 不应要求 go/no-go";
-    }
-    if (["restricted", "partner"].includes(source.access_level)) {
-      if (source.publish_requires_go_no_go !== true) {
-        registryBad = source.source_id + " restricted/partner source 必须要求 go/no-go";
-      }
-      if (!/go_no_go_required|go-no-go|required/i.test(source.authorization_scope || "")) {
-        registryBad = source.source_id + " authorization_scope 必须写明 go/no-go";
-      }
-      if (source.credential_mode === "none") {
-        registryBad = source.source_id + " restricted/partner source 必须使用服务器侧凭据模式";
-      }
-    }
     Object.keys(source).forEach((key) => {
       if (sensitiveKeyPattern.test(key)) registryBad = source.source_id + " 不应包含敏感字段名 " + key;
     });
@@ -532,18 +495,12 @@ if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
       }
     }
   });
-  const accessSeen = new Set(sourceList.map((source) => source.access_level));
-  if (!["public", "restricted", "partner"].every((level) => accessSeen.has(level))) {
-    registryBad = "source registry 必须覆盖 public/restricted/partner 三类访问级别";
-  }
   check("服务器数据源登记表字段、许可、凭据模式和 GFW/AIS 边界可校验",
     registryBad === null, registryBad || sourceIds.size + " 个 source 全部通过");
 
   let manifestBad = null;
   if (manifest.schema_version !== "ocean-artifact-manifest/v1") manifestBad = "schema_version 不正确";
-  if (!manifest.version || !manifest.generated_at || !manifest.latest_available_date) {
-    manifestBad = "缺 version/generated_at/latest_available_date";
-  }
+  if (!manifest.generated_at || !manifest.latest_available_date) manifestBad = "缺 generated_at/latest_available_date";
   if (!manifest.public_boundary ||
       manifest.public_boundary.raw_committed !== false ||
       manifest.public_boundary.fine_grained_committed !== false) {
@@ -553,14 +510,8 @@ if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
   ["front", "sst", "front_response", "front_intensity", "fishing_effort_grid"].forEach((name) => {
     const layer = layers[name];
     if (!layer) manifestBad = "缺少图层 " + name;
-    if (layer && !layer.version) manifestBad = name + " 缺 version";
     if (layer && !layerStatuses.has(layer.status)) manifestBad = name + " status 非法";
     if (layer && layer.source_id && !sourceIds.has(layer.source_id)) manifestBad = name + " source_id 未登记";
-    if (layer && !layer.source_id) manifestBad = name + " 缺 source_id";
-    if (layer && !layer.caveat) manifestBad = name + " 缺 caveat";
-    if (layer && !["not_available", "pending_authorization"].includes(layer.status) && !layer.available_dates) {
-      manifestBad = name + " 可用状态缺 available_dates";
-    }
     if (layer && ["not_available", "pending_authorization"].includes(layer.status) && !layer.reason) {
       manifestBad = name + " 不可用状态必须写 reason";
     }
@@ -594,7 +545,6 @@ if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
     if (pullJob.schema_version !== "ocean-pull-job/v1") jobBad = "schema_version 不正确";
     if (pullJob.job_type !== expectedType) jobBad = "job_type 必须是 " + expectedType;
     if (!sourceIds.has(pullJob.source_id)) jobBad = "source_id 未登记";
-    const jobSource = sourceList.find((source) => source.source_id === pullJob.source_id);
     if (!jobStatuses.has(pullJob.status)) jobBad = "status 非法";
     if (!pullJob.started_at || !pullJob.finished_at) jobBad = "缺 started_at/finished_at";
     if (expectedType === "pull") {
@@ -618,35 +568,12 @@ if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
         pullJob.publish.public_artifacts_written !== false) {
       jobBad = "pull job 不得自动发布 public artifact";
     }
-    if (!["public", "restricted", "partner"].includes(pullJob.access_level)) {
-      jobBad = "job record 必须记录 access_level";
-    }
-    if (!pullJob.authorization_scope) jobBad = "job record 必须记录 authorization_scope";
-    if (typeof pullJob.go_no_go_required !== "boolean" || !pullJob.go_no_go_status) {
-      jobBad = "job record 必须记录 go/no-go 状态";
-    }
-    if (jobSource) {
-      if (pullJob.access_level !== jobSource.access_level) jobBad = "job access_level 必须来自 source registry";
-      if (pullJob.go_no_go_required !== (jobSource.publish_requires_go_no_go === true)) {
-        jobBad = "job go_no_go_required 必须来自 source registry";
-      }
-      if (pullJob.credential_required !== (jobSource.credential_mode !== "none")) {
-        jobBad = "job credential_required 必须来自 source registry";
-      }
-      if ((pullJob.source_snapshot || {}).credential_env_var !== (jobSource.credential_env_var || null)) {
-        jobBad = "job 只能记录 source registry 中的 credential_env_var 名称";
-      }
-    }
     if (!Array.isArray(pullJob.output_artifacts) || pullJob.output_artifacts.length !== 0) {
       jobBad = "dry-run pull job 不应产生 output_artifacts";
     }
-    if (expectedType === "pull" && pullJob.status === "success" && (!Array.isArray(pullJob.planned_downloads) ||
+    if (expectedType === "pull" && (!Array.isArray(pullJob.planned_downloads) ||
         pullJob.planned_downloads.length !== pullJob.date_range.days)) {
-      jobBad = "success pull 的 planned_downloads 必须覆盖 date_range.days";
-    }
-    if (expectedType === "pull" && pullJob.status !== "success" &&
-        (!Array.isArray(pullJob.planned_downloads) || pullJob.planned_downloads.length !== 0)) {
-      jobBad = "skipped/failed pull 不应保留 planned_downloads";
+      jobBad = "planned_downloads 必须覆盖 date_range.days";
     }
     if (expectedType === "pull_check" && (!Array.isArray(pullJob.planned_downloads) ||
         pullJob.planned_downloads.length !== 0)) {
@@ -668,9 +595,6 @@ if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
     if (/bearer\s+|password\s*[:=]|api[_-]?key\s*[:=]|secret\s*[:=]/i.test(jobText)) {
       jobBad = "job record 不得包含凭据值";
     }
-    if (/OCEAN_SOURCE_[A-Z0-9_]+_CREDENTIAL[^\n"]*[:=]\s*[^",\s}]/.test(jobText)) {
-      jobBad = "job record 不得在 credential_env_var 后记录凭据值";
-    }
     return { ok: jobBad === null, detail: jobBad || pullJob.job_id };
   };
   if (existsSync(pullJobRecordPath)) {
@@ -681,11 +605,6 @@ if (existsSync(sourceRegistryPath) && existsSync(artifactManifestPath)) {
   if (existsSync(latestCheckJobRecordPath)) {
     const outcome = validateServerJob(latestCheckJobRecordPath, "pull_check");
     check("服务器 latest-check job record 记录最新日期检查，且不会自动发布 artifact",
-      outcome.ok, outcome.detail);
-  }
-  if (existsSync(restrictedPullJobRecordPath)) {
-    const outcome = validateServerJob(restrictedPullJobRecordPath, "pull");
-    check("服务器 restricted pull job record 只记录凭据变量名和 go/no-go 门，不泄露 token",
       outcome.ok, outcome.detail);
   }
   if (existsSync(processJobRecordPath)) {

@@ -264,8 +264,7 @@ window.OF_DATA_META = {
     "intensity": "not_available",
     "forecast": "not_available",
     "sea_state": "not_available",
-    "fishing_grounds": "not_available",
-    "front_response": "synthetic_fixture"
+    "fishing_grounds": "not_available"
   },
   "generated_at": "2026-09-12",
   "generator": "Ocean/backend/scripts/export_prototype_data.py",
@@ -275,6 +274,6 @@ window.OF_DATA_META = {
     "-10/10/30 的物理含义数据说明里有歧义，页面只当“锋面线”画",
     "文件时间坐标单位有误（days since 0000-00-00），日期以文件名为准",
     "对象编号是本地临时编号，不是数据集自带的轨迹编号",
-    "海况、强度、预报、渔场、AIS 响应都没接真实数据"
+    "海况、强度、预报、渔场都没接真实数据"
   ]
 };
