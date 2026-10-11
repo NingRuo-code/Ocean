@@ -58,6 +58,8 @@ const LAYER_META = [["sst", "水温（NOAA GHRSST）"], ["band", "锋面带"], [
   ["coldwarm", "冷侧 / 暖侧"], ["nodata", "无观测"], ["fishing", "推荐水域（示例）"]];
 const DIRS16 = ["正北", "东北偏北", "东北", "东北偏东", "正东", "东南偏东", "东南", "东南偏南",
   "正南", "西南偏南", "西南", "西南偏西", "正西", "西北偏西", "西北", "西北偏北"];
+const VIEW_KEY = "of.view.v1";
+let viewSaveTimer = 0;
 
 // ==================== 小工具 ====================
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -1579,6 +1581,31 @@ function switchTab(name) {
 
 // 视窗：中心 + 缩放；中心被夹在数据窗口内，拖动不会把图拖没
 const VIEW_BOX = { x0: -310, y0: -470, x1: 1130, y1: 986 };
+function restoreView() {
+  try {
+    const raw = localStorage.getItem(VIEW_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    const zoom = Number(saved.zoom);
+    const cx = Number(saved.cx);
+    const cy = Number(saved.cy);
+    if (!(zoom >= 0.6 && zoom <= 8) || !Number.isFinite(cx) || !Number.isFinite(cy)) return;
+    state.zoom = zoom;
+    state.view = { cx, cy };
+  } catch (e) {}
+}
+function scheduleViewSave() {
+  try {
+    if (viewSaveTimer) clearTimeout(viewSaveTimer);
+    viewSaveTimer = 0;
+    localStorage.setItem(VIEW_KEY, JSON.stringify({
+      zoom: state.zoom,
+      cx: state.view.cx,
+      cy: state.view.cy,
+      savedAt: new Date().toISOString(),
+    }));
+  } catch (e) {}
+}
 function applyZoom(smooth) {
   const w = 1000 / state.zoom, h = 640 / state.zoom;
   state.view.cx = clamp(state.view.cx, VIEW_BOX.x0 + w / 2, VIEW_BOX.x1 - w / 2);
@@ -1588,6 +1615,7 @@ function applyZoom(smooth) {
   svg.setAttribute("viewBox", (state.view.cx - w / 2) + " " + (state.view.cy - h / 2) + " " + w + " " + h);
   refreshGraticule();
   updateScaleBar();
+  scheduleViewSave();
 }
 function refreshGraticule() {
   const host = $("gratHost");
@@ -1840,6 +1868,7 @@ function bind() {
 }
 
 // ==================== 启动 ====================
+restoreView();
 bind();
 refresh();
 applyZoom(false);      // 按 state.zoom 设定初始视野（默认略微拉远，海岸线在画面内）

@@ -50,3 +50,17 @@ Checks:
 - `node tools/layout-check.mjs`: 0 failures.
 - `git diff --check`: pass.
 
+2026-10-11:
+
+- Added local viewport memory under `localStorage["of.view.v1"]`.
+- The current plane-only map now restores saved zoom and SVG center before initial render.
+- e2e checks verify that a zoom writes finite `zoom/cx/cy` values to local storage.
+- This remains a local browser convenience only; it does not change data scope, projection mode, or server loading.
+
+Checks:
+
+- `node tools/data-check.mjs`: 0 failures / 914.
+- `node tools/e2e-check.mjs`: 0 failures / 114.
+- `node tools/layout-check.mjs`: 0 failures.
+- `git diff --check`: pass.
+

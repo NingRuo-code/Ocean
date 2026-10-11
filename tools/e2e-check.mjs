@@ -744,16 +744,20 @@ const zoom = await evalJS(`var r = document.getElementById("map").getBoundingCli
   zoomAt(c[0], c[1], 2);
   var after = currentView();
   var bar = document.getElementById("mapScale").style.width;
+  var saved = JSON.parse(localStorage.getItem("of.view.v1") || "null");
   document.getElementById("recenter").click();
   var back = currentView();
   return { before: before, after: after, back: back, bar: bar,
-    zoomAfter: state.zoom, gratLines: gratLines, gratTexts: gratTexts };`);
+    zoomAfter: state.zoom, gratLines: gratLines, gratTexts: gratTexts, saved: saved };`);
 check("缩放改变视窗，比例尺跟着换算（图上 50 km 换算成像素）",
   zoom.after.w < zoom.before.w && /^\d+px$/.test(zoom.bar) && parseInt(zoom.bar, 10) > 0,
   "viewBox " + zoom.before.w + " → " + zoom.after.w + " · bar=" + zoom.bar);
 check("经纬网标出真实度数（°E / °N），不是等分格网",
   zoom.gratLines >= 4 && zoom.gratTexts.some((t) => /°E$/.test(t)) && zoom.gratTexts.some((t) => /°N$/.test(t)),
   zoom.gratLines + " 条 · " + zoom.gratTexts.slice(0, 4).join(" / "));
+check("地图视野会写入本地记忆，供下次打开恢复",
+  zoom.saved && Number.isFinite(zoom.saved.zoom) && Number.isFinite(zoom.saved.cx) && Number.isFinite(zoom.saved.cy),
+  JSON.stringify(zoom.saved));
 check("「回到定位点」复位视窗与缩放（回到初始默认视野）",
   zoom.back.w === zoom.before.w && zoom.back.x === zoom.before.x && zoom.back.y === zoom.before.y,
   JSON.stringify(zoom.back) + " = " + JSON.stringify(zoom.before));
