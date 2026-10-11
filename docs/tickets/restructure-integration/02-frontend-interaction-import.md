@@ -51,6 +51,20 @@ Checks:
 
 2026-10-11:
 
+- Added a disabled-by-default `ground` layer for GFW/AIS apparent fishing-effort cells.
+- `OFData` now exposes `fishingDay()` and a placeholder `ensureFishing()` contract around `window.OF_DATA_FISHING`.
+- The map renders only public aggregate `fishing_hours` cells as a dot layer; missing data draws nothing and is not interpreted as 0.
+- E2E injects a small in-memory aggregate fixture to verify draw/clear behavior without committing raw AIS/GFW or restricted data.
+
+Checks:
+
+- `node tools/data-check.mjs`: 0 failures / 918.
+- `node tools/e2e-check.mjs`: 0 failures / 116.
+- `node tools/layout-check.mjs`: 0 failures.
+- `git diff --check`: pass.
+
+2026-10-11:
+
 - Imported `frontend/prototype/prototype-map.js` from the collaborator branch as an isolated geometry module.
 - Routed current plane projection constants and `xy` / `geoOfXY` conversions through `window.OFMap`.
 - Kept the existing viewport model, zoom bounds, offline data window, and rendering behavior unchanged.

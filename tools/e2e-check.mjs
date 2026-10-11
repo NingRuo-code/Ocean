@@ -215,6 +215,10 @@ const top = await evalJS(`return {
   hasFamily: !!document.getElementById("familySeg"),
   topText: (document.querySelector(".topbar") || {}).textContent || "",
   rangeBtns: document.querySelectorAll("#rangeSeg button").length,
+  groundDefault: !!state.layers.ground,
+  groundPaths: document.querySelectorAll('#mapSvg [data-layer="ground"]').length,
+  groundLegend: (document.querySelector('.legend-row[data-layer="ground"]') || {}).textContent || "",
+  hasFishingDay: typeof OFData.fishingDay === "function",
   fishingDefault: !!state.layers.fishing,
   fishingPaths: document.querySelectorAll('#mapSvg [data-layer="fishing"]').length,
   fishingLegend: (document.querySelector('.legend-row[data-layer="fishing"]') || {}).textContent || "" };`);
@@ -229,9 +233,38 @@ check("出海日组内有同源时间轴与播放按钮",
   JSON.stringify({ rail: top.railInputs, play: top.playBtns, max: top.railMax, text: top.railText }));
 check("找鱼范围 3 档可直接点", top.rangeBtns === 3, "rangeBtns=" + top.rangeBtns);
 check("出发地支持输入定位和地图点选", top.pickOriginBtns === 1 && /点选/.test(top.topText), "pickOriginBtns=" + top.pickOriginBtns);
+check("GFW/AIS 表观捕捞活动图层默认关闭，且通过 OFData 暴露公开聚合入口",
+  top.groundDefault === false && top.groundPaths === 0 && top.hasFishingDay === true &&
+  /GFW\/AIS fishing hours/.test(top.groundLegend),
+  JSON.stringify({ layer: top.groundDefault, paths: top.groundPaths, text: top.groundLegend, hasFishingDay: top.hasFishingDay }));
 check("推荐水域是示例层，默认关闭，避免被误读成真实渔场数据",
   top.fishingDefault === false && top.fishingPaths === 0 && /示例，默认关/.test(top.fishingLegend),
   JSON.stringify({ layer: top.fishingDefault, paths: top.fishingPaths, text: top.fishingLegend }));
+
+const groundFixture = await evalJS(`window.OF_DATA_FISHING[state.date] = {
+    date: state.date,
+    metric: "apparent_fishing_effort",
+    unit: "fishing_hours",
+    cells: [
+      { lon: 124.50, lat: 30.20, hours: 4.2 },
+      { lon: 124.70, lat: 30.26, hours: 11.8 },
+      { lon: 124.90, lat: 30.34, hours: 20.5 },
+      { lon: 125.10, lat: 30.42, hours: 29.1 }
+    ]
+  };
+  var row = document.querySelector('.legend-row[data-layer="ground"]');
+  row.click();
+  var on = !!state.layers.ground;
+  var dots = document.querySelectorAll('#mapSvg [data-layer="ground"]').length;
+  var day = OFData.fishingDay(state.date);
+  row.click();
+  return { on: on, dots: dots, cells: day ? day.cells.length : 0, metric: day ? day.metric : null, unit: day ? day.unit : null,
+    afterOff: !!state.layers.ground, afterDots: document.querySelectorAll('#mapSvg [data-layer="ground"]').length };`);
+check("公开聚合 fishing hours 格点可绘制为点阵，关闭后清空",
+  groundFixture.on === true && groundFixture.dots >= 2 && groundFixture.cells === 4 &&
+  groundFixture.metric === "apparent_fishing_effort" && groundFixture.unit === "fishing_hours" &&
+  groundFixture.afterOff === false && groundFixture.afterDots === 0,
+  JSON.stringify(groundFixture));
 
 // ===== 3) 页签分层与默认态 =====
 const tabs = await evalJS(`var bs = [].slice.call(document.querySelectorAll("#tabs button"));

@@ -137,6 +137,7 @@
   .swatch.cold { background: rgba(40,90,150,.85); }
   .swatch.warm { background: rgba(190,90,45,.85); }
   .swatch.nodata { background: repeating-linear-gradient(45deg, rgba(206,222,238,.65) 0 3px, rgba(120,142,166,.25) 3px 6px); border-color: rgba(200,215,230,.5); }
+  .swatch.ground { background: radial-gradient(circle at 45% 45%, rgba(255,112,86,.95) 0 35%, rgba(255,190,92,.72) 36% 70%, transparent 71%); border-color: rgba(255,218,150,.45); }
   .swatch.fishing { background: rgba(255,180,84,.75); }
   /* 比例尺：长度按当前缩放实时换算，标"图上 50 km" */
   .map-scale {
@@ -434,6 +435,7 @@
         <div class="legend-row" data-layer="front"><span class="swatch front"></span> 锋面区 · 编号</div>
         <div class="legend-row sub" data-layer="coldwarm"><span class="swatch cold"></span><span class="swatch warm"></span> 冷侧 / 暖侧</div>
         <div class="legend-row" data-layer="nodata"><span class="swatch nodata"></span> 无观测（云 / 未覆盖）</div>
+        <div class="legend-row" data-layer="ground"><span class="swatch ground"></span> 渔场线索（GFW/AIS fishing hours）</div>
         <div class="legend-row" data-layer="fishing"><span class="swatch fishing"></span> 推荐水域（示例，默认关）</div>
         <div class="legend-band">
           <span class="kbd">陆地</span><span class="kbd">自然地球 1:10m（公有领域）</span>

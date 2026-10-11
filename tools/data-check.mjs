@@ -459,6 +459,11 @@ if (existsSync(prototypeHtmlPath) && existsSync(prototypeDataPath)) {
     /raw\|intermediate\|authorized_aggregate\)|mmsi/.test(html) &&
     /manifest 指向了非公开路径或轨迹类字段/.test(html),
     "unsafeManifest guard");
+  check("前端预留 GFW/AIS 表观捕捞活动点阵图层契约",
+    /OF_DATA_FISHING/.test(adapter) && /fishingDay/.test(adapter) && /ensureFishing/.test(adapter) &&
+    /data-layer=\"ground\"/.test(html) && /GFW\/AIS fishing hours/.test(html + adapter) &&
+    /不代表渔获量、产量或收益/.test(adapter),
+    "OF_DATA_FISHING + ground layer");
   check("前端 server manifest 失败文案说明回退本地数据，且不把失败解释为 0 或无响应",
     /已回退本地静态数据/.test(html) && /不代表数据为 0 或无响应/.test(html),
     "fallback copy");

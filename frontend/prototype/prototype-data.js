@@ -23,6 +23,7 @@
   const BASE_WORLD = window.OF_DATA_WORLD || null;
   const SST = window.OF_DATA_SST || {};
   const FRONT_RESPONSE = window.OF_FRONT_RESPONSE || null;
+  const FISHING = window.OF_DATA_FISHING || (window.OF_DATA_FISHING = {});
   const SORTED_DATES = Object.keys(DAYS).sort();
   const SST_DATES = Object.keys(SST).sort();
 
@@ -60,6 +61,30 @@
 
   function serverManifest() {
     return window.OF_SERVER_MANIFEST || null;
+  }
+
+  function normalizeFishingDay(raw, iso) {
+    if (!raw || raw.status === "not_available" || raw.status === "pending_authorization") return null;
+    const cells = Array.isArray(raw.cells) ? raw.cells.filter(function (cell) {
+      return Number.isFinite(Number(cell.lon)) && Number.isFinite(Number(cell.lat)) && Number.isFinite(Number(cell.hours));
+    }).map(function (cell) {
+      return {
+        lon: Number(cell.lon),
+        lat: Number(cell.lat),
+        hours: Number(cell.hours),
+      };
+    }) : [];
+    if (!cells.length) return null;
+    return {
+      date: raw.date || iso || null,
+      status: raw.status || "available",
+      metric: raw.metric || "apparent_fishing_effort",
+      unit: raw.unit || "fishing_hours",
+      resolutionDeg: raw.resolution_deg || null,
+      source: raw.source || null,
+      caveat: raw.caveat || "公开聚合表观捕捞活动，不代表渔获量、产量或收益。",
+      cells: cells,
+    };
   }
 
   function normalizeFrontResponse(raw, iso, rangeKm) {
@@ -221,6 +246,13 @@
     forecastAvailable: function () { return !!(META && META.status && META.status.forecast === "real"); },
     seaStateAvailable: function () { return !!(META && META.status && META.status.sea_state === "real"); },
     fishingAvailable: function () { return !!(META && META.status && META.status.fishing_grounds === "real"); },
+    fishingDay: function (iso) { return normalizeFishingDay(FISHING[iso], iso); },
+    fishingEffortAvailable: function (iso) {
+      const day = normalizeFishingDay(FISHING[iso], iso);
+      const layer = OFData.serverLayerStatus("fishing_effort_grid") || OFData.serverLayerStatus("gfw_ais_effort");
+      return !!(day || (layer && layer.status === "real"));
+    },
+    ensureFishing: function () { return Promise.resolve(false); },
     frontResponseAvailable: function () {
       return !!(frontResponseStatusReady() && (FRONT_RESPONSE.by_date || FRONT_RESPONSE.events));
     },

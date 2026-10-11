@@ -113,9 +113,9 @@ check("历史 AIS 响应卡片入口可见且文案不裁切",
 check("侧栏未溢出视口", g1.sideBottom <= g1.vh + 1, `${g1.sideBottom} ≤ ${g1.vh}`);
 check("地图区域尺寸合理", g1.mapW > 1100 && g1.mapH > 600, `map=${g1.mapW}x${g1.mapH}`);
 check("无文字被裁切（scrollWidth 溢出计数=0）", g1.clipped === 0, "clipped=" + g1.clipped);
-check("图例含 6 个可切换图层（海温 / 锋面带 / 锋面线 / 冷暖侧 / 缺测 / 渔场示例）", g1.legendOk === 6, "rows=" + g1.legendOk);
+check("图例含 7 个可切换图层（含 GFW/AIS fishing hours 与渔场示例）", g1.legendOk === 7, "rows=" + g1.legendOk);
 check("顶栏 3 个序号可见（顺序看得见）且已无时间族分段", g1.numBadges === 3 && g1.family === false, `badges=${g1.numBadges} family=${g1.family}`);
-check("图例卡片不占地图过多（高度 ≤ 240）", g1.legendH <= 240, "legendH=" + g1.legendH);
+check("图例卡片不占地图过多（高度 ≤ 270）", g1.legendH <= 270, "legendH=" + g1.legendH);
 check("选中回执卡与缩放按钮水平不重叠", g1.pickRight <= g1.ctrlLeft, `${g1.pickRight} ≤ ${g1.ctrlLeft}`);
 check("指针浮层宽度合理（200~300px）", g1.probeW >= 200 && g1.probeW <= 300, "probeW=" + g1.probeW);
 check("比例尺存在且长度合理（30~300px，按当前缩放实时换算）", g1.scaleW >= 30 && g1.scaleW <= 300, "scaleW=" + g1.scaleW);

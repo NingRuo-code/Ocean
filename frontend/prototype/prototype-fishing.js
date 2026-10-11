@@ -40,7 +40,7 @@ const state = {
   lon: 124.5, lat: 30.2,                   // ① 从哪出发
   range: 20,                               // ② 找多远（km）
   date: TODAY,                             // ③ 出海日（唯一时间控件）
-  layers: { sst: true, band: true, front: true, coldwarm: true, nodata: true, fishing: false },
+  layers: { sst: true, band: true, front: true, coldwarm: true, nodata: true, ground: false, fishing: false },
   select: null,                            // 被选中的对象 {type, id}
   probe: null,                             // 钉住的地图点 {lon, lat}
   tab: "now",
@@ -55,7 +55,8 @@ const $ = (id) => document.getElementById(id);
 const SELECT_LABEL = { front: "锋面区", coldwarm: "冷侧 / 暖侧", fishing: "推荐水域（示例）" };
 const SELECT_LAYERS = { front: ["band", "front"], coldwarm: ["coldwarm"], fishing: ["fishing"] };
 const LAYER_META = [["sst", "水温（NOAA GHRSST）"], ["band", "锋面带"], ["front", "锋面区"],
-  ["coldwarm", "冷侧 / 暖侧"], ["nodata", "无观测"], ["fishing", "推荐水域（示例）"]];
+  ["coldwarm", "冷侧 / 暖侧"], ["nodata", "无观测"], ["ground", "渔场线索（GFW/AIS fishing hours）"],
+  ["fishing", "推荐水域（示例）"]];
 const DIRS16 = ["正北", "东北偏北", "东北", "东北偏东", "正东", "东南偏东", "东南", "东南偏南",
   "正南", "西南偏南", "西南", "西南偏西", "正西", "西北偏西", "西北", "西北偏北"];
 const VIEW_KEY = "of.view.v1";
@@ -526,6 +527,29 @@ function drawDataLayers(svg, snap, iso, grid, sel) {
         "paint-order": "stroke", stroke: "rgba(8,16,26,0.9)", "stroke-width": 3,
         opacity: isSel ? 1 : dim("front") }, svg).textContent = text;
     });
+  }
+
+  // 渔场线索：公开聚合后的 GFW/AIS 表观捕捞活动（fishing hours）点阵。
+  // 没有数据时不绘制，也不把缺失解释成 0。
+  if (state.layers.ground) {
+    const fishing = OFData.fishingDay ? OFData.fishingDay(iso) : null;
+    const cells = fishing && Array.isArray(fishing.cells) ? fishing.cells : [];
+    if (cells.length) {
+      const values = cells.map((c) => c.hours).sort((a, b) => a - b);
+      const q = (f) => values[Math.min(values.length - 1, Math.max(0, Math.floor(values.length * f)))];
+      const t60 = q(0.6), t85 = q(0.85);
+      cells.filter((c) => c.hours >= t60).forEach((cell) => {
+        const p = xy(cell.lon, cell.lat);
+        const hot = cell.hours >= t85;
+        const r = hot ? 5.2 : 3.6;
+        el("circle", { cx: p[0], cy: p[1], r,
+          "data-layer": "ground",
+          fill: hot ? "rgba(255,112,86,0.74)" : "rgba(255,190,92,0.58)",
+          stroke: hot ? "rgba(255,228,180,0.72)" : "rgba(255,218,150,0.45)",
+          "stroke-width": hot ? 1.1 : 0.8,
+          opacity: 0.45 + 0.55 * dim("ground") }, svg);
+      });
+    }
   }
 
   // 值得去的水域（示例，未接入真实渔场数据）
