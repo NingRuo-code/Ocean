@@ -58,7 +58,7 @@ paper/            参考论文
 start frontend\prototype\prototype-fishing.html
 ```
 
-根目录下的 `prototype-fishing.html` 暂时保留为迁移过渡入口；新开发和检查默认使用 `frontend/prototype/`。
+这是当前唯一受控的静态原型入口；根目录旧版 `prototype-*.html/js` 与旧静态 `data/**` 副本已移除。
 
 安装前端依赖：
 
@@ -76,7 +76,7 @@ python -m pip install -e ".[dev]"
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-浏览器访问 `http://127.0.0.1:5173/`。开发服务器会把 `/api` 请求转发到本地后端。
+浏览器访问 `http://127.0.0.1:5173/`。开发服务器会把 `/api` 请求转发到本地后端。\n\n服务器增强部署路径见 [deploy/RUNBOOK.md](deploy/RUNBOOK.md)：Nginx 提供 `frontend/prototype/` 静态页面，FastAPI 只监听 `127.0.0.1:8000`，公网统一经 `/api/` 反代进入后端。
 
 如需接入真实本地小模型，可复制 [.env.example](D:/VscodeProject/Ocean/.env.example) 为 `.env`，按 Ollama、llama.cpp 或 OpenAI-compatible 服务修改 `OCEAN_AI_PROVIDER` 和 `OCEAN_LOCAL_LLM_ENDPOINT`。
 

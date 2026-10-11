@@ -28,5 +28,5 @@ node tools\build-front-response.mjs
 node tools\data-check.mjs
 ```
 
-完整结构说明、字段含义、来源与许可见 [`../docs/data-schema.md`](../docs/data-schema.md)。
-AIS/GFW 的 raw 数据、0.01 度中间表、0.05 度展示聚合物和 Front Response Table 的提交边界见 [`../docs/data-governance-gfw-ais.md`](../docs/data-governance-gfw-ais.md)。
+完整结构说明、字段含义、来源与许可见 [`../../../docs/data-schema.md`](../../../docs/data-schema.md)。
+AIS/GFW 的 raw 数据、0.01 度中间表、0.05 度展示聚合物和 Front Response Table 的提交边界见 [`../../../docs/data-governance-gfw-ais.md`](../../../docs/data-governance-gfw-ais.md)。

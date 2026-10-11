@@ -30,7 +30,7 @@ P1 的主线不是“做了一张海洋地图”，而是把海洋锋面作为�
 
 演示动作：
 
-1. 打开 `prototype-fishing.html`。
+1. 打开 `frontend/prototype/prototype-fishing.html`。
 2. 保持默认出发地 `124.50°E, 30.20°N`、20 km、2024-08-05。
 3. 展示地图图层、当前页作业线索和任意点查询。
 

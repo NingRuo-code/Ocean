@@ -15,3 +15,17 @@ After selected collaborator functionality is integrated, remove duplicate transi
 - One documented canonical run path exists for offline prototype use.
 - One documented canonical server-enhanced run path exists.
 - All checks pass from a clean checkout.
+
+## Progress
+
+- Removed root-level `prototype-fishing.html`, `prototype-fishing.js`, and `prototype-data.js` transitional entries.
+- Removed root-level generated static `data/**` duplicate; canonical static data is now `frontend/prototype/data/**`.
+- Kept `data/raw`, `data/processed`, and `data/cache` as ignored local/server workspaces by convention rather than committed static payload paths.
+- Updated README and data README links to point at the canonical offline and server-enhanced run paths.
+
+## Verification
+
+- `node tools/data-check.mjs`
+- `node tools/e2e-check.mjs`
+- `node tools/layout-check.mjs`
+- `git diff --check`
