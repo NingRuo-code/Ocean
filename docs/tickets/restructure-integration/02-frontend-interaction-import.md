@@ -37,6 +37,20 @@ Checks:
 
 2026-10-11:
 
+- Imported `data/base/asia.js` and `data/base/world.js` from the collaborator branch into the canonical frontend data directory.
+- `prototype-fishing.html` now loads East China Sea, west-Pacific, and world basemap payloads before the data adapter.
+- `OFData` exposes `basemapAsia` and `basemapWorld` for later globe / large-area viewport batches.
+- Current rendering intentionally still uses the East China Sea detail basemap; this batch only adds offline data contracts and checks.
+
+Checks:
+
+- `node tools/data-check.mjs`: 0 failures / 917.
+- `node tools/e2e-check.mjs`: 0 failures / 114.
+- `node tools/layout-check.mjs`: 0 failures.
+- `git diff --check`: pass.
+
+2026-10-11:
+
 - Imported `frontend/prototype/prototype-map.js` from the collaborator branch as an isolated geometry module.
 - Routed current plane projection constants and `xy` / `geoOfXY` conversions through `window.OFMap`.
 - Kept the existing viewport model, zoom bounds, offline data window, and rendering behavior unchanged.

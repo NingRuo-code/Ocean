@@ -177,6 +177,19 @@ check("底图写明公有领域来源", /public domain|公有领域/i.test(BASE.
   BASE.source + " / " + BASE.license);
 const baseKb = statSync(join(DATA, "base", "basemap.js")).size / 1024;
 check("底图体积可控（< 400 KB）", baseKb < 400, baseKb.toFixed(1) + " KB");
+const BASE_ASIA = readJs(join("base", "asia.js")).run().OF_DATA_ASIA;
+const BASE_WORLD = readJs(join("base", "world.js")).run().OF_DATA_WORLD;
+check("多级底图数据入口齐备（东海 / 西太平洋 / 全球）",
+  !!(BASE && BASE_ASIA && BASE_WORLD) &&
+  BASE_ASIA.bbox.join(",") === "95,-10,155,50" &&
+  BASE_WORLD.bbox.join(",") === "-180,-90,180,90",
+  "asia=" + (BASE_ASIA && BASE_ASIA.bbox ? BASE_ASIA.bbox.join(",") : "缺失") +
+  " world=" + (BASE_WORLD && BASE_WORLD.bbox ? BASE_WORLD.bbox.join(",") : "缺失"));
+check("多级底图写明公有领域来源",
+  [BASE_ASIA, BASE_WORLD].every((item) => item && /public domain|公有领域/i.test(item.license) && /Natural Earth/.test(item.source)),
+  [BASE_ASIA, BASE_WORLD].map((item) => item ? item.source + " / " + item.license : "缺失").join(" | "));
+const baseTotalKb = ["basemap.js", "asia.js", "world.js"].reduce((sum, file) => sum + statSync(join(DATA, "base", file)).size / 1024, 0);
+check("多级离线底图总体积可控（< 700 KB）", baseTotalKb < 700, baseTotalKb.toFixed(1) + " KB");
 
 // ===== 往年同期 =====
 const climFile = readJs(join("clim", "same-period.js"));

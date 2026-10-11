@@ -5,7 +5,9 @@
  *   data/day/<日期>.js          真实锋面：对象中心线 / 锋面线 / 冷暖侧 RLE ← export_prototype_data.py
  *   data/clim/same-period.js   往年同期统计（唯一口径）               ← export_prototype_data.py --mode clim
  *   data/front_response/events.js  锋面事件与 AIS 表观捕捞响应表       ← 后续 GFW/AIS 样例闭环生成
- *   data/base/basemap.js       陆地 / 海岸线 / 等深线（公有领域）      ← tools/build-basemap.mjs
+ *   data/base/basemap.js       东海细节底图（公有领域）              ← tools/build-basemap.mjs
+ *   data/base/asia.js          西太平洋区域底图（公有领域）          ← collaborator restructure
+ *   data/base/world.js         全球概览底图（公有领域）              ← collaborator restructure
  *
  * 原则：没有真实数据的地方一律返回 null / 空数组，由界面显式说明「待接入」；
  *       任何情况下都不用插值、哈希或示例值冒充实测数据。
@@ -17,6 +19,8 @@
   const DAYS = window.OF_DATA_DAYS || {};
   const CLIM = window.OF_DATA_CLIM || null;
   const BASE = window.OF_DATA_BASE || null;
+  const BASE_ASIA = window.OF_DATA_ASIA || null;
+  const BASE_WORLD = window.OF_DATA_WORLD || null;
   const SST = window.OF_DATA_SST || {};
   const FRONT_RESPONSE = window.OF_FRONT_RESPONSE || null;
   const SORTED_DATES = Object.keys(DAYS).sort();
@@ -99,6 +103,8 @@
   const OFData = {
     meta: META,
     basemap: BASE,
+    basemapAsia: BASE_ASIA,
+    basemapWorld: BASE_WORLD,
     clim: CLIM,
 
     // ---- 日期与可用性 ----
