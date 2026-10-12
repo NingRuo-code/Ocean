@@ -12,6 +12,8 @@ Build a server/basic-backend phase around a single high-level seam: the server A
 
 The backend will first add a viewport API that accepts `date`, `bbox`, and `step`, then returns a light render/query payload with explicit source, resolution, coverage, status, and caveats. The frontend will auto-detect server availability, show the current offline/server mode, allow manual fallback, and use the viewport API for large or globe-scale windows only when server mode is active.
 
+The first implementation slice is the backend-first API contract, not a new product direction and not a server replacement task. It will add FastAPI and Pydantic under the backend module, expose `/api/health` and `/api/viewport`, serve the first viewport response from existing static data or fixtures, write viewport JSON caches under the server data boundary, and document how to run and verify the backend locally before any server sync.
+
 The response-analysis research path will be packaged as reproducible experiment outputs using non-front controls, bootstrap confidence intervals, and permutation tests over the first sample region/window. Server work will start by syncing verified project updates to the existing deployed server, initially through its public IP + HTTP path, later domain + HTTPS. Larger capacity is a later decision after the basic loop exposes real CPU, memory, disk, or cache pressure.
 
 Agent/AI contracts are not part of the first implementation wave. Later Agent tools may wrap stable deterministic APIs and experiment outputs, but they should not gate viewport, server mode, data/cache, research validation, or deployment work.
@@ -50,6 +52,19 @@ Agent/AI contracts are not part of the first implementation wave. Later Agent to
 30. As a collaborator, I want server and backend work split into topic tickets, so that frontend, backend, data, docs, and deployment changes remain reviewable.
 31. As a maintainer, I want each ticket to record checks and residual risk, so that follow-up work can continue without rereading the whole conversation.
 32. As a maintainer, I want the server/basic-backend direction discoverable from agent-facing docs, so that other conversations can execute the same plan.
+33. As a backend developer, I want FastAPI and Pydantic to define the first API contract, so that the request and response shapes are explicit rather than implied by frontend code.
+34. As a backend developer, I want `/api/health` to report whether the backend is reachable, so that local development, frontend server mode, and deployed-server smoke checks have a stable probe.
+35. As a backend developer, I want `/api/viewport` to accept `YYYY-MM-DD` dates and `minLon,minLat,maxLon,maxLat` bboxes, so that clients share one simple geographic query format.
+36. As a backend developer, I want `step` to mean spatial sampling or downsampling interval, so that large or globe-scale requests can stay light enough for interactive use.
+37. As a backend developer, I want the first viewport response to include `fronts`, `sst`, and `fishingEffort` layers, so that the API serves the current product evidence loop rather than a single decorative map layer.
+38. As a frontend developer, I want viewport payloads to use a `meta`, `layers`, `coverage`, and `caveats` structure, so that rendering data, source information, coverage limits, and risk statements are not mixed together.
+39. As a frontend developer, I want fishing-effort values named and documented as fishing hours or apparent fishing effort, so that no UI or downstream logic mistakes them for catch, fish count, or yield.
+40. As a frontend developer, I want SST values returned in Celsius, so that display code and users do not need to infer or convert units.
+41. As a backend developer, I want coordinates rounded to a stable display precision, so that payloads remain compact without pretending to have more meaningful precision than the source supports.
+42. As a backend developer, I want missing or insufficient coverage to return `partial`, `empty`, or `unavailable`, so that missing front, SST, or fishing-effort coverage is never interpreted as zero activity.
+43. As a backend developer, I want viewport caches keyed by query parameters and data/build version, so that cache hits are reproducible and stale semantics can be retired safely.
+44. As a developer, I want the first viewport slice to use existing static data or fixtures before raw archive ingestion, so that the server boundary can be validated before the data pipeline becomes larger.
+45. As a maintainer, I want the first backend slice to include local run instructions and API contract documentation, so that later frontend and server-sync work can proceed without reverse-engineering the API.
 
 ## Implementation Decisions
 
@@ -66,12 +81,29 @@ Agent/AI contracts are not part of the first implementation wave. Later Agent to
 - First-stage deployed data scope is the current demo window plus historical same-period samples needed by the UI and response-analysis loop.
 - Exclude `frontal_intensity` from the first milestone because its archive size is around 100 GB and it is not required for the core loop.
 - Produce large archive data locally by default and sync permitted outputs to the server. Let the server fill small gaps and build caches.
+- The first backend implementation lives under the existing backend module.
+- Use FastAPI for the server API and Pydantic for request and response models.
+- The first backend slice includes `/api/health` and `/api/viewport`.
 - The viewport API accepts `date`, `bbox`, and `step`.
+- The `date` parameter uses `YYYY-MM-DD`.
+- The `bbox` parameter uses `minLon,minLat,maxLon,maxLat`.
+- The `step` parameter means spatial sampling or downsampling interval, not temporal step or map zoom.
 - Viewport payloads are designed for rendering and querying, not as a direct clone of the static offline payload structure.
+- Viewport payloads use a top-level `meta`, `layers`, `coverage`, and `caveats` structure.
 - Viewport payloads include explicit source, date, bbox, step, resolution, status, coverage, caveats, and cache metadata.
-- Viewport queries outside available coverage return partial, empty, or unavailable statuses.
-- Cache viewport responses first as JSON keyed by date, bbox, and step. Tile or pyramid caching is a later optimization.
+- The first viewport layers are `fronts`, `sst`, and `fishingEffort`.
+- `fishingEffort` values must be expressed as fishing hours or apparent fishing effort and must not be named as catch, fish count, yield, production, revenue, or biomass.
+- SST values are returned in Celsius. If a source uses Kelvin, conversion belongs in deterministic backend code and should be reflected in metadata.
+- Coordinates in viewport output should be rounded to four decimal places unless a later data contract justifies a different precision.
+- Viewport business status values are `ok`, `partial`, `empty`, `unavailable`, and `invalid`.
+- A syntactically valid request with `partial`, `empty`, or `unavailable` data returns HTTP 200 with explicit coverage and caveats. Invalid parameters return HTTP 400 or 422.
+- Viewport queries outside available coverage return partial, empty, or unavailable statuses. Do not fill missing data with zero.
+- Cache viewport responses first as JSON keyed by date, bbox, step, and data/build version. Tile or pyramid caching is a later optimization.
+- Local development stores viewport cache outputs under the server data boundary and does not commit generated cache files. Commit only directory documentation or small examples when useful.
+- The first viewport slice should serve existing frontend static data or fixtures through the backend contract. Direct raw NetCDF, Zenodo archive, or GFW/AIS ingestion is a later data-pipeline task.
 - Frontend server mode auto-detects backend health, shows the current mode, supports manual fallback, and limits server viewport requests to server mode.
+- The first backend slice does not have to wire the frontend to `/api/viewport`; that is the next implementation step after API tests and docs are stable.
+- Provide local backend run instructions and a lightweight backend start command or script before server sync.
 - Agent/AI-specific tooling is deferred until the basic backend is demonstrably stable.
 - Future Agent tools, if added, should wrap deterministic project computations instead of introducing new numerical semantics.
 - AI may eventually organize tasks and evidence, but deterministic code computes numerical values.
@@ -83,7 +115,9 @@ Agent/AI contracts are not part of the first implementation wave. Later Agent to
 
 - Tests should cover externally visible behavior at the highest seam possible. Prefer API responses, frontend mode behavior, and experiment artifacts over private helper implementation details.
 - The primary seam is the server API boundary. A good viewport test sends date, bbox, and step inputs and verifies response status, coverage, caveats, payload shape, and cache behavior.
-- Backend tests should cover healthy in-range viewport queries, partial coverage, empty coverage, invalid bbox/date inputs, cache miss/hit, and unavailable SST/front cases.
+- Backend API tests use pytest and FastAPI TestClient for the first slice.
+- Backend tests should cover `/api/health`, healthy in-range viewport queries, partial coverage, empty coverage, invalid bbox/date inputs, cache miss/hit, and unavailable SST/front/fishing-effort cases.
+- Tests should assert the public API contract: HTTP status, business status, top-level payload shape, layer names, units, caveats, coverage, and cache metadata. Avoid tests that depend on private helper implementation details.
 - Frontend tests should cover offline startup, server-health detection, visible mode state, manual fallback, server-mode globe or large-window request behavior, and graceful failure when the server is down.
 - Deferred Agent/AI tests are out of the first wave; once added, they should verify wrapper semantics, caveats, unavailable states, and the absence of forbidden claims without changing numerical outputs.
 - Response-analysis tests should verify control-region calculation, buffer radius behavior, before/after windowing, bootstrap output shape, permutation-test output shape, and report caveats.
@@ -95,6 +129,8 @@ Agent/AI contracts are not part of the first implementation wave. Later Agent to
 - No full production multi-user permission system in this spec.
 - No domain, HTTPS, or certificate automation in the first implementation milestone; it is documented as a later upgrade.
 - No first-milestone `frontal_intensity` download or processing.
+- No first-slice direct raw NetCDF, Zenodo archive, or GFW/AIS ingestion through `/api/viewport`.
+- No first-slice frontend integration with `/api/viewport`; frontend server mode follows after the backend contract is tested and documented.
 - No raw AIS/GFW, MMSI, vessel tracks, or fine-grained working grids in Git.
 - No claim that apparent fishing effort equals catch, yield, production, biomass, revenue, or guaranteed fishing success.
 - No required real LLM integration or Agent-tool implementation in the first backend wave.
