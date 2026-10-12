@@ -1,11 +1,15 @@
+from datetime import date as date_type
 from pathlib import Path
 
 import numpy as np
+import pytest
 import xarray as xr
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 from app.config import settings
 from app.main import app
+from app.schemas import ViewportCoverage, ViewportLayerCoverage, ViewportRequest
 
 client = TestClient(app)
 
@@ -26,6 +30,59 @@ def test_ai_health() -> None:
     assert ai_payload["provider"]
     assert ai_payload["offline"] is True
     assert ai_payload["checked_at"]
+
+
+def test_viewport_fixture_happy_path_contract() -> None:
+    response = client.get(
+        "/api/viewport",
+        params={"date": "2024-08-05", "bbox": "120,30,121,31", "step": 1},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert set(payload) == {"meta", "layers", "coverage", "caveats"}
+    assert payload["meta"]["status"] == "ok"
+    assert payload["meta"]["source"] == "fixture"
+    assert payload["meta"]["date"] == "2024-08-05"
+    assert payload["meta"]["bbox"] == [120.0, 30.0, 121.0, 31.0]
+    assert payload["meta"]["step"] == 1
+    assert payload["meta"]["resolution"]["spatial_deg"] == 0.05
+    assert payload["meta"]["cache"]["enabled"] is False
+    assert payload["meta"]["cache"]["hit"] is False
+
+    layers = payload["layers"]
+    assert set(layers) == {"fronts", "sst", "fishingEffort"}
+    assert layers["fronts"]["type"] == "FeatureCollection"
+    assert layers["fronts"]["features"][0]["properties"]["frontId"] == "fixture-front-001"
+    assert layers["sst"]["unit"] == "celsius"
+    assert layers["sst"]["cells"][0]["value"] == 24.6
+    assert layers["fishingEffort"]["metric"] == "apparent_fishing_effort"
+    assert layers["fishingEffort"]["unit"] == "fishing_hours"
+    assert layers["fishingEffort"]["cells"][0]["hours"] == 2.5
+    assert payload["coverage"]["status"] == "ok"
+    assert payload["coverage"]["layers"]["fishingEffort"] == "available"
+    assert any("apparent fishing effort" in caveat for caveat in payload["caveats"])
+
+
+def test_viewport_pydantic_models_validate_contract() -> None:
+    request = ViewportRequest(date=date_type(2024, 8, 5), bbox=[120, 30, 121, 31], step=1)
+    assert request.bbox == [120, 30, 121, 31]
+
+    with pytest.raises(ValidationError):
+        ViewportRequest(date=date_type(2024, 8, 5), bbox=[120, 30, 121], step=1)
+    with pytest.raises(ValidationError):
+        ViewportRequest(date=date_type(2024, 8, 5), bbox=[120, 30, 121, 31], step=0)
+    with pytest.raises(ValidationError):
+        ViewportLayerCoverage(fronts="missing", sst="available", fishing_effort="available")
+    with pytest.raises(ValidationError):
+        ViewportCoverage(
+            status="partial",
+            bbox=[120, 30, 121, 31],
+            layers=ViewportLayerCoverage(
+                fronts="available",
+                sst="available",
+                fishing_effort="available",
+            ),
+        )
 
 
 def test_empty_catalog_is_explicit(tmp_path: Path, monkeypatch) -> None:

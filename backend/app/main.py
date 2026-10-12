@@ -6,13 +6,13 @@ import numpy as np
 from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 
+from . import fishing_effort
 from .ai_agent import (
     analyze_request,
     capabilities_response,
     knowledge_response,
 )
 from .ai_agent import health_response as ai_health_response
-from . import fishing_effort
 from .config import settings
 from .data_access import (
     load_front_subset,
@@ -79,7 +79,10 @@ from .schemas import (
     ReportResponse,
     SeriesPoint,
     SeriesResponse,
+    ViewportRequest,
+    ViewportResponse,
 )
+from .viewport import build_fixture_viewport
 
 app = FastAPI(title=settings.app_name, version="0.1.0")
 app.add_middleware(
@@ -89,6 +92,10 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+VIEWPORT_DATE_QUERY = Query(..., description="Observation date in YYYY-MM-DD format")
+VIEWPORT_BBOX_QUERY = Query(..., description="minLon,minLat,maxLon,maxLat")
+VIEWPORT_STEP_QUERY = Query(..., ge=1, le=40, description="Spatial sampling/downsampling step")
 
 
 def _query_bounds(longitude: float, latitude: float, radius_deg: float) -> list[float]:
@@ -123,6 +130,23 @@ def _raster_cache_path(
 @app.get(f"{settings.api_prefix}/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     return HealthResponse(status="ok", service=settings.app_name, offline=True)
+
+
+@app.get(f"{settings.api_prefix}/viewport", response_model=ViewportResponse)
+def viewport(
+    date: date_type = VIEWPORT_DATE_QUERY,
+    bbox: str = VIEWPORT_BBOX_QUERY,
+    step: int = VIEWPORT_STEP_QUERY,
+) -> ViewportResponse:
+    try:
+        window = parse_bbox(bbox)
+    except WindowError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    if window is None:
+        raise HTTPException(status_code=422, detail="bbox is required")
+    return build_fixture_viewport(
+        ViewportRequest(date=date, bbox=[float(value) for value in window], step=step)
+    )
 
 
 @app.get(f"{settings.api_prefix}/ai/capabilities", response_model=AiCapabilitiesResponse)

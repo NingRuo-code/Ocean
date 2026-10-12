@@ -1,14 +1,70 @@
 from __future__ import annotations
 
 from datetime import date as DateType
+from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class HealthResponse(BaseModel):
     status: str
     service: str
     offline: bool
+
+
+class ViewportRequest(BaseModel):
+    date: DateType
+    bbox: list[float] = Field(min_length=4, max_length=4)
+    step: int = Field(ge=1, le=40)
+
+
+class ViewportResolution(BaseModel):
+    spatial_deg: float
+
+
+class ViewportCacheMetadata(BaseModel):
+    enabled: bool
+    hit: bool
+    version: str = Field(min_length=1)
+
+
+class ViewportMeta(BaseModel):
+    status: Literal["ok"]
+    source: Literal["fixture"]
+    date: DateType
+    bbox: list[float] = Field(min_length=4, max_length=4)
+    step: int = Field(ge=1, le=40)
+    resolution: ViewportResolution
+    cache: ViewportCacheMetadata
+
+
+class ViewportLayerCoverage(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    fronts: Literal["available"]
+    sst: Literal["available"]
+    fishing_effort: Literal["available"] = Field(alias="fishingEffort")
+
+
+class ViewportCoverage(BaseModel):
+    status: Literal["ok"]
+    bbox: list[float] = Field(min_length=4, max_length=4)
+    layers: ViewportLayerCoverage
+
+
+class ViewportLayers(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    fronts: dict[str, object]
+    sst: dict[str, object]
+    fishing_effort: dict[str, object] = Field(alias="fishingEffort")
+
+
+class ViewportResponse(BaseModel):
+    meta: ViewportMeta
+    layers: ViewportLayers
+    coverage: ViewportCoverage
+    caveats: list[str]
 
 
 class CatalogFile(BaseModel):
