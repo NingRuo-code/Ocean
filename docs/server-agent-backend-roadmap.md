@@ -16,16 +16,15 @@ The current project direction is:
 - Frontend mode: auto-detect `/api/health`, show offline/server state, and allow manual fallback.
 - Collaboration: one main repo, topic branches and ticket-driven PRs.
 
-## 1. Server Sizing Recommendation
+## 1. Server Strategy Recommendation
 
-Recommended first server:
+First server strategy:
 
 | Item | Recommendation | Reason |
 |---|---|---|
-| Provider | Alibaba Cloud, same Ubuntu/Nginx/systemd deployment shape | Existing deploy scripts and runbook already assume this shape |
-| CPU | 4 vCPU | Enough for FastAPI, cache generation, and small batch analysis |
-| RAM | 8 GB | Safer for NetCDF/SST/front processing than 4 GB |
-| Disk | 200 GB SSD/data disk | Leaves room for raw samples, processed indexes, viewport cache, experiment outputs |
+| Provider | Existing configured Alibaba Cloud Ubuntu server | The collaborator/restructure deployment baseline already has this shape; use it first to reduce setup risk |
+| Capacity | Inventory first, then constrain data/cache scope to what the existing server can safely hold | The first goal is a working server loop, not full historical/global storage |
+| Upgrade path | Larger server or larger data disk only after the basic API, frontend server mode, cache, response-analysis loop, and smoke checks are stable | Avoid buying capacity before the workload shape is measured |
 | Network | Public IP first | Avoid domain/HTTPS blocking initial deployment |
 | Later upgrade | Domain + HTTPS | Use after API and data behavior are stable |
 
@@ -36,6 +35,7 @@ Capacity notes:
 - Zenodo `front_location.zip` is about 18.3 GB, but first deployment should sync extracted day files rather than require the server to read the whole archive.
 - `frontal_intensity` is about 100 GB and is out of first milestone scope.
 - Coarse/global SST and viewport caches can grow; keep them under `/srv/ocean/data/cache` with eviction.
+- Before expanding beyond the demo window and historical same-period samples, measure available disk, memory, and sustained cache growth on the existing server.
 
 ## 2. Deployment Shape
 
@@ -128,11 +128,11 @@ Acceptance:
 - Claims stay at apparent fishing-effort response, not catch/yield.
 - The output can be reviewed without an AI layer.
 
-### M5. Server Deployment
+### M5. Existing Server Deployment
 
 Deliverables:
 
-- New Alibaba Cloud Ubuntu server prepared with `/opt/ocean` and `/srv/ocean/data`.
+- Existing configured Alibaba Cloud Ubuntu server inventoried and prepared with `/opt/ocean` and `/srv/ocean/data`.
 - Nginx + systemd FastAPI service.
 - `/api/health`, viewport API, and response-analysis smoke path reachable through Nginx.
 - Updated sanitized runbook.
@@ -142,6 +142,7 @@ Acceptance:
 - Public IP works first.
 - Domain + HTTPS path is documented for later.
 - Data and credentials remain outside Git.
+- Capacity constraints are recorded before any larger data/cache expansion.
 
 ### M6. Deferred Agent/AI Extension
 

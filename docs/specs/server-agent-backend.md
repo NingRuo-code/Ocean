@@ -8,11 +8,11 @@ The user needs the project to move toward a deployable and research-verifiable s
 
 ## Solution
 
-Build a server/basic-backend phase around a single high-level seam: the server API boundary. The first server milestone will run the frontend plus FastAPI backend on a larger Alibaba Cloud Ubuntu server, with data under a server data directory and Nginx proxying `/api`.
+Build a server/basic-backend phase around a single high-level seam: the server API boundary. The first server milestone will use the existing configured Alibaba Cloud Ubuntu server from the prior deployment baseline, with data under a server data directory and Nginx proxying `/api`.
 
 The backend will first add a viewport API that accepts `date`, `bbox`, and `step`, then returns a light render/query payload with explicit source, resolution, coverage, status, and caveats. The frontend will auto-detect server availability, show the current offline/server mode, allow manual fallback, and use the viewport API for large or globe-scale windows only when server mode is active.
 
-The response-analysis research path will be packaged as reproducible experiment outputs using non-front controls, bootstrap confidence intervals, and permutation tests over the first sample region/window. Deployment planning will target a 4 vCPU / 8 GB RAM / 200 GB SSD or data-disk Alibaba Cloud server, initially public IP + HTTP, later domain + HTTPS.
+The response-analysis research path will be packaged as reproducible experiment outputs using non-front controls, bootstrap confidence intervals, and permutation tests over the first sample region/window. Deployment planning will start from the existing server, initially public IP + HTTP, later domain + HTTPS. Larger capacity is a later decision after the basic loop exposes real CPU, memory, disk, or cache pressure.
 
 Agent/AI contracts are not part of the first implementation wave. Later Agent tools may wrap stable deterministic APIs and experiment outputs, but they should not gate viewport, server mode, data/cache, research validation, or deployment work.
 
@@ -21,7 +21,7 @@ Agent/AI contracts are not part of the first implementation wave. Later Agent to
 1. As a project owner, I want the offline prototype to keep working, so that classroom, interview, and no-network demos are not broken by server work.
 2. As a project owner, I want a server mode, so that the same product can grow beyond committed static payloads.
 3. As a project owner, I want the server to run frontend and backend API together, so that demonstrations can use a realistic deployment shape.
-4. As a project owner, I want a clear first server size, so that I can buy or upgrade an Alibaba Cloud server without guessing.
+4. As a project owner, I want the existing server capacity and constraints inventoried first, so that I can avoid premature server replacement.
 5. As a project owner, I want raw, processed, cache, and output data separated, so that server operations do not leak restricted or reconstructable data.
 6. As a project owner, I want server IPs, key paths, credentials, and incident notes kept out of Git, so that collaboration does not create security debt.
 7. As a project owner, I want first deployment to work by public IP and HTTP, so that domain and HTTPS setup do not block API validation.
@@ -56,7 +56,9 @@ Agent/AI contracts are not part of the first implementation wave. Later Agent to
 - Use the server API boundary as the highest testing and integration seam. The viewport API is the first concrete seam.
 - Preserve offline mode as a first-class path. Server work must not make the static prototype depend on a running backend.
 - Target Alibaba Cloud Ubuntu with the existing Nginx/systemd deployment shape.
-- Recommend the first server as 4 vCPU, 8 GB RAM, and 200 GB SSD or data disk.
+- Use the existing configured Alibaba Cloud Ubuntu server first.
+- Inventory CPU, memory, disk, `/srv` free space, data directories, existing services, and deployment permissions before deciding whether to expand capacity.
+- Defer larger server or larger disk decisions until viewport API, frontend server mode, response-analysis smoke checks, and cache behavior are stable.
 - Deploy first through public IP and HTTP, then add domain and HTTPS after behavior is stable.
 - Keep application code and server data in separate operational roots. The application root and data root should remain separately replaceable.
 - Treat credentials, real server IPs, SSH key paths, raw AIS/GFW, fine-grained grids, and incident notes as non-committable material.

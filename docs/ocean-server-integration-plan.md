@@ -11,7 +11,7 @@
 当前确认：
 
 - 服务器目标：前端 + FastAPI 后端 API，并承担数据生产/缓存。
-- 服务器选型：同类型阿里云 Ubuntu 服务器扩容，推荐 4 vCPU / 8 GB RAM / 200 GB SSD 或数据盘。
+- 服务器选型：先沿用现有已配置的同类型阿里云 Ubuntu 服务器；完成容量、目录、权限和运行状态盘点后，再决定是否扩容或更换更大服务器。
 - 部署路径：先公网 IP + HTTP 跑通，再升级域名 + HTTPS。
 - 数据路径：`/opt/ocean` 放应用，`/srv/ocean/data` 放 raw/processed/cache/outputs，`/etc/ocean` 放服务器本地 env。
 - 数据范围：第一阶段只放演示窗口和往年同期样本；`frontal_intensity` 约 100 GB，暂不进入第一阶段。

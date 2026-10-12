@@ -6,8 +6,8 @@ Use this when work touches server deployment, viewport APIs, data/cache pipeline
 
 - Branch topic: `codex/server-agent-backend`.
 - Server goal: frontend + FastAPI backend API, with server-side data production/cache under `/srv/ocean/data`.
-- Hosting target: larger Alibaba Cloud Ubuntu server in the same deployment shape as the existing runbook.
-- Recommended first server: 4 vCPU, 8 GB RAM, 200 GB SSD/data disk. Use 2 vCPU / 4 GB / 80 GB only for throwaway demos; use 16 GB / 500 GB when multi-year experiments become routine.
+- Hosting target: the existing configured Alibaba Cloud Ubuntu server from the prior deployment baseline. Use that server first; consider larger capacity only after the basic API, frontend server mode, cache, response-analysis loop, and smoke checks are stable.
+- Capacity policy: inventory CPU, memory, disk, `/srv` free space, and existing services before expanding data scope. Keep first deployment data small enough for the existing server.
 - Deployment path: public IP + HTTP first, then domain + HTTPS after API/data behavior is stable.
 - Storage path: keep code under `/opt/ocean`; mount or reserve data storage for `/srv/ocean/data`.
 - Credentials: begin without server-side GFW/AIS credentials; later store them in a server-only env file such as `/etc/ocean/gfw.env`. Credentials, server IPs, key paths, and incident notes stay out of Git.
@@ -21,6 +21,7 @@ Use this when work touches server deployment, viewport APIs, data/cache pipeline
 4. Add response-analysis experiment package: controls, bootstrap, permutation test, reproducible outputs.
 5. Prepare deployment runbook and server smoke path.
 6. Revisit Agent tool contracts only after the basic backend is demonstrably stable.
+7. Revisit server replacement or larger capacity only after the existing server proves the loop and exposes real bottlenecks.
 
 ## Data Scope
 

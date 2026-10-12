@@ -1,16 +1,19 @@
-# Ticket 01: Planning And Server Sizing
+# Ticket 01: Existing Server Inventory And Safety Baseline
 
 ## Goal
 
-Lock the first server/basic-backend direction before implementation starts.
+Lock the first server/basic-backend direction around the existing configured server before implementation starts.
 
 ## Scope
 
-- Record the server sizing decision: Alibaba Cloud, 4 vCPU, 8 GB RAM, 200 GB SSD/data disk.
+- Record the server strategy decision: use the existing configured Alibaba Cloud Ubuntu server first.
+- Inventory current CPU, memory, disk, `/srv` free space, existing services, deployment user, Nginx/systemd state, and data directory layout when server access is available.
+- Record constraints that limit first-stage data/cache scope.
 - Record first deployment path: public IP + HTTP, later domain + HTTPS.
 - Record storage paths: `/opt/ocean` for app, `/srv/ocean/data` for raw/processed/cache/outputs, `/etc/ocean` for server-only env.
 - Record first data scope: demo window plus historical same-period samples.
 - Keep `frontal_intensity` out of first milestone.
+- Defer larger server or larger data disk until the basic loop exposes real bottlenecks.
 
 ## Acceptance
 
