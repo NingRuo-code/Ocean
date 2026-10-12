@@ -1,6 +1,6 @@
 # Ocean Server / Basic Backend Roadmap
 
-> Status: planned on `codex/server-agent-backend`.
+> Status: in progress on `codex/server-agent-backend`.
 > Purpose: move Ocean from a strong offline prototype to a server-assisted and research-verifiable system without losing offline fallback. Agent/AI work is deferred until the basic server, viewport, frontend server mode, data/cache, and response-analysis loop are stable.
 
 ## 0. Decisions So Far
@@ -86,6 +86,8 @@ Deliverables:
 
 - `GET /api/viewport?date=...&bbox=...&step=...`.
 - Light payload for map rendering and deterministic backend querying.
+- Structured coverage states for `ok`, `partial`, `empty`, and `unavailable`.
+- Coverage fields distinguish requested bbox from actually covered bbox, and layer coverage is tracked separately for `fronts`, `sst`, and `fishingEffort`.
 - JSON cache by `date + bbox + step`.
 - Tests for in-range, partial, empty, invalid bbox, and cache hit.
 
@@ -94,6 +96,7 @@ Acceptance:
 - Offline static data remains untouched.
 - API includes source/date/bbox/step/resolution/status/coverage/caveats.
 - Out-of-coverage windows return partial/empty rather than invented data.
+- Empty or unavailable fishing-effort coverage is not treated as zero activity.
 
 ### M3. Frontend Server Mode
 
@@ -167,3 +170,11 @@ Acceptance:
 6. Revisit M6 only after the basic backend and deployed-server sync loop are stable.
 
 This order is deliberate: server sync waits until the API/data contract is useful enough to validate on the deployed server.
+
+## 5. Execution Log
+
+| Date | Item | Status | Notes |
+|---|---|---|---|
+| 2026-10-12 | M2 backend health and local run path | Done | `/api/health`, local backend run instructions, and backend smoke tests are in place. |
+| 2026-10-12 | M2 fixture-backed viewport happy path | Done | `/api/viewport` returns `meta`, `layers`, `coverage`, and `caveats` from a deterministic fixture. |
+| 2026-10-12 | M2 viewport validation and honest coverage states | Done | Valid partial/empty/unavailable requests return HTTP 200 with explicit coverage and caveats; invalid date/bbox/step requests fail as request errors. |

@@ -91,6 +91,7 @@ Agent/AI contracts are not part of the first implementation wave. Later Agent to
 - Viewport payloads are designed for rendering and querying, not as a direct clone of the static offline payload structure.
 - Viewport payloads use a top-level `meta`, `layers`, `coverage`, and `caveats` structure.
 - Viewport payloads include explicit source, date, bbox, step, resolution, status, coverage, caveats, and cache metadata.
+- Viewport `coverage` distinguishes the requested bbox from the actually covered bbox. `requestBbox` records the client request; `coveredBbox`/`bbox` records the covered area and may be `null` when the request is syntactically valid but coverage is empty or unavailable.
 - The first viewport layers are `fronts`, `sst`, and `fishingEffort`.
 - `fishingEffort` values must be expressed as fishing hours or apparent fishing effort and must not be named as catch, fish count, yield, production, revenue, or biomass.
 - SST values are returned in Celsius. If a source uses Kelvin, conversion belongs in deterministic backend code and should be reflected in metadata.
@@ -98,6 +99,7 @@ Agent/AI contracts are not part of the first implementation wave. Later Agent to
 - Viewport business status values are `ok`, `partial`, `empty`, `unavailable`, and `invalid`.
 - A syntactically valid request with `partial`, `empty`, or `unavailable` data returns HTTP 200 with explicit coverage and caveats. Invalid parameters return HTTP 400 or 422.
 - Viewport queries outside available coverage return partial, empty, or unavailable statuses. Do not fill missing data with zero.
+- Layer coverage is tracked per layer, so future real-data responses can express mixed states such as fronts available while SST or fishing-effort coverage is unavailable.
 - Cache viewport responses first as JSON keyed by date, bbox, step, and data/build version. Tile or pyramid caching is a later optimization.
 - Local development stores viewport cache outputs under the server data boundary and does not commit generated cache files. Commit only directory documentation or small examples when useful.
 - The first viewport slice should serve existing frontend static data or fixtures through the backend contract. Direct raw NetCDF, Zenodo archive, or GFW/AIS ingestion is a later data-pipeline task.

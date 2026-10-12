@@ -5,6 +5,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+ViewportStatus = Literal["ok", "partial", "empty", "unavailable", "invalid"]
+ViewportLayerStatus = Literal["available", "partial", "empty", "unavailable"]
+
 
 class HealthResponse(BaseModel):
     status: str
@@ -29,7 +32,7 @@ class ViewportCacheMetadata(BaseModel):
 
 
 class ViewportMeta(BaseModel):
-    status: Literal["ok"]
+    status: ViewportStatus
     source: Literal["fixture"]
     date: DateType
     bbox: list[float] = Field(min_length=4, max_length=4)
@@ -41,14 +44,18 @@ class ViewportMeta(BaseModel):
 class ViewportLayerCoverage(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    fronts: Literal["available"]
-    sst: Literal["available"]
-    fishing_effort: Literal["available"] = Field(alias="fishingEffort")
+    fronts: ViewportLayerStatus
+    sst: ViewportLayerStatus
+    fishing_effort: ViewportLayerStatus = Field(alias="fishingEffort")
 
 
 class ViewportCoverage(BaseModel):
-    status: Literal["ok"]
-    bbox: list[float] = Field(min_length=4, max_length=4)
+    model_config = ConfigDict(populate_by_name=True)
+
+    status: ViewportStatus
+    bbox: list[float] | None = Field(default=None, min_length=4, max_length=4)
+    request_bbox: list[float] = Field(alias="requestBbox", min_length=4, max_length=4)
+    covered_bbox: list[float] | None = Field(default=None, alias="coveredBbox", min_length=4, max_length=4)
     layers: ViewportLayerCoverage
 
 

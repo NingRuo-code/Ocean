@@ -10,6 +10,8 @@ Implement a backend viewport API for server mode, frontend rendering, and determ
 - Accept `date`, `bbox`, and `step`.
 - Return a light payload for rendering/querying, not a clone of static day JS.
 - Include metadata: `source`, `date`, `bbox`, `step`, `resolution`, `status`, `coverage`, `caveats`, and `cached`.
+- In `coverage`, distinguish `requestBbox` from `coveredBbox`; `coveredBbox` is `null` when a valid request has no covered cells.
+- Track `fronts`, `sst`, and `fishingEffort` coverage separately so mixed missing-data states can be represented later.
 - Cache responses by `date + bbox + step` under `/srv/ocean/data/cache` or local `data/cache`.
 - Return `partial`, `empty`, or `unavailable` when data coverage is incomplete.
 
@@ -19,6 +21,13 @@ Implement a backend viewport API for server mode, frontend rendering, and determ
 - Out-of-range bbox returns explicit partial/empty status.
 - Cache hit is observable in response metadata or headers.
 - Unit/API tests cover valid, partial, empty, invalid bbox, and cache hit paths.
+
+## Progress
+
+- [x] Backend health and local run path.
+- [x] Fixture-backed `/api/viewport` happy path.
+- [x] Viewport validation and honest coverage states: partial, empty, unavailable, invalid date, invalid bbox, invalid step.
+- [ ] Versioned viewport JSON cache.
 
 ## Checks
 

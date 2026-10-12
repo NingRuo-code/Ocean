@@ -59,6 +59,9 @@ def test_viewport_fixture_happy_path_contract() -> None:
     assert layers["fishingEffort"]["unit"] == "fishing_hours"
     assert layers["fishingEffort"]["cells"][0]["hours"] == 2.5
     assert payload["coverage"]["status"] == "ok"
+    assert payload["coverage"]["bbox"] == [120.0, 30.0, 121.0, 31.0]
+    assert payload["coverage"]["requestBbox"] == [120.0, 30.0, 121.0, 31.0]
+    assert payload["coverage"]["coveredBbox"] == [120.0, 30.0, 121.0, 31.0]
     assert payload["coverage"]["layers"]["fishingEffort"] == "available"
     assert any("apparent fishing effort" in caveat for caveat in payload["caveats"])
 
@@ -73,9 +76,18 @@ def test_viewport_pydantic_models_validate_contract() -> None:
         ViewportRequest(date=date_type(2024, 8, 5), bbox=[120, 30, 121, 31], step=0)
     with pytest.raises(ValidationError):
         ViewportLayerCoverage(fronts="missing", sst="available", fishing_effort="available")
+    mixed_layers = ViewportLayerCoverage(
+        fronts="available",
+        sst="unavailable",
+        fishing_effort="partial",
+    )
+    assert mixed_layers.fronts == "available"
+    assert mixed_layers.sst == "unavailable"
+    assert mixed_layers.fishing_effort == "partial"
     with pytest.raises(ValidationError):
         ViewportCoverage(
-            status="partial",
+            status="future",
+            request_bbox=[120, 30, 121, 31],
             bbox=[120, 30, 121, 31],
             layers=ViewportLayerCoverage(
                 fronts="available",
@@ -83,6 +95,109 @@ def test_viewport_pydantic_models_validate_contract() -> None:
                 fishing_effort="available",
             ),
         )
+
+
+def test_viewport_partial_coverage_is_explicit() -> None:
+    response = client.get(
+        "/api/viewport",
+        params={"date": "2024-08-05", "bbox": "120,30,122,31", "step": 1},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["meta"]["status"] == "partial"
+    assert payload["coverage"]["status"] == "partial"
+    assert payload["coverage"]["bbox"] == [120.0, 30.0, 121.0, 31.0]
+    assert payload["coverage"]["requestBbox"] == [120.0, 30.0, 122.0, 31.0]
+    assert payload["coverage"]["coveredBbox"] == [120.0, 30.0, 121.0, 31.0]
+    assert payload["coverage"]["layers"] == {
+        "fronts": "partial",
+        "sst": "partial",
+        "fishingEffort": "partial",
+    }
+    assert payload["layers"]["fronts"]["features"]
+    assert payload["layers"]["sst"]["cells"]
+    assert payload["layers"]["fishingEffort"]["cells"]
+    assert any("partial" in caveat.lower() for caveat in payload["caveats"])
+    assert any("not catch or yield" in caveat for caveat in payload["caveats"])
+
+
+def test_viewport_empty_coverage_does_not_mean_zero_activity() -> None:
+    response = client.get(
+        "/api/viewport",
+        params={"date": "2024-08-05", "bbox": "122,30,123,31", "step": 1},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["meta"]["status"] == "empty"
+    assert payload["coverage"]["status"] == "empty"
+    assert payload["coverage"]["bbox"] is None
+    assert payload["coverage"]["requestBbox"] == [122.0, 30.0, 123.0, 31.0]
+    assert payload["coverage"]["coveredBbox"] is None
+    assert payload["coverage"]["layers"] == {
+        "fronts": "empty",
+        "sst": "empty",
+        "fishingEffort": "empty",
+    }
+    assert payload["layers"]["fronts"]["features"] == []
+    assert payload["layers"]["sst"]["cells"] == []
+    assert payload["layers"]["fishingEffort"]["cells"] == []
+    assert any("outside fixture coverage" in caveat for caveat in payload["caveats"])
+    assert any("not zero activity" in caveat for caveat in payload["caveats"])
+
+
+def test_viewport_unavailable_date_is_a_structured_response() -> None:
+    response = client.get(
+        "/api/viewport",
+        params={"date": "2024-08-06", "bbox": "120,30,121,31", "step": 1},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["meta"]["status"] == "unavailable"
+    assert payload["coverage"]["status"] == "unavailable"
+    assert payload["coverage"]["bbox"] is None
+    assert payload["coverage"]["requestBbox"] == [120.0, 30.0, 121.0, 31.0]
+    assert payload["coverage"]["coveredBbox"] is None
+    assert payload["coverage"]["layers"] == {
+        "fronts": "unavailable",
+        "sst": "unavailable",
+        "fishingEffort": "unavailable",
+    }
+    assert payload["layers"]["fronts"]["features"] == []
+    assert payload["layers"]["sst"]["cells"] == []
+    assert payload["layers"]["fishingEffort"]["cells"] == []
+    assert any("unavailable" in caveat.lower() for caveat in payload["caveats"])
+    assert any("apparent fishing effort" in caveat for caveat in payload["caveats"])
+
+
+def test_viewport_rejects_invalid_parameters() -> None:
+    assert (
+        client.get(
+            "/api/viewport",
+            params={"date": "2024-13-40", "bbox": "120,30,121,31", "step": 1},
+        ).status_code
+        == 422
+    )
+    assert (
+        client.get(
+            "/api/viewport",
+            params={"date": "2024-08-05", "bbox": "121,30,120,31", "step": 1},
+        ).status_code
+        == 422
+    )
+    assert (
+        client.get(
+            "/api/viewport",
+            params={"date": "2024-08-05", "bbox": "120,30,121", "step": 1},
+        ).status_code
+        == 422
+    )
+    assert (
+        client.get(
+            "/api/viewport",
+            params={"date": "2024-08-05", "bbox": "120,30,121,31", "step": 0},
+        ).status_code
+        == 422
+    )
 
 
 def test_empty_catalog_is_explicit(tmp_path: Path, monkeypatch) -> None:
