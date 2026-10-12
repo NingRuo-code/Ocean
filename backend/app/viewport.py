@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import hashlib
+import json
+import os
 from datetime import date as DateType
+from pathlib import Path
 
 from .schemas import (
     ViewportCacheMetadata,
@@ -14,6 +18,8 @@ from .schemas import (
 )
 
 FIXTURE_VERSION = "viewport-fixture-v1"
+VIEWPORT_CACHE_VERSION = f"{FIXTURE_VERSION}-contract-v2"
+VIEWPORT_CACHE_SUBDIR = "viewport"
 FIXTURE_DATE = DateType(2024, 8, 5)
 FIXTURE_BBOX = (120.0, 30.0, 121.0, 31.0)
 
@@ -105,6 +111,77 @@ def _fixture_layers(bbox: tuple[float, float, float, float]) -> ViewportLayers:
     )
 
 
+def _cache_request_payload(request: ViewportRequest) -> dict[str, object]:
+    return {
+        "version": VIEWPORT_CACHE_VERSION,
+        "date": request.date.isoformat(),
+        "bbox": _round_bbox(request.bbox),
+        "step": request.step,
+    }
+
+
+def _cache_key(request: ViewportRequest) -> str:
+    payload = json.dumps(_cache_request_payload(request), ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _cache_path(cache_dir: Path, request: ViewportRequest) -> Path:
+    return Path(cache_dir) / VIEWPORT_CACHE_SUBDIR / VIEWPORT_CACHE_VERSION / f"{_cache_key(request)}.json"
+
+
+def _with_cache_metadata(response: ViewportResponse, *, enabled: bool, hit: bool) -> ViewportResponse:
+    response.meta.cache = ViewportCacheMetadata(enabled=enabled, hit=hit, version=VIEWPORT_CACHE_VERSION)
+    return response
+
+
+def _read_cached_viewport(path: Path, request: ViewportRequest) -> ViewportResponse | None:
+    try:
+        if not path.is_file():
+            return None
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("version") != VIEWPORT_CACHE_VERSION or payload.get("cache_key") != _cache_key(request):
+        return None
+    response_payload = payload.get("response")
+    if not isinstance(response_payload, dict):
+        return None
+    try:
+        response = ViewportResponse.model_validate(response_payload)
+    except ValueError:
+        return None
+    return _with_cache_metadata(response, enabled=True, hit=True)
+
+
+def _write_cached_viewport(path: Path, request: ViewportRequest, response: ViewportResponse) -> None:
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        payload = {
+            "version": VIEWPORT_CACHE_VERSION,
+            "cache_key": _cache_key(request),
+            "request": _cache_request_payload(request),
+            "response": response.model_dump(mode="json", by_alias=True),
+        }
+        tmp.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        os.replace(tmp, path)
+    except OSError:
+        pass
+
+
+def build_cached_fixture_viewport(request: ViewportRequest, cache_dir: Path) -> ViewportResponse:
+    path = _cache_path(cache_dir, request)
+    cached = _read_cached_viewport(path, request)
+    if cached is not None:
+        return cached
+
+    response = _with_cache_metadata(build_fixture_viewport(request), enabled=True, hit=False)
+    _write_cached_viewport(path, request, response)
+    return response
+
+
 def build_fixture_viewport(request: ViewportRequest) -> ViewportResponse:
     rounded_bbox = _round_bbox(request.bbox)
     intersection = _intersect_bbox(rounded_bbox, FIXTURE_BBOX)
@@ -172,7 +249,7 @@ def build_fixture_viewport(request: ViewportRequest) -> ViewportResponse:
             bbox=rounded_bbox,
             step=request.step,
             resolution=ViewportResolution(spatial_deg=0.05),
-            cache=ViewportCacheMetadata(enabled=False, hit=False, version=FIXTURE_VERSION),
+            cache=ViewportCacheMetadata(enabled=False, hit=False, version=VIEWPORT_CACHE_VERSION),
         ),
         layers=layers,
         coverage=ViewportCoverage(

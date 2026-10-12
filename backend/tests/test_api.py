@@ -32,7 +32,8 @@ def test_ai_health() -> None:
     assert ai_payload["checked_at"]
 
 
-def test_viewport_fixture_happy_path_contract() -> None:
+def test_viewport_fixture_happy_path_contract(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
     response = client.get(
         "/api/viewport",
         params={"date": "2024-08-05", "bbox": "120,30,121,31", "step": 1},
@@ -46,8 +47,9 @@ def test_viewport_fixture_happy_path_contract() -> None:
     assert payload["meta"]["bbox"] == [120.0, 30.0, 121.0, 31.0]
     assert payload["meta"]["step"] == 1
     assert payload["meta"]["resolution"]["spatial_deg"] == 0.05
-    assert payload["meta"]["cache"]["enabled"] is False
+    assert payload["meta"]["cache"]["enabled"] is True
     assert payload["meta"]["cache"]["hit"] is False
+    assert payload["meta"]["cache"]["version"]
 
     layers = payload["layers"]
     assert set(layers) == {"fronts", "sst", "fishingEffort"}
@@ -97,7 +99,8 @@ def test_viewport_pydantic_models_validate_contract() -> None:
         )
 
 
-def test_viewport_partial_coverage_is_explicit() -> None:
+def test_viewport_partial_coverage_is_explicit(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
     response = client.get(
         "/api/viewport",
         params={"date": "2024-08-05", "bbox": "120,30,122,31", "step": 1},
@@ -121,7 +124,8 @@ def test_viewport_partial_coverage_is_explicit() -> None:
     assert any("not catch or yield" in caveat for caveat in payload["caveats"])
 
 
-def test_viewport_empty_coverage_does_not_mean_zero_activity() -> None:
+def test_viewport_empty_coverage_does_not_mean_zero_activity(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
     response = client.get(
         "/api/viewport",
         params={"date": "2024-08-05", "bbox": "122,30,123,31", "step": 1},
@@ -145,7 +149,8 @@ def test_viewport_empty_coverage_does_not_mean_zero_activity() -> None:
     assert any("not zero activity" in caveat for caveat in payload["caveats"])
 
 
-def test_viewport_unavailable_date_is_a_structured_response() -> None:
+def test_viewport_unavailable_date_is_a_structured_response(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
     response = client.get(
         "/api/viewport",
         params={"date": "2024-08-06", "bbox": "120,30,121,31", "step": 1},
@@ -198,6 +203,43 @@ def test_viewport_rejects_invalid_parameters() -> None:
         ).status_code
         == 422
     )
+
+
+def test_viewport_cache_hits_equivalent_requests_and_respects_version(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from app import viewport as viewport_module
+
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
+    first = client.get(
+        "/api/viewport",
+        params={"date": "2024-08-05", "bbox": "120.0000,30.0,121.000,31", "step": 1},
+    )
+    assert first.status_code == 200
+    assert first.json()["meta"]["cache"]["hit"] is False
+
+    second = client.get(
+        "/api/viewport",
+        params={"date": "2024-08-05", "bbox": "120,30,121,31", "step": 1},
+    )
+    assert second.status_code == 200
+    second_payload = second.json()
+    assert second_payload["meta"]["cache"]["enabled"] is True
+    assert second_payload["meta"]["cache"]["hit"] is True
+    assert second_payload["meta"]["cache"]["version"] == viewport_module.VIEWPORT_CACHE_VERSION
+    assert second_payload["layers"] == first.json()["layers"]
+    assert len(list((tmp_path / "cache" / "viewport").rglob("*.json"))) == 1
+
+    monkeypatch.setattr(viewport_module, "VIEWPORT_CACHE_VERSION", "viewport-fixture-v99")
+    after_version_change = client.get(
+        "/api/viewport",
+        params={"date": "2024-08-05", "bbox": "120,30,121,31", "step": 1},
+    )
+    assert after_version_change.status_code == 200
+    assert after_version_change.json()["meta"]["cache"]["hit"] is False
+    assert after_version_change.json()["meta"]["cache"]["version"] == "viewport-fixture-v99"
+    assert len(list((tmp_path / "cache" / "viewport").rglob("*.json"))) == 2
 
 
 def test_empty_catalog_is_explicit(tmp_path: Path, monkeypatch) -> None:

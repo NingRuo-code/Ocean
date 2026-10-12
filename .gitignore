@@ -17,6 +17,7 @@ data/cache/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/cache/.gitkeep
+!data/cache/README.md
 output/
 
 # Local-only AIS/GFW intake workspace

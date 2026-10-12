@@ -101,7 +101,7 @@ Agent/AI contracts are not part of the first implementation wave. Later Agent to
 - Viewport queries outside available coverage return partial, empty, or unavailable statuses. Do not fill missing data with zero.
 - Layer coverage is tracked per layer, so future real-data responses can express mixed states such as fronts available while SST or fishing-effort coverage is unavailable.
 - Cache viewport responses first as JSON keyed by date, bbox, step, and data/build version. Tile or pyramid caching is a later optimization.
-- Local development stores viewport cache outputs under the server data boundary and does not commit generated cache files. Commit only directory documentation or small examples when useful.
+- Local development stores viewport cache outputs under `data/cache/viewport/<cache-version>/`; the deployed equivalent belongs under `/srv/ocean/data/cache/viewport/<cache-version>/`. Generated cache files are ignored and must not be committed. Commit only directory documentation or small examples when useful.
 - The first viewport slice should serve existing frontend static data or fixtures through the backend contract. Direct raw NetCDF, Zenodo archive, or GFW/AIS ingestion is a later data-pipeline task.
 - Frontend server mode auto-detects backend health, shows the current mode, supports manual fallback, and limits server viewport requests to server mode.
 - The first backend slice does not have to wire the frontend to `/api/viewport`; that is the next implementation step after API tests and docs are stable.

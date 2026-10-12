@@ -27,9 +27,18 @@ Implement a backend viewport API for server mode, frontend rendering, and determ
 - [x] Backend health and local run path.
 - [x] Fixture-backed `/api/viewport` happy path.
 - [x] Viewport validation and honest coverage states: partial, empty, unavailable, invalid date, invalid bbox, invalid step.
-- [ ] Versioned viewport JSON cache.
+- [x] Versioned viewport JSON cache.
 
 ## Checks
 
-- `python -m pytest backend/tests -q`
-- `curl http://127.0.0.1:8000/api/viewport?...` smoke after local server starts
+- [x] `python -m pytest tests/test_api.py -q -k "viewport" --basetemp .pytest-basetemp-codex -p no:cacheprovider` from `backend/` => 7 passed.
+- [x] `python -m ruff check app/main.py app/schemas.py app/viewport.py tests/test_api.py --select I,F,B` from `backend/` => passed.
+- [x] `python -m py_compile app/viewport.py app/main.py app/schemas.py` from `backend/` => passed.
+- [x] `python -m pytest tests -q --basetemp .pytest-basetemp-codex -p no:cacheprovider` from `backend/` => 15 passed.
+- [ ] `curl http://127.0.0.1:8000/api/viewport?...` smoke after local server starts.
+
+## Residual Risks
+
+- Cache is currently file-based JSON under `data/cache/viewport/<cache-version>/`; no eviction policy is implemented yet for `/api/viewport`.
+- Server-side smoke through Nginx is deferred to the existing-server sync ticket.
+- Current cache payloads are fixture-backed. Real data integration must keep the same versioned-key and missing-coverage semantics.
