@@ -22,20 +22,20 @@ First server strategy:
 
 | Item | Recommendation | Reason |
 |---|---|---|
-| Provider | Existing configured Alibaba Cloud Ubuntu server | The collaborator/restructure deployment baseline already has this shape; use it first to reduce setup risk |
-| Capacity | Inventory first, then constrain data/cache scope to what the existing server can safely hold | The first goal is a working server loop, not full historical/global storage |
+| Provider | Already-deployed Alibaba Cloud Ubuntu server | The collaborator/restructure deployment baseline already deployed this server; update project content and sync to it first |
+| Capacity | Record current capacity, then constrain data/cache scope to what the deployed server can safely hold | The first goal is a working sync loop, not full historical/global storage |
 | Upgrade path | Larger server or larger data disk only after the basic API, frontend server mode, cache, response-analysis loop, and smoke checks are stable | Avoid buying capacity before the workload shape is measured |
-| Network | Public IP first | Avoid domain/HTTPS blocking initial deployment |
+| Network | Existing public IP + HTTP path | Avoid domain/HTTPS blocking server sync validation |
 | Later upgrade | Domain + HTTPS | Use after API and data behavior are stable |
 
 Capacity notes:
 
 - Current committed frontend data is about 4 MB.
 - Current demo raw scope is documented as about 118 MB.
-- Zenodo `front_location.zip` is about 18.3 GB, but first deployment should sync extracted day files rather than require the server to read the whole archive.
+- Zenodo `front_location.zip` is about 18.3 GB, but the first server sync should use extracted day files rather than require the server to read the whole archive.
 - `frontal_intensity` is about 100 GB and is out of first milestone scope.
 - Coarse/global SST and viewport caches can grow; keep them under `/srv/ocean/data/cache` with eviction.
-- Before expanding beyond the demo window and historical same-period samples, measure available disk, memory, and sustained cache growth on the existing server.
+- Before expanding beyond the demo window and historical same-period samples, measure available disk, memory, and sustained cache growth on the deployed server.
 
 ## 2. Deployment Shape
 
@@ -50,16 +50,16 @@ Target paths:
 /etc/ocean                 # server-only env files, later credentials
 ```
 
-First access mode:
+Existing server access mode:
 
-1. Public IP + HTTP.
+1. Use the existing public IP + HTTP path.
 2. Nginx serves frontend and proxies `/api/` to FastAPI.
 3. FastAPI listens on `127.0.0.1:8000`.
 4. Domain + HTTPS comes after endpoint behavior is stable.
 
 Security and credential boundary:
 
-- Use a dedicated deployment user when provisioning the new server.
+- Use the existing server access model; keep real IPs, key paths, and incident notes out of Git.
 - Do not expose backend port directly.
 - Do not commit server IPs, SSH key paths, credentials, raw AIS/GFW, fine-grained grids, or incident notes.
 - First milestone uses local authorized samples and public aggregate artifacts. Server-side GFW credentials can be added later through `/etc/ocean/gfw.env`.
@@ -128,18 +128,19 @@ Acceptance:
 - Claims stay at apparent fishing-effort response, not catch/yield.
 - The output can be reviewed without an AI layer.
 
-### M5. Existing Server Deployment
+### M5. Existing Server Sync And Smoke
 
 Deliverables:
 
-- Existing configured Alibaba Cloud Ubuntu server inventoried and prepared with `/opt/ocean` and `/srv/ocean/data`.
-- Nginx + systemd FastAPI service.
+- Already-deployed Alibaba Cloud Ubuntu server inventoried for CPU, memory, disk, `/srv` free space, active services, and cache growth.
+- Verified sync procedure for code, frontend assets, backend service files, and permitted data/cache artifacts.
+- Nginx + systemd FastAPI service checked after sync.
 - `/api/health`, viewport API, and response-analysis smoke path reachable through Nginx.
 - Updated sanitized runbook.
 
 Acceptance:
 
-- Public IP works first.
+- Existing public IP + HTTP path continues to work after sync.
 - Domain + HTTPS path is documented for later.
 - Data and credentials remain outside Git.
 - Capacity constraints are recorded before any larger data/cache expansion.
@@ -163,6 +164,6 @@ Acceptance:
 3. Implement M3.
 4. Implement M4.
 5. Implement M5.
-6. Revisit M6 only after the basic backend and deployment are working.
+6. Revisit M6 only after the basic backend and deployed-server sync loop are stable.
 
-This order is deliberate: deployment waits until the API/data contract is useful enough to deploy.
+This order is deliberate: server sync waits until the API/data contract is useful enough to validate on the deployed server.

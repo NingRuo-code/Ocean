@@ -1,15 +1,15 @@
-# Ticket 01: Existing Server Inventory And Safety Baseline
+# Ticket 01: Deployed Server Inventory And Safety Baseline
 
 ## Goal
 
-Lock the first server/basic-backend direction around the existing configured server before implementation starts.
+Lock the first server/basic-backend direction around the already-deployed server before implementation starts.
 
 ## Scope
 
-- Record the server strategy decision: use the existing configured Alibaba Cloud Ubuntu server first.
-- Inventory current CPU, memory, disk, `/srv` free space, existing services, deployment user, Nginx/systemd state, and data directory layout when server access is available.
+- Record the server strategy decision: use the already-deployed Alibaba Cloud Ubuntu server first.
+- Inventory current CPU, memory, disk, `/srv` free space, existing services, sync user/access model, Nginx/systemd state, and data directory layout.
 - Record constraints that limit first-stage data/cache scope.
-- Record first deployment path: public IP + HTTP, later domain + HTTPS.
+- Record current sync path: existing public IP + HTTP, later domain + HTTPS.
 - Record storage paths: `/opt/ocean` for app, `/srv/ocean/data` for raw/processed/cache/outputs, `/etc/ocean` for server-only env.
 - Record first data scope: demo window plus historical same-period samples.
 - Keep `frontal_intensity` out of first milestone.

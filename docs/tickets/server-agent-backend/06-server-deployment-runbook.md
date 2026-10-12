@@ -1,23 +1,23 @@
-# Ticket 06: Server Deployment Runbook
+# Ticket 06: Existing Server Sync Runbook
 
 ## Goal
 
-Prepare the sanitized deployment path for the existing configured Alibaba Cloud server.
+Prepare the sanitized update/sync path for the already-deployed Alibaba Cloud server.
 
 ## Scope
 
-- Update deployment docs for the existing server-first strategy.
-- Include a capacity inventory section for CPU, memory, disk, `/srv` free space, active services, deployment user, Nginx, and systemd.
-- Document provisioning with a dedicated deploy user.
+- Update deployment docs for the existing deployed-server sync strategy.
+- Include a capacity inventory section for CPU, memory, disk, `/srv` free space, active services, sync user/access model, Nginx, and systemd.
+- Document how local verified project updates are synced to the deployed server.
 - Document `/opt/ocean`, `/srv/ocean/data`, and `/etc/ocean`.
-- Keep first deployment on public IP + HTTP.
+- Keep the current public IP + HTTP path.
 - Document later domain + HTTPS upgrade.
 - Keep real server IPs, SSH key paths, credentials, and incident notes out of Git.
 - Document the later upgrade path to a larger server or data disk without making it part of the first milestone.
 
 ## Acceptance
 
-- A new developer can provision the server from the runbook using placeholders.
+- A developer can sync verified updates to the deployed server from the runbook using placeholders.
 - `/api/health`, viewport API, and response-analysis/basic-query smoke checks are included.
 - Data sync and cache directories are documented.
 

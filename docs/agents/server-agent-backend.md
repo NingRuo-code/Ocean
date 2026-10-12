@@ -6,12 +6,12 @@ Use this when work touches server deployment, viewport APIs, data/cache pipeline
 
 - Branch topic: `codex/server-agent-backend`.
 - Server goal: frontend + FastAPI backend API, with server-side data production/cache under `/srv/ocean/data`.
-- Hosting target: the existing configured Alibaba Cloud Ubuntu server from the prior deployment baseline. Use that server first; consider larger capacity only after the basic API, frontend server mode, cache, response-analysis loop, and smoke checks are stable.
-- Capacity policy: inventory CPU, memory, disk, `/srv` free space, and existing services before expanding data scope. Keep first deployment data small enough for the existing server.
-- Deployment path: public IP + HTTP first, then domain + HTTPS after API/data behavior is stable.
+- Hosting target: the already-deployed Alibaba Cloud Ubuntu server from the collaborator/restructure deployment baseline. Continue updating this repo and sync verified changes to that server.
+- Capacity policy: inventory CPU, memory, disk, `/srv` free space, active services, and cache growth on the deployed server before expanding data scope. Keep first-stage data small enough for that server.
+- Sync path: develop and verify locally, then sync code, frontend assets, backend service files, and permitted data/cache artifacts to the deployed server. Use the existing public IP + HTTP path for smoke checks; domain + HTTPS comes later.
 - Storage path: keep code under `/opt/ocean`; mount or reserve data storage for `/srv/ocean/data`.
 - Credentials: begin without server-side GFW/AIS credentials; later store them in a server-only env file such as `/etc/ocean/gfw.env`. Credentials, server IPs, key paths, and incident notes stay out of Git.
-- Agent/AI priority: deferred. Do not implement AI-specific tooling before viewport API, frontend server mode, data/cache behavior, response-analysis experiments, and deployment basics are working.
+- Agent/AI priority: deferred. Do not implement AI-specific tooling before viewport API, frontend server mode, data/cache behavior, response-analysis experiments, and existing-server sync basics are working.
 
 ## Execution Order
 
@@ -19,13 +19,13 @@ Use this when work touches server deployment, viewport APIs, data/cache pipeline
 2. Implement viewport API: `date + bbox + step`, returning light render/query payloads with source/status/caveats.
 3. Add frontend server mode: auto-detect `/api/health`, show offline/server state, allow manual fallback.
 4. Add response-analysis experiment package: controls, bootstrap, permutation test, reproducible outputs.
-5. Prepare deployment runbook and server smoke path.
+5. Prepare existing-server sync runbook and server smoke path.
 6. Revisit Agent tool contracts only after the basic backend is demonstrably stable.
-7. Revisit server replacement or larger capacity only after the existing server proves the loop and exposes real bottlenecks.
+7. Revisit server replacement or larger capacity only after the deployed server proves the loop and exposes real bottlenecks.
 
 ## Data Scope
 
-First deployment data scope is:
+First-stage deployed data scope is:
 
 - Current demo window: 2024-07-01 to 2024-08-31, East China Sea.
 - Historical same-period samples needed by the current UI and response-analysis loop.

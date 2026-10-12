@@ -8,11 +8,11 @@ The user needs the project to move toward a deployable and research-verifiable s
 
 ## Solution
 
-Build a server/basic-backend phase around a single high-level seam: the server API boundary. The first server milestone will use the existing configured Alibaba Cloud Ubuntu server from the prior deployment baseline, with data under a server data directory and Nginx proxying `/api`.
+Build a server/basic-backend phase around a single high-level seam: the server API boundary. The first server milestone will update the already-deployed Alibaba Cloud Ubuntu server from the collaborator/restructure deployment baseline, with data under a server data directory and Nginx proxying `/api`.
 
 The backend will first add a viewport API that accepts `date`, `bbox`, and `step`, then returns a light render/query payload with explicit source, resolution, coverage, status, and caveats. The frontend will auto-detect server availability, show the current offline/server mode, allow manual fallback, and use the viewport API for large or globe-scale windows only when server mode is active.
 
-The response-analysis research path will be packaged as reproducible experiment outputs using non-front controls, bootstrap confidence intervals, and permutation tests over the first sample region/window. Deployment planning will start from the existing server, initially public IP + HTTP, later domain + HTTPS. Larger capacity is a later decision after the basic loop exposes real CPU, memory, disk, or cache pressure.
+The response-analysis research path will be packaged as reproducible experiment outputs using non-front controls, bootstrap confidence intervals, and permutation tests over the first sample region/window. Server work will start by syncing verified project updates to the existing deployed server, initially through its public IP + HTTP path, later domain + HTTPS. Larger capacity is a later decision after the basic loop exposes real CPU, memory, disk, or cache pressure.
 
 Agent/AI contracts are not part of the first implementation wave. Later Agent tools may wrap stable deterministic APIs and experiment outputs, but they should not gate viewport, server mode, data/cache, research validation, or deployment work.
 
@@ -21,10 +21,10 @@ Agent/AI contracts are not part of the first implementation wave. Later Agent to
 1. As a project owner, I want the offline prototype to keep working, so that classroom, interview, and no-network demos are not broken by server work.
 2. As a project owner, I want a server mode, so that the same product can grow beyond committed static payloads.
 3. As a project owner, I want the server to run frontend and backend API together, so that demonstrations can use a realistic deployment shape.
-4. As a project owner, I want the existing server capacity and constraints inventoried first, so that I can avoid premature server replacement.
+4. As a project owner, I want the already-deployed server capacity and constraints inventoried first, so that I can avoid premature server replacement.
 5. As a project owner, I want raw, processed, cache, and output data separated, so that server operations do not leak restricted or reconstructable data.
 6. As a project owner, I want server IPs, key paths, credentials, and incident notes kept out of Git, so that collaboration does not create security debt.
-7. As a project owner, I want first deployment to work by public IP and HTTP, so that domain and HTTPS setup do not block API validation.
+7. As a project owner, I want project updates to keep working through the existing public IP and HTTP path, so that domain and HTTPS setup do not block API validation.
 8. As a project owner, I want a later path to domain and HTTPS, so that the demo can become presentable once the service is stable.
 9. As a frontend user, I want the page to detect whether the backend is healthy, so that I can understand whether I am seeing offline or server-enhanced data.
 10. As a frontend user, I want a visible offline/server state, so that data freshness and behavior are explainable.
@@ -56,14 +56,14 @@ Agent/AI contracts are not part of the first implementation wave. Later Agent to
 - Use the server API boundary as the highest testing and integration seam. The viewport API is the first concrete seam.
 - Preserve offline mode as a first-class path. Server work must not make the static prototype depend on a running backend.
 - Target Alibaba Cloud Ubuntu with the existing Nginx/systemd deployment shape.
-- Use the existing configured Alibaba Cloud Ubuntu server first.
-- Inventory CPU, memory, disk, `/srv` free space, data directories, existing services, and deployment permissions before deciding whether to expand capacity.
+- Use the already-deployed Alibaba Cloud Ubuntu server first.
+- Inventory CPU, memory, disk, `/srv` free space, data directories, existing services, and sync permissions before deciding whether to expand capacity.
 - Defer larger server or larger disk decisions until viewport API, frontend server mode, response-analysis smoke checks, and cache behavior are stable.
-- Deploy first through public IP and HTTP, then add domain and HTTPS after behavior is stable.
+- Sync first through the existing public IP + HTTP deployment path, then add domain and HTTPS after behavior is stable.
 - Keep application code and server data in separate operational roots. The application root and data root should remain separately replaceable.
 - Treat credentials, real server IPs, SSH key paths, raw AIS/GFW, fine-grained grids, and incident notes as non-committable material.
 - Begin without server-side GFW/AIS credentials. Later credentials should live in a server-only environment file or equivalent secret store.
-- First deployment data scope is the current demo window plus historical same-period samples needed by the UI and response-analysis loop.
+- First-stage deployed data scope is the current demo window plus historical same-period samples needed by the UI and response-analysis loop.
 - Exclude `frontal_intensity` from the first milestone because its archive size is around 100 GB and it is not required for the core loop.
 - Produce large archive data locally by default and sync permitted outputs to the server. Let the server fill small gaps and build caches.
 - The viewport API accepts `date`, `bbox`, and `step`.
@@ -103,6 +103,6 @@ Agent/AI contracts are not part of the first implementation wave. Later Agent to
 
 ## Further Notes
 
-The agreed work order is: docs and tickets first, viewport API second, viewport cache/coverage states third, frontend server mode fourth, response-analysis experiment package fifth, and server deployment preparation when server access exists. Agent/AI work is revisited only after those basics are working.
+The agreed work order is: docs and tickets first, viewport API second, viewport cache/coverage states third, frontend server mode fourth, response-analysis experiment package fifth, and existing-server sync preparation. Agent/AI work is revisited only after those basics are working.
 
 The server is expected to support the current product/research direction rather than replace it: fishery operation support, front-event evidence, historical context, and apparent fishing-effort response under explicit data and AI boundaries.
