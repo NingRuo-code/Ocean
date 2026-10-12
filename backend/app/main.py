@@ -82,7 +82,7 @@ from .schemas import (
     ViewportRequest,
     ViewportResponse,
 )
-from .viewport import build_cached_fixture_viewport
+from .viewport import build_cached_viewport
 
 app = FastAPI(title=settings.app_name, version="0.1.0")
 app.add_middleware(
@@ -144,9 +144,10 @@ def viewport(
         raise HTTPException(status_code=422, detail=str(error)) from error
     if window is None:
         raise HTTPException(status_code=422, detail="bbox is required")
-    return build_cached_fixture_viewport(
+    return build_cached_viewport(
         ViewportRequest(date=date, bbox=[float(value) for value in window], step=step),
         settings.cache_dir,
+        settings.prototype_data_dir,
     )
 
 

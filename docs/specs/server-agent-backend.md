@@ -103,6 +103,7 @@ Agent/AI contracts are not part of the first implementation wave. Later Agent to
 - Cache viewport responses first as JSON keyed by date, bbox, step, and data/build version. Tile or pyramid caching is a later optimization.
 - Local development stores viewport cache outputs under `data/cache/viewport/<cache-version>/`; the deployed equivalent belongs under `/srv/ocean/data/cache/viewport/<cache-version>/`. Generated cache files are ignored and must not be committed. Commit only directory documentation or small examples when useful.
 - The first viewport slice should serve existing frontend static data or fixtures through the backend contract. Direct raw NetCDF, Zenodo archive, or GFW/AIS ingestion is a later data-pipeline task.
+- Current viewport adapter reads committed static prototype front objects, SST artifacts, and aggregate front-response outputs under `frontend/prototype/data`, then maps them into the backend `meta`, `layers`, `coverage`, and `caveats` response structure.
 - Frontend server mode auto-detects backend health, shows the current mode, supports manual fallback, and limits server viewport requests to server mode.
 - The first backend slice does not have to wire the frontend to `/api/viewport`; that is the next implementation step after API tests and docs are stable.
 - Provide local backend run instructions and a lightweight backend start command or script before server sync.

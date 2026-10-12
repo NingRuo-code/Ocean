@@ -5,6 +5,7 @@ import json
 import os
 from datetime import date as DateType
 from pathlib import Path
+from typing import Any
 
 from .schemas import (
     ViewportCacheMetadata,
@@ -18,36 +19,53 @@ from .schemas import (
 )
 
 FIXTURE_VERSION = "viewport-fixture-v1"
-VIEWPORT_CACHE_VERSION = f"{FIXTURE_VERSION}-contract-v2"
+STATIC_PROTOTYPE_VERSION = "static-prototype-v1"
+VIEWPORT_CACHE_VERSION = f"{STATIC_PROTOTYPE_VERSION}-contract-v1"
 VIEWPORT_CACHE_SUBDIR = "viewport"
 FIXTURE_DATE = DateType(2024, 8, 5)
 FIXTURE_BBOX = (120.0, 30.0, 121.0, 31.0)
+DISPLAY_PRECISION = 4
+
+
+def _round_float(value: object, digits: int = DISPLAY_PRECISION) -> float:
+    return round(float(value), digits)
 
 
 def _round_bbox(bbox: list[float] | tuple[float, float, float, float]) -> list[float]:
-    return [round(value, 4) for value in bbox]
+    return [_round_float(value) for value in bbox]
+
+
+def _round_point(point: list[object] | tuple[object, object]) -> list[float]:
+    return [_round_float(point[0]), _round_float(point[1])]
 
 
 def _intersect_bbox(
-    left: list[float],
-    right: tuple[float, float, float, float],
+    left: list[float] | tuple[float, float, float, float],
+    right: list[float] | tuple[float, float, float, float],
 ) -> tuple[float, float, float, float] | None:
-    min_lon = max(left[0], right[0])
-    min_lat = max(left[1], right[1])
-    max_lon = min(left[2], right[2])
-    max_lat = min(left[3], right[3])
+    min_lon = max(float(left[0]), float(right[0]))
+    min_lat = max(float(left[1]), float(right[1]))
+    max_lon = min(float(left[2]), float(right[2]))
+    max_lat = min(float(left[3]), float(right[3]))
     if min_lon >= max_lon or min_lat >= max_lat:
         return None
     return (min_lon, min_lat, max_lon, max_lat)
 
 
-def _is_inside_fixture(bbox: list[float]) -> bool:
+def _contains_bbox(
+    outer: list[float] | tuple[float, float, float, float],
+    inner: list[float],
+) -> bool:
     return (
-        bbox[0] >= FIXTURE_BBOX[0]
-        and bbox[1] >= FIXTURE_BBOX[1]
-        and bbox[2] <= FIXTURE_BBOX[2]
-        and bbox[3] <= FIXTURE_BBOX[3]
+        inner[0] >= float(outer[0])
+        and inner[1] >= float(outer[1])
+        and inner[2] <= float(outer[2])
+        and inner[3] <= float(outer[3])
     )
+
+
+def _is_inside_fixture(bbox: list[float]) -> bool:
+    return _contains_bbox(FIXTURE_BBOX, bbox)
 
 
 def _empty_layers() -> ViewportLayers:
@@ -171,6 +189,25 @@ def _write_cached_viewport(path: Path, request: ViewportRequest, response: Viewp
         pass
 
 
+def build_cached_viewport(
+    request: ViewportRequest,
+    cache_dir: Path,
+    prototype_data_dir: Path,
+) -> ViewportResponse:
+    path = _cache_path(cache_dir, request)
+    cached = _read_cached_viewport(path, request)
+    if cached is not None:
+        return cached
+
+    response = _with_cache_metadata(
+        build_static_prototype_viewport(request, prototype_data_dir),
+        enabled=True,
+        hit=False,
+    )
+    _write_cached_viewport(path, request, response)
+    return response
+
+
 def build_cached_fixture_viewport(request: ViewportRequest, cache_dir: Path) -> ViewportResponse:
     path = _cache_path(cache_dir, request)
     cached = _read_cached_viewport(path, request)
@@ -180,6 +217,420 @@ def build_cached_fixture_viewport(request: ViewportRequest, cache_dir: Path) -> 
     response = _with_cache_metadata(build_fixture_viewport(request), enabled=True, hit=False)
     _write_cached_viewport(path, request, response)
     return response
+
+
+def _extract_json_object(text: str, marker: str) -> dict[str, Any] | None:
+    marker_index = text.find(marker)
+    if marker_index < 0:
+        return None
+    start = text.find("{", marker_index)
+    if start < 0:
+        return None
+    depth = 0
+    in_string = False
+    escaped = False
+    for index in range(start, len(text)):
+        char = text[index]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                payload = json.loads(text[start : index + 1])
+                return payload if isinstance(payload, dict) else None
+    return None
+
+
+def _load_js_assignment(path: Path, marker: str) -> dict[str, Any] | None:
+    try:
+        return _extract_json_object(path.read_text(encoding="utf-8"), marker)
+    except (OSError, ValueError):
+        return None
+
+
+def _load_day_payload(prototype_data_dir: Path, observation_date: str) -> dict[str, Any] | None:
+    marker = f'window.OF_DATA_DAYS["{observation_date}"]'
+    return _load_js_assignment(prototype_data_dir / "day" / f"{observation_date}.js", marker)
+
+
+def _load_sst_payload(prototype_data_dir: Path, observation_date: str) -> dict[str, Any] | None:
+    marker = f'window.OF_DATA_SST["{observation_date}"]'
+    return _load_js_assignment(prototype_data_dir / "sst" / f"{observation_date}.js", marker)
+
+
+def _load_response_payload(prototype_data_dir: Path) -> dict[str, Any] | None:
+    return _load_js_assignment(prototype_data_dir / "front_response" / "events.js", "window.OF_FRONT_RESPONSE")
+
+
+def _grid_bbox(grid: dict[str, Any]) -> tuple[float, float, float, float]:
+    lon0 = float(grid["lon0"])
+    lat0 = float(grid["lat0"])
+    dlon = float(grid["dlon"])
+    dlat = float(grid["dlat"])
+    nx = int(grid["nx"])
+    ny = int(grid["ny"])
+    return (
+        lon0 - dlon / 2,
+        lat0 - dlat / 2,
+        lon0 + dlon * (nx - 0.5),
+        lat0 + dlat * (ny - 0.5),
+    )
+
+
+def _grid_resolution(grid: dict[str, Any]) -> float:
+    return _round_float(max(abs(float(grid["dlon"])), abs(float(grid["dlat"]))))
+
+
+def _bbox_status(request_bbox: list[float], data_bbox: tuple[float, float, float, float]) -> tuple[str, list[float] | None]:
+    intersection = _intersect_bbox(request_bbox, data_bbox)
+    if intersection is None:
+        return "empty", None
+    if _contains_bbox(data_bbox, request_bbox):
+        return "ok", _round_bbox(request_bbox)
+    return "partial", _round_bbox(intersection)
+
+
+def _coverage_layer_status(raw_status: str, viewport_status: str) -> str:
+    if raw_status in {"empty", "unavailable"}:
+        return raw_status
+    return "partial" if viewport_status == "partial" else "available"
+
+
+def _feature_for_front(front: dict[str, Any]) -> dict[str, Any]:
+    coordinates = [_round_point(point) for point in front.get("line", []) if isinstance(point, list) and len(point) == 2]
+    return {
+        "type": "Feature",
+        "properties": {
+            "frontId": str(front.get("front_id", "")),
+            "kind": "ocean_front",
+            "pixelCount": int(front.get("pixel_count") or 0),
+            "lengthKm": _round_float(front.get("length_km") or 0, 1),
+            "centroid": _round_point(front.get("centroid") or [0, 0]),
+            "bbox": _round_bbox(front.get("bbox") or [0, 0, 0, 0]),
+            "codes": [int(code) for code in front.get("codes", [])],
+        },
+        "geometry": {"type": "LineString", "coordinates": coordinates},
+    }
+
+
+def _front_layers(day_payload: dict[str, Any], query_bbox: list[float]) -> tuple[dict[str, Any], str]:
+    features = []
+    for front in day_payload.get("objects", []):
+        if not isinstance(front, dict):
+            continue
+        front_bbox = front.get("bbox")
+        if isinstance(front_bbox, list) and len(front_bbox) == 4 and _intersect_bbox(query_bbox, front_bbox):
+            features.append(_feature_for_front(front))
+    layer = {
+        "type": "FeatureCollection",
+        "features": features,
+        "source": {
+            "kind": "static_prototype_day",
+            "file": day_payload.get("source_file"),
+            "objectCount": int(day_payload.get("object_line_count") or len(day_payload.get("objects", []))),
+        },
+    }
+    return layer, "available" if features else "empty"
+
+
+def _sample_sst_cells(
+    sst_payload: dict[str, Any],
+    query_bbox: list[float],
+    step: int,
+) -> list[dict[str, object]]:
+    grid = sst_payload.get("grid") or {}
+    lon0 = float(grid["lon0"])
+    lat0 = float(grid["lat0"])
+    dlon = float(grid["dlon"])
+    dlat = float(grid["dlat"])
+    nx = int(grid["nx"])
+    ny = int(grid["ny"])
+    sample_step = max(1, step)
+    cells: list[dict[str, object]] = []
+    bin_c = float(sst_payload.get("bin_c") or (sst_payload.get("product") or {}).get("bin_c") or 1)
+    for run in sst_payload.get("runs", []):
+        if not isinstance(run, list) or len(run) != 4:
+            continue
+        row, start, count, bin_value = [int(value) for value in run]
+        if row < 0 or row >= ny or row % sample_step != 0:
+            continue
+        lat = lat0 + row * dlat
+        if lat < query_bbox[1] or lat > query_bbox[3]:
+            continue
+        stop = min(start + count, nx)
+        for col in range(max(0, start), stop):
+            if col % sample_step != 0:
+                continue
+            lon = lon0 + col * dlon
+            if query_bbox[0] <= lon <= query_bbox[2]:
+                cells.append(
+                    {
+                        "lon": _round_float(lon),
+                        "lat": _round_float(lat),
+                        "value": _round_float(bin_value * bin_c, 2),
+                        "bin": bin_value,
+                    }
+                )
+    return cells
+
+
+def _sst_layer(
+    sst_payload: dict[str, Any] | None,
+    query_bbox: list[float],
+    step: int,
+) -> tuple[dict[str, Any], str]:
+    if sst_payload is None:
+        return {"unit": "celsius", "cells": [], "source": {"kind": "missing_static_prototype_sst"}}, "unavailable"
+    cells = _sample_sst_cells(sst_payload, query_bbox, step)
+    product = sst_payload.get("product") if isinstance(sst_payload.get("product"), dict) else {}
+    return (
+        {
+            "unit": "celsius",
+            "sourceUnit": product.get("unit", "degree_C"),
+            "cells": cells,
+            "source": {
+                "kind": "static_prototype_sst",
+                "file": sst_payload.get("source_file"),
+                "product": product,
+            },
+            "stats": sst_payload.get("stats") or {},
+        },
+        "available" if cells else "empty",
+    )
+
+
+def _front_centroids(day_payload: dict[str, Any]) -> dict[str, list[float]]:
+    centroids: dict[str, list[float]] = {}
+    for front in day_payload.get("objects", []):
+        if not isinstance(front, dict):
+            continue
+        front_id = str(front.get("front_id") or "")
+        centroid = front.get("centroid")
+        if front_id and isinstance(centroid, list) and len(centroid) == 2:
+            centroids[front_id] = _round_point(centroid)
+    return centroids
+
+
+def _front_bbox_by_id(day_payload: dict[str, Any]) -> dict[str, list[float]]:
+    bboxes: dict[str, list[float]] = {}
+    for front in day_payload.get("objects", []):
+        if not isinstance(front, dict):
+            continue
+        front_id = str(front.get("front_id") or "")
+        bbox = front.get("bbox")
+        if front_id and isinstance(bbox, list) and len(bbox) == 4:
+            bboxes[front_id] = _round_bbox(bbox)
+    return bboxes
+
+
+def _response_records_for_date(response_payload: dict[str, Any] | None, observation_date: str) -> list[dict[str, Any]]:
+    if response_payload is None:
+        return []
+    by_date = response_payload.get("by_date")
+    if isinstance(by_date, dict):
+        date_payload = by_date.get(observation_date)
+        if isinstance(date_payload, dict):
+            by_range = date_payload.get("by_range")
+            if isinstance(by_range, dict):
+                return [record for record in by_range.values() if isinstance(record, dict)]
+    records = []
+    for event in response_payload.get("events", []):
+        if isinstance(event, dict) and event.get("date") == observation_date:
+            records.append(event)
+    return records
+
+
+def _fishing_layer(
+    response_payload: dict[str, Any] | None,
+    day_payload: dict[str, Any],
+    observation_date: str,
+    query_bbox: list[float],
+) -> tuple[dict[str, Any], str]:
+    source = (response_payload or {}).get("source") if isinstance((response_payload or {}).get("source"), dict) else {}
+    layer = {
+        "metric": "apparent_fishing_effort",
+        "unit": "fishing_hours",
+        "cells": [],
+        "source": source or {"kind": "missing_front_response"},
+    }
+    if response_payload is None:
+        return layer, "unavailable"
+    centroids = _front_centroids(day_payload)
+    front_bboxes = _front_bbox_by_id(day_payload)
+    records = _response_records_for_date(response_payload, observation_date)
+    cells = []
+    for record in records:
+        front_id = str(record.get("front_id") or "")
+        centroid = centroids.get(front_id)
+        front_bbox = front_bboxes.get(front_id)
+        if centroid is None or front_bbox is None or not _intersect_bbox(query_bbox, front_bbox):
+            continue
+        cells.append(
+            {
+                "lon": centroid[0],
+                "lat": centroid[1],
+                "frontId": front_id,
+                "bufferKm": int(record.get("buffer_km") or 0),
+                "hours": _round_float(record.get("post1_3_hours") or 0, 2),
+                "pre7Hours": _round_float(record.get("pre7_hours") or 0, 2),
+                "controlHours": _round_float(record.get("non_front_control_hours") or 0, 2),
+                "liftPercent": _round_float(record.get("lift_percent") or 0, 2),
+                "enhanced": bool(record.get("enhanced_flag")),
+                "responseId": record.get("response_id"),
+                "coverageStatus": record.get("coverage_status") or record.get("status"),
+            }
+        )
+    layer["cells"] = cells
+    layer["timeWindow"] = (response_payload or {}).get("time_window") or {}
+    layer["spatialWindow"] = (response_payload or {}).get("spatial_window") or {}
+    return layer, "available" if cells else "unavailable"
+
+
+def _overall_status(
+    viewport_status: str,
+    fronts_status: str,
+    sst_status: str,
+    fishing_status: str,
+) -> str:
+    layer_statuses = [fronts_status, sst_status, fishing_status]
+    if viewport_status in {"empty", "unavailable"}:
+        return viewport_status
+    if viewport_status == "partial":
+        return "partial"
+    if all(status == "available" for status in layer_statuses):
+        return "ok"
+    if all(status == "empty" for status in layer_statuses):
+        return "empty"
+    return "partial"
+
+
+def _static_caveats(
+    status: str,
+    fronts_status: str,
+    sst_status: str,
+    fishing_status: str,
+) -> list[str]:
+    caveats = [
+        "Static prototype data is served through the backend viewport contract; raw NetCDF and raw AIS/GFW ingestion are not part of this endpoint yet.",
+        "Fishing layer uses apparent fishing effort measured as fishing hours, not catch or yield.",
+        "SST values are returned in Celsius and come from the committed static prototype SST artifact.",
+    ]
+    if status == "partial":
+        caveats.append("Partial coverage: returned data only covers the overlap with committed prototype artifacts.")
+    if status == "empty":
+        caveats.append("Empty coverage means the requested bbox has no covered static prototype cells here, not zero activity.")
+    if status == "unavailable":
+        caveats.append("Unavailable coverage means a required static prototype artifact is missing for this request, not zero activity.")
+    if "unavailable" in {fronts_status, sst_status, fishing_status}:
+        caveats.append("At least one layer is unavailable for this date or source; clients must keep this distinct from zero values.")
+    return caveats
+
+
+def build_static_prototype_viewport(request: ViewportRequest, prototype_data_dir: Path) -> ViewportResponse:
+    observation_date = request.date.isoformat()
+    rounded_bbox = _round_bbox(request.bbox)
+    day_payload = _load_day_payload(prototype_data_dir, observation_date)
+    if day_payload is None:
+        caveats = _static_caveats("unavailable", "unavailable", "unavailable", "unavailable")
+        return ViewportResponse(
+            meta=ViewportMeta(
+                status="unavailable",
+                source="static_prototype",
+                date=request.date,
+                bbox=rounded_bbox,
+                step=request.step,
+                resolution=ViewportResolution(spatial_deg=0.05),
+                cache=ViewportCacheMetadata(enabled=False, hit=False, version=VIEWPORT_CACHE_VERSION),
+            ),
+            layers=_empty_layers(),
+            coverage=ViewportCoverage(
+                status="unavailable",
+                bbox=None,
+                request_bbox=rounded_bbox,
+                covered_bbox=None,
+                layers=ViewportLayerCoverage(
+                    fronts="unavailable",
+                    sst="unavailable",
+                    fishing_effort="unavailable",
+                ),
+            ),
+            caveats=caveats,
+        )
+
+    grid = day_payload.get("grid") if isinstance(day_payload.get("grid"), dict) else {}
+    data_bbox = _grid_bbox(grid)
+    viewport_status, covered_bbox = _bbox_status(rounded_bbox, data_bbox)
+    if viewport_status == "empty":
+        caveats = _static_caveats("empty", "empty", "empty", "empty")
+        return ViewportResponse(
+            meta=ViewportMeta(
+                status="empty",
+                source="static_prototype",
+                date=request.date,
+                bbox=rounded_bbox,
+                step=request.step,
+                resolution=ViewportResolution(spatial_deg=_grid_resolution(grid)),
+                cache=ViewportCacheMetadata(enabled=False, hit=False, version=VIEWPORT_CACHE_VERSION),
+            ),
+            layers=_empty_layers(),
+            coverage=ViewportCoverage(
+                status="empty",
+                bbox=None,
+                request_bbox=rounded_bbox,
+                covered_bbox=None,
+                layers=ViewportLayerCoverage(fronts="empty", sst="empty", fishing_effort="empty"),
+            ),
+            caveats=caveats,
+        )
+
+    query_bbox = covered_bbox or rounded_bbox
+    fronts, raw_fronts_status = _front_layers(day_payload, query_bbox)
+    sst, raw_sst_status = _sst_layer(_load_sst_payload(prototype_data_dir, observation_date), query_bbox, request.step)
+    fishing, raw_fishing_status = _fishing_layer(
+        _load_response_payload(prototype_data_dir),
+        day_payload,
+        observation_date,
+        query_bbox,
+    )
+    fronts_status = _coverage_layer_status(raw_fronts_status, viewport_status)
+    sst_status = _coverage_layer_status(raw_sst_status, viewport_status)
+    fishing_status = _coverage_layer_status(raw_fishing_status, viewport_status)
+    status = _overall_status(viewport_status, fronts_status, sst_status, fishing_status)
+
+    return ViewportResponse(
+        meta=ViewportMeta(
+            status=status,
+            source="static_prototype",
+            date=request.date,
+            bbox=rounded_bbox,
+            step=request.step,
+            resolution=ViewportResolution(spatial_deg=_grid_resolution(grid)),
+            cache=ViewportCacheMetadata(enabled=False, hit=False, version=VIEWPORT_CACHE_VERSION),
+        ),
+        layers=ViewportLayers(fronts=fronts, sst=sst, fishing_effort=fishing),
+        coverage=ViewportCoverage(
+            status=status,
+            bbox=covered_bbox,
+            request_bbox=rounded_bbox,
+            covered_bbox=covered_bbox,
+            layers=ViewportLayerCoverage(
+                fronts=fronts_status,
+                sst=sst_status,
+                fishing_effort=fishing_status,
+            ),
+        ),
+        caveats=_static_caveats(status, fronts_status, sst_status, fishing_status),
+    )
 
 
 def build_fixture_viewport(request: ViewportRequest) -> ViewportResponse:

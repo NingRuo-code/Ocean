@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     api_prefix: str = "/api"
     raw_data_dir: Path = PROJECT_ROOT / "data" / "raw"
     cache_dir: Path = PROJECT_ROOT / "data" / "cache"
+    prototype_data_dir: Path = PROJECT_ROOT / "frontend" / "prototype" / "data"
     dataset_id: str = "global-daily-mesoscale-front-v1"
     dataset_version: str = "V1.0"
     ai_provider: str = "rules"

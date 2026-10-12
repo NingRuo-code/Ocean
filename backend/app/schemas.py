@@ -33,7 +33,7 @@ class ViewportCacheMetadata(BaseModel):
 
 class ViewportMeta(BaseModel):
     status: ViewportStatus
-    source: Literal["fixture"]
+    source: Literal["fixture", "static_prototype"]
     date: DateType
     bbox: list[float] = Field(min_length=4, max_length=4)
     step: int = Field(ge=1, le=40)

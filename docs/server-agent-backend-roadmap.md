@@ -179,3 +179,4 @@ This order is deliberate: server sync waits until the API/data contract is usefu
 | 2026-10-12 | M2 fixture-backed viewport happy path | Done | `/api/viewport` returns `meta`, `layers`, `coverage`, and `caveats` from a deterministic fixture. |
 | 2026-10-12 | M2 viewport validation and honest coverage states | Done | Valid partial/empty/unavailable requests return HTTP 200 with explicit coverage and caveats; invalid date/bbox/step requests fail as request errors. |
 | 2026-10-12 | M2 versioned viewport JSON cache | Done | Viewport cache keys include normalized date/bbox/step and cache contract version; generated files stay under ignored `data/cache/viewport/`. |
+| 2026-10-12 | M2 static prototype viewport adapter | Done | `/api/viewport` now serves committed front objects, SST cells, and aggregate GFW apparent-fishing-effort response artifacts through the backend contract; raw NetCDF and raw AIS/GFW ingestion remain deferred. |

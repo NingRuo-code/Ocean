@@ -1,3 +1,4 @@
+import shutil
 from datetime import date as date_type
 from pathlib import Path
 
@@ -32,20 +33,20 @@ def test_ai_health() -> None:
     assert ai_payload["checked_at"]
 
 
-def test_viewport_fixture_happy_path_contract(tmp_path: Path, monkeypatch) -> None:
+def test_viewport_static_prototype_happy_path_contract(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
     response = client.get(
         "/api/viewport",
-        params={"date": "2024-08-05", "bbox": "120,30,121,31", "step": 1},
+        params={"date": "2024-08-05", "bbox": "122,27,124.2,29.6", "step": 4},
     )
     assert response.status_code == 200
     payload = response.json()
     assert set(payload) == {"meta", "layers", "coverage", "caveats"}
     assert payload["meta"]["status"] == "ok"
-    assert payload["meta"]["source"] == "fixture"
+    assert payload["meta"]["source"] == "static_prototype"
     assert payload["meta"]["date"] == "2024-08-05"
-    assert payload["meta"]["bbox"] == [120.0, 30.0, 121.0, 31.0]
-    assert payload["meta"]["step"] == 1
+    assert payload["meta"]["bbox"] == [122.0, 27.0, 124.2, 29.6]
+    assert payload["meta"]["step"] == 4
     assert payload["meta"]["resolution"]["spatial_deg"] == 0.05
     assert payload["meta"]["cache"]["enabled"] is True
     assert payload["meta"]["cache"]["hit"] is False
@@ -54,16 +55,25 @@ def test_viewport_fixture_happy_path_contract(tmp_path: Path, monkeypatch) -> No
     layers = payload["layers"]
     assert set(layers) == {"fronts", "sst", "fishingEffort"}
     assert layers["fronts"]["type"] == "FeatureCollection"
-    assert layers["fronts"]["features"][0]["properties"]["frontId"] == "fixture-front-001"
+    front_ids = {feature["properties"]["frontId"] for feature in layers["fronts"]["features"]}
+    assert "F002" in front_ids
     assert layers["sst"]["unit"] == "celsius"
-    assert layers["sst"]["cells"][0]["value"] == 24.6
+    assert layers["sst"]["sourceUnit"] == "degree_C"
+    assert layers["sst"]["source"]["kind"] == "static_prototype_sst"
+    assert layers["sst"]["cells"]
+    assert isinstance(layers["sst"]["cells"][0]["value"], float)
     assert layers["fishingEffort"]["metric"] == "apparent_fishing_effort"
     assert layers["fishingEffort"]["unit"] == "fishing_hours"
-    assert layers["fishingEffort"]["cells"][0]["hours"] == 2.5
+    assert layers["fishingEffort"]["source"]["kind"] == "gfw_apparent_fishing_effort"
+    assert layers["fishingEffort"]["cells"]
+    assert layers["fishingEffort"]["cells"][0]["frontId"] == "F002"
+    assert layers["fishingEffort"]["cells"][0]["hours"] > 0
     assert payload["coverage"]["status"] == "ok"
-    assert payload["coverage"]["bbox"] == [120.0, 30.0, 121.0, 31.0]
-    assert payload["coverage"]["requestBbox"] == [120.0, 30.0, 121.0, 31.0]
-    assert payload["coverage"]["coveredBbox"] == [120.0, 30.0, 121.0, 31.0]
+    assert payload["coverage"]["bbox"] == [122.0, 27.0, 124.2, 29.6]
+    assert payload["coverage"]["requestBbox"] == [122.0, 27.0, 124.2, 29.6]
+    assert payload["coverage"]["coveredBbox"] == [122.0, 27.0, 124.2, 29.6]
+    assert payload["coverage"]["layers"]["fronts"] == "available"
+    assert payload["coverage"]["layers"]["sst"] == "available"
     assert payload["coverage"]["layers"]["fishingEffort"] == "available"
     assert any("apparent fishing effort" in caveat for caveat in payload["caveats"])
 
@@ -103,39 +113,68 @@ def test_viewport_partial_coverage_is_explicit(tmp_path: Path, monkeypatch) -> N
     monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
     response = client.get(
         "/api/viewport",
-        params={"date": "2024-08-05", "bbox": "120,30,122,31", "step": 1},
+        params={"date": "2024-08-05", "bbox": "127,33,129,35", "step": 2},
     )
     assert response.status_code == 200
     payload = response.json()
     assert payload["meta"]["status"] == "partial"
     assert payload["coverage"]["status"] == "partial"
-    assert payload["coverage"]["bbox"] == [120.0, 30.0, 121.0, 31.0]
-    assert payload["coverage"]["requestBbox"] == [120.0, 30.0, 122.0, 31.0]
-    assert payload["coverage"]["coveredBbox"] == [120.0, 30.0, 121.0, 31.0]
-    assert payload["coverage"]["layers"] == {
-        "fronts": "partial",
-        "sst": "partial",
-        "fishingEffort": "partial",
-    }
+    assert payload["coverage"]["bbox"] == [127.0, 33.0, 128.0, 34.0]
+    assert payload["coverage"]["requestBbox"] == [127.0, 33.0, 129.0, 35.0]
+    assert payload["coverage"]["coveredBbox"] == [127.0, 33.0, 128.0, 34.0]
+    assert payload["coverage"]["layers"]["fronts"] == "partial"
+    assert payload["coverage"]["layers"]["sst"] == "partial"
+    assert payload["coverage"]["layers"]["fishingEffort"] == "unavailable"
     assert payload["layers"]["fronts"]["features"]
     assert payload["layers"]["sst"]["cells"]
-    assert payload["layers"]["fishingEffort"]["cells"]
+    assert payload["layers"]["fishingEffort"]["cells"] == []
     assert any("partial" in caveat.lower() for caveat in payload["caveats"])
     assert any("not catch or yield" in caveat for caveat in payload["caveats"])
+
+
+def test_viewport_static_adapter_marks_missing_layer_sources_unavailable(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    prototype_root = tmp_path / "prototype"
+    (prototype_root / "day").mkdir(parents=True)
+    shutil.copyfile(
+        settings.prototype_data_dir / "day" / "2024-08-05.js",
+        prototype_root / "day" / "2024-08-05.js",
+    )
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
+    monkeypatch.setattr(settings, "prototype_data_dir", prototype_root)
+
+    response = client.get(
+        "/api/viewport",
+        params={"date": "2024-08-05", "bbox": "122,27,124.2,29.6", "step": 4},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["meta"]["status"] == "partial"
+    assert payload["coverage"]["layers"] == {
+        "fronts": "available",
+        "sst": "unavailable",
+        "fishingEffort": "unavailable",
+    }
+    assert payload["layers"]["fronts"]["features"]
+    assert payload["layers"]["sst"]["cells"] == []
+    assert payload["layers"]["fishingEffort"]["cells"] == []
+    assert any("At least one layer is unavailable" in caveat for caveat in payload["caveats"])
 
 
 def test_viewport_empty_coverage_does_not_mean_zero_activity(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
     response = client.get(
         "/api/viewport",
-        params={"date": "2024-08-05", "bbox": "122,30,123,31", "step": 1},
+        params={"date": "2024-08-05", "bbox": "150,30,151,31", "step": 1},
     )
     assert response.status_code == 200
     payload = response.json()
     assert payload["meta"]["status"] == "empty"
     assert payload["coverage"]["status"] == "empty"
     assert payload["coverage"]["bbox"] is None
-    assert payload["coverage"]["requestBbox"] == [122.0, 30.0, 123.0, 31.0]
+    assert payload["coverage"]["requestBbox"] == [150.0, 30.0, 151.0, 31.0]
     assert payload["coverage"]["coveredBbox"] is None
     assert payload["coverage"]["layers"] == {
         "fronts": "empty",
@@ -145,7 +184,7 @@ def test_viewport_empty_coverage_does_not_mean_zero_activity(tmp_path: Path, mon
     assert payload["layers"]["fronts"]["features"] == []
     assert payload["layers"]["sst"]["cells"] == []
     assert payload["layers"]["fishingEffort"]["cells"] == []
-    assert any("outside fixture coverage" in caveat for caveat in payload["caveats"])
+    assert any("no covered static prototype cells" in caveat for caveat in payload["caveats"])
     assert any("not zero activity" in caveat for caveat in payload["caveats"])
 
 
@@ -153,7 +192,7 @@ def test_viewport_unavailable_date_is_a_structured_response(tmp_path: Path, monk
     monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
     response = client.get(
         "/api/viewport",
-        params={"date": "2024-08-06", "bbox": "120,30,121,31", "step": 1},
+        params={"date": "2024-09-01", "bbox": "120,30,121,31", "step": 1},
     )
     assert response.status_code == 200
     payload = response.json()
@@ -231,14 +270,14 @@ def test_viewport_cache_hits_equivalent_requests_and_respects_version(
     assert second_payload["layers"] == first.json()["layers"]
     assert len(list((tmp_path / "cache" / "viewport").rglob("*.json"))) == 1
 
-    monkeypatch.setattr(viewport_module, "VIEWPORT_CACHE_VERSION", "viewport-fixture-v99")
+    monkeypatch.setattr(viewport_module, "VIEWPORT_CACHE_VERSION", "static-prototype-v99")
     after_version_change = client.get(
         "/api/viewport",
         params={"date": "2024-08-05", "bbox": "120,30,121,31", "step": 1},
     )
     assert after_version_change.status_code == 200
     assert after_version_change.json()["meta"]["cache"]["hit"] is False
-    assert after_version_change.json()["meta"]["cache"]["version"] == "viewport-fixture-v99"
+    assert after_version_change.json()["meta"]["cache"]["version"] == "static-prototype-v99"
     assert len(list((tmp_path / "cache" / "viewport").rglob("*.json"))) == 2
 
 
