@@ -13,7 +13,13 @@ client = TestClient(app)
 def test_health() -> None:
     response = client.get("/api/health")
     assert response.status_code == 200
-    assert response.json()["offline"] is True
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert payload["service"] == settings.app_name
+    assert payload["offline"] is True
+
+
+def test_ai_health() -> None:
     ai_response = client.get("/api/ai/health")
     assert ai_response.status_code == 200
     ai_payload = ai_response.json()

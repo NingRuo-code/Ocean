@@ -10,6 +10,7 @@
 浏览器直接打开 `frontend/prototype/prototype-fishing.html` 即可（改完建议 `Ctrl+F5` 强刷）；页面内的数据路径全是相对路径，移动整个 `frontend/prototype/` 目录也不影响。
 重新生成数据见 [`docs/data-schema.md`](docs/data-schema.md) 与 [`frontend/prototype/data/README.md`](frontend/prototype/data/README.md)。
 **服务器部署**（公网访问 + 服务器端渲染）见 [`deploy/RUNBOOK.md`](deploy/RUNBOOK.md)。
+**后端本地运行**（FastAPI `/api/health` 与后续 server mode 调试）见 [`backend/README.md`](backend/README.md)。
 **项目交接**见 [`docs/handover.md`](docs/handover.md)；服务器部署/运维只使用脱敏后的 [`deploy/RUNBOOK.md`](deploy/RUNBOOK.md)。
 **与协作者 restructure 分支的集成记录**见 [`docs/collab-restructure-integration.md`](docs/collab-restructure-integration.md)。
 
