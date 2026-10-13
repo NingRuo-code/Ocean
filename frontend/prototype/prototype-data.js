@@ -29,13 +29,24 @@
   const SERVER = {
     base: null,
     enabled: false,
+    available: false,
+    checking: false,
+    userMode: "auto",
+    status: "offline",
+    reason: "",
     sortedDates: [],
     dateSet: {},
     inflight: {},
     failed: {},
+    healthInflight: null,
   };
 
   function serverBase() {
+    if (typeof location !== "undefined" && location.search) {
+      const params = new URLSearchParams(location.search);
+      const fromQuery = params.get("api");
+      if (fromQuery) return fromQuery.replace(/\/+$/, "");
+    }
     if (typeof window.OF_API_BASE === "string" && window.OF_API_BASE) {
       return window.OF_API_BASE.replace(/\/+$/, "");
     }
@@ -108,38 +119,102 @@
 
   // ---- 服务器增强模式：探测 / 按需加载（不改变离线行为）----
 
-  /** 拉 /api/catalog 拿到服务器上的全量可用日期；任何失败都静默退回离线模式。 */
-  function initServerMode() {
+  function setServerOffline(reason) {
+    SERVER.enabled = false;
+    SERVER.available = false;
+    SERVER.checking = false;
+    SERVER.status = "offline";
+    SERVER.reason = reason || "";
+    SERVER.healthInflight = null;
+    if (typeof VIEW_WINDOW !== "undefined") {
+      VIEW_WINDOW.inflight = {};
+      VIEW_WINDOW.failed = {};
+    }
+  }
+
+  /** 探测 /api/health；任何失败都退回离线模式，但把原因留给界面显示。 */
+  function initServerMode(options) {
+    const force = !!(options && options.force);
     const base = serverBase();
-    if (!base || SERVER.enabled) return Promise.resolve(false);
+    if (!base) {
+      setServerOffline("未配置 API 地址");
+      SERVER.base = null;
+      return Promise.resolve(false);
+    }
+    if (SERVER.userMode === "offline" && !force) {
+      SERVER.base = base;
+      SERVER.enabled = false;
+      SERVER.available = false;
+      SERVER.status = "manual_offline";
+      SERVER.reason = "已手动切换到离线模式";
+      return Promise.resolve(false);
+    }
+    if (SERVER.enabled && !force) return Promise.resolve(true);
+    if (SERVER.healthInflight && !force) return SERVER.healthInflight;
     SERVER.base = base;
-    return fetch(base + "/catalog", { cache: "no-store" })
+    SERVER.checking = true;
+    SERVER.status = "checking";
+    SERVER.reason = "";
+    const task = fetch(base + "/health", { cache: "no-store" })
       .then(function (response) {
-        if (!response.ok) throw new Error("catalog HTTP " + response.status);
+        if (!response.ok) throw new Error("health HTTP " + response.status);
         return response.json();
       })
       .then(function (data) {
-        const dates = Array.isArray(data.available_dates) ? data.available_dates.slice().sort() : [];
-        if (!dates.length) return false;
-        SERVER.sortedDates = dates;
-        dates.forEach(function (iso) { SERVER.dateSet[iso] = true; });
+        if (!data || data.status !== "ok") throw new Error("health status " + (data && data.status ? data.status : "unknown"));
+        SERVER.available = true;
         SERVER.enabled = true;
+        SERVER.checking = false;
+        SERVER.status = "server";
+        SERVER.reason = "";
         return true;
       })
-      .catch(function () { SERVER.enabled = false; return false; });
+      .catch(function (error) {
+        setServerOffline(error && error.message ? error.message : "服务器不可用");
+        return false;
+      })
+      .then(function (ok) { SERVER.healthInflight = null; return ok; });
+    SERVER.healthInflight = task;
+    return task;
   }
 
   function serverEnabled() { return SERVER.enabled === true; }
 
-  /** 服务器上是否存在该日期（不代表已加载）。 */
-  function serverAvailable(iso) { return !!(SERVER.enabled && SERVER.dateSet[iso]); }
+  /** 服务器是否可用于该日期；日期具体有没有数据由 viewport 结构化返回说明。 */
+  function serverAvailable(iso) { return !!(SERVER.enabled && /^\d{4}-\d{2}-\d{2}$/.test(iso || "")); }
+
+  function serverMode() {
+    return {
+      base: SERVER.base,
+      enabled: SERVER.enabled === true,
+      available: SERVER.available === true,
+      checking: SERVER.checking === true,
+      userMode: SERVER.userMode,
+      status: SERVER.status,
+      reason: SERVER.reason,
+    };
+  }
+
+  function setServerMode(mode) {
+    if (mode === "offline") {
+      SERVER.userMode = "offline";
+      SERVER.enabled = false;
+      SERVER.status = "manual_offline";
+      SERVER.reason = "已手动切换到离线模式";
+      VIEW_WINDOW.inflight = {};
+      VIEW_WINDOW.failed = {};
+      return Promise.resolve(false);
+    }
+    SERVER.userMode = "auto";
+    return initServerMode({ force: true });
+  }
 
   /** 失败重试间隔：太短会连着打服务器，太长则用户在视野里看不到数据。
    *  （后端重启/网络抖动会造成 502，之前失败后被永久记住 → 那一片就永远是空的。） */
   const RETRY_MS = 20000;
   const retryable = function (record, key) {
     const at = record[key];
-    return !at || Date.now() - at < RETRY_MS;
+    return !at || Date.now() - at > RETRY_MS;
   };
 
   /** 按需把服务器单日数据注入 DAYS/SST；并发同一天只发一次，失败后 20s 允许重试。 */
@@ -252,8 +327,176 @@
     return entry;
   }
 
+  function viewportUrl(iso, bbox, step) {
+    return SERVER.base + "/viewport?date=" + encodeURIComponent(iso) +
+      "&bbox=" + encodeURIComponent(bbox.join(",")) +
+      "&step=" + encodeURIComponent(step);
+  }
+
+  function lineBbox(points) {
+    if (!Array.isArray(points) || !points.length) return [0, 0, 0, 0];
+    let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
+    points.forEach(function (p) {
+      if (!Array.isArray(p) || p.length < 2) return;
+      minLon = Math.min(minLon, Number(p[0]));
+      minLat = Math.min(minLat, Number(p[1]));
+      maxLon = Math.max(maxLon, Number(p[0]));
+      maxLat = Math.max(maxLat, Number(p[1]));
+    });
+    return [minLon, minLat, maxLon, maxLat].map(function (v) { return Number.isFinite(v) ? Math.round(v * 1000) / 1000 : 0; });
+  }
+
+  function lineCentroid(points) {
+    const valid = (points || []).filter(function (p) { return Array.isArray(p) && p.length >= 2; });
+    if (!valid.length) return [0, 0];
+    const sum = valid.reduce(function (acc, p) { acc[0] += Number(p[0]); acc[1] += Number(p[1]); return acc; }, [0, 0]);
+    return [Math.round((sum[0] / valid.length) * 1000) / 1000, Math.round((sum[1] / valid.length) * 1000) / 1000];
+  }
+
+  function gridFromBbox(bbox, resolutionDeg) {
+    const d = Number(resolutionDeg) || 0.05;
+    return {
+      lon0: bbox[0],
+      lat0: bbox[1],
+      dlon: d,
+      dlat: d,
+      nx: Math.max(1, Math.round((bbox[2] - bbox[0]) / d) + 1),
+      ny: Math.max(1, Math.round((bbox[3] - bbox[1]) / d) + 1),
+    };
+  }
+
+  function mergeRuns(runs) {
+    const sorted = runs.slice().sort(function (a, b) {
+      return a[0] - b[0] || a[1] - b[1] || (a[3] || 0) - (b[3] || 0);
+    });
+    const merged = [];
+    sorted.forEach(function (run) {
+      const last = merged[merged.length - 1];
+      if (last && last[0] === run[0] && last[3] === run[3] && last[1] + last[2] === run[1]) {
+        last[2] += run[2];
+      } else {
+        merged.push(run.slice());
+      }
+    });
+    return merged;
+  }
+
+  function frontRunsFromObjects(objects, grid) {
+    const seen = {};
+    const runs = [];
+    objects.forEach(function (front) {
+      (front.line || []).forEach(function (p) {
+        const col = Math.round((Number(p[0]) - grid.lon0) / grid.dlon);
+        const row = Math.round((Number(p[1]) - grid.lat0) / grid.dlat);
+        if (col < 0 || col >= grid.nx || row < 0 || row >= grid.ny) return;
+        const key = row + ":" + col;
+        if (seen[key]) return;
+        seen[key] = true;
+        runs.push([row, col, 1, 10]);
+      });
+    });
+    return mergeRuns(runs);
+  }
+
+  function sstFromViewport(layer, bbox, resolutionDeg) {
+    const cells = layer && Array.isArray(layer.cells) ? layer.cells : [];
+    if (!cells.length) return null;
+    const grid = gridFromBbox(bbox, resolutionDeg);
+    const binC = 0.5;
+    const runs = [];
+    cells.forEach(function (cell) {
+      const lon = Number(cell.lon);
+      const lat = Number(cell.lat);
+      const value = Number(cell.value);
+      if (!Number.isFinite(lon) || !Number.isFinite(lat) || !Number.isFinite(value)) return;
+      const col = Math.round((lon - grid.lon0) / grid.dlon);
+      const row = Math.round((lat - grid.lat0) / grid.dlat);
+      if (col < 0 || col >= grid.nx || row < 0 || row >= grid.ny) return;
+      runs.push([row, col, 1, Math.round(value / binC)]);
+    });
+    return {
+      grid: grid,
+      bin_c: binC,
+      runs: mergeRuns(runs),
+      stats: layer.stats || {},
+      product: { unit: "degree_C", bin_c: binC },
+      source_file: "backend:/api/viewport",
+    };
+  }
+
+  function rememberViewportFishing(iso, layer) {
+    const cells = layer && Array.isArray(layer.cells) ? layer.cells : [];
+    if (!cells.length) return;
+    FISHING.days[iso] = {
+      date: iso,
+      cell_count: cells.length,
+      cells: cells.map(function (cell) {
+        return {
+          lon: Number(cell.lon),
+          lat: Number(cell.lat),
+          hours: Number(cell.hours) || 0,
+          vessel_count: Number(cell.vesselCount || cell.vessel_count) || 0,
+          frontId: cell.frontId || null,
+        };
+      }),
+      source: layer.source || null,
+    };
+  }
+
+  function viewportPayloadToPatchPayload(iso, payload) {
+    if (!payload || !payload.meta || !payload.layers) return null;
+    const coverage = payload.coverage || {};
+    const bbox = coverage.coveredBbox || coverage.bbox || payload.meta.bbox;
+    if (!Array.isArray(bbox) || bbox.length !== 4 || payload.meta.status === "unavailable") return null;
+    const step = Number(payload.meta.step) || 1;
+    const baseRes = payload.meta.resolution && Number(payload.meta.resolution.spatial_deg) ? Number(payload.meta.resolution.spatial_deg) : 0.05;
+    const resolutionDeg = Math.round(baseRes * step * 1000) / 1000;
+    const grid = gridFromBbox(bbox, resolutionDeg);
+    const features = (payload.layers.fronts && payload.layers.fronts.features) || [];
+    const objects = features
+      .filter(function (feature) { return feature && feature.geometry && feature.geometry.type === "LineString"; })
+      .map(function (feature, index) {
+        const props = feature.properties || {};
+        const line = Array.isArray(feature.geometry.coordinates) ? feature.geometry.coordinates : [];
+        return {
+          front_id: String(props.frontId || props.front_id || ("V" + String(index + 1).padStart(3, "0"))),
+          line: line,
+          length_km: Number(props.lengthKm || props.length_km || 0),
+          pixel_count: Number(props.pixelCount || props.pixel_count || line.length || 0),
+          codes: Array.isArray(props.codes) ? props.codes : [],
+          centroid: Array.isArray(props.centroid) ? props.centroid : lineCentroid(line),
+          bbox: Array.isArray(props.bbox) ? props.bbox : lineBbox(line),
+        };
+      });
+    const frontRuns = frontRunsFromObjects(objects, grid);
+    rememberViewportFishing(iso, payload.layers.fishingEffort);
+    return {
+      window: {
+        bbox: bbox,
+        step: step,
+        resolution_deg: resolutionDeg,
+        mode: step > 1 ? "overview" : "detail",
+      },
+      front: {
+        grid: grid,
+        source_file: "backend:/api/viewport",
+        objects: objects,
+        object_line_count: objects.length,
+        front_line: objects.map(function (item) { return item.line; }),
+        front_band_rle: frontRuns,
+        cold_side_rle: [],
+        warm_side_rle: [],
+        nodata_rle: [],
+        overview: step > 1,
+        quality: { coverage_status: coverage.status || payload.meta.status },
+      },
+      sst: sstFromViewport(payload.layers.sst, bbox, resolutionDeg),
+      sst_coarse: null,
+    };
+  }
+
   /** 取一片窗口数据（视野片与预热共用）：同一个 key 只发一次，失败 20s 后可重试 */
-  function fetchPatch(iso, key, url) {
+  function fetchPatch(iso, key, url, kind) {
     const list = PATCHES[iso] || [];
     if (list.some(function (item) { return item.key === key; })) return Promise.resolve(true);
     if (!retryable(VIEW_WINDOW.failed, key)) return Promise.resolve(false);
@@ -264,11 +507,16 @@
         return response.json();
       })
       .then(function (payload) {
-        const ok = !!addPatch(iso, payload, false);
+        const adapted = kind === "viewport" ? viewportPayloadToPatchPayload(iso, payload) : payload;
+        const ok = !!addPatch(iso, adapted, false);
         if (ok) delete VIEW_WINDOW.failed[key];
         return ok;
       })
-      .catch(function () { VIEW_WINDOW.failed[key] = Date.now(); return false; })
+      .catch(function (error) {
+        VIEW_WINDOW.failed[key] = Date.now();
+        setServerOffline(error && error.message ? error.message : "viewport 请求失败");
+        return false;
+      })
       .then(function (ok) { delete VIEW_WINDOW.inflight[key]; return ok; });
     VIEW_WINDOW.inflight[key] = task;
     return task;
@@ -291,9 +539,7 @@
   function ensureViewport(iso) {
     if (!SERVER.enabled || !VIEW_WINDOW.bbox) return Promise.resolve(false);
     if (coveredByPatch(iso, VIEW_WINDOW.bbox, VIEW_WINDOW.step)) return Promise.resolve(true);
-    return fetchPatch(iso, VIEW_WINDOW.key,
-      SERVER.base + "/frontend/day/" + iso +
-      "?bbox=" + VIEW_WINDOW.bbox.join(",") + "&step=" + VIEW_WINDOW.step);
+    return fetchPatch(iso, VIEW_WINDOW.key, viewportUrl(iso, VIEW_WINDOW.bbox, VIEW_WINDOW.step), "viewport");
   }
 
   /** 预热「整颗地球 2° 概览」：服务器模式下启动就把全球锋面拿一次，
@@ -303,13 +549,12 @@
   function prefetchOverview(iso) {
     if (!SERVER.enabled) return Promise.resolve(false);
     const key = bboxKey(GLOBAL_BBOX, OVERVIEW_STEP);
-    return fetchPatch(iso, key,
-      SERVER.base + "/frontend/day/" + iso + "?bbox=" + GLOBAL_BBOX.join(",") + "&step=" + OVERVIEW_STEP);
+    return fetchPatch(iso, key, viewportUrl(iso, GLOBAL_BBOX, OVERVIEW_STEP), "viewport");
   }
 
   /** 渲染用：该日所有数据片，按「粗 → 细」排（概览先画，明细压在上面） */
   function patches(iso) {
-    const list = (PATCHES[iso] || []).slice();
+    const list = SERVER.enabled ? (PATCHES[iso] || []).slice() : [];
     const local = DAYS[iso];
     if (local && !list.some(function (item) { return item.primary; })) {
       list.push({
@@ -343,9 +588,11 @@
   // 不是渔获量/产量/鱼群密度，界面必须照实标注（见 docs/data-governance-gfw-ais.md）。
   const FISHING = { days: {}, inflight: {}, failed: {} };
 
-  function fishingAvailable() { return SERVER.enabled === true; }
+  function fishingAvailable() {
+    return SERVER.enabled === true || !!(META && META.status && META.status.fishing_grounds === "real");
+  }
 
-  function fishingDay(iso) { return FISHING.days[iso] || null; }
+  function fishingDay(iso) { return fishingAvailable() ? (FISHING.days[iso] || null) : null; }
 
   /** 按需取某天的渔场格点；未启用服务器或 404 时返回 false（调用方按「无数据」处理，不按 0）。 */
   function ensureFishing(iso) {
@@ -504,6 +751,8 @@
     // 因此离线（file://）行为与既有断言不受影响。
     serverEnabled: serverEnabled,
     serverAvailable: serverAvailable,
+    serverMode: serverMode,
+    setServerMode: setServerMode,
     initServerMode: initServerMode,
     ensureDay: ensureDay,
 
@@ -634,7 +883,6 @@
     intensityAvailable: function () { return !!(META && META.status && META.status.intensity === "real"); },
     forecastAvailable: function () { return !!(META && META.status && META.status.forecast === "real"); },
     seaStateAvailable: function () { return !!(META && META.status && META.status.sea_state === "real"); },
-    fishingAvailable: function () { return !!(META && META.status && META.status.fishing_grounds === "real"); },
     frontResponseAvailable: function () {
       return !!(frontResponseStatusReady() && (FRONT_RESPONSE.by_date || FRONT_RESPONSE.events));
     },

@@ -106,11 +106,13 @@ Deliverables:
 - Visible offline/server status.
 - Manual mode switch and offline fallback.
 - Globe/large-window viewport requests in server mode.
+- `/api/viewport` payload adaptation into the existing frontend patch/render model.
 
 Acceptance:
 
 - Server failure leaves the page usable in offline mode.
 - Large/globe windows request viewport payloads only when server mode is active.
+- Manual offline fallback hides server viewport patches and returns to the committed static payload.
 
 ### M4. Response Analysis API And Experiment Package
 
@@ -180,3 +182,4 @@ This order is deliberate: server sync waits until the API/data contract is usefu
 | 2026-10-12 | M2 viewport validation and honest coverage states | Done | Valid partial/empty/unavailable requests return HTTP 200 with explicit coverage and caveats; invalid date/bbox/step requests fail as request errors. |
 | 2026-10-12 | M2 versioned viewport JSON cache | Done | Viewport cache keys include normalized date/bbox/step and cache contract version; generated files stay under ignored `data/cache/viewport/`. |
 | 2026-10-12 | M2 static prototype viewport adapter | Done | `/api/viewport` now serves committed front objects, SST cells, and aggregate GFW apparent-fishing-effort response artifacts through the backend contract; raw NetCDF and raw AIS/GFW ingestion remain deferred. |
+| 2026-10-13 | M3 frontend server mode | Done | The prototype detects `/api/health`, shows offline/server mode, supports manual fallback, and uses `/api/viewport` for globe/large-window server patches while preserving offline startup. |

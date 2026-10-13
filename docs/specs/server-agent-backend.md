@@ -105,7 +105,9 @@ Agent/AI contracts are not part of the first implementation wave. Later Agent to
 - The first viewport slice should serve existing frontend static data or fixtures through the backend contract. Direct raw NetCDF, Zenodo archive, or GFW/AIS ingestion is a later data-pipeline task.
 - Current viewport adapter reads committed static prototype front objects, SST artifacts, and aggregate front-response outputs under `frontend/prototype/data`, then maps them into the backend `meta`, `layers`, `coverage`, and `caveats` response structure.
 - Frontend server mode auto-detects backend health, shows the current mode, supports manual fallback, and limits server viewport requests to server mode.
-- The first backend slice does not have to wire the frontend to `/api/viewport`; that is the next implementation step after API tests and docs are stable.
+- Current frontend server mode accepts `window.OF_API_BASE` or a local `?api=...` query parameter for development and deployed smoke checks.
+- The frontend adapts `/api/viewport` payloads into its existing patch/render model for globe and large-window views while keeping the committed static payload as the offline fallback.
+- Manual offline fallback must stop using server viewport patches and return to local data only.
 - Provide local backend run instructions and a lightweight backend start command or script before server sync.
 - Agent/AI-specific tooling is deferred until the basic backend is demonstrably stable.
 - Future Agent tools, if added, should wrap deterministic project computations instead of introducing new numerical semantics.
@@ -133,7 +135,7 @@ Agent/AI contracts are not part of the first implementation wave. Later Agent to
 - No domain, HTTPS, or certificate automation in the first implementation milestone; it is documented as a later upgrade.
 - No first-milestone `frontal_intensity` download or processing.
 - No first-slice direct raw NetCDF, Zenodo archive, or GFW/AIS ingestion through `/api/viewport`.
-- No first-slice frontend integration with `/api/viewport`; frontend server mode follows after the backend contract is tested and documented.
+- No requirement for raw NetCDF-backed global viewport serving before the static-prototype viewport and frontend server-mode loop are stable.
 - No raw AIS/GFW, MMSI, vessel tracks, or fine-grained working grids in Git.
 - No claim that apparent fishing effort equals catch, yield, production, biomass, revenue, or guaranteed fishing success.
 - No required real LLM integration or Agent-tool implementation in the first backend wave.

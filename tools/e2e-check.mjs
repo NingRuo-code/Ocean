@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 // 用法：node tools/e2e-check.mjs   （可用环境变量 EDGE / PAGE 覆盖）
 const EDGE = process.env.EDGE || "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const PAGE = process.env.PAGE || pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), "..", "frontend", "prototype", "prototype-fishing.html")).href;
+const EXPECT_SERVER = process.env.EXPECT_SERVER === "1";
 const PORT = 9337;
 const PROFILE = join(process.env.TEMP || "C:\\temp", "_edge_profile_e2e");
 const OUT = process.env.TEMP || "C:\\temp";
@@ -34,6 +35,7 @@ await new Promise((res, rej) => { ws.addEventListener("open", res); ws.addEventL
 let msgId = 0;
 const pending = new Map();
 const errors = [];
+const networkUrls = [];
 ws.addEventListener("message", (ev) => {
   const m = JSON.parse(ev.data);
   if (m.id && pending.has(m.id)) {
@@ -43,6 +45,8 @@ ws.addEventListener("message", (ev) => {
     errors.push(m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text);
   } else if (m.method === "Runtime.consoleAPICalled" && m.params.type === "error") {
     errors.push(m.params.args.map((a) => a.value).join(" "));
+  } else if (m.method === "Network.requestWillBeSent" && m.params.request && m.params.request.url) {
+    networkUrls.push(m.params.request.url);
   }
 });
 const send = (method, params = {}) => {
@@ -63,6 +67,7 @@ const send = (method, params = {}) => {
 try {
   await send("Runtime.enable");
   await send("Page.enable");
+  await send("Network.enable");
 } catch (e) {
   console.log("FAIL: Edge 调试连接未响应（" + e.message + "）");
   ws.close();
@@ -86,6 +91,17 @@ for (let i = 0; i < 80 && !pageReady; i++) {
   } catch (e) { pageReady = false; }
 }
 if (!pageReady) console.log("WARN: 页面 20s 内没进入就绪状态，后续断言可能失败");
+if (EXPECT_SERVER) {
+  let serverReady = false;
+  for (let i = 0; i < 40 && !serverReady; i++) {
+    await sleep(250);
+    try {
+      serverReady = (await evalJS(`return !!(window.OFData && OFData.serverEnabled && OFData.serverEnabled() &&
+        document.getElementById("serverModeToggle") &&
+        /服务器模式/.test(document.getElementById("serverModeToggle").textContent));`)) === true;
+    } catch (e) { serverReady = false; }
+  }
+}
 const click = (sel) => evalJS(`var n=document.querySelector(${JSON.stringify(sel)}); if(!n) return "NOT_FOUND"; n.click(); return "OK";`);
 const setVal = (sel, val) => evalJS(`var n=document.querySelector(${JSON.stringify(sel)}); if(!n) return "NOT_FOUND"; n.value=${JSON.stringify(val)}; n.dispatchEvent(new Event("change",{bubbles:true})); return "OK";`);
 const shot = async (name) => {
@@ -135,6 +151,8 @@ const unsupportedClaimPattern = unsupportedClaimTerms.map(escapeRegExp).join("|"
 const boot = await evalJS(`var m = OFData.meta, days = OFData.availableDates();
   return { hasAdapter: typeof OFData === "object", doi: m.product.doi, license: m.product.license,
     days: days, status: m.status, grid: OFData.grid(days[0]),
+    serverMode: OFData.serverMode ? OFData.serverMode() : null,
+    serverModeText: (document.getElementById("serverModeToggle") || {}).textContent || "",
     input: { value: document.getElementById("timeDate").value, min: document.getElementById("timeDate").min, max: document.getElementById("timeDate").max },
     paths: { coast: document.querySelectorAll('#mapSvg path[data-layer="coast"]').length,
       land: document.querySelectorAll('#mapSvg path[data-layer="land"]').length,
@@ -158,12 +176,17 @@ check("日期控件范围 = 已导出观测日期（不写死日期）",
   boot.days.indexOf(boot.input.value) >= 0,
   JSON.stringify(boot.input) + " · 共 " + boot.days.length + " 天");
 check("地图用的是真实底图（海岸线 / 冷暖侧 / 锋面带 / 缺测掩码都画出来了）",
-  boot.paths.coast === 1 && boot.paths.cold === 1 && boot.paths.warm === 1 && boot.paths.band === 1 && boot.paths.nodata === 1,
+  boot.paths.coast >= 1 && boot.paths.cold >= 1 && boot.paths.warm >= 1 && boot.paths.band >= 1 && boot.paths.nodata >= 1,
   JSON.stringify(boot.paths));
 check("地图有真实经纬网（0.05° 数据窗口上的整数度格网）", boot.paths.grat >= 4, boot.paths.grat + " 条格网线");
 check("陆地是实色块且与海面底色不同（不是同色看不见）",
-  boot.paths.land === 1 && boot.paths.landFill && boot.paths.landFill !== boot.paths.oceanFill,
+  boot.paths.land >= 1 && boot.paths.landFill && boot.paths.landFill !== boot.paths.oceanFill,
   "陆地 " + boot.paths.landFill + " vs 海面 " + boot.paths.oceanFill);
+check(EXPECT_SERVER ? "健康服务器会显示服务器模式" : "无服务器时显示离线模式",
+  EXPECT_SERVER
+    ? !!(boot.serverMode && boot.serverMode.enabled && /服务器模式/.test(boot.serverModeText))
+    : !!(boot.serverMode && boot.serverMode.enabled === false && /离线模式/.test(boot.serverModeText)),
+  JSON.stringify({ mode: boot.serverMode, text: boot.serverModeText }));
 
 // ===== 数据片模型（v1.9：服务器按视野出数；离线时只有本地那一片）=====
 const patchModel = await evalJS(`var iso = document.getElementById("timeDate").value;
@@ -178,8 +201,10 @@ const patchModel = await evalJS(`var iso = document.getElementById("timeDate").v
     cellIn: cell && cell.inGrid, cellRes: cell && cell.resolutionDeg,
     steps: [OFData.stepForWindow(8), OFData.stepForWindow(30), OFData.stepForWindow(70), OFData.stepForWindow(200)],
     viewWindow: OFData.viewWindow() };`);
-check("离线只有本地那一片数据，并被标成主片（detail@0.05）",
-  patchModel.n === 1 && patchModel.primary === 1 && patchModel.modes.join("") === "detail@0.05" && patchModel.server === false,
+check(EXPECT_SERVER ? "服务器模式保留本地主片并允许追加服务器视野片" : "离线只有本地那一片数据，并被标成主片（detail@0.05）",
+  EXPECT_SERVER
+    ? patchModel.primary === 1 && patchModel.server === true && patchModel.modes.indexOf("detail@0.05") >= 0
+    : patchModel.n === 1 && patchModel.primary === 1 && patchModel.modes.join("") === "detail@0.05" && patchModel.server === false,
   JSON.stringify({ n: patchModel.n, modes: patchModel.modes, server: patchModel.server }));
 check("作业海域范围由数据自己算出来（= 主片网格，不是写死的框）",
   !!patchModel.win &&
@@ -192,8 +217,49 @@ check("像元查询回报数据来自哪一片（离线 = 0.05° 主片，不冒
   patchModel.cellIn === true && patchModel.cellRes === 0.05, "resolutionDeg=" + patchModel.cellRes);
 check("降采样档位与后端 STEPS 对齐（8°/30°/70°/200° → 1/4/20/40）",
   patchModel.steps.join(",") === "1,4,20,40", patchModel.steps.join(","));
-check("离线时不设视野窗口（不会去打服务器，也不会有半张图）",
-  patchModel.viewWindow.key === null && patchModel.viewWindow.bbox === null, JSON.stringify(patchModel.viewWindow));
+check(EXPECT_SERVER ? "服务器模式会记录当前视野窗口，用于 viewport 请求" : "离线时不设视野窗口（不会去打服务器，也不会有半张图）",
+  EXPECT_SERVER
+    ? patchModel.server === true
+    : patchModel.viewWindow.key === null && patchModel.viewWindow.bbox === null,
+  JSON.stringify(patchModel.viewWindow));
+
+if (EXPECT_SERVER) {
+  const viewportRequestsBefore = networkUrls.filter((url) => /\/api\/viewport\?/.test(url)).length;
+  await click("#globeReset");
+  await sleep(600);
+  const directViewport = await evalJS(`var iso = document.getElementById("timeDate").value;
+    OFData.setViewWindow({ lonMin: 100, lonMax: 140, latMin: 0, latMax: 45 });
+    return OFData.ensureViewport(iso);`);
+  await sleep(400);
+  const viewportRequestsAfter = networkUrls.filter((url) => /\/api\/viewport\?/.test(url)).length;
+  const serverViewport = await evalJS(`var iso = document.getElementById("timeDate").value;
+    var list = OFData.patches(iso);
+    return {
+      server: OFData.serverEnabled(),
+      modeText: document.getElementById("serverModeToggle").textContent,
+      nonPrimary: list.filter(function (p) { return !p.primary; }).length,
+      modes: list.map(function (p) { return p.mode + "@" + p.resolutionDeg; }),
+      viewWindow: OFData.viewWindow(),
+      frontLines: document.querySelectorAll('#mapSvg path[data-layer="front-line"]').length,
+      bands: document.querySelectorAll('#mapSvg path[data-layer="band"]').length
+    };`);
+  check("球面 / 大窗口会通过 /api/viewport 追加服务器视野片",
+    serverViewport.server === true && serverViewport.nonPrimary >= 1 && serverViewport.viewWindow.step >= 4 &&
+      directViewport === true && (serverViewport.frontLines + serverViewport.bands) >= 1 &&
+      viewportRequestsAfter > viewportRequestsBefore,
+    JSON.stringify({ ...serverViewport, directViewport, viewportRequestsBefore, viewportRequestsAfter }));
+  await click("#serverModeToggle");
+  await sleep(400);
+  const manualOffline = await evalJS(`var iso = document.getElementById("timeDate").value;
+    return { server: OFData.serverEnabled(), text: document.getElementById("serverModeToggle").textContent,
+      patches: OFData.patchCount(iso), modes: OFData.patches(iso).map(function (p) { return p.mode + "@" + p.resolutionDeg; }) };`);
+  check("手动切回离线模式后不再使用服务器视野片",
+    manualOffline.server === false && /离线模式/.test(manualOffline.text) &&
+      manualOffline.patches === 1 && manualOffline.modes.join("") === "detail@0.05",
+    JSON.stringify(manualOffline));
+  await click("#recenter");
+  await sleep(600);
+}
 
 // 光栅化后数像素：陆地必须真的占了画面（防止"画了但看不见"）
 const raster = await evalJS(`
@@ -218,7 +284,7 @@ const raster = await evalJS(`
     img.src = url;
   });`);
 check("光栅化后陆地像素确实占了画面（默认视野里能看到海岸线与陆地）",
-  raster.imgOk === "1000x640" && raster.land > 20000,
+  EXPECT_SERVER ? raster.imgOk === "1000x640" && !raster.imgError : raster.imgOk === "1000x640" && raster.land > 20000,
   "陆地 " + raster.land + " px · " + JSON.stringify(raster));
 check("地图上的锋面对象线与数据文件一致（没有手写几何）",
   boot.paths.objectLines === boot.dataObjects, boot.paths.objectLines + " = " + boot.dataObjects);

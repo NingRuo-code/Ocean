@@ -1862,6 +1862,7 @@ function refresh() {
   renderProbe();
   renderPick();
   $("dataStamp").textContent = timeLabel() + " · 真实锋面数据";
+  syncServerModeUi();
   document.querySelectorAll("#rangeSeg button").forEach((b) => b.classList.toggle("active", Number(b.dataset.range) === state.range));
   $("timeDate").value = state.date;
   $("timeDate").min = DATE_MIN;
@@ -1882,6 +1883,32 @@ function applyServerRange() {
     state.zoom = SERVER_ZOOM;
     applyZoom(false);
   }
+}
+
+function syncServerModeUi() {
+  const btn = $("serverModeToggle");
+  if (!btn || !OFData.serverMode) return;
+  const mode = OFData.serverMode();
+  btn.classList.remove("server", "warn");
+  if (mode.enabled) {
+    btn.textContent = "服务器模式";
+    btn.classList.add("server");
+    btn.title = "正在使用后端 /api/viewport 按当前视野取数；点击切回离线数据";
+    return;
+  }
+  if (mode.checking) {
+    btn.textContent = "检测中";
+    btn.title = "正在检测 /api/health";
+    return;
+  }
+  if (mode.status === "manual_offline") {
+    btn.textContent = "离线模式";
+    btn.title = "已手动使用本地离线数据；点击重新检测服务器";
+    return;
+  }
+  btn.textContent = "离线模式";
+  btn.classList.toggle("warn", !!mode.reason);
+  btn.title = mode.reason ? "服务器不可用：" + mode.reason + "；点击重新检测" : "当前使用本地离线数据；点击检测服务器";
 }
 
 // 图层抽屉：默认收起在左侧；鼠标靠近左边缘自动呼出，移开延时自动收起；点 ☰ 可固定展开
@@ -2087,6 +2114,8 @@ function requestViewportPatch(soon) {
     OFData.ensureViewport(iso).then((ok) => {
       clearTimeout(slowNotice);
       viewportLoading = false;
+      syncServerModeUi();
+      if (!ok && !OFData.serverEnabled()) showToast("服务器取数失败，已回到离线模式");
       invalidate();                      // 取到就重画（地图自己给出反馈，不再弹提示刷屏）
       drawMap();
       syncViewHint();
@@ -2431,6 +2460,29 @@ function bind() {
     });
   });
   $("toBasis").addEventListener("click", () => switchTab("basis"));
+  $("serverModeToggle").addEventListener("click", () => {
+    const mode = OFData.serverMode ? OFData.serverMode() : { enabled: false };
+    if (mode.enabled) {
+      OFData.setServerMode("offline").then(function () {
+        syncServerModeUi();
+        refresh();
+        showToast("已切换到离线模式");
+      });
+      return;
+    }
+    syncServerModeUi();
+    OFData.setServerMode("auto").then(function (enabled) {
+      syncServerModeUi();
+      if (!enabled) {
+        showToast("服务器不可用，继续使用离线数据");
+        return;
+      }
+      applyServerRange();
+      refresh();
+      loadThenRefresh(state.date);
+      showToast("已切换到服务器模式");
+    });
+  });
 
   // 图层抽屉：靠近左边缘自动呼出；固定展开后不随鼠标自动收起
   const mapEl = $("map");
@@ -2490,6 +2542,7 @@ if (viewRestored) showToast("已回到上次停留的视野（“◎”回到出
 // 服务器增强模式（可选）：成功则把日期范围扩到服务器上的全量日期并重渲染；
 // file:// 打开或 API 不可达时静默跳过，页面保持纯离线行为。
 OFData.initServerMode().then(function (enabled) {
+  syncServerModeUi();
   if (!enabled) return;
   applyServerRange();
   refresh();
