@@ -13,6 +13,7 @@
 **后端本地运行**（FastAPI `/api/health` 与后续 server mode 调试）见 [`backend/README.md`](backend/README.md)。
 **项目交接**见 [`docs/handover.md`](docs/handover.md)；服务器部署/运维只使用脱敏后的 [`deploy/RUNBOOK.md`](deploy/RUNBOOK.md)。
 **与协作者 restructure 分支的集成记录**见 [`docs/collab-restructure-integration.md`](docs/collab-restructure-integration.md)。
+**协作分支与 PR 流程**见 [`docs/collaboration-pr-flow.md`](docs/collaboration-pr-flow.md)。
 
 ## 服务器增强模式（可选，同源部署自动启用）
 
