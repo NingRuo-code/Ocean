@@ -49,7 +49,7 @@ node -v || warn "Node 安装异常，仅影响自检脚本"
 # ---------- 3. 用户与目录 ----------
 log "3/8 创建用户与数据目录"
 id -u "$SERVICE_USER" >/dev/null 2>&1 || useradd -m -s /bin/bash "$SERVICE_USER"
-mkdir -p "$APP_DIR" "$DATA_DIR/raw" "$DATA_DIR/processed" "$DATA_DIR/cache" "$DATA_DIR/manifest"
+mkdir -p "$APP_DIR" "$DATA_DIR/raw" "$DATA_DIR/processed" "$DATA_DIR/cache" "$DATA_DIR/outputs" "$DATA_DIR/manifest"
 
 # ---------- 4. 应用代码 ----------
 if [ -n "$TARBALL" ] && [ -f "$TARBALL" ]; then

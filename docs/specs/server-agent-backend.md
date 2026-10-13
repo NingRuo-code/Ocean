@@ -123,6 +123,8 @@ Agent/AI contracts are not part of the first implementation wave. Later Agent to
 - Response-analysis experiment outputs must keep the claim to apparent fishing-effort response only. They must preserve missing/unavailable records as coverage limitations rather than filling missing effort with zero.
 - The current aggregate response artifact contains `pre7_hours` and `post1_3_hours` inside a `-7 ~ +7` exploratory window. The first experiment package is therefore a foundation over the current committed aggregate, not full completion of the before/after 7-day acceptance item. A full symmetric post-7-day aggregate is a later data-pipeline enhancement and must not be fabricated by experiment code.
 - Collaboration continues through topic branches and ticket-driven PRs in the main repository.
+- Existing-server sync uses the sanitized `deploy/RUNBOOK.md` path. Operators should run local checks first, sync verified code/data only, inventory capacity with `deploy/inventory-server.sh`, and smoke public HTTP behavior with `deploy/server-smoke.ps1`.
+- Server sync documentation must use placeholders for public IPs, SSH key paths, credentials, and personal paths. Real server access details and incident notes remain outside Git.
 
 ## Testing Decisions
 

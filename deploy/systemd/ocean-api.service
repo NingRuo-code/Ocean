@@ -34,8 +34,8 @@ RestartSec=3
 # 渲染大范围 raster 时给足时间，避免被 systemd 提前杀掉
 TimeoutStopSec=20
 
-# 基础加固：只让服务写这两处
-ReadWritePaths=/srv/ocean/data/cache /srv/ocean/data/processed
+# 基础加固：只让服务写下列数据路径
+ReadWritePaths=/srv/ocean/data/cache /srv/ocean/data/processed /srv/ocean/data/outputs
 
 [Install]
 WantedBy=multi-user.target

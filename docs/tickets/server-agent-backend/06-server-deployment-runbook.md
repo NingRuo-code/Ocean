@@ -1,5 +1,7 @@
 # Ticket 06: Existing Server Sync Runbook
 
+Status: done on `codex/server-agent-backend`.
+
 ## Goal
 
 Prepare the sanitized update/sync path for the already-deployed Alibaba Cloud server.
@@ -23,5 +25,31 @@ Prepare the sanitized update/sync path for the already-deployed Alibaba Cloud se
 
 ## Checks
 
-- Shell/PowerShell parse checks for changed deploy scripts.
-- Sensitive scan for IPs, keys, credentials, and personal paths.
+- Shell parse: `deploy/inventory-server.sh` and `deploy/remote-setup.sh` passed `bash -n` through WSL. WSL emitted a local `localhost` forwarding warning, but the parser check exited successfully.
+- PowerShell parse: `deploy/server-smoke.ps1`, `deploy/deploy.ps1`, and `deploy/probe-ports.ps1` parsed successfully.
+- Whitespace: `git diff --check` passed.
+- Sensitive scan: changed deploy/docs files contained no real public IP, SSH key path, token, credential, or personal path. Only loopback `127.0.0.1` and sample viewport bbox decimals were present.
+- Data contract check: `node tools/data-check.mjs` passed with `FAIL 0/914`.
+- Backend regression: `python -m pytest tests -q --tb=short --basetemp .pytest-basetemp-ticket06-final -p no:cacheprovider` passed with 20 tests.
+
+## Implemented
+
+- Expanded `deploy/RUNBOOK.md` into the sanitized existing-server sync runbook.
+- Added read-only server inventory helper: `deploy/inventory-server.sh`.
+- Added public HTTP smoke helper: `deploy/server-smoke.ps1`.
+- Updated `deploy/remote-setup.sh` to create `/srv/ocean/data/outputs`.
+- Updated `deploy/systemd/ocean-api.service` so the API service may write cache, processed data, and outputs under `/srv/ocean/data`.
+- The runbook covers:
+  - local pre-sync checks;
+  - capacity inventory for CPU, memory, disk, `/srv` free space, sync/access model, active services, Nginx, systemd, and cache counts;
+  - code-only sync and optional permitted data sync;
+  - `/opt/ocean`, `/srv/ocean/data`, and `/etc/ocean` boundaries;
+  - public-IP HTTP smoke checks;
+  - `/api/health`, viewport, basic-query, and response-analysis artifact checks;
+  - later domain/HTTPS and capacity upgrade path.
+
+## Residual Risks
+
+- The runbook uses placeholders and does not prove access to the real server. Actual server inventory values must be collected by the operator with server access.
+- Cache eviction is documented as a policy boundary here; implementation belongs to Ticket 07.
+- GitHub Issue synchronization could not be completed through `gh` on this machine because the CLI is not installed.
