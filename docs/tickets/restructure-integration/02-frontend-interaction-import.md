@@ -107,3 +107,18 @@ Checks:
 - `node tools/layout-check.mjs`: 0 failures.
 - Sensitive scan for real server/key/personal-path material: no matches after sanitizing one documentation example.
 - `git diff --check`: pass.
+
+2026-10-13:
+
+- Integrated collaborator commit `48b42d0` by behavior rather than direct overwrite.
+- Fixed the GFW apparent-fishing-effort `ground` layer so opening the layer calls `OFData.ensureFishing(state.date)` and date refreshes also load fishing cells when the layer is active.
+- Changed `ensureFishing()` failures from permanent booleans to timestamped failures behind the shared retry window, and clear the failure flag after a successful fetch.
+- Added `tools/data-check.mjs` guards that verify the frontend keeps the `loadFishing -> ensureFishing` wiring and timestamp retry behavior.
+- Added sanitized server runbook guidance for checking stale fishing manifests and rebuilding them without committing raw data or server-specific details.
+
+Checks:
+
+- `node tools/data-check.mjs`: 0 failures / 916.
+- `node tools/e2e-check.mjs`: 0 failures / 128.
+- `node tools/layout-check.mjs`: 0 failures.
+- `git diff --check`: pass.

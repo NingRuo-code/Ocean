@@ -1796,6 +1796,7 @@ function loadThenRefresh(iso) {
     if (!ok && !OFData.hasDay(iso)) showToast(mdText(iso) + " 没取到，请换个日期");
     refresh();
     warmOverview(iso);                            // 顺手把全球 2° 概览取回来，缩到球面立刻有数据
+    loadFishing(iso);                             // 渔场线索图层开着时，同一天也把当日捕捞格点取回来
   });
 }
 
@@ -1807,6 +1808,25 @@ function warmOverview(iso) {
     invalidate();
     drawMap();
     syncViewHint();
+  });
+}
+
+// 渔场线索（GFW 表观捕捞活动）：取当日 0.1° 格点，到位后只重画地图，不打乱其它面板。
+// 只在图层打开（或用户刚打开图层、notify=true）时发请求。
+// 取不到就什么都不画，界面按「无覆盖 / 当日无作业」处理，绝不把缺失当 0。
+function loadFishing(iso, notify) {
+  if (!OFData.serverEnabled()) return;                    // 离线（file://）没有渔场数据源
+  if (!state.layers.ground && notify !== true) return;    // 图层关着就不打扰服务器
+  OFData.ensureFishing(iso).then(function (ok) {
+    if (state.date !== iso) return;                       // 期间用户又换了日期，丢弃这次结果
+    if (ok) {
+      invalidate();
+      drawMap();
+      return;
+    }
+    if (notify === true) {
+      showToast(mdText(iso) + " 没有渔场格点（GFW 覆盖 2017-01-01 起，当日无作业的格子不画）");
+    }
   });
 }
 
@@ -2433,6 +2453,7 @@ function bind() {
       renderLegend(); drawMap(); syncSelect(); renderPick();
       const meta = LAYER_META.find((m) => m[0] === k) || [k, k];
       showToast("图层「" + meta[1] + "」已" + (state.layers[k] ? "打开" : "关掉"));
+      if (k === "ground" && state.layers[k]) loadFishing(state.date, true);
     });
   });
 

@@ -210,11 +210,12 @@
   }
 
   /** 失败重试间隔：太短会连着打服务器，太长则用户在视野里看不到数据。
-   *  （后端重启/网络抖动会造成 502，之前失败后被永久记住 → 那一片就永远是空的。） */
+   *  （后端重启/网络抖动会造成 502，之前失败后被永久记住 → 那一片就永远是空的。）
+   *  语义 = 值得再试一次：没失败过，或上次失败已过去 RETRY_MS 以上。 */
   const RETRY_MS = 20000;
   const retryable = function (record, key) {
     const at = record[key];
-    return !at || Date.now() - at > RETRY_MS;
+    return !at || Date.now() - at >= RETRY_MS;
   };
 
   /** 按需把服务器单日数据注入 DAYS/SST；并发同一天只发一次，失败后 20s 允许重试。 */
@@ -594,10 +595,12 @@
 
   function fishingDay(iso) { return fishingAvailable() ? (FISHING.days[iso] || null) : null; }
 
-  /** 按需取某天的渔场格点；未启用服务器或 404 时返回 false（调用方按「无数据」处理，不按 0）。 */
+  /** 按需取某天的渔场格点；未启用服务器、当日无数据（404）或取数失败时返回 false
+   *  （调用方按「无覆盖 / 当日无作业」处理，不按 0）。失败与 ensureDay 共用 20s 重试窗口，
+   *  避免一次后端抖动就把这一天永久钉成空白。 */
   function ensureFishing(iso) {
     if (FISHING.days[iso]) return Promise.resolve(true);
-    if (!SERVER.enabled || FISHING.failed[iso]) return Promise.resolve(false);
+    if (!serverEnabled() || !retryable(FISHING.failed, iso)) return Promise.resolve(false);
     if (FISHING.inflight[iso]) return FISHING.inflight[iso];
     const task = fetch(SERVER.base + "/fishing/" + iso, { cache: "no-store" })
       .then(function (response) {
@@ -606,9 +609,10 @@
       })
       .then(function (data) {
         FISHING.days[iso] = data && Array.isArray(data.cells) ? data : null;
+        delete FISHING.failed[iso];
         return !!FISHING.days[iso];
       })
-      .catch(function () { FISHING.failed[iso] = true; FISHING.days[iso] = null; return false; })
+      .catch(function () { FISHING.failed[iso] = Date.now(); FISHING.days[iso] = null; return false; })
       .then(function (ok) { delete FISHING.inflight[iso]; return ok; });
     FISHING.inflight[iso] = task;
     return task;

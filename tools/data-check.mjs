@@ -262,6 +262,22 @@ check("生成文件里没有 NaN / Infinity 之类的脏值",
   !/NaN|Infinity/.test(climFile.text) && !/NaN|Infinity/.test(metaFile.text) &&
   dayFiles.every((f) => !/NaN|Infinity/.test(readJs(join("day", f)).text)), "已扫描全部生成文件");
 
+// ===== 前端渔场线索按需取数接线 =====
+const prototypeDataText = readFileSync(join(ROOT, "frontend", "prototype", "prototype-data.js"), "utf8");
+const prototypeFishingText = readFileSync(join(ROOT, "frontend", "prototype", "prototype-fishing.js"), "utf8");
+check("渔场线索图层打开时会按需调用 ensureFishing，不会只读空缓存",
+  /function loadFishing\(iso, notify\)/.test(prototypeFishingText) &&
+  /OFData\.ensureFishing\(iso\)/.test(prototypeFishingText) &&
+  /k === "ground" && state\.layers\[k\]\) loadFishing\(state\.date, true\)/.test(prototypeFishingText) &&
+  /loadFishing\(iso\)/.test(prototypeFishingText),
+  "loadFishing + ground toggle + date refresh wiring");
+check("ensureFishing 失败后记录时间戳并走 retryable 重试窗口，不会一次失败永久空白",
+  /function ensureFishing\(iso\)/.test(prototypeDataText) &&
+  /!serverEnabled\(\) \|\| !retryable\(FISHING\.failed, iso\)/.test(prototypeDataText) &&
+  /FISHING\.failed\[iso\] = Date\.now\(\)/.test(prototypeDataText) &&
+  /delete FISHING\.failed\[iso\]/.test(prototypeDataText),
+  "retryable + timestamp failure + success clears failure");
+
 // ===== AIS/GFW Front Response Table（P1 契约入口） =====
 const frontResponseFile = readJs(join("front_response", "events.js"));
 const FRONT_RESPONSE = frontResponseFile.run().OF_FRONT_RESPONSE;

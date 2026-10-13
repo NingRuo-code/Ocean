@@ -169,6 +169,26 @@ test -f /opt/ocean/outputs/experiments/front-response-static-prototype/report.md
 - Raw AIS/GFW, MMSI, vessel tracks, restricted grids, and credentials stay outside Git.
 - Cache invalidation is tied to the viewport cache contract version. Old version directories can be pruned after a new contract is deployed.
 
+Fishing-effort map layer runtime notes:
+
+- The frontend loads `/api/fishing/<date>` on demand only when the `ground` layer is opened or the date changes while that layer is open.
+- A successful response redraws only the map dots and does not change the deterministic front/SST panels.
+- Missing or unavailable fishing-effort cells draw nothing and must not be interpreted as zero fishing activity.
+- Browser self-check after opening the layer:
+
+```javascript
+document.querySelectorAll('#mapSvg [data-layer="ground"]').length
+```
+
+The value should be greater than zero for dates that have public aggregate fishing-effort cells. If it remains zero while the server has permitted fishing files, check `/api/fishing/availability` and rebuild the server raw fishing manifest if the manifest is stale:
+
+```bash
+cd /opt/ocean
+OCEAN_RAW_DATA_DIR=/srv/ocean/data/raw /opt/ocean/venv/bin/python tools/pipeline/fetch_gfw_effort.py --rebuild-manifest
+```
+
+Back up the existing manifest before rebuilding. Do not record real server addresses, raw file names that expose restricted data, tokens, or incident notes in Git.
+
 Recommended cache observation commands:
 
 ```bash
