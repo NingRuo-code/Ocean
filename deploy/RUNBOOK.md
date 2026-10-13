@@ -162,10 +162,12 @@ test -f /opt/ocean/outputs/experiments/front-response-static-prototype/report.md
 
 - Local production remains the default for large archive work.
 - The server may fill small gaps and build caches.
+- Local/server pipeline conventions are documented in `docs/data-pipeline-cache.md`.
 - Viewport JSON caches live under `/srv/ocean/data/cache/viewport/<contract-version>/`.
 - Query/history/raster caches live under `/srv/ocean/data/cache`.
 - Missing coverage must remain `empty`, `partial`, or `unavailable`; never fill missing fishing effort with zero.
 - Raw AIS/GFW, MMSI, vessel tracks, restricted grids, and credentials stay outside Git.
+- Cache invalidation is tied to the viewport cache contract version. Old version directories can be pruned after a new contract is deployed.
 
 Recommended cache observation commands:
 
@@ -175,7 +177,23 @@ du -sh /srv/ocean/data/cache
 find /srv/ocean/data/cache/viewport -name '*.json' | wc -l
 ```
 
-Eviction policy is implemented later in Ticket 07. Until then, keep cache scope small and record growth after smoke checks.
+Recommended viewport cache maintenance commands, run from `/opt/ocean/backend` on the server:
+
+```bash
+OCEAN_CACHE_DIR=/srv/ocean/data/cache /opt/ocean/venv/bin/python scripts/manage_viewport_cache.py status
+OCEAN_CACHE_DIR=/srv/ocean/data/cache /opt/ocean/venv/bin/python scripts/manage_viewport_cache.py warm --date 2024-08-05 --bbox 122,27,124.2,29.6 --step 4
+OCEAN_CACHE_DIR=/srv/ocean/data/cache /opt/ocean/venv/bin/python scripts/manage_viewport_cache.py prune --max-files-per-version 2000
+```
+
+Use `rebuild` instead of `warm` when the active contract version should be regenerated for a known query:
+
+```bash
+OCEAN_CACHE_DIR=/srv/ocean/data/cache /opt/ocean/venv/bin/python scripts/manage_viewport_cache.py rebuild --date 2024-08-05 --bbox 122,27,124.2,29.6 --step 4
+```
+
+`rebuild` removes only that query's viewport cache entry. Use `prune` for old contract-version directories.
+
+Keep cache scope small and record growth after smoke checks.
 
 ## 7. Rollback
 

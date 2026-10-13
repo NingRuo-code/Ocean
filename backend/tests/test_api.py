@@ -1,3 +1,4 @@
+import os
 import shutil
 from datetime import date as date_type
 from pathlib import Path
@@ -278,6 +279,104 @@ def test_viewport_cache_hits_equivalent_requests_and_respects_version(
     assert after_version_change.status_code == 200
     assert after_version_change.json()["meta"]["cache"]["hit"] is False
     assert after_version_change.json()["meta"]["cache"]["version"] == "static-prototype-v99"
+    assert len(list((tmp_path / "cache" / "viewport").rglob("*.json"))) == 2
+
+
+def test_viewport_cache_maintenance_warms_and_reports_contract(tmp_path: Path) -> None:
+    from app import viewport as viewport_module
+    from app.cache_maintenance import collect_viewport_cache_status, warm_viewport_cache
+
+    request = ViewportRequest(date=date_type(2024, 8, 5), bbox=[122, 27, 124.2, 29.6], step=4)
+    first = warm_viewport_cache(
+        [request],
+        cache_dir=tmp_path / "cache",
+        prototype_data_dir=settings.prototype_data_dir,
+    )
+    assert first["schema_version"] == "viewport-cache-maintenance/v1"
+    assert first["cache_version"] == viewport_module.VIEWPORT_CACHE_VERSION
+    assert first["request_count"] == 1
+    assert first["cache_hits"] == 0
+    assert first["cache_misses"] == 1
+    assert first["statuses"] == {"ok": 1}
+
+    second = warm_viewport_cache(
+        [request],
+        cache_dir=tmp_path / "cache",
+        prototype_data_dir=settings.prototype_data_dir,
+    )
+    assert second["cache_hits"] == 1
+    status = collect_viewport_cache_status(tmp_path / "cache")
+    assert status.file_count == 1
+    assert status.files_by_version == {viewport_module.VIEWPORT_CACHE_VERSION: 1}
+
+
+def test_viewport_cache_maintenance_prunes_old_versions_and_caps_active(
+    tmp_path: Path,
+) -> None:
+    from app import viewport as viewport_module
+    from app.cache_maintenance import prune_viewport_cache
+
+    root = tmp_path / "cache" / "viewport"
+    old_dir = root / "old-contract"
+    active_dir = root / viewport_module.VIEWPORT_CACHE_VERSION
+    old_dir.mkdir(parents=True)
+    active_dir.mkdir(parents=True)
+    (old_dir / "stale.json").write_text("{}", encoding="utf-8")
+    oldest = active_dir / "oldest.json"
+    newest = active_dir / "newest.json"
+    oldest.write_text("{}", encoding="utf-8")
+    newest.write_text("{}", encoding="utf-8")
+    os.utime(oldest, (1, 1))
+    os.utime(newest, (2, 2))
+
+    dry_run = prune_viewport_cache(
+        tmp_path / "cache",
+        max_files_per_version=1,
+        dry_run=True,
+    )
+    assert dry_run["removed_versions"] == ["old-contract"]
+    assert dry_run["removed_files"] == [f"{viewport_module.VIEWPORT_CACHE_VERSION}/oldest.json"]
+    assert old_dir.exists()
+    assert oldest.exists()
+
+    pruned = prune_viewport_cache(
+        tmp_path / "cache",
+        max_files_per_version=1,
+    )
+    assert pruned["removed_versions"] == ["old-contract"]
+    assert pruned["removed_files"] == [f"{viewport_module.VIEWPORT_CACHE_VERSION}/oldest.json"]
+    assert not old_dir.exists()
+    assert not oldest.exists()
+    assert newest.exists()
+    assert pruned["remaining"]["files_by_version"] == {viewport_module.VIEWPORT_CACHE_VERSION: 1}
+
+
+def test_viewport_cache_maintenance_rebuild_removes_only_requested_query(
+    tmp_path: Path,
+) -> None:
+    from app import viewport as viewport_module
+    from app.cache_maintenance import rebuild_viewport_cache, warm_viewport_cache
+
+    first = ViewportRequest(date=date_type(2024, 8, 5), bbox=[122, 27, 124.2, 29.6], step=4)
+    second = ViewportRequest(date=date_type(2024, 8, 5), bbox=[120, 30, 121, 31], step=1)
+    warm_viewport_cache(
+        [first, second],
+        cache_dir=tmp_path / "cache",
+        prototype_data_dir=settings.prototype_data_dir,
+    )
+    assert len(list((tmp_path / "cache" / "viewport").rglob("*.json"))) == 2
+
+    rebuilt = rebuild_viewport_cache(
+        [first],
+        cache_dir=tmp_path / "cache",
+        prototype_data_dir=settings.prototype_data_dir,
+    )
+    assert rebuilt["action"] == "rebuild"
+    assert rebuilt["cache_hits"] == 0
+    assert rebuilt["cache_misses"] == 1
+    assert rebuilt["file_count"] == 2
+    assert len(rebuilt["removed_files"]) == 1
+    assert rebuilt["removed_files"][0].startswith(viewport_module.VIEWPORT_CACHE_VERSION + "/")
     assert len(list((tmp_path / "cache" / "viewport").rglob("*.json"))) == 2
 
 

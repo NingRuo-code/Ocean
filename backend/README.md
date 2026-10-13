@@ -63,6 +63,24 @@ not zero probability. Front-response outputs describe apparent fishing-effort re
 only, not catch, yield, revenue, biomass, or guaranteed fishing success. See
 `docs/examples/basic-query-service.md` for example snapshots.
 
+## Viewport Cache Operations
+
+Viewport JSON cache files are versioned by output contract. From `backend/`:
+
+```powershell
+python scripts/manage_viewport_cache.py status
+python scripts/manage_viewport_cache.py warm --date 2024-08-05 --bbox 122,27,124.2,29.6 --step 4
+python scripts/manage_viewport_cache.py rebuild --date 2024-08-05 --bbox 122,27,124.2,29.6 --step 4
+python scripts/manage_viewport_cache.py prune --max-files-per-version 2000
+```
+
+Local defaults use `data/cache`; the deployed server should set `OCEAN_CACHE_DIR=/srv/ocean/data/cache`.
+The cache script warms or prunes generated viewport JSON only. It does not fetch raw data, expose raw AIS/GFW,
+or reinterpret unavailable coverage as zero activity.
+
+See `docs/data-pipeline-cache.md` for the shared local/server `raw`, `processed`, `cache`, and `outputs`
+path contract.
+
 ## Tests
 
 From the backend directory:

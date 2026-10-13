@@ -125,6 +125,8 @@ Agent/AI contracts are not part of the first implementation wave. Later Agent to
 - Collaboration continues through topic branches and ticket-driven PRs in the main repository.
 - Existing-server sync uses the sanitized `deploy/RUNBOOK.md` path. Operators should run local checks first, sync verified code/data only, inventory capacity with `deploy/inventory-server.sh`, and smoke public HTTP behavior with `deploy/server-smoke.ps1`.
 - Server sync documentation must use placeholders for public IPs, SSH key paths, credentials, and personal paths. Real server access details and incident notes remain outside Git.
+- Viewport cache maintenance uses `backend/scripts/manage_viewport_cache.py` for status, warm, rebuild, and prune actions. Cache invalidation is tied to the viewport cache contract version; pruning old versions must not alter raw/processed data or convert unavailable coverage into zero.
+- `docs/data-pipeline-cache.md` is the shared local/server data-pipeline boundary for raw, processed, cache, and outputs paths during the basic-backend phase.
 
 ## Testing Decisions
 
