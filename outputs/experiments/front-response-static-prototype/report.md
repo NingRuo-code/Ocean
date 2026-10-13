@@ -8,7 +8,8 @@ This report summarizes deterministic apparent fishing-effort response around oce
 
 - Buffers: 10, 20, 30 km
 - Pre window: 7 days before the event
-- Post metric window in current aggregate: days 1 to 3 after the event
+- Post response metric: post1_3_hours
+- Post response window: days 1 to 3 after the event
 - Analysis context window: days -7 to 7
 - Control: same-day non-front control area
 - Bootstrap/permutation iterations: 2000

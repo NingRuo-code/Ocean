@@ -38,11 +38,16 @@ function liftPercent(pre7Hours, post13Hours) {
   return Math.round(((post13Hours - pre7Hours) / pre7Hours) * 100);
 }
 
+function hasPost7Window(input) {
+  return Array.isArray(input.time_window.post7_window_days);
+}
+
 function windowsFor(date, input) {
   const preDays = input.time_window.pre_window_days;
   const postDays = input.time_window.post_window_days;
+  const post7Days = input.time_window.post7_window_days;
   const exploratoryDays = input.time_window.exploratory_window_days;
-  return {
+  const windows = {
     pre_window: {
       relative_days: [-preDays, -1],
       start: addIsoDays(date, -preDays),
@@ -61,6 +66,15 @@ function windowsFor(date, input) {
       end: addIsoDays(date, exploratoryDays[1]),
     },
   };
+  if (post7Days) {
+    windows.post7_window = {
+      relative_days: post7Days,
+      start: addIsoDays(date, post7Days[0]),
+      end: addIsoDays(date, post7Days[1]),
+      value_field: "post7_hours",
+    };
+  }
+  return windows;
 }
 
 function controlFor(input) {
@@ -83,6 +97,11 @@ function validateInput(input) {
   if (!Array.isArray(input.time_window.post_window_days) ||
       input.time_window.post_window_days.join(",") !== "1,3") {
     fail("post_window_days must be [1, 3] for P1");
+  }
+  if (input.time_window.post7_window_days &&
+      (!Array.isArray(input.time_window.post7_window_days) ||
+       input.time_window.post7_window_days.join(",") !== "1,7")) {
+    fail("post7_window_days must be [1, 7] when provided");
   }
   if (!Array.isArray(input.time_window.exploratory_window_days) ||
       input.time_window.exploratory_window_days.join(",") !== "-7,7") {
@@ -150,8 +169,7 @@ function buildEvents(input) {
       const lift = liftPercent(pre7Hours, post13Hours);
       if (lift == null) fail("pre7_hours=0 cannot produce a finite lift when post1_3_hours is non-zero");
       const enhanced = post13Hours >= pre7Hours * 1.2 && post13Hours > controlHours;
-
-      events.push({
+      const event = {
         ...baseEvent,
         pre7_hours: pre7Hours,
         post1_3_hours: post13Hours,
@@ -164,7 +182,21 @@ function buildEvents(input) {
         note: input.status === "synthetic_fixture"
           ? "Synthetic fixture for conversion-path validation only; not real AIS/GFW evidence."
           : "Generated from authorized apparent fishing effort sample.",
-      });
+      };
+
+      if (Object.prototype.hasOwnProperty.call(values, "post7_hours") && !hasPost7Window(input)) {
+        fail("post7_hours requires time_window.post7_window_days=[1, 7]");
+      }
+      if (hasPost7Window(input)) {
+        const post7Hours = finiteNumber(values.post7_hours, "post7_hours");
+        const post7Lift = liftPercent(pre7Hours, post7Hours);
+        if (post7Lift == null) fail("pre7_hours=0 cannot produce a finite post7_lift_percent when post7_hours is non-zero");
+        event.post7_hours = post7Hours;
+        event.post7_lift_percent = post7Lift;
+        event.post7_enhanced_flag = post7Hours >= pre7Hours * 1.2 && post7Hours > controlHours;
+      }
+
+      events.push(event);
     }
   }
   return events.sort((a, b) => a.date.localeCompare(b.date) || a.front_id.localeCompare(b.front_id) || a.buffer_km - b.buffer_km);
@@ -198,6 +230,7 @@ const output = {
     buffer_km: payload.spatial_window.buffer_km,
     pre_window_days: payload.time_window.pre_window_days,
     post_window_days: payload.time_window.post_window_days,
+    post7_window_days: payload.time_window.post7_window_days || null,
     exploratory_window_days: payload.time_window.exploratory_window_days,
     control: payload.spatial_window.control,
     control_min_distance_km: payload.spatial_window.control_min_distance_km,

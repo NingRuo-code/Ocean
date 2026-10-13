@@ -269,6 +269,8 @@ const RESPONSE_STATUSES = new Set(["not_available", "synthetic_fixture", "real"]
 const EVENT_STATUSES = new Set(["available", "missing_coverage", "not_authorized", "not_in_sample"]);
 const AVAILABLE_NUMERIC_FIELDS = ["pre7_hours", "post1_3_hours", "non_front_control_hours", "lift_percent"];
 const EFFORT_FIELDS = ["pre7_hours", "post1_3_hours", "non_front_control_hours"];
+const OPTIONAL_POST7_FIELDS = ["post7_hours", "post7_lift_percent"];
+const OPTIONAL_RESPONSE_FIELDS = [...OPTIONAL_POST7_FIELDS, "post7_enhanced_flag"];
 const nullable = (v) => v == null;
 const finiteNumber = (v) => typeof v === "number" && Number.isFinite(v);
 check("front_response/events.js 存在且能解析", !!FRONT_RESPONSE);
@@ -307,9 +309,12 @@ if (FRONT_RESPONSE.status === "not_available") {
   if (!FRONT_RESPONSE.time_window || FRONT_RESPONSE.time_window.pre_window_days !== 7 ||
       !Array.isArray(FRONT_RESPONSE.time_window.post_window_days) ||
       FRONT_RESPONSE.time_window.post_window_days.join(",") !== "1,3" ||
+      (FRONT_RESPONSE.time_window.post7_window_days &&
+        (!Array.isArray(FRONT_RESPONSE.time_window.post7_window_days) ||
+          FRONT_RESPONSE.time_window.post7_window_days.join(",") !== "1,7")) ||
       !Array.isArray(FRONT_RESPONSE.time_window.exploratory_window_days) ||
       FRONT_RESPONSE.time_window.exploratory_window_days.join(",") !== "-7,7") {
-    responseBad = "必须记录前 7 天、后 1-3 天、前后 7 天探索窗口";
+    responseBad = "必须记录前 7 天、后 1-3 天、可选后 7 天、前后 7 天探索窗口";
   }
   if (!FRONT_RESPONSE.spatial_window || !Array.isArray(FRONT_RESPONSE.spatial_window.bbox) ||
       FRONT_RESPONSE.spatial_window.buffer_km.join(",") !== "10,20,30") {
@@ -372,6 +377,15 @@ if (FRONT_RESPONSE.status === "not_available") {
           event.exploratory_window.relative_days.join(",") !== "-7,7") {
         responseBad = tag + " exploratory_window 边界不符合事件日期";
       }
+      if (event.post7_window) {
+        const expectedPost7Start = addIsoDays(event.date, 1);
+        const expectedPost7End = addIsoDays(event.date, 7);
+        if (event.post7_window.start !== expectedPost7Start || event.post7_window.end !== expectedPost7End ||
+            event.post7_window.relative_days.join(",") !== "1,7" ||
+            event.post7_window.value_field !== "post7_hours") {
+          responseBad = tag + " post7_window 边界不符合事件日期";
+        }
+      }
     }
     if (!event.control || !(event.control.min_distance_km >= 50) ||
         !(event.control.area_ratio > 0) || !event.control.sampling) {
@@ -385,6 +399,20 @@ if (FRONT_RESPONSE.status === "not_available") {
       EFFORT_FIELDS.forEach((key) => {
         if (finiteNumber(event[key]) && event[key] < 0) responseBad = tag + " " + key + " 不能为负数";
       });
+      OPTIONAL_POST7_FIELDS.forEach((key) => {
+        if (!nullable(event[key]) && !finiteNumber(event[key])) responseBad = tag + " " + key + " 不是有限数";
+      });
+      if (finiteNumber(event.post7_hours) && event.post7_hours < 0) responseBad = tag + " post7_hours 不能为负数";
+      if (finiteNumber(event.post7_lift_percent) && event.post7_lift_percent < -100) {
+        responseBad = tag + " post7_lift_percent 小于 -100%";
+      }
+      if (event.post7_hours != null && !event.post7_window) {
+        responseBad = tag + " 携带 post7_hours 时必须携带 post7_window";
+      }
+      if (event.post7_hours != null &&
+          (!finiteNumber(event.post7_lift_percent) || typeof event.post7_enhanced_flag !== "boolean")) {
+        responseBad = tag + " 携带 post7_hours 时必须同时携带 post7_lift_percent 和 post7_enhanced_flag";
+      }
       if (finiteNumber(event.lift_percent) && event.lift_percent < -100) responseBad = tag + " lift_percent 小于 -100%";
       if (typeof event.enhanced_flag !== "boolean") responseBad = tag + " enhanced_flag 不是 boolean";
       if (finiteNumber(event.pre7_hours) && finiteNumber(event.post1_3_hours) && finiteNumber(event.lift_percent)) {
@@ -404,6 +432,27 @@ if (FRONT_RESPONSE.status === "not_available") {
           responseBad = tag + " enhanced_flag 与 pre/post/control 规则不一致";
         }
       }
+      if (finiteNumber(event.pre7_hours) && finiteNumber(event.post7_hours) &&
+          finiteNumber(event.post7_lift_percent)) {
+        const expectedPost7Lift = event.pre7_hours === 0
+          ? (event.post7_hours === 0 ? 0 : null)
+          : Math.round(((event.post7_hours - event.pre7_hours) / event.pre7_hours) * 100);
+        if (expectedPost7Lift === null) responseBad = tag + " pre7_hours 为 0 时不能计算有限 post7_lift_percent";
+        if (expectedPost7Lift !== null && Math.abs(expectedPost7Lift - event.post7_lift_percent) > 1) {
+          responseBad = tag + " post7_lift_percent 与 pre/post7 数值不一致";
+        }
+      }
+      if (finiteNumber(event.pre7_hours) && finiteNumber(event.post7_hours) &&
+          finiteNumber(event.non_front_control_hours) && event.post7_enhanced_flag != null) {
+        if (typeof event.post7_enhanced_flag !== "boolean") {
+          responseBad = tag + " post7_enhanced_flag 不是 boolean";
+        }
+        const expectedPost7Enhanced = event.post7_hours >= event.pre7_hours * 1.2 &&
+          event.post7_hours > event.non_front_control_hours;
+        if (event.post7_enhanced_flag !== expectedPost7Enhanced) {
+          responseBad = tag + " post7_enhanced_flag 与 pre/post7/control 规则不一致";
+        }
+      }
     } else {
       if (event.coverage_status && event.coverage_status !== event.status) {
         responseBad = tag + " 不可用状态下 coverage_status 必须与 status 一致或省略";
@@ -412,6 +461,9 @@ if (FRONT_RESPONSE.status === "not_available") {
         responseBad = tag + " 不可用状态不能携带 fishing hours / lift 数值";
       }
       if (event.enhanced_flag != null) responseBad = tag + " 不可用状态不能给 enhanced_flag";
+      if (!OPTIONAL_RESPONSE_FIELDS.every((key) => nullable(event[key]))) {
+        responseBad = tag + " 不可用状态不能携带 post7 数值或判定";
+      }
     }
   });
   const groupedBuffers = events.reduce((acc, event) => {

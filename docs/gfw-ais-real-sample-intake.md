@@ -81,12 +81,13 @@ local_data/
     "sample_end": "2024-08-31",
     "pre_window_days": 7,
     "post_window_days": [1, 3],
+    "post7_window_days": [1, 7],
     "exploratory_window_days": [-7, 7]
   }
 }
 ```
 
-P1 默认解释窗口是锋面事件后 1-3 天；前后 7 天只作为研究/人工复核窗口，不替代默认增强判定。
+P1 默认解释窗口是锋面事件后 1-3 天；`post7_window_days` 是研究实验用的可选完整后 7 天窗口。只有当授权聚合输入真实提供 `post7_hours` 时，实验报告才会使用对称的前 7 天 / 后 7 天响应总量；否则仍使用 `post1_3_hours`，并在报告中明确说明缺少独立后 7 天聚合。
 
 ### 4.3 空间窗口与对照区
 
@@ -150,11 +151,13 @@ P1 默认解释窗口是锋面事件后 1-3 天；前后 7 天只作为研究/�
         "10": {
           "pre7_hours": 31.2,
           "post1_3_hours": 34,
+          "post7_hours": 79.4,
           "non_front_control_hours": 28.7
         },
         "20": {
           "pre7_hours": 42.5,
           "post1_3_hours": 57.8,
+          "post7_hours": 108.6,
           "non_front_control_hours": 36.4
         },
         "30": {

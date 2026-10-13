@@ -132,26 +132,52 @@ function permutationPValue(differences, rng, iterationCount) {
   return round((extreme + 1) / (iterationCount + 1), 4);
 }
 
-function availableRecords(events, bufferKm) {
+function responseMetricFor(payload) {
+  const available = payload.events.filter((event) => event.status === "available" && event.coverage_status === "available");
+  const post7WindowDays = payload.time_window?.post7_window_days;
+  const hasPost7 = available.length > 0 &&
+    Array.isArray(post7WindowDays) &&
+    post7WindowDays.join(",") === "1,7" &&
+    available.every((event) =>
+      Number.isFinite(event.post7_hours) &&
+      Number.isFinite(event.post7_lift_percent) &&
+      typeof event.post7_enhanced_flag === "boolean");
+  return hasPost7
+    ? {
+        field: "post7_hours",
+        liftField: "post7_lift_percent",
+        enhancedField: "post7_enhanced_flag",
+        windowDays: post7WindowDays,
+      }
+    : {
+        field: "post1_3_hours",
+        liftField: "lift_percent",
+        enhancedField: "enhanced_flag",
+        windowDays: payload.time_window?.post_window_days ?? null,
+      };
+}
+
+function availableRecords(events, bufferKm, responseField) {
   return events.filter(
     (event) =>
       event.buffer_km === bufferKm &&
       event.status === "available" &&
       event.coverage_status === "available" &&
       Number.isFinite(event.pre7_hours) &&
-      Number.isFinite(event.post1_3_hours) &&
+      Number.isFinite(event[responseField]) &&
       Number.isFinite(event.non_front_control_hours),
   );
 }
 
-function summarizeBuffer(payload, bufferKm, rng) {
+function summarizeBuffer(payload, bufferKm, rng, responseMetric) {
   const totalRecords = payload.events.filter((event) => event.buffer_km === bufferKm).length;
-  const records = availableRecords(payload.events, bufferKm);
-  const postMinusControl = records.map((event) => event.post1_3_hours - event.non_front_control_hours);
-  const postMinusPre = records.map((event) => event.post1_3_hours - event.pre7_hours);
-  const liftPercent = records.map((event) => event.lift_percent).filter(Number.isFinite);
-  const enhancedCount = records.filter((event) => event.enhanced_flag === true).length;
-  return {
+  const records = availableRecords(payload.events, bufferKm, responseMetric.field);
+  const responseValues = records.map((event) => event[responseMetric.field]);
+  const postMinusControl = records.map((event) => event[responseMetric.field] - event.non_front_control_hours);
+  const postMinusPre = records.map((event) => event[responseMetric.field] - event.pre7_hours);
+  const liftPercent = records.map((event) => event[responseMetric.liftField]).filter(Number.isFinite);
+  const enhancedCount = records.filter((event) => event[responseMetric.enhancedField] === true).length;
+  const summary = {
     buffer_km: bufferKm,
     sample_count: records.length,
     total_record_count: totalRecords,
@@ -159,6 +185,8 @@ function summarizeBuffer(payload, bufferKm, rng) {
     enhanced_count: enhancedCount,
     enhanced_ratio: records.length ? round(enhancedCount / records.length, 4) : null,
     pre7_hours_total: round(sum(records.map((event) => event.pre7_hours)), 2),
+    post_response_field: responseMetric.field,
+    post_response_hours_total: round(sum(responseValues), 2),
     post1_3_hours_total: round(sum(records.map((event) => event.post1_3_hours)), 2),
     non_front_control_hours_total: round(sum(records.map((event) => event.non_front_control_hours)), 2),
     post_minus_control_hours_mean: round(mean(postMinusControl), 4),
@@ -168,12 +196,19 @@ function summarizeBuffer(payload, bufferKm, rng) {
     bootstrap_ci_post_minus_control_mean: bootstrapMeanCi(postMinusControl, rng, iterations),
     permutation_p_value_post_vs_control: permutationPValue(postMinusControl, rng, iterations),
   };
+  if (responseMetric.field === "post7_hours") {
+    summary.post7_hours_total = summary.post_response_hours_total;
+  }
+  return {
+    ...summary,
+  };
 }
 
 function buildSummary(payload) {
   const rng = lcg(seed);
   const buffers = [...new Set(payload.events.map((event) => event.buffer_km))].sort((a, b) => a - b);
-  const byBuffer = buffers.map((bufferKm) => summarizeBuffer(payload, bufferKm, rng));
+  const responseMetric = responseMetricFor(payload);
+  const byBuffer = buffers.map((bufferKm) => summarizeBuffer(payload, bufferKm, rng, responseMetric));
   return {
     schema_version: "front-response-experiment/v1",
     experiment_id: "front-response-static-prototype",
@@ -187,6 +222,9 @@ function buildSummary(payload) {
       buffer_km: buffers,
       pre_window_days: payload.time_window?.pre_window_days ?? null,
       post_window_days: payload.time_window?.post_window_days ?? null,
+      post7_window_days: payload.time_window?.post7_window_days ?? null,
+      post_response_field: responseMetric.field,
+      post_response_window_days: responseMetric.windowDays,
       exploratory_window_days: payload.time_window?.exploratory_window_days ?? null,
       control: payload.spatial_window?.control ?? null,
       control_min_distance_km: payload.spatial_window?.control_min_distance_km ?? null,
@@ -203,7 +241,9 @@ function buildSummary(payload) {
     by_buffer: byBuffer,
     caveats: [
       "This experiment uses aggregate apparent fishing-effort hours only.",
-      "The committed aggregate has pre7_hours and post1_3_hours inside a -7 to +7 day exploratory window; it does not contain a separate post7_hours field.",
+      responseMetric.field === "post7_hours"
+        ? "This experiment uses the true post7_hours field because the input artifact provides a [1, 7] post-event aggregate."
+        : "The committed aggregate has pre7_hours and post1_3_hours inside a -7 to +7 day exploratory window; it does not contain a separate post7_hours field, so the experiment uses post1_3_hours as the post-event response metric.",
       "Missing or unavailable records are excluded from numerical samples and are reflected in coverage_ratio, not treated as zero.",
       "Raw or fine-grained AIS/GFW data is not committed.",
     ],
@@ -222,7 +262,8 @@ function renderReport(summary) {
     "",
     `- Buffers: ${summary.parameters.buffer_km.join(", ")} km`,
     `- Pre window: ${summary.parameters.pre_window_days} days before the event`,
-    `- Post metric window in current aggregate: days ${summary.parameters.post_window_days.join(" to ")} after the event`,
+    `- Post response metric: ${summary.parameters.post_response_field}`,
+    `- Post response window: days ${summary.parameters.post_response_window_days.join(" to ")} after the event`,
     `- Analysis context window: days ${summary.parameters.exploratory_window_days.join(" to ")}`,
     `- Control: ${summary.parameters.control}`,
     `- Bootstrap/permutation iterations: ${summary.parameters.bootstrap_iterations}`,
@@ -254,7 +295,9 @@ function renderReport(summary) {
     "- The metric is apparent fishing effort measured in fishing hours.",
     "- These results are evidence for activity response only, not catch, yield, revenue, biomass, or guaranteed fishing success.",
     "- Missing coverage is represented through coverage fields and exclusions, not by filling missing values with zero.",
-    "- A full post-7-day aggregate should be added later if the research question requires symmetric 7-day before/after totals.",
+    summary.parameters.post_response_field === "post7_hours"
+      ? "- The input includes a true post-7-day aggregate, so the before/after comparison uses symmetric 7-day response totals."
+      : "- A full post-7-day aggregate should be added later if the research question requires symmetric 7-day before/after totals.",
     "",
   );
   return lines.join("\n");

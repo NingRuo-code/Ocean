@@ -21,6 +21,12 @@
       1,
       3
     ],
+    "post7_window_days": null,
+    "post_response_field": "post1_3_hours",
+    "post_response_window_days": [
+      1,
+      3
+    ],
     "exploratory_window_days": [
       -7,
       7
@@ -38,7 +44,7 @@
   ],
   "caveats": [
     "This experiment uses aggregate apparent fishing-effort hours only.",
-    "The committed aggregate has pre7_hours and post1_3_hours inside a -7 to +7 day exploratory window; it does not contain a separate post7_hours field.",
+    "The committed aggregate has pre7_hours and post1_3_hours inside a -7 to +7 day exploratory window; it does not contain a separate post7_hours field, so the experiment uses post1_3_hours as the post-event response metric.",
     "Missing or unavailable records are excluded from numerical samples and are reflected in coverage_ratio, not treated as zero.",
     "Raw or fine-grained AIS/GFW data is not committed."
   ]
