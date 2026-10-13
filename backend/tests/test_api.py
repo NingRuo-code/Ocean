@@ -281,6 +281,140 @@ def test_viewport_cache_hits_equivalent_requests_and_respects_version(
     assert len(list((tmp_path / "cache" / "viewport").rglob("*.json"))) == 2
 
 
+def test_basic_query_current_state_summarizes_viewport_contract(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
+    response = client.get(
+        "/api/query/current-state",
+        params={"date": "2024-08-05", "bbox": "122,27,124.2,29.6", "step": 4},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["kind"] == "current_state"
+    assert payload["status"] == "ok"
+    assert payload["source"]["service"] == "viewport"
+    assert payload["source"]["query_service_version"] == "basic-query-v1"
+    assert payload["parameters"] == {
+        "date": "2024-08-05",
+        "bbox": [122.0, 27.0, 124.2, 29.6],
+        "step": 4,
+    }
+    assert payload["metrics"]["front_feature_count"] > 0
+    assert payload["metrics"]["sst_cell_count"] > 0
+    assert payload["metrics"]["fishing_effort_cell_count"] > 0
+    assert payload["metrics"]["total_apparent_fishing_hours"] > 0
+    assert payload["coverage"]["requestBbox"] == [122.0, 27.0, 124.2, 29.6]
+    assert payload["coverage"]["layers"]["fishingEffort"] == "available"
+    assert {item["id"] for item in payload["evidence"]} >= {
+        "front-feature-count",
+        "sst-sample-count",
+        "apparent-fishing-effort",
+    }
+    assert any("not catch" in item["detail"] for item in payload["evidence"])
+    assert any("does not call an AI model" in caveat for caveat in payload["caveats"])
+
+
+def test_basic_query_front_response_keeps_effort_claim_boundary(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
+    response = client.get(
+        "/api/query/front-response",
+        params={"date": "2024-08-05", "bbox": "122,27,124.2,29.6", "step": 4},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["kind"] == "front_response"
+    assert payload["status"] == "ok"
+    assert payload["metrics"]["response_record_count"] > 0
+    assert payload["metrics"]["post_window_apparent_fishing_hours"] > 0
+    assert payload["metrics"]["non_front_control_hours"] >= 0
+    assert payload["metrics"]["mean_lift_percent"] is not None
+    assert payload["coverage"]["layers"]["fishingEffort"] == "available"
+    assert {item["id"] for item in payload["evidence"]} >= {
+        "front-response-records",
+        "post-window-effort",
+        "control-effort",
+    }
+    forbidden_claims = ("catch", "yield", "revenue", "biomass", "guaranteed fishing success")
+    assert any(all(claim in caveat for claim in forbidden_claims) for caveat in payload["caveats"])
+
+
+def test_basic_query_missing_viewport_data_is_not_reported_as_zero(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
+    current = client.get(
+        "/api/query/current-state",
+        params={"date": "2024-09-01", "bbox": "122,27,124.2,29.6", "step": 4},
+    )
+    assert current.status_code == 200
+    current_payload = current.json()
+    assert current_payload["status"] == "unavailable"
+    assert current_payload["metrics"]["front_feature_count"] is None
+    assert current_payload["metrics"]["sst_cell_count"] is None
+    assert current_payload["metrics"]["fishing_effort_cell_count"] is None
+    assert current_payload["metrics"]["total_apparent_fishing_hours"] is None
+    assert current_payload["metrics"]["enhanced_response_count"] is None
+    effort_evidence = next(
+        item for item in current_payload["evidence"] if item["id"] == "apparent-fishing-effort"
+    )
+    assert effort_evidence["value"] == "unavailable"
+    assert "not interpreted as 0 fishing hours" in effort_evidence["detail"]
+
+    response = client.get(
+        "/api/query/front-response",
+        params={"date": "2024-08-05", "bbox": "150,30,151,31", "step": 4},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "empty"
+    assert payload["metrics"]["response_record_count"] is None
+    assert payload["metrics"]["post_window_apparent_fishing_hours"] is None
+    assert payload["metrics"]["pre7_apparent_fishing_hours"] is None
+    assert payload["metrics"]["non_front_control_hours"] is None
+    assert payload["metrics"]["enhanced_response_count"] is None
+    assert payload["metrics"]["mean_lift_percent"] is None
+    post_evidence = next(item for item in payload["evidence"] if item["id"] == "post-window-effort")
+    assert post_evidence["value"] == "unavailable"
+    assert "not interpreted as 0 fishing hours" in post_evidence["detail"]
+
+
+def test_basic_query_historical_comparison_returns_unavailable_without_raw_history(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(settings, "raw_data_dir", tmp_path / "raw")
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
+    response = client.get(
+        "/api/query/historical-comparison",
+        params={
+            "date": "2024-08-05",
+            "longitude": 120.5,
+            "latitude": 30.5,
+            "radius_deg": 1,
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["kind"] == "historical_comparison"
+    assert payload["status"] == "unavailable"
+    assert payload["metrics"]["same_period_probability"] is None
+    assert payload["metrics"]["same_period_sample_count"] == 0
+    assert payload["coverage"]["sample_count"] == 0
+    assert payload["coverage"]["expected_sample_count"] == 43
+    assert {item["id"] for item in payload["evidence"]} >= {
+        "same-period-probability",
+        "monthly-probability",
+        "sample-coverage",
+    }
+    assert any("not a forecast" in caveat for caveat in payload["caveats"])
+
+
 def test_empty_catalog_is_explicit(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(settings, "raw_data_dir", tmp_path)
     response = client.get("/api/catalog")

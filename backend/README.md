@@ -46,6 +46,23 @@ Expected minimal response:
 The local run path does not require deployed-server access, real server IPs, SSH keys,
 GFW/AIS credentials, or raw AIS/GFW files.
 
+## Basic Query Service
+
+Ticket 04 adds deterministic query summaries that are suitable for frontend/server
+smoke checks and later Agent wrapping, without adding any AI-specific runtime:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:8000/api/query/current-state?date=2024-08-05&bbox=122,27,124.2,29.6&step=4"
+Invoke-RestMethod "http://127.0.0.1:8000/api/query/front-response?date=2024-08-05&bbox=122,27,124.2,29.6&step=4"
+Invoke-RestMethod "http://127.0.0.1:8000/api/query/historical-comparison?date=2024-08-05&longitude=120.5&latitude=30.5&radius_deg=1"
+```
+
+Responses include `source`, `parameters`, `metrics`, `evidence`, `coverage`, and
+`caveats`. Missing historical data returns `unavailable` with sample coverage fields,
+not zero probability. Front-response outputs describe apparent fishing-effort response
+only, not catch, yield, revenue, biomass, or guaranteed fishing success. See
+`docs/examples/basic-query-service.md` for example snapshots.
+
 ## Tests
 
 From the backend directory:

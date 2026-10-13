@@ -40,6 +40,11 @@ from .history import (
     get_history_index,
 )
 from .main_analysis import compute_analysis_response
+from .query_service import (
+    build_current_state_query,
+    build_front_response_query,
+    build_historical_comparison_query,
+)
 from .raster_render import (
     render_combined_png,
     render_fishing_png,
@@ -55,6 +60,7 @@ from .schemas import (
     AiHealthResponse,
     AiKnowledgeResponse,
     AnalysisResponse,
+    BasicQueryResponse,
     CatalogFile,
     CatalogResponse,
     DataIndexDateResponse,
@@ -148,6 +154,59 @@ def viewport(
         ViewportRequest(date=date, bbox=[float(value) for value in window], step=step),
         settings.cache_dir,
         settings.prototype_data_dir,
+    )
+
+
+def _viewport_request_from_query(date: date_type, bbox: str, step: int) -> ViewportRequest:
+    try:
+        window = parse_bbox(bbox)
+    except WindowError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    if window is None:
+        raise HTTPException(status_code=422, detail="bbox is required")
+    return ViewportRequest(date=date, bbox=[float(value) for value in window], step=step)
+
+
+@app.get(f"{settings.api_prefix}/query/current-state", response_model=BasicQueryResponse)
+def query_current_state(
+    date: date_type = VIEWPORT_DATE_QUERY,
+    bbox: str = VIEWPORT_BBOX_QUERY,
+    step: int = VIEWPORT_STEP_QUERY,
+) -> BasicQueryResponse:
+    return build_current_state_query(
+        _viewport_request_from_query(date, bbox, step),
+        settings.cache_dir,
+        settings.prototype_data_dir,
+    )
+
+
+@app.get(f"{settings.api_prefix}/query/front-response", response_model=BasicQueryResponse)
+def query_front_response(
+    date: date_type = VIEWPORT_DATE_QUERY,
+    bbox: str = VIEWPORT_BBOX_QUERY,
+    step: int = VIEWPORT_STEP_QUERY,
+) -> BasicQueryResponse:
+    return build_front_response_query(
+        _viewport_request_from_query(date, bbox, step),
+        settings.cache_dir,
+        settings.prototype_data_dir,
+    )
+
+
+@app.get(f"{settings.api_prefix}/query/historical-comparison", response_model=BasicQueryResponse)
+def query_historical_comparison(
+    date: date_type = VIEWPORT_DATE_QUERY,
+    longitude: float = Query(..., ge=-180, le=180),
+    latitude: float = Query(..., ge=-90, le=90),
+    radius_deg: float = Query(1.0, gt=0, le=10),
+) -> BasicQueryResponse:
+    return build_historical_comparison_query(
+        observation_date=date,
+        longitude=longitude,
+        latitude=latitude,
+        radius_deg=radius_deg,
+        raw_data_dir=settings.raw_data_dir,
+        cache_dir=settings.cache_dir,
     )
 
 

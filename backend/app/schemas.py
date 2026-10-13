@@ -7,6 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 ViewportStatus = Literal["ok", "partial", "empty", "unavailable", "invalid"]
 ViewportLayerStatus = Literal["available", "partial", "empty", "unavailable"]
+BasicQueryKind = Literal["current_state", "historical_comparison", "front_response"]
+BasicQueryStatus = Literal["ok", "partial", "empty", "unavailable"]
 
 
 class HealthResponse(BaseModel):
@@ -71,6 +73,37 @@ class ViewportResponse(BaseModel):
     meta: ViewportMeta
     layers: ViewportLayers
     coverage: ViewportCoverage
+    caveats: list[str]
+
+
+class BasicQueryEvidence(BaseModel):
+    id: str
+    label: str
+    value: str
+    detail: str
+    source_files: list[str] = Field(default_factory=list)
+
+
+class BasicQueryCoverage(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    status: BasicQueryStatus
+    request_bbox: list[float] | None = Field(default=None, alias="requestBbox")
+    covered_bbox: list[float] | None = Field(default=None, alias="coveredBbox")
+    layers: dict[str, str] = Field(default_factory=dict)
+    sample_count: int | None = None
+    expected_sample_count: int | None = None
+    coverage_ratio: float | None = None
+
+
+class BasicQueryResponse(BaseModel):
+    kind: BasicQueryKind
+    status: BasicQueryStatus
+    source: dict[str, object]
+    parameters: dict[str, object]
+    metrics: dict[str, object]
+    evidence: list[BasicQueryEvidence]
+    coverage: BasicQueryCoverage
     caveats: list[str]
 
 

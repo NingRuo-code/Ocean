@@ -1,5 +1,7 @@
 # Ticket 04: Basic Query And Response Service
 
+Status: done on `codex/server-agent-backend`.
+
 ## Goal
 
 Expose the basic deterministic query and response-analysis behavior needed before any Agent/AI layer is considered.
@@ -21,5 +23,27 @@ Expose the basic deterministic query and response-analysis behavior needed befor
 
 ## Checks
 
-- `python -m pytest backend/tests -q`
-- Example snapshots can be regenerated.
+- `python -m pytest tests/test_api.py -q -k "basic_query" --tb=short --basetemp .pytest-basetemp-query3 -p no:cacheprovider` from `backend` passed with 3 tests.
+- Example snapshots can be regenerated with `python backend/scripts/export_basic_query_examples.py`.
+
+## Implemented
+
+- Added deterministic query-summary endpoints:
+  - `GET /api/query/current-state`
+  - `GET /api/query/front-response`
+  - `GET /api/query/historical-comparison`
+- Added `BasicQueryResponse` schema with `source`, `parameters`, `metrics`, `evidence`, `coverage`, and `caveats`.
+- Reused existing deterministic viewport and history code; no LLM calls or Agent-specific runtime were added.
+- Added tests for:
+  - current-state summary over static prototype viewport data;
+  - apparent fishing-effort response summary with explicit forbidden-claim boundary;
+  - unavailable historical comparison when raw history data is missing.
+- Added query examples under `docs/examples/basic-query-service.md`.
+- Added normalized snapshots under `docs/examples/basic-query-service-snapshots.json`.
+
+## Residual Risks
+
+- The response-analysis summary still uses the committed aggregate front-response artifact through the viewport adapter. Ticket 05 must add the reproducible experiment package with controls, bootstrap confidence intervals, and permutation tests.
+- Historical comparison depends on permitted local/server NetCDF samples under `data/raw`; empty raw data is reported as `unavailable`.
+- Query endpoints are stable enough for smoke checks and later wrapping, but frontend UI integration is still optional.
+- Snapshot cache metadata is normalized because cache hit/miss, generated timestamps, and local cache paths vary by machine.

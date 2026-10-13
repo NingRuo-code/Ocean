@@ -108,6 +108,11 @@ Agent/AI contracts are not part of the first implementation wave. Later Agent to
 - Current frontend server mode accepts `window.OF_API_BASE` or a local `?api=...` query parameter for development and deployed smoke checks.
 - The frontend adapts `/api/viewport` payloads into its existing patch/render model for globe and large-window views while keeping the committed static payload as the offline fallback.
 - Manual offline fallback must stop using server viewport patches and return to local data only.
+- Basic deterministic query summaries are exposed under `/api/query/current-state`, `/api/query/front-response`, and `/api/query/historical-comparison`.
+- Basic query responses use a shared shape: `kind`, `status`, `source`, `parameters`, `metrics`, `evidence`, `coverage`, and `caveats`.
+- Basic query endpoints summarize existing deterministic viewport and history behavior; they do not introduce AI-specific tool schemas, LLM calls, or new numerical semantics.
+- Missing raw historical data returns `unavailable` with sample coverage fields, not zero probability.
+- Front-response query output describes apparent fishing-effort response only and must not claim catch, yield, revenue, biomass, or guaranteed fishing success.
 - Provide local backend run instructions and a lightweight backend start command or script before server sync.
 - Agent/AI-specific tooling is deferred until the basic backend is demonstrably stable.
 - Future Agent tools, if added, should wrap deterministic project computations instead of introducing new numerical semantics.
