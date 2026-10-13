@@ -119,6 +119,9 @@ Agent/AI contracts are not part of the first implementation wave. Later Agent to
 - AI may eventually organize tasks and evidence, but deterministic code computes numerical values.
 - Response-analysis experiments use front buffers, non-front controls, before/after windows, lift/difference/sample/coverage metrics, bootstrap confidence intervals, and permutation tests.
 - Experiment outputs should be written as reproducible artifacts with a report-ready summary.
+- The first response-analysis experiment runner is `tools/run-front-response-experiment.mjs`; it reads the committed aggregate `front-response/v1` artifact and writes manifest, JSON summary, and Markdown report under `outputs/experiments/front-response-static-prototype/`.
+- Response-analysis experiment outputs must keep the claim to apparent fishing-effort response only. They must preserve missing/unavailable records as coverage limitations rather than filling missing effort with zero.
+- The current aggregate response artifact contains `pre7_hours` and `post1_3_hours` inside a `-7 ~ +7` exploratory window. The first experiment package is therefore a foundation over the current committed aggregate, not full completion of the before/after 7-day acceptance item. A full symmetric post-7-day aggregate is a later data-pipeline enhancement and must not be fabricated by experiment code.
 - Collaboration continues through topic branches and ticket-driven PRs in the main repository.
 
 ## Testing Decisions
