@@ -278,6 +278,21 @@ check("ensureFishing 失败后记录时间戳并走 retryable 重试窗口，不
   /delete FISHING\.failed\[iso\]/.test(prototypeDataText),
   "retryable + timestamp failure + success clears failure");
 
+// ===== 部署冒烟检查：渔业活动服务端契约 =====
+const serverSmokePath = join(ROOT, "deploy", "server-smoke.ps1");
+const serverSmokeText = existsSync(serverSmokePath) ? readFileSync(serverSmokePath, "utf8") : "";
+check("服务器 smoke 覆盖 fishing availability 与可配置样例日期",
+  /api\/fishing\/availability/.test(serverSmokeText) &&
+  /api\/fishing\/\$FishingDate/.test(serverSmokeText) &&
+  /\[string\]\$FishingDate/.test(serverSmokeText) &&
+  /\[switch\]\$SkipFishing/.test(serverSmokeText),
+  "availability + day endpoint + FishingDate + SkipFishing");
+check("服务器 smoke 会验证 fishing day 非空，不会让空 ground 图层静默通过",
+  /ConvertFrom-Json/.test(serverSmokeText) &&
+  /\$fishingDay\.cell_count\s+-lt\s+1/.test(serverSmokeText) &&
+  /\$fishingCells\.Count\s+-lt\s+1/.test(serverSmokeText),
+  "cell_count + cells.Count non-empty guard");
+
 // ===== AIS/GFW Front Response Table（P1 契约入口） =====
 const frontResponseFile = readJs(join("front_response", "events.js"));
 const FRONT_RESPONSE = frontResponseFile.run().OF_FRONT_RESPONSE;

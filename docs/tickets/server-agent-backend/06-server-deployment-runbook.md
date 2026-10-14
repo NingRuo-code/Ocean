@@ -28,9 +28,10 @@ Prepare the sanitized update/sync path for the already-deployed Alibaba Cloud se
 - Shell parse: `deploy/inventory-server.sh` and `deploy/remote-setup.sh` passed `bash -n` through WSL. WSL emitted a local `localhost` forwarding warning, but the parser check exited successfully.
 - PowerShell parse: `deploy/server-smoke.ps1`, `deploy/deploy.ps1`, and `deploy/probe-ports.ps1` parsed successfully.
 - Server smoke contract check: `deploy/server-smoke.ps1` now includes `/api/fishing/availability` and `/api/fishing/<date>` checks, requires the sampled fishing day to contain at least one cell, and provides `-FishingDate` override plus explicit `-SkipFishing` escape hatch.
+- Static regression check: `tools/data-check.mjs` now asserts that the smoke helper keeps the fishing availability/day endpoints and the non-empty fishing-cell guard.
 - Whitespace: `git diff --check` passed.
 - Sensitive scan: changed deploy/docs files contained no real public IP, SSH key path, token, credential, or personal path. Only loopback `127.0.0.1` and sample viewport bbox decimals were present.
-- Data contract check: `node tools/data-check.mjs` passed with `FAIL 0/916`.
+- Data contract check: `node tools/data-check.mjs` passed with `FAIL 0/918`.
 - Backend regression: `python -m pytest tests -q --tb=short --basetemp .pytest-basetemp-ticket06-final -p no:cacheprovider` passed with 20 tests.
 
 ## Implemented
@@ -39,6 +40,7 @@ Prepare the sanitized update/sync path for the already-deployed Alibaba Cloud se
 - Added read-only server inventory helper: `deploy/inventory-server.sh`.
 - Added public HTTP smoke helper: `deploy/server-smoke.ps1`.
 - Extended the smoke helper so deployed-server validation catches stale or missing fishing-effort manifests, including empty day payloads that would otherwise leave the frontend `ground` layer empty.
+- Locked that fishing smoke contract into the repository data check so later edits cannot silently remove the deployed-server guard.
 - Updated `deploy/remote-setup.sh` to create `/srv/ocean/data/outputs`.
 - Updated `deploy/systemd/ocean-api.service` so the API service may write cache, processed data, and outputs under `/srv/ocean/data`.
 - The runbook covers:
