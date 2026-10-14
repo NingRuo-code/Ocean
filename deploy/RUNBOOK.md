@@ -139,6 +139,20 @@ The smoke script checks:
 - `/api/query/current-state`
 - `/api/query/front-response`
 - `/api/query/historical-comparison`
+- `/api/fishing/availability`
+- `/api/fishing/<date>` with a non-empty fishing-cell payload
+
+By default the fishing-effort day smoke uses `2024-08-05`. Override it when validating a different permitted server-side fishing sample:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\server-smoke.ps1 -BaseUrl "http://<server-ip>" -FishingDate "2024-08-05"
+```
+
+If the deployed server intentionally has no permitted fishing-effort files yet, make that explicit instead of silently accepting an untested layer:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\server-smoke.ps1 -BaseUrl "http://<server-ip>" -SkipFishing
+```
 
 Manual equivalents:
 
@@ -148,6 +162,8 @@ curl.exe -fsS "http://<server-ip>/api/viewport?date=2024-08-05&bbox=122,27,124.2
 curl.exe -fsS "http://<server-ip>/api/query/current-state?date=2024-08-05&bbox=122,27,124.2,29.6&step=4"
 curl.exe -fsS "http://<server-ip>/api/query/front-response?date=2024-08-05&bbox=122,27,124.2,29.6&step=4"
 curl.exe -fsS "http://<server-ip>/api/query/historical-comparison?date=2024-08-05&longitude=120.5&latitude=30.5&radius_deg=1"
+curl.exe -fsS "http://<server-ip>/api/fishing/availability"
+curl.exe -fsS "http://<server-ip>/api/fishing/2024-08-05"
 ```
 
 The committed response-analysis experiment output can also be checked on the server filesystem:
