@@ -527,6 +527,58 @@ if (FRONT_RESPONSE.status === "not_available") {
     indexed ? "全部通过" : "索引缺失或指向错误");
 }
 
+// ===== Front Response 实验包（研究验收状态可机读） =====
+const experimentDir = join(ROOT, "outputs", "experiments", "front-response-static-prototype");
+const experimentSummaryPath = join(experimentDir, "summary.json");
+const experimentManifestPath = join(experimentDir, "manifest.json");
+const experimentReportPath = join(experimentDir, "report.md");
+check("front response 实验包三件套存在",
+  existsSync(experimentSummaryPath) && existsSync(experimentManifestPath) && existsSync(experimentReportPath),
+  "manifest + summary + report");
+if (existsSync(experimentSummaryPath) && existsSync(experimentManifestPath) && existsSync(experimentReportPath)) {
+  const experimentSummary = readJson(experimentSummaryPath);
+  const experimentManifest = readJson(experimentManifestPath);
+  const experimentReport = readFileSync(experimentReportPath, "utf8");
+  const readiness = experimentSummary.readiness || {};
+  const manifestReadiness = experimentManifest.readiness || {};
+  const readinessStatuses = new Set(["partial", "complete"]);
+  check("front response 实验包声明 apparent fishing effort 口径",
+    experimentSummary.schema_version === "front-response-experiment/v1" &&
+    experimentSummary.metric === "apparent_fishing_effort" &&
+    experimentSummary.unit === "fishing_hours" &&
+    experimentManifest.schema_version === "front-response-experiment-manifest/v1",
+    JSON.stringify({ metric: experimentSummary.metric, unit: experimentSummary.unit }));
+  check("front response 实验包 readiness 可机读，且与 post_response_field 一致",
+    readiness.acceptance_item === "before_after_7day_windows" &&
+    readinessStatuses.has(readiness.status) &&
+    typeof readiness.before_after_7day_complete === "boolean" &&
+    readiness.before_after_7day_complete === (readiness.post_response_field === "post7_hours") &&
+    manifestReadiness.acceptance_item === readiness.acceptance_item &&
+    manifestReadiness.status === readiness.status &&
+    manifestReadiness.before_after_7day_complete === readiness.before_after_7day_complete &&
+    manifestReadiness.post_response_field === readiness.post_response_field &&
+    manifestReadiness.post7_window_declared === readiness.post7_window_declared &&
+    manifestReadiness.available_record_count === readiness.available_record_count &&
+    manifestReadiness.records_with_complete_post7 === readiness.records_with_complete_post7 &&
+    manifestReadiness.missing_complete_post7_records === readiness.missing_complete_post7_records &&
+    JSON.stringify(manifestReadiness.required_next_steps) === JSON.stringify(readiness.required_next_steps),
+    JSON.stringify(readiness));
+  check("front response 实验包 partial 状态明确写出 post7 缺口，complete 状态不留缺口",
+    readiness.status === "complete"
+      ? readiness.missing_complete_post7_records === 0 && readiness.required_next_steps.length === 0
+      : readiness.missing_complete_post7_records > 0 && readiness.required_next_steps.length >= 1,
+    JSON.stringify({
+      status: readiness.status,
+      missing: readiness.missing_complete_post7_records,
+      next: readiness.required_next_steps,
+    }));
+  check("front response 实验报告把 7-day readiness 写给人工复核",
+    /## Readiness/.test(experimentReport) &&
+    new RegExp(readiness.status).test(experimentReport) &&
+    /post7|7-day/i.test(experimentReport),
+    "Readiness section");
+}
+
 // ===== 服务器数据源登记表与公开 artifact manifest 契约 =====
 const sourceRegistryPath = join(SERVER_DATA, "sources", "sources.example.json");
 const artifactManifestPath = join(SERVER_DATA, "public_artifacts", "artifact-manifest.example.json");

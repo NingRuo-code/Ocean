@@ -45,6 +45,21 @@
     "event_count": 186,
     "available_record_count": 186
   },
+  "readiness": {
+    "acceptance_item": "before_after_7day_windows",
+    "status": "partial",
+    "before_after_7day_complete": false,
+    "post_response_field": "post1_3_hours",
+    "post7_window_declared": false,
+    "available_record_count": 186,
+    "records_with_complete_post7": 0,
+    "missing_complete_post7_records": 186,
+    "required_next_steps": [
+      "Produce a true post7_hours aggregate from authorized real apparent-fishing-effort input.",
+      "Set time_window.post7_window_days to [1, 7] in the front-response input.",
+      "Rerun tools/build-front-response.mjs and tools/run-front-response-experiment.mjs before marking the 7-day experiment complete."
+    ]
+  },
   "by_buffer": [
     {
       "buffer_km": 10,

@@ -132,16 +132,19 @@ function permutationPValue(differences, rng, iterationCount) {
   return round((extreme + 1) / (iterationCount + 1), 4);
 }
 
+function hasCompletePost7Record(event) {
+  return Number.isFinite(event.post7_hours) &&
+    Number.isFinite(event.post7_lift_percent) &&
+    typeof event.post7_enhanced_flag === "boolean";
+}
+
 function responseMetricFor(payload) {
   const available = payload.events.filter((event) => event.status === "available" && event.coverage_status === "available");
   const post7WindowDays = payload.time_window?.post7_window_days;
   const hasPost7 = available.length > 0 &&
     Array.isArray(post7WindowDays) &&
     post7WindowDays.join(",") === "1,7" &&
-    available.every((event) =>
-      Number.isFinite(event.post7_hours) &&
-      Number.isFinite(event.post7_lift_percent) &&
-      typeof event.post7_enhanced_flag === "boolean");
+    available.every(hasCompletePost7Record);
   return hasPost7
     ? {
         field: "post7_hours",
@@ -155,6 +158,32 @@ function responseMetricFor(payload) {
         enhancedField: "enhanced_flag",
         windowDays: payload.time_window?.post_window_days ?? null,
       };
+}
+
+function experimentReadiness(payload, responseMetric) {
+  const available = payload.events.filter((event) => event.status === "available" && event.coverage_status === "available");
+  const post7WindowDays = payload.time_window?.post7_window_days;
+  const hasPost7Window = Array.isArray(post7WindowDays) && post7WindowDays.join(",") === "1,7";
+  const post7RecordCount = available.filter(hasCompletePost7Record).length;
+  const complete = responseMetric.field === "post7_hours";
+  const requiredNextSteps = complete
+    ? []
+    : [
+        "Produce a true post7_hours aggregate from authorized real apparent-fishing-effort input.",
+        "Set time_window.post7_window_days to [1, 7] in the front-response input.",
+        "Rerun tools/build-front-response.mjs and tools/run-front-response-experiment.mjs before marking the 7-day experiment complete.",
+      ];
+  return {
+    acceptance_item: "before_after_7day_windows",
+    status: complete ? "complete" : "partial",
+    before_after_7day_complete: complete,
+    post_response_field: responseMetric.field,
+    post7_window_declared: hasPost7Window,
+    available_record_count: available.length,
+    records_with_complete_post7: post7RecordCount,
+    missing_complete_post7_records: Math.max(0, available.length - post7RecordCount),
+    required_next_steps: requiredNextSteps,
+  };
 }
 
 function availableRecords(events, bufferKm, responseField) {
@@ -208,6 +237,7 @@ function buildSummary(payload) {
   const rng = lcg(seed);
   const buffers = [...new Set(payload.events.map((event) => event.buffer_km))].sort((a, b) => a - b);
   const responseMetric = responseMetricFor(payload);
+  const readiness = experimentReadiness(payload, responseMetric);
   const byBuffer = buffers.map((bufferKm) => summarizeBuffer(payload, bufferKm, rng, responseMetric));
   return {
     schema_version: "front-response-experiment/v1",
@@ -238,6 +268,7 @@ function buildSummary(payload) {
       event_count: payload.events.length,
       available_record_count: payload.events.filter((event) => event.status === "available").length,
     },
+    readiness,
     by_buffer: byBuffer,
     caveats: [
       "This experiment uses aggregate apparent fishing-effort hours only.",
@@ -268,6 +299,15 @@ function renderReport(summary) {
     `- Control: ${summary.parameters.control}`,
     `- Bootstrap/permutation iterations: ${summary.parameters.bootstrap_iterations}`,
     `- Random seed: ${summary.parameters.random_seed}`,
+    "",
+    "## Readiness",
+    "",
+    `- 7-day before/after status: ${summary.readiness.status}`,
+    `- Full before/after 7-day complete: ${summary.readiness.before_after_7day_complete ? "yes" : "no"}`,
+    `- Available records with complete post7 fields: ${summary.readiness.records_with_complete_post7} / ${summary.readiness.available_record_count}`,
+    summary.readiness.required_next_steps.length
+      ? `- Next required step: ${summary.readiness.required_next_steps[0]}`
+      : "- Next required step: none",
     "",
     "## Results",
     "",
@@ -317,6 +357,7 @@ function buildManifest(summary, artifacts) {
       },
     ],
     parameters: summary.parameters,
+    readiness: summary.readiness,
     generated_artifacts: artifacts.map((path) => repoRelative(path)),
     caveats: summary.caveats,
   };

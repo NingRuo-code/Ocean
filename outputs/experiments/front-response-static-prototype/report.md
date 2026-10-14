@@ -15,6 +15,13 @@ This report summarizes deterministic apparent fishing-effort response around oce
 - Bootstrap/permutation iterations: 2000
 - Random seed: 20261013
 
+## Readiness
+
+- 7-day before/after status: partial
+- Full before/after 7-day complete: no
+- Available records with complete post7 fields: 0 / 186
+- Next required step: Produce a true post7_hours aggregate from authorized real apparent-fishing-effort input.
+
 ## Results
 
 | Buffer km | Samples | Coverage | Enhanced | Mean post-control hours | 95% bootstrap CI | Permutation p | Mean lift % |
