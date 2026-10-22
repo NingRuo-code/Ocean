@@ -307,8 +307,8 @@ const top = await evalJS(`return {
   fishingDefault: !!state.layers.fishing,
   fishingPaths: document.querySelectorAll('#mapSvg [data-layer="fishing"]').length,
   fishingLegend: (document.querySelector('.legend-row[data-layer="fishing"]') || {}).textContent || "" };`);
-check("顶栏按使用顺序分成 3 组（出发地/作业范围/出海日）",
-  top.nums === 3 && top.labels.join("|") === "出发地|作业范围|出海日", top.nums + " 组 · " + top.labels.join("/"));
+check("顶栏按分析顺序分成 3 组（分析点/作业范围/观测日）",
+  top.nums === 3 && top.labels.join("|") === "分析点|作业范围|观测日", top.nums + " 组 · " + top.labels.join("/"));
 check("顶栏没有第二套数据来源开关（观测/预报/气候 已删）",
   top.hasFamily === false && !/观测来源|预报|气候/.test(top.topText), "familySeg 不存在");
 check("顶栏只有 1 个日期控件，无 month/number",
@@ -1115,11 +1115,59 @@ check("刷新页面后回到上次停留的视野（不用手动拖回去）",
   "恢复为 " + memBack.lon + "E/" + memBack.lat + "N · zoom=" + memBack.zoom + " · " + memBack.mode);
 await shot("shot-13-memory.png");
 
-// ===== 18) 运行期异常 =====
+// ===== 18) 任务工作台：使用现有条件与功能，关闭不改变分析 =====
+const wbClosed = await evalJS(`return !document.getElementById("taskWorkbench").open && state.tab === "now";`);
+check("工作台默认关闭，地图观测仍为首页", wbClosed);
+await evalJS(`document.getElementById("locInput").value="125.00°E, 31.00°N"; document.getElementById("locateBtn").click();
+  document.querySelector('#rangeSeg button[data-range="10"]').click(); return true;`);
+await setVal("#timeDate", "2024-08-06");
+await click("#workbenchToggle");
+const wb = await evalJS(`return {
+  open:document.getElementById("taskWorkbench").open,
+  expanded:document.getElementById("workbenchToggle").getAttribute("aria-expanded"),
+  point:document.getElementById("workbenchLocation").textContent,
+  range:document.getElementById("workbenchRange").textContent,
+  date:document.getElementById("workbenchDate").textContent,
+  effortDisabled:document.querySelector('[data-workbench-task="effort"]').disabled,
+  server:OFData.serverEnabled(),
+  inputs:document.querySelectorAll('#taskWorkbench input').length
+};`);
+check("工作台显示刚设置的位置、半径与观测日期，没有第二套输入条件",
+  wb.open && wb.expanded === "true" && /125\.00.*31\.00/.test(wb.point) && wb.range === "10 km" && wb.date === "2024-08-06" && wb.inputs === 0, JSON.stringify(wb));
+check("离线热点入口明确不可用，不伪装已取得网格", wb.effortDisabled === !wb.server);
+await shot("shot-14-workbench.png");
+await send("Input.dispatchKeyEvent", { type:"keyDown", key:"Escape", code:"Escape", windowsVirtualKeyCode:27 });
+await send("Input.dispatchKeyEvent", { type:"keyUp", key:"Escape", code:"Escape", windowsVirtualKeyCode:27 });
+await sleep(80);
+check("Esc 关闭工作台并将焦点还给入口", await evalJS(`return !document.getElementById("taskWorkbench").open && document.activeElement.id === "workbenchToggle" && document.getElementById("workbenchToggle").getAttribute("aria-expanded") === "false";`));
+await click("#workbenchToggle");
+await click("#workbenchEdit");
+await sleep(80);
+check("修改条件入口回到唯一坐标输入", await evalJS(`return !document.getElementById("taskWorkbench").open && document.activeElement.id === "locInput";`));
+for (const pane of ["clim", "future", "basis", "now"]) {
+  await click("#workbenchToggle");
+  await click('[data-workbench-task="' + pane + '"]');
+  await sleep(80);
+  check("工作台任务进入 " + pane + "，且保留分析条件", await evalJS(`return !document.getElementById("taskWorkbench").open && state.tab === "${pane}" && document.getElementById("pane-${pane}").classList.contains("active") && state.lon === 125 && state.lat === 31 && state.range === 10 && state.date === "2024-08-06";`));
+}
+await evalJS(`window.wbSavedServerEnabled=OFData.serverEnabled; window.wbSavedEnsureFishing=OFData.ensureFishing; window.wbSavedGround=state.layers.ground;
+  window.wbFishingDates=[]; OFData.serverEnabled=function(){return true;}; OFData.ensureFishing=function(iso){window.wbFishingDates.push(iso);return Promise.resolve(false);}; return true;`);
+await click("#workbenchToggle");
+await click('[data-workbench-task="effort"]');
+await sleep(80);
+check("工作台热点任务复用当前日期的既有取数路径（模拟服务器，无伪造网格）", await evalJS(`return !document.getElementById("taskWorkbench").open && state.tab === "now" && state.layers.ground === true && window.wbFishingDates.length === 1 && window.wbFishingDates[0] === "2024-08-06";`));
+await evalJS(`OFData.serverEnabled=window.wbSavedServerEnabled; OFData.ensureFishing=window.wbSavedEnsureFishing; state.layers.ground=window.wbSavedGround; renderLegend(); drawMap(); return true;`);
+check("趋势展示明确标注实验性和独立验证缺口", await evalJS(`var p=document.getElementById("pane-future"); return /实验性趋势推演/.test(p.querySelector("h3").textContent) && /尚未完成独立预测验证/.test(p.querySelector(".scope-note").textContent);`));
+await click("#workbenchToggle");
+await click("#workbenchClose");
+await sleep(80);
+check("关闭按钮可收起工作台", await evalJS(`return !document.getElementById("taskWorkbench").open && document.activeElement.id === "workbenchToggle";`));
+
+// ===== 19) 运行期异常 =====
 check("无运行期 JS 异常（含资源加载失败）", errors.length === 0, errors.slice(0, 3).join(" || ") || "none");
 
 console.log(results.join("\n"));
 console.log("\nFAIL 总数 = " + results.filter((r) => r.startsWith("FAIL")).length + " / " + results.length);
 ws.close();
 child.kill();
-process.exit(0);
+process.exit(results.some((r) => r.startsWith("FAIL")) ? 1 : 0);

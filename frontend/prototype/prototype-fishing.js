@@ -62,7 +62,7 @@ const $ = (id) => document.getElementById(id);
 const SELECT_LABEL = { front: "锋面区", coldwarm: "冷侧 / 暖侧", fishing: "推荐水域（示例）" };
 const SELECT_LAYERS = { front: ["band", "front"], coldwarm: ["coldwarm"], fishing: ["fishing"] };
 const LAYER_META = [["sst", "水温（NOAA GHRSST）"], ["band", "锋面带"], ["front", "锋面区 · 强度"],
-  ["coldwarm", "冷侧 / 暖侧"], ["nodata", "无观测"], ["ground", "渔场线索（表观捕捞活动）"],
+  ["coldwarm", "冷侧 / 暖侧"], ["nodata", "无观测"], ["ground", "捕捞活动热点"],
   ["fishing", "推荐水域（示例）"]];
 const DIRS16 = ["正北", "东北偏北", "东北", "东北偏东", "正东", "东南偏东", "东南", "东南偏南",
   "正南", "西南偏南", "西南", "西南偏西", "正西", "西北偏西", "西北", "西北偏北"];
@@ -1906,6 +1906,7 @@ function applyServerRange() {
 }
 
 function syncServerModeUi() {
+  renderWorkbench();
   const btn = $("serverModeToggle");
   if (!btn || !OFData.serverMode) return;
   const mode = OFData.serverMode();
@@ -1953,6 +1954,59 @@ function switchTab(name) {
     b.setAttribute("aria-selected", on ? "true" : "false");
   });
   document.querySelectorAll(".pane").forEach((p) => p.classList.toggle("active", p.id === "pane-" + name));
+}
+
+// 工作台只复用现有状态和入口；不维护第二套查询或数值结果。
+let workbenchReturnFocus = null;
+function renderWorkbench() {
+  $("workbenchLocation").textContent = fmtCoord(state.lon, state.lat);
+  $("workbenchRange").textContent = state.range + " km";
+  $("workbenchDate").textContent = state.date;
+  const server = OFData.serverEnabled();
+  $("workbenchMode").textContent = server ? "服务器模式 · 日期以实际观测为准" : "离线模式 · 使用本地样本";
+  document.querySelector('[data-workbench-task="effort"]').disabled = !server;
+  $("workbenchEffortHint").textContent = server
+    ? "打开所选日期的活动图层；无覆盖时明确提示"
+    : "需服务器模式提供逐日网格；离线样本未包含此图层";
+}
+function closeWorkbench(focusTarget) {
+  workbenchReturnFocus = focusTarget || $("workbenchToggle");
+  $("taskWorkbench").close();
+}
+function bindWorkbench() {
+  const dialog = $("taskWorkbench");
+  const toggle = $("workbenchToggle");
+  toggle.addEventListener("click", () => {
+    if (dialog.open) return;
+    renderWorkbench();
+    workbenchReturnFocus = toggle;
+    dialog.showModal();
+    toggle.setAttribute("aria-expanded", "true");
+  });
+  $("workbenchClose").addEventListener("click", () => closeWorkbench());
+  dialog.addEventListener("close", () => {
+    toggle.setAttribute("aria-expanded", "false");
+    if (workbenchReturnFocus && workbenchReturnFocus.isConnected) workbenchReturnFocus.focus();
+  });
+  dialog.addEventListener("click", (event) => {
+    if (event.target !== dialog) return;
+    const r = dialog.getBoundingClientRect();
+    if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) closeWorkbench();
+  });
+  $("workbenchEdit").addEventListener("click", () => closeWorkbench($("locInput")));
+  dialog.querySelectorAll("[data-workbench-task]").forEach((button) => {
+    button.addEventListener("click", () => {
+      let pane = button.dataset.workbenchTask;
+      if (pane === "effort") {
+        if (!OFData.serverEnabled()) return;
+        if (!state.layers.ground) document.querySelector('.legend-row[data-layer="ground"]').click();
+        else loadFishing(state.date, true);
+        pane = "now";
+      }
+      switchTab(pane);
+      closeWorkbench(pane === "basis" ? $("toBasis") : document.querySelector('#tabs button[data-pane="' + pane + '"]'));
+    });
+  });
 }
 
 // ==================== 视野：中心 + 缩放（两档投影自动切换） ====================
@@ -2235,6 +2289,7 @@ function setOrigin(lon, lat, source) {
 
 // ==================== 事件绑定 ====================
 function bind() {
+  bindWorkbench();
   // ② 找多远
   document.querySelectorAll("#rangeSeg button").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -2397,6 +2452,7 @@ function bind() {
     showToast("已取消选中");
   });
   document.addEventListener("keydown", (e) => {
+    if ($("taskWorkbench").open) return;
     if (e.key === "Escape" && state.pickOrigin) {
       state.pickOrigin = false;
       syncOriginPicker();

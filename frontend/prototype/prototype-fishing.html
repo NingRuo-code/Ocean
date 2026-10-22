@@ -118,6 +118,49 @@
     background: rgba(12,26,41,.92); color: var(--text); font-size: 17px; cursor: pointer;
   }
   .ctrl:hover { border-color: var(--accent); color: var(--accent); }
+  .map-controls.workbench-launch { left: 62px; right: auto; }
+  .workbench-toggle {
+    width: auto; display: flex; align-items: center; gap: 8px; padding: 0 12px;
+    font-weight: 600; font-family: inherit; font-size: 12px;
+  }
+  .map .workbench-toggle svg { width: 16px; height: 16px; }
+  .workbench {
+    margin: auto; width: min(480px, calc(100vw - 32px)); max-height: calc(100vh - 40px);
+    padding: 24px; overflow-y: auto; color: var(--text); color-scheme: dark;
+    background: linear-gradient(150deg, #132b3e, #0d1b2a 60%);
+    border: 1px solid var(--line-strong); border-radius: 18px;
+    box-shadow: 0 24px 90px rgba(0,0,0,.5);
+  }
+  .workbench::backdrop { background: rgba(3,10,18,.64); backdrop-filter: blur(3px); }
+  .wb-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .wb-eyebrow { font-size: 10px; letter-spacing: .16em; color: var(--accent); margin-bottom: 5px; }
+  .wb-head h2 { font-size: 21px; font-weight: 600; }
+  .wb-close { flex: none; width: 32px; height: 32px; font-size: 16px; }
+  .wb-intro, .wb-note { color: var(--text-dim); font-size: 12px; line-height: 1.7; }
+  .wb-intro { margin: 10px 0 16px; }
+  .wb-context { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: rgba(4,14,24,.4); }
+  .wb-context > div:first-child { grid-column: 1 / -1; }
+  .wb-context dt { color: var(--text-dim); font-size: 11px; margin-bottom: 4px; }
+  .wb-context dd { font-size: 13px; font-variant-numeric: tabular-nums; }
+  .wb-conditions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0 17px; }
+  .wb-conditions small { color: var(--text-dim); font-size: 11px; }
+  .wb-conditions .link { background: none; border: 0; color: var(--accent); font: inherit; font-size: 12px; cursor: pointer; padding: 4px 0; }
+  .wb-tasks { display: grid; gap: 8px; }
+  .wb-task {
+    display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+    padding: 13px; background: rgba(148,190,226,.04); color: var(--text);
+    border: 1px solid var(--line); border-radius: 11px; font-family: inherit; cursor: pointer;
+  }
+  .wb-task:hover { border-color: var(--accent); background: rgba(77,212,198,.06); }
+  .wb-task:disabled { opacity: .55; cursor: not-allowed; }
+  .wb-task:disabled:hover { border-color: var(--line); background: rgba(148,190,226,.04); }
+  .wb-task .wb-symbol { flex: none; width: 30px; height: 30px; display: grid; place-items: center; color: var(--accent); border: 1px solid var(--line); border-radius: 8px; font-size: 17px; }
+  .wb-task b { display: block; font-size: 13px; font-weight: 600; }
+  .wb-task small { display: block; margin-top: 4px; font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+  .wb-task .wb-arrow { margin-left: auto; color: var(--text-dim); }
+  .wb-note { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .workbench button:focus-visible, .workbench-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .scope-note { color: var(--text-dim); font-size: 11px; line-height: 1.6; margin: 8px 0; }
   .map-legend {
     position: absolute; left: 14px; bottom: 14px; width: 218px; z-index: 7;
     background: rgba(12,26,41,.92); border: 1px solid var(--line);
@@ -401,10 +444,10 @@
     </div>
 
     <div class="ctx">
-      <i class="num">1</i><span class="ctx-lab">出发地</span>
+      <i class="num">1</i><span class="ctx-lab">分析点</span>
       <input id="locInput" placeholder="124.50°E, 30.20°N" value="124.50°E, 30.20°N" />
-      <button class="go" id="locateBtn">定位</button>
-      <button class="go ghost" id="pickOriginBtn" title="在地图上点选出发地">点选</button>
+      <button class="go" id="locateBtn" title="将输入坐标设为分析点，并更新结果">应用</button>
+      <button class="go ghost" id="pickOriginBtn" title="在地图上点选分析点">点选</button>
     </div>
 
     <div class="ctx">
@@ -417,7 +460,7 @@
     </div>
 
     <div class="ctx timebar">
-      <i class="num">3</i><span class="ctx-lab">出海日</span>
+      <i class="num">3</i><span class="ctx-lab">观测日</span>
       <button class="play" id="datePlay" title="播放逐日变化">▶</button>
       <button class="step" id="datePrev" title="前一天">◀</button>
       <input type="date" id="timeDate" value="2024-08-05" min="2024-08-05" max="2024-08-07" />
@@ -434,8 +477,14 @@
       <div class="map-controls">
         <button class="ctrl" title="放大地图" id="zoomIn">＋</button>
         <button class="ctrl" title="缩小地图" id="zoomOut">－</button>
-        <button class="ctrl" title="回到定位点" id="recenter">◎</button>
+        <button class="ctrl" title="将视野移回分析点，不改变分析条件" id="recenter">◎</button>
         <button class="ctrl" title="看整颗地球 / 回到数据窗口" id="globeReset">🌍</button>
+      </div>
+      <div class="map-controls workbench-launch">
+        <button class="ctrl workbench-toggle" id="workbenchToggle" type="button" aria-haspopup="dialog" aria-controls="taskWorkbench" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 17.5h7m-3.5-3.5v7"/></svg>
+          任务工作台
+        </button>
       </div>
       <div class="map-view-hint" id="mapViewHint" hidden></div>
       <button class="ctrl layer-toggle" id="layerToggle" title="图层开关（鼠标移到左边缘也会自动展开）" aria-controls="layerDrawer" aria-expanded="false">☰</button>
@@ -450,14 +499,14 @@
         <div class="legend-row" data-layer="front"><span class="swatch front"></span> 锋面区 · 编号 · 强度</div>
         <div class="legend-row sub" data-layer="coldwarm"><span class="swatch cold"></span><span class="swatch warm"></span> 冷侧 / 暖侧</div>
         <div class="legend-row" data-layer="nodata"><span class="swatch nodata"></span> 无观测（云 / 未覆盖）</div>
-        <div class="legend-row" data-layer="ground"><span class="swatch ground"></span> 渔场线索（表观捕捞活动）</div>
+        <div class="legend-row" data-layer="ground"><span class="swatch ground"></span> 捕捞活动热点</div>
         <div class="legend-row" data-layer="fishing"><span class="swatch fishing"></span> 推荐水域（示例，默认关）</div>
         <div class="legend-band">
           <span class="kbd">陆地</span><span class="kbd">自然地球 1:10m（公有领域）</span>
         </div>
         <div class="legend-note">
           悬停地图任意位置可查看该点数据；陆地＝浅色实色块，斜线＝无观测。<br>
-          渔场线索＝GFW 表观捕捞活动（fishing hours），<b>不等于渔获量 / 产量</b>；无覆盖的日期不按 0 处理。
+          热点＝GFW 表观捕捞活动（fishing hours），<b>不等于渔获量 / 产量</b>；无覆盖的日期不按 0 处理。
         </div>
       </aside>
       <div class="map-scale-label" id="mapScaleText">50 km</div>
@@ -528,7 +577,8 @@
         <!-- 预测 -->
         <section class="pane" id="pane-future">
           <div class="card">
-            <h3>规则预测参考 <span class="h-tags"><span class="tag plain" id="futureTag">1 / 3 / 7 天</span><span class="tag ok" id="futureBestTag">—</span></span></h3>
+            <h3>实验性趋势推演 <span class="h-tags"><span class="tag plain" id="futureTag">1 / 3 / 7 天</span><span class="tag ok" id="futureBestTag">—</span></span></h3>
+            <p class="scope-note">以所选观测日为基准的规则预测参考，尚未完成独立预测验证。</p>
             <div class="seg seg-sm" id="futureWindow">
               <button data-window="1">1 天</button>
               <button data-window="3" class="active">3 天</button>
@@ -612,6 +662,28 @@
     </aside>
   </div>
 </div>
+
+<dialog class="workbench" id="taskWorkbench" aria-labelledby="workbenchTitle" aria-describedby="workbenchIntro">
+  <div class="wb-head">
+    <div><p class="wb-eyebrow">OCEAN · TASKS</p><h2 id="workbenchTitle">分析工作台</h2></div>
+    <button class="ctrl wb-close" id="workbenchClose" type="button" aria-label="关闭工作台">✕</button>
+  </div>
+  <p class="wb-intro" id="workbenchIntro">先选择要做的事。工作台使用地图当前的分析条件，带你进入对应功能。</p>
+  <dl class="wb-context">
+    <div><dt>分析点</dt><dd id="workbenchLocation"></dd></div>
+    <div><dt>搜索半径</dt><dd id="workbenchRange"></dd></div>
+    <div><dt>观测日期</dt><dd id="workbenchDate"></dd></div>
+  </dl>
+  <div class="wb-conditions"><small id="workbenchMode"></small><button class="link" id="workbenchEdit" type="button">修改分析条件 ↗</button></div>
+  <div class="wb-tasks">
+    <button class="wb-task" type="button" data-workbench-task="now"><span class="wb-symbol" aria-hidden="true">◎</span><span><b>查看附近锋面</b><small>查看距分析点最近的锋面、侧别与海温</small></span><span class="wb-arrow" aria-hidden="true">↗</span></button>
+    <button class="wb-task" type="button" data-workbench-task="effort"><span class="wb-symbol" aria-hidden="true">⠿</span><span><b>查看捕捞活动热点</b><small id="workbenchEffortHint">显示所选日期的表观捕捞活动图层</small></span><span class="wb-arrow" aria-hidden="true">↗</span></button>
+    <button class="wb-task" type="button" data-workbench-task="clim"><span class="wb-symbol" aria-hidden="true">▥</span><span><b>查看历史样本</b><small>进入已有统计，核对样本时间与覆盖限制</small></span><span class="wb-arrow" aria-hidden="true">↗</span></button>
+    <button class="wb-task" type="button" data-workbench-task="future"><span class="wb-symbol" aria-hidden="true">↝</span><span><b>查看实验性趋势推演</b><small>以所选观测日为基准，查看 1 / 3 / 7 天规则参考</small></span><span class="wb-arrow" aria-hidden="true">↗</span></button>
+    <button class="wb-task" type="button" data-workbench-task="basis"><span class="wb-symbol" aria-hidden="true">i</span><span><b>核对数据与方法</b><small>查看来源、指标、计算规则和现有局限</small></span><span class="wb-arrow" aria-hidden="true">↗</span></button>
+  </div>
+  <p class="wb-note">目前整合已有功能。完整单月联合分析、固定海域事件响应和区域比较将逐项接入；历史样本不代表完整月份结果。</p>
+</dialog>
 
 <!-- 真实数据（脚本生成，不要手改） -->
 <script src="data/meta.js"></script>
