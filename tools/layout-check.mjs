@@ -153,6 +153,14 @@ check("1280 宽：历史 AIS 响应卡片入口仍可见且文案不裁切",
 check("1280 宽：卡片区可滚动", g2.panesH >= 150, "panesH=" + g2.panesH);
 check("1280 宽：3 个序号仍可见（顺序不因窄屏丢失）", g2.numBadges === 3, "badges=" + g2.numBadges);
 
+await evalJS(`document.getElementById("workbenchToggle").click(); return true;`);
+const wbRect = await evalJS(`var d=document.getElementById("taskWorkbench"), r=d.getBoundingClientRect(); return {open:d.open, left:r.left, right:r.right, top:r.top, bottom:r.bottom, overflow:d.scrollWidth>d.clientWidth+1};`);
+check("1280 宽：工作台弹层在视口内且无横向裁切", wbRect.open && wbRect.left >= 0 && wbRect.right <= 1280 && wbRect.top >= 0 && wbRect.bottom <= 800 && !wbRect.overflow, JSON.stringify(wbRect));
+await send("Emulation.setDeviceMetricsOverride", { width: 960, height: 640, deviceScaleFactor: 1, mobile: false });
+await sleep(150);
+const wbSmall = await evalJS(`var d=document.getElementById("taskWorkbench"), r=d.getBoundingClientRect(); return {left:r.left, right:r.right, top:r.top, bottom:r.bottom, overflow:d.scrollWidth>d.clientWidth+1, scroll:getComputedStyle(d).overflowY};`);
+check("较小窗口：工作台保持可滚动且不超出视口", wbSmall.left >= 0 && wbSmall.right <= 960 && wbSmall.top >= 0 && wbSmall.bottom <= 640 && !wbSmall.overflow && wbSmall.scroll === "auto", JSON.stringify(wbSmall));
+
 console.log(results.join("\n"));
 console.log("\nFAIL 总数 = " + results.filter((r) => r.indexOf("FAIL") === 0).length);
-ws.close(); child.kill(); process.exit(0);
+ws.close(); child.kill(); process.exit(results.some((r) => r.startsWith("FAIL")) ? 1 : 0);
