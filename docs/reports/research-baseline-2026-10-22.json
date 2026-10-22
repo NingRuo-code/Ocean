@@ -1,0 +1,81 @@
+{
+  "schema": "ocean-local-research-baseline/v1",
+  "scope": "local committed exports; no server access or valid-observation verification",
+  "layers": {
+    "day": {
+      "file_count": 62,
+      "first": "2024-07-01",
+      "last": "2024-08-31",
+      "date_mismatches": [],
+      "months": {
+        "2024-07": {
+          "files": 31,
+          "expected_days": 31,
+          "missing_dates": [],
+          "files_complete": true
+        },
+        "2024-08": {
+          "files": 31,
+          "expected_days": 31,
+          "missing_dates": [],
+          "files_complete": true
+        }
+      }
+    },
+    "sst": {
+      "file_count": 62,
+      "first": "2024-07-01",
+      "last": "2024-08-31",
+      "date_mismatches": [],
+      "months": {
+        "2024-07": {
+          "files": 31,
+          "expected_days": 31,
+          "missing_dates": [],
+          "files_complete": true
+        },
+        "2024-08": {
+          "files": 31,
+          "expected_days": 31,
+          "missing_dates": [],
+          "files_complete": true
+        }
+      }
+    }
+  },
+  "front_resolution_deg": 0.05,
+  "available_ui_radii_km": [
+    10,
+    20,
+    30
+  ],
+  "local_fishing_grid_directory_present": false,
+  "ais_complete_months_verified": false,
+  "fine_analysis_grid_verified": false,
+  "response_table": {
+    "declared_status": "real",
+    "events": 186,
+    "dates": 62,
+    "events_with_post7_hours": 0,
+    "declared_window": {
+      "sample_start": "2024-07-01",
+      "sample_end": "2024-08-31",
+      "pre_window_days": 7,
+      "post_window_days": [
+        1,
+        3
+      ],
+      "exploratory_window_days": [
+        -7,
+        7
+      ]
+    },
+    "usable_as_arbitrary_fixed_region_event_study": false
+  },
+  "caveats": [
+    "Complete local files do not establish complete observations or local effective ocean area.",
+    "AIS daily grid coverage and source analysis resolution must be verified separately.",
+    "Existing event rows are not independent event samples or arbitrary-location results.",
+    "ADR-0001 fine analysis resolution remains a requirement until explicitly reviewed."
+  ]
+}
