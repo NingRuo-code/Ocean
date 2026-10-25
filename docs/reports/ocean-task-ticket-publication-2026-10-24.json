@@ -1,0 +1,981 @@
+{
+  "parent": 109,
+  "related_work_package": 21,
+  "source_specs": [
+    95,
+    35,
+    45
+  ],
+  "reused_minimal_tasks": [
+    99,
+    100,
+    101,
+    102
+  ],
+  "umbrella": 13,
+  "approval": "User confirmed all fifteen tickets and their dependencies on 2026-10-24",
+  "acceptance_criteria": 95,
+  "user_stories_covered": 50,
+  "external_ancestor_edges_verified": {
+    "47": [],
+    "53": [
+      49,
+      50,
+      51,
+      52
+    ],
+    "99": [
+      97,
+      70
+    ],
+    "100": [
+      99,
+      31
+    ],
+    "101": [
+      100
+    ],
+    "102": [
+      100
+    ],
+    "31": [
+      26,
+      27
+    ],
+    "49": [
+      48
+    ],
+    "50": [
+      46,
+      47
+    ],
+    "51": [
+      46
+    ],
+    "52": [
+      46,
+      38
+    ],
+    "70": [
+      64,
+      43
+    ],
+    "97": [
+      96,
+      26,
+      28
+    ],
+    "26": [
+      25
+    ],
+    "27": [
+      25
+    ],
+    "28": [],
+    "38": [
+      36
+    ],
+    "43": [
+      42
+    ],
+    "46": [],
+    "48": [
+      46,
+      28
+    ],
+    "64": [
+      61,
+      41
+    ],
+    "96": [
+      30
+    ],
+    "25": [],
+    "30": [
+      25
+    ],
+    "36": [],
+    "41": [
+      39
+    ],
+    "42": [
+      41
+    ],
+    "61": [],
+    "39": [
+      37,
+      38
+    ],
+    "37": [
+      36
+    ]
+  },
+  "dag_verified": true,
+  "tickets": [
+    {
+      "local_id": "T01",
+      "title": "[TASK T01] 在工作台查找原身份的任务历史",
+      "filename": "01-shared-task-history.md",
+      "number": 110,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/110",
+      "internal_blocker_numbers": [],
+      "external_blocker_numbers": [
+        100
+      ],
+      "blocker_numbers": [
+        100
+      ],
+      "stories": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        8,
+        9,
+        36,
+        44,
+        45,
+        47,
+        50
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "4867fd9212bc72cb4dc0184aee191add6ed15eff43e59866a39220e245911cb8",
+      "database_id": 6010764281,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        100
+      ]
+    },
+    {
+      "local_id": "T02",
+      "title": "[TASK T02] 选择登记归档并核对可执行准备范围",
+      "filename": "02-registered-preparation-plan.md",
+      "number": 111,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/111",
+      "internal_blocker_numbers": [],
+      "external_blocker_numbers": [
+        99
+      ],
+      "blocker_numbers": [
+        99
+      ],
+      "stories": [
+        5,
+        10,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        44,
+        45,
+        47,
+        50
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "4071411f3f8ddd61768fea90fd0a3612332540aef5737f47ab7a3ab208c1e31e",
+      "database_id": 6010764566,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        99
+      ]
+    },
+    {
+      "local_id": "T03",
+      "title": "[TASK T03] 一键准备一个真实小范围资料单元",
+      "filename": "03-real-small-preparation.md",
+      "number": 112,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/112",
+      "internal_blocker_numbers": [
+        111
+      ],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [
+        111
+      ],
+      "stories": [
+        10,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        30,
+        32,
+        33,
+        34,
+        44,
+        45,
+        47,
+        48,
+        49,
+        50
+      ],
+      "acceptance_criteria": 7,
+      "body_sha256": "6e4ff855be84c58bfff067ccf8c3970d8bb2d2e929ad992135b6cc54b91b234e",
+      "database_id": 6010765084,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        111
+      ]
+    },
+    {
+      "local_id": "T04",
+      "title": "[TASK T04] 后台任务按资源排队并显示真实步骤进度",
+      "filename": "04-bounded-queue-and-progress.md",
+      "number": 113,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/113",
+      "internal_blocker_numbers": [
+        112
+      ],
+      "external_blocker_numbers": [
+        47
+      ],
+      "blocker_numbers": [
+        112,
+        47
+      ],
+      "stories": [
+        6,
+        7,
+        8,
+        10,
+        20,
+        21,
+        24,
+        28,
+        42,
+        44,
+        45,
+        49,
+        50
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "a03afa4b47098da291fac22c275d19acbca4c9431d4aaf85d079d0c6c9257f7c",
+      "database_id": 6010765833,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        47,
+        112
+      ]
+    },
+    {
+      "local_id": "T05",
+      "title": "[TASK T05] 重启后从可靠检查点继续原任务",
+      "filename": "05-checkpoint-safe-resume.md",
+      "number": 114,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/114",
+      "internal_blocker_numbers": [
+        113
+      ],
+      "external_blocker_numbers": [
+        100
+      ],
+      "blocker_numbers": [
+        113,
+        100
+      ],
+      "stories": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        28,
+        29,
+        46,
+        48,
+        49,
+        50
+      ],
+      "acceptance_criteria": 7,
+      "body_sha256": "914feb9a2696bf958ae920f2e71ae6ff763caefd9b7b984ec5930c120007afb0",
+      "database_id": 6010766158,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        100,
+        113
+      ]
+    },
+    {
+      "local_id": "T06",
+      "title": "[TASK T06] 恢复时识别已提交结果并拒绝旧进程写入",
+      "filename": "06-commit-reconciliation-and-stale-worker.md",
+      "number": 115,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/115",
+      "internal_blocker_numbers": [
+        114
+      ],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [
+        114
+      ],
+      "stories": [
+        11,
+        12,
+        13,
+        16,
+        17,
+        30,
+        34,
+        35,
+        48,
+        49,
+        50
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "42f92594f5371e357b207c1109b838c2cad4295f2abba09c9fbe20e95843c2f8",
+      "database_id": 6010766481,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        114
+      ]
+    },
+    {
+      "local_id": "T07",
+      "title": "[TASK T07] 不安全恢复明确中断并按原记录重试",
+      "filename": "07-unsafe-recovery-and-explicit-retry.md",
+      "number": 116,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/116",
+      "internal_blocker_numbers": [
+        114
+      ],
+      "external_blocker_numbers": [
+        102
+      ],
+      "blocker_numbers": [
+        114,
+        102
+      ],
+      "stories": [
+        5,
+        11,
+        12,
+        14,
+        15,
+        19,
+        26,
+        27,
+        34,
+        41,
+        44,
+        46,
+        47,
+        48,
+        49
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "e872d894a8f8b9860268aa79d035fd65ed82dfbb26d50f5ca72dfce9019ac618",
+      "database_id": 6010766959,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        102,
+        114
+      ]
+    },
+    {
+      "local_id": "T08",
+      "title": "[TASK T08] 取消意图跨重启保留且不与恢复竞争",
+      "filename": "08-cancel-resume-races.md",
+      "number": 117,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/117",
+      "internal_blocker_numbers": [
+        114
+      ],
+      "external_blocker_numbers": [
+        101
+      ],
+      "blocker_numbers": [
+        114,
+        101
+      ],
+      "stories": [
+        6,
+        8,
+        11,
+        12,
+        18,
+        19,
+        28,
+        34,
+        44,
+        46,
+        48,
+        49
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "6c44f1f07ca92bf8dfcb2da4ec498e2da50c0b0f75ee15b3f042253ee0e26941",
+      "database_id": 6010768209,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        101,
+        114
+      ]
+    },
+    {
+      "local_id": "T09",
+      "title": "[TASK T09] 多日多层准备保留缺口并正确发布就绪范围",
+      "filename": "09-partial-preparation-and-qualification.md",
+      "number": 118,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/118",
+      "internal_blocker_numbers": [
+        113
+      ],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [
+        113
+      ],
+      "stories": [
+        22,
+        24,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        44,
+        45,
+        48,
+        49,
+        50
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "e9163fe51531cd8edb852b6b94fba6f737695da0f88c80921854646e05c8f2bd",
+      "database_id": 6010768482,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        113
+      ]
+    },
+    {
+      "local_id": "T10",
+      "title": "[TASK T10] 保留轻量证据并说明大产物与复算状态",
+      "filename": "10-lightweight-evidence-and-artifact-status.md",
+      "number": 119,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/119",
+      "internal_blocker_numbers": [
+        110,
+        112
+      ],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [
+        110,
+        112
+      ],
+      "stories": [
+        3,
+        5,
+        19,
+        30,
+        34,
+        36,
+        37,
+        41,
+        44,
+        47,
+        49,
+        50
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "0e8a8e64ee4b928bec0c572d84c88a64adce6cd1d9e5f1477a7e90ccb8b7370e",
+      "database_id": 6010768746,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        110,
+        112
+      ]
+    },
+    {
+      "local_id": "T11",
+      "title": "[TASK T11] 保护已保存成果及活动共享引用",
+      "filename": "11-persistent-protection-and-use-references.md",
+      "number": 120,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/120",
+      "internal_blocker_numbers": [
+        119
+      ],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [
+        119
+      ],
+      "stories": [
+        35,
+        36,
+        37,
+        39,
+        40,
+        42,
+        43,
+        44,
+        47,
+        49,
+        50
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "e6c5b9604ea691c944b3d1b060a27297727beea58ffd1e9c2162df50ca7dbe34",
+      "database_id": 6010769034,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        119
+      ]
+    },
+    {
+      "local_id": "T12",
+      "title": "[TASK T12] 并发准备复用同版本产物且不互相破坏",
+      "filename": "12-shared-preparation-reuse.md",
+      "number": 121,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/121",
+      "internal_blocker_numbers": [
+        118,
+        115,
+        120
+      ],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [
+        118,
+        115,
+        120
+      ],
+      "stories": [
+        10,
+        13,
+        17,
+        27,
+        29,
+        30,
+        31,
+        34,
+        35,
+        39,
+        40,
+        43,
+        44,
+        48,
+        49,
+        50
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "ef77561229bdfacdcddc02706e1a45dad72ed4148866a2a973edcb750d396b47",
+      "database_id": 6010769913,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        115,
+        118,
+        120
+      ]
+    },
+    {
+      "local_id": "T13",
+      "title": "[TASK T13] 按保护规则清理普通大产物并保留复算说明",
+      "filename": "13-protected-artifact-cleanup.md",
+      "number": 122,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/122",
+      "internal_blocker_numbers": [
+        120
+      ],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [
+        120
+      ],
+      "stories": [
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        47,
+        48,
+        49,
+        50
+      ],
+      "acceptance_criteria": 7,
+      "body_sha256": "b2756bb2745a16cb5584f919c3ad8d22a2606008116ff4920f2c12c3f78110a1",
+      "database_id": 6010770200,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        120
+      ]
+    },
+    {
+      "local_id": "T14",
+      "title": "[TASK T14] 据混合负载实测冻结任务与保存限额",
+      "filename": "14-measured-resource-and-retention-limits.md",
+      "number": 123,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/123",
+      "internal_blocker_numbers": [
+        121,
+        122
+      ],
+      "external_blocker_numbers": [
+        53
+      ],
+      "blocker_numbers": [
+        121,
+        122,
+        53
+      ],
+      "stories": [
+        20,
+        21,
+        24,
+        28,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        45,
+        48,
+        49,
+        50
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "750897369759a3b0c804ca00e5b49cfed3f52ff87bada718b1bc844ea021cbee",
+      "database_id": 6010770501,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        53,
+        121,
+        122
+      ]
+    },
+    {
+      "local_id": "T15",
+      "title": "[TASK T15] 回放真实恢复准备与保护保存并交接",
+      "filename": "15-real-task-lifecycle-handoff.md",
+      "number": 124,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/124",
+      "internal_blocker_numbers": [
+        116,
+        117,
+        121,
+        122
+      ],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [
+        116,
+        117,
+        121,
+        122
+      ],
+      "stories": [
+        1,
+        2,
+        5,
+        6,
+        8,
+        9,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        22,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        38,
+        39,
+        40,
+        41,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50
+      ],
+      "acceptance_criteria": 8,
+      "body_sha256": "414d030b206fc7af86d767e93417094cf15b9aad8336c3831d518d49d9e2c1ba",
+      "database_id": 6010770806,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        116,
+        117,
+        121,
+        122
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "child": 110,
+      "blocked_by": 100,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 111,
+      "blocked_by": 99,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 112,
+      "blocked_by": 111,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 113,
+      "blocked_by": 112,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 113,
+      "blocked_by": 47,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 114,
+      "blocked_by": 113,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 114,
+      "blocked_by": 100,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 115,
+      "blocked_by": 114,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 116,
+      "blocked_by": 114,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 116,
+      "blocked_by": 102,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 117,
+      "blocked_by": 114,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 117,
+      "blocked_by": 101,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 118,
+      "blocked_by": 113,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 119,
+      "blocked_by": 110,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 119,
+      "blocked_by": 112,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 120,
+      "blocked_by": 119,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 121,
+      "blocked_by": 118,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 121,
+      "blocked_by": 115,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 121,
+      "blocked_by": 120,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 122,
+      "blocked_by": 120,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 123,
+      "blocked_by": 121,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 123,
+      "blocked_by": 122,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 123,
+      "blocked_by": 53,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 124,
+      "blocked_by": 116,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 124,
+      "blocked_by": 117,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 124,
+      "blocked_by": 121,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 124,
+      "blocked_by": 122,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    }
+  ],
+  "completed": true,
+  "real_task_execution_performed": false,
+  "application_tests_executed": false,
+  "external_blockers": [
+    {
+      "number": 47,
+      "database_id": 6009139512,
+      "state": "open"
+    },
+    {
+      "number": 53,
+      "database_id": 6009141299,
+      "state": "open"
+    },
+    {
+      "number": 99,
+      "database_id": 6010518155,
+      "state": "open"
+    },
+    {
+      "number": 100,
+      "database_id": 6010518441,
+      "state": "open"
+    },
+    {
+      "number": 101,
+      "database_id": 6010518726,
+      "state": "open"
+    },
+    {
+      "number": 102,
+      "database_id": 6010519043,
+      "state": "open"
+    }
+  ],
+  "parent_unchanged_verified": true,
+  "work_package_unchanged_verified": true,
+  "umbrella_unchanged_verified": true,
+  "source_specs_unchanged_verified": true,
+  "native_dependencies_available": true,
+  "frontier": []
+}

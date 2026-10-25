@@ -7,6 +7,8 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
+.pytest-basetemp-*/
+.pytest-tmp/
 .pytest_tmp/
 .tmp/
 
@@ -17,7 +19,22 @@ data/cache/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/cache/.gitkeep
+!data/cache/README.md
 output/
+
+# Local-only AIS/GFW intake workspace
+local_data/gfw_ais/downloads/
+local_data/gfw_ais/raw/
+local_data/gfw_ais/intermediate/
+local_data/gfw_ais/authorized_aggregate/
+
+# Server-side data workspaces
+server_data/raw/
+server_data/intermediate/
+server_data/authorized_aggregate/*
+!server_data/authorized_aggregate/examples/
+!server_data/authorized_aggregate/examples/*.example.json
+server_data/logs/
 
 # Reference papers / private project handouts are kept locally
 paper/*.pdf
@@ -26,6 +43,8 @@ paper/*.pdf
 # Local configuration
 .env
 .env.local
+.env.*
+!.env.example
 
 # Office and review temporary files
 ~$*

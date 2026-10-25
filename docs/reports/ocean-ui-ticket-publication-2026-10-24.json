@@ -1,0 +1,227 @@
+{
+  "parent": 24,
+  "approval": "User confirmed the ten-ticket breakdown and blocking edges on 2026-10-24",
+  "tickets": [
+    {
+      "local_id": 1,
+      "title": "[U1/U2 T01] 附近锋面快捷入口与双侧结果联动",
+      "filename": "01-front-workbench.md",
+      "number": 25,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/25",
+      "blocker_numbers": [],
+      "body_sha256": "8309e8ea0f3145665e54577ffba4695f210c56868bfc0ff46ef6ff25d969503a",
+      "database_id": 6008319984,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true
+    },
+    {
+      "local_id": 2,
+      "title": "[U1/U2 T02] 统一筛选完成日期、坐标和公里范围选择",
+      "filename": "02-unified-filter.md",
+      "number": 26,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/26",
+      "blocker_numbers": [
+        25
+      ],
+      "body_sha256": "2b249dd328d26235f6948c1d27472b6ef08612055d9fe6c6fdd8bf4b99f97628",
+      "database_id": 6008320305,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true
+    },
+    {
+      "local_id": 3,
+      "title": "[U1/U2 T03] 左侧图层浮层与快捷任务搭配",
+      "filename": "03-layer-controls.md",
+      "number": 27,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/27",
+      "blocker_numbers": [
+        25
+      ],
+      "body_sha256": "dcba006f07fc3e84892e347a3b1f657fe669f3192c7c7504a662d76b0cfd8657",
+      "database_id": 6008320617,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true
+    },
+    {
+      "local_id": 4,
+      "title": "[U1/U2 T04] 切日与快速拖缩不串结果，失败可恢复",
+      "filename": "04-honest-loading.md",
+      "number": 28,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/28",
+      "blocker_numbers": [],
+      "body_sha256": "e3febc5800a5e749e1ff0530a4d7e72850834f6d6a03469ed2713c7fd68b8423",
+      "database_id": 6008320951,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true
+    },
+    {
+      "local_id": 5,
+      "title": "[U1/U2 T05] 捕捞活动入口给出同范围真实概况",
+      "filename": "05-effort-summary.md",
+      "number": 29,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/29",
+      "blocker_numbers": [
+        25,
+        28
+      ],
+      "body_sha256": "a3829bba93b517f9415f59800e5fcd223f1be1dfab609f2bd00b0bf816f83ad3",
+      "database_id": 6008321339,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true
+    },
+    {
+      "local_id": 6,
+      "title": "[U1/U2 T06] 历史、预测与底部证据按需阅读",
+      "filename": "06-history-forecast-details.md",
+      "number": 30,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/30",
+      "blocker_numbers": [
+        25
+      ],
+      "body_sha256": "274af10b2d11a72ad3e2e7df826d6bf75a22cdb9fa5a8c278f3ebd21273acf3d",
+      "database_id": 6008321737,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true
+    },
+    {
+      "local_id": 7,
+      "title": "[U1/U2 T07] 重新打开恢复已应用条件与图层",
+      "filename": "07-applied-preferences.md",
+      "number": 31,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/31",
+      "blocker_numbers": [
+        26,
+        27
+      ],
+      "body_sha256": "263a741fe01cd63b9cc666acbccb37d1f42dbe01ac4a855520a8602243b0b395",
+      "database_id": 6008322109,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true
+    },
+    {
+      "local_id": 8,
+      "title": "[U1/U2 T08] 逐日播放遇到缺日暂停并可继续",
+      "filename": "08-playback-gaps.md",
+      "number": 32,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/32",
+      "blocker_numbers": [
+        26,
+        28
+      ],
+      "body_sha256": "a04379b342e73bd3c254a54d35f2ae5c219d79d9be51e376d93ec7e0b3705893",
+      "database_id": 6008322597,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true
+    },
+    {
+      "local_id": 9,
+      "title": "[U1/U2 T09] 海温同源色带、局部增强与锋面可读性",
+      "filename": "09-sst-legend.md",
+      "number": 33,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/33",
+      "blocker_numbers": [
+        27
+      ],
+      "body_sha256": "afefd72239f16032183839dd6aaad719782ee52671738e8b4e8f205612e1d7f2",
+      "database_id": 6008322960,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true
+    },
+    {
+      "local_id": 10,
+      "title": "[U1/U2 T10] 浅紫活动图与真实小时数一致呈现",
+      "filename": "10-effort-colors.md",
+      "number": 34,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/34",
+      "blocker_numbers": [
+        27,
+        29
+      ],
+      "body_sha256": "e21f660bd8af0ec0163a59dab9f5914ef7794d605315a2f0fd13a75a2142a9ba",
+      "database_id": 6008323281,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true
+    }
+  ],
+  "edges": [
+    {
+      "child": 26,
+      "blocked_by": 25,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 27,
+      "blocked_by": 25,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 29,
+      "blocked_by": 25,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 29,
+      "blocked_by": 28,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 30,
+      "blocked_by": 25,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 31,
+      "blocked_by": 26,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 31,
+      "blocked_by": 27,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 32,
+      "blocked_by": 26,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 32,
+      "blocked_by": 28,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 33,
+      "blocked_by": 27,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 34,
+      "blocked_by": 27,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 34,
+      "blocked_by": 29,
+      "text_reference_verified": true,
+      "native": true
+    }
+  ],
+  "completed": true,
+  "parent_unchanged_verified": true,
+  "native_dependencies_available": true,
+  "frontier": [
+    25,
+    28
+  ]
+}

@@ -14,10 +14,10 @@ from pydantic import ValidationError
 
 from .config import settings
 from .data_access import (
-    FRONT_LINE_CODES,
     SST_VARIABLE_NAME,
     FrontFileRecord,
     SstFileRecord,
+    _is_ignored_data_path,
     load_front_subset,
     load_sst_subset,
     match_sst_record,
@@ -43,15 +43,9 @@ from .schemas import (
 )
 
 _INDEX_CACHE: dict[str, HistoryIndex] = {}
-_QUERY_CACHE_SCHEMA_VERSION = "history-response-v7"
+_QUERY_CACHE_SCHEMA_VERSION = "history-response-v5"
 HISTORICAL_TARGET_YEAR_START = 1982
 HISTORICAL_TARGET_YEAR_END = 2024
-DEFAULT_PROBABILITY_RULE = "line_presence"
-PROBABILITY_RULE_LABELS = {
-    "line_presence": "窗口内存在锋面线像元",
-    "density_threshold": "锋面线密度达到阈值",
-    "distance_threshold": "最近锋面距离小于阈值",
-}
 
 
 @dataclass(frozen=True)
@@ -144,23 +138,12 @@ def _index_from_payload(payload: dict[str, object], root: Path) -> HistoryIndex:
     )
 
 
-def _query_signature(
-    observation_date: date,
-    longitude: float,
-    latitude: float,
-    radius_deg: float,
-    probability_rule: str = DEFAULT_PROBABILITY_RULE,
-    min_line_density_per_1000: float = 1.0,
-    max_front_distance_km: float = 50.0,
-) -> str:
+def _query_signature(observation_date: date, longitude: float, latitude: float, radius_deg: float) -> str:
     digest = hashlib.sha1()
     digest.update(observation_date.isoformat().encode())
     digest.update(f"{longitude:.6f}".encode())
     digest.update(f"{latitude:.6f}".encode())
     digest.update(f"{radius_deg:.6f}".encode())
-    digest.update(_normalize_probability_rule(probability_rule).encode())
-    digest.update(f"{min_line_density_per_1000:.6f}".encode())
-    digest.update(f"{max_front_distance_km:.6f}".encode())
     return digest.hexdigest()
 
 
@@ -199,16 +182,6 @@ def _same_period_expected_sample_count(observation_date: date) -> int:
             continue
         count += 1
     return count
-
-
-def _same_period_target_dates(observation_date: date) -> list[date]:
-    dates: list[date] = []
-    for year in range(HISTORICAL_TARGET_YEAR_START, HISTORICAL_TARGET_YEAR_END + 1):
-        try:
-            dates.append(date(year, observation_date.month, observation_date.day))
-        except ValueError:
-            continue
-    return dates
 
 
 def _monthly_expected_sample_count(observation_date: date) -> int:
@@ -264,75 +237,6 @@ def _coverage_note(
     )
 
 
-def _normalize_probability_rule(probability_rule: str | None) -> str:
-    if probability_rule in PROBABILITY_RULE_LABELS:
-        return str(probability_rule)
-    return DEFAULT_PROBABILITY_RULE
-
-
-def _probability_threshold(
-    probability_rule: str,
-    min_line_density_per_1000: float,
-    max_front_distance_km: float,
-) -> float | None:
-    if probability_rule == "density_threshold":
-        return round(float(min_line_density_per_1000), 4)
-    if probability_rule == "distance_threshold":
-        return round(float(max_front_distance_km), 4)
-    return None
-
-
-def _probability_rule_note(
-    probability_rule: str,
-    min_line_density_per_1000: float,
-    max_front_distance_km: float,
-) -> str:
-    if probability_rule == "density_threshold":
-        return f"命中定义：查询窗口内锋面线密度 ≥ {min_line_density_per_1000:.2f}/1000 像元。"
-    if probability_rule == "distance_threshold":
-        return f"命中定义：查询窗口内最近锋面线距离查询点 ≤ {max_front_distance_km:.1f} km。"
-    return "命中定义：查询窗口内存在至少 1 个锋面线像元。"
-
-
-def _nearest_front_distance_km(
-    values: np.ndarray,
-    lons: np.ndarray,
-    lats: np.ndarray,
-    longitude: float,
-    latitude: float,
-) -> float | None:
-    line_mask = np.isin(values, FRONT_LINE_CODES)
-    if not line_mask.any():
-        return None
-    lon_grid, lat_grid = np.meshgrid(np.asarray(lons, dtype=float), np.asarray(lats, dtype=float))
-    distances = (
-        np.sqrt(
-            ((lon_grid[line_mask] - longitude) * np.cos(np.deg2rad(latitude))) ** 2
-            + (lat_grid[line_mask] - latitude) ** 2
-        )
-        * 111.195
-    )
-    return round(float(distances.min()), 3) if distances.size else None
-
-
-def _front_present_by_rule(
-    front_summary: dict[str, float | int | str],
-    nearest_front_distance_km: float | None,
-    probability_rule: str,
-    min_line_density_per_1000: float,
-    max_front_distance_km: float,
-) -> bool:
-    line_pixels = int(front_summary["line_pixels"])
-    if probability_rule == "density_threshold":
-        return (
-            line_pixels > 0
-            and float(front_summary["front_line_density_per_1000_pixels"]) >= min_line_density_per_1000
-        )
-    if probability_rule == "distance_threshold":
-        return nearest_front_distance_km is not None and nearest_front_distance_km <= max_front_distance_km
-    return line_pixels > 0
-
-
 def _grid_info_from_file(
     path: Path | None,
     root: Path,
@@ -385,11 +289,44 @@ def _archive_fingerprint(raw_data_dir: Path) -> str:
     return digest.hexdigest()
 
 
+def _has_newer_netcdf(raw_data_dir: Path, reference_mtime_ns: int) -> bool:
+    """数据目录里是否存在比参照时间更新的 .nc（说明索引早于数据变动）。"""
+    for kind in ("front", "sst"):
+        root = raw_data_dir / kind
+        if not root.exists():
+            continue
+        for path in (*root.rglob("*.nc"), *root.rglob("*.nc4")):
+            if _is_ignored_data_path(path):
+                continue
+            try:
+                if path.stat().st_mtime_ns > reference_mtime_ns:
+                    return True
+            except OSError:
+                return True
+    return False
+
+
+def _index_records_exist(index: HistoryIndex) -> bool:
+    """索引里的源文件是否都还在。
+
+    指纹只看文件大小与 mtime，抓不到「文件被改名」这种变化；而 sqlite 清单或历史索引
+    一旦过期，就会把不存在的路径带进请求链路（表现为 500）。所以信任任何缓存清单之前，
+    先核一遍路径。
+    """
+    return all(record.path.is_file() for record in index.front_records) and all(
+        record.path.is_file() for record in index.sst_records
+    )
+
+
 def _sqlite_index_fingerprint(raw_data_dir: Path) -> str | None:
     index_path = data_index_path(raw_data_dir.parent / "processed")
     if not index_path.is_file():
         return None
     stat = index_path.stat()
+    # 索引文件比某些 .nc 还旧 = 数据在索引之后动过（新增/改名/重导）：
+    # 此时放弃 sqlite 指纹，退回目录摘要，别让过期清单冒充当前数据状态。
+    if _has_newer_netcdf(raw_data_dir, stat.st_mtime_ns):
+        return None
     digest = hashlib.sha1()
     digest.update(b"sqlite-data-index")
     digest.update(str(index_path.resolve()).encode("utf-8"))
@@ -405,12 +342,15 @@ def build_history_index(raw_data_dir: Path, fingerprint: str) -> HistoryIndex:
     )
     if indexed_records is not None:
         front_records, sst_records = indexed_records
-        return HistoryIndex(
+        candidate = HistoryIndex(
             fingerprint=fingerprint,
             generated_at=_now_iso(),
             front_records=tuple(front_records),
             sst_records=tuple(sst_records),
         )
+        # sqlite 清单可能过期（文件改名/删除后没重建索引）→ 核过路径再用，否则退回目录扫描
+        if _index_records_exist(candidate):
+            return candidate
     return HistoryIndex(
         fingerprint=fingerprint,
         generated_at=_now_iso(),
@@ -435,8 +375,10 @@ def get_history_index(raw_data_dir: Path, cache_dir: Path | None = None) -> Hist
             payload = json.loads(index_path.read_text(encoding="utf-8"))
             if payload.get("fingerprint") == fingerprint:
                 index = _index_from_payload(payload, raw_data_dir)
-                _INDEX_CACHE[cache_key] = index
-                return index
+                # 缓存索引里的路径可能已不存在 → 不用它，走下面的重建
+                if _index_records_exist(index):
+                    _INDEX_CACHE[cache_key] = index
+                    return index
         except (OSError, ValueError, TypeError, KeyError):
             pass
 
@@ -552,15 +494,11 @@ def _build_response(
     radius_deg: float,
     raw_data_dir: Path,
     cache_dir: Path,
-    probability_rule: str,
-    min_line_density_per_1000: float,
-    max_front_distance_km: float,
 ) -> HistoryResponse:
     front_records = list(index.front_records)
     sst_records = list(index.sst_records)
     if not front_records:
         same_period_expected_count = _same_period_expected_sample_count(observation_date)
-        target_same_period_dates = _same_period_target_dates(observation_date)
         monthly_expected_count = _monthly_expected_sample_count(observation_date)
         reliability_level, reliability_label = _reliability_level(0)
         sample_coverage_note = _coverage_note(
@@ -583,22 +521,7 @@ def _build_response(
             same_period_sample_count=0,
             same_period_front_hit_count=0,
             same_period_probability=None,
-            probability_rule=probability_rule,
-            probability_rule_label=PROBABILITY_RULE_LABELS[probability_rule],
-            probability_threshold=_probability_threshold(
-                probability_rule,
-                min_line_density_per_1000,
-                max_front_distance_km,
-            ),
-            probability_rule_note=_probability_rule_note(
-                probability_rule,
-                min_line_density_per_1000,
-                max_front_distance_km,
-            ),
             same_period_coverage_ratio=_coverage_ratio(0, same_period_expected_count),
-            same_period_covered_years=[],
-            same_period_missing_years=[item.year for item in target_same_period_dates],
-            next_missing_same_period_dates=target_same_period_dates[:10],
             monthly_expected_sample_count=monthly_expected_count,
             monthly_sample_count=0,
             monthly_front_hit_count=0,
@@ -620,18 +543,7 @@ def _build_response(
             sst_gradient_c_per_km_min=None,
             sst_gradient_c_per_km_max=None,
         )
-        cache_path = _query_cache_path(
-            cache_dir,
-            _query_signature(
-                observation_date,
-                longitude,
-                latitude,
-                radius_deg,
-                probability_rule,
-                min_line_density_per_1000,
-                max_front_distance_km,
-            ),
-        )
+        cache_path = _query_cache_path(cache_dir, _query_signature(observation_date, longitude, latitude, radius_deg))
         return HistoryResponse(
             date=observation_date,
             longitude=longitude,
@@ -662,20 +574,6 @@ def _build_response(
         front_data = load_front_subset(front_record.path, longitude, latitude, radius_deg)
         front_values = np.asarray(front_data.values)
         front_summary = summarize_front_window(front_values)
-        nearest_front_distance = _nearest_front_distance_km(
-            front_values,
-            front_data.lon.values,
-            front_data.lat.values,
-            longitude,
-            latitude,
-        )
-        front_present = _front_present_by_rule(
-            front_summary,
-            nearest_front_distance,
-            probability_rule,
-            min_line_density_per_1000,
-            max_front_distance_km,
-        )
 
         sst_record = match_sst_record(sst_records, front_record.observation_date)
         sst_path = sst_record.path if sst_record is not None else None
@@ -716,11 +614,7 @@ def _build_response(
                 front_line_pixels=int(front_summary["line_pixels"]),
                 cold_side_pixels=int(front_summary["cold_side_pixels"]),
                 warm_side_pixels=int(front_summary["warm_side_pixels"]),
-                front_line_density_per_1000_pixels=float(
-                    front_summary["front_line_density_per_1000_pixels"]
-                ),
-                nearest_front_distance_km=nearest_front_distance,
-                front_present=front_present,
+                front_present=int(front_summary["line_pixels"]) > 0,
                 sst_mean_celsius=sst_mean,
                 sst_min_celsius=sst_min,
                 sst_max_celsius=sst_max,
@@ -744,11 +638,6 @@ def _build_response(
     month_points = [item for item in timeline if item.month == observation_date.month]
 
     same_period_sample_count = len(same_period_points)
-    target_same_period_dates = _same_period_target_dates(observation_date)
-    same_period_covered_dates = {item.date for item in same_period_points}
-    same_period_missing_dates = [
-        item for item in target_same_period_dates if item not in same_period_covered_dates
-    ]
     same_period_front_hit_count = sum(1 for item in same_period_points if item.front_present)
     monthly_sample_count = len(month_points)
     monthly_front_hit_count = sum(1 for item in month_points if item.front_present)
@@ -793,22 +682,7 @@ def _build_response(
         same_period_probability=round(same_period_front_hit_count / same_period_sample_count, 4)
         if same_period_sample_count
         else None,
-        probability_rule=probability_rule,
-        probability_rule_label=PROBABILITY_RULE_LABELS[probability_rule],
-        probability_threshold=_probability_threshold(
-            probability_rule,
-            min_line_density_per_1000,
-            max_front_distance_km,
-        ),
-        probability_rule_note=_probability_rule_note(
-            probability_rule,
-            min_line_density_per_1000,
-            max_front_distance_km,
-        ),
         same_period_coverage_ratio=same_period_coverage_ratio,
-        same_period_covered_years=sorted({item.date.year for item in same_period_points}),
-        same_period_missing_years=[item.year for item in same_period_missing_dates],
-        next_missing_same_period_dates=same_period_missing_dates[:10],
         monthly_expected_sample_count=monthly_expected_count,
         monthly_sample_count=monthly_sample_count,
         monthly_front_hit_count=monthly_front_hit_count,
@@ -847,12 +721,7 @@ def _build_response(
     explanation = [
         "历史统计基于本地 front 逐日归档，按查询经纬度和范围逐日裁剪。",
         "同期开阔样本按月日匹配；月度统计按月份分组；多年变化按全部可用日期排序展示。",
-        "概率 = 命中样本数 / 有效样本数。",
-        _probability_rule_note(
-            probability_rule,
-            min_line_density_per_1000,
-            max_front_distance_km,
-        ),
+        "概率 = 命中样本数 / 有效样本数。命中样本定义为查询窗内检测到锋面线像元。",
         sample_coverage_note,
         "统计结果和所用文件清单会写入 data/cache/history，重复查询可直接命中缓存。",
     ]
@@ -861,15 +730,7 @@ def _build_response(
     if monthly_sample_count == 0:
         explanation.append("当前本地历史档案中没有与查询月份对应的样本。")
 
-    query_key = _query_signature(
-        observation_date,
-        longitude,
-        latitude,
-        radius_deg,
-        probability_rule,
-        min_line_density_per_1000,
-        max_front_distance_km,
-    )
+    query_key = _query_signature(observation_date, longitude, latitude, radius_deg)
     cache_path = _query_cache_path(cache_dir, query_key)
     return HistoryResponse(
         date=observation_date,
@@ -933,26 +794,11 @@ def compute_history_response(
     radius_deg: float,
     raw_data_dir: Path | None = None,
     cache_dir: Path | None = None,
-    probability_rule: str = DEFAULT_PROBABILITY_RULE,
-    min_line_density_per_1000: float = 1.0,
-    max_front_distance_km: float = 50.0,
 ) -> HistoryResponse:
     raw_data_dir = raw_data_dir or settings.raw_data_dir
     cache_dir = cache_dir or settings.cache_dir
     index = get_history_index(raw_data_dir, cache_dir)
-    normalized_rule = _normalize_probability_rule(probability_rule)
-    cache_path = _query_cache_path(
-        cache_dir,
-        _query_signature(
-            observation_date,
-            longitude,
-            latitude,
-            radius_deg,
-            normalized_rule,
-            min_line_density_per_1000,
-            max_front_distance_km,
-        ),
-    )
+    cache_path = _query_cache_path(cache_dir, _query_signature(observation_date, longitude, latitude, radius_deg))
     started_at = perf_counter()
     cached = _load_cached_response(cache_path, index.fingerprint)
     if cached is not None:
@@ -963,18 +809,7 @@ def compute_history_response(
         cached.cache.duration_ms = round((perf_counter() - started_at) * 1000, 3)
         return cached
     started_at = perf_counter()
-    response = _build_response(
-        index,
-        observation_date,
-        longitude,
-        latitude,
-        radius_deg,
-        raw_data_dir,
-        cache_dir,
-        normalized_rule,
-        min_line_density_per_1000,
-        max_front_distance_km,
-    )
+    response = _build_response(index, observation_date, longitude, latitude, radius_deg, raw_data_dir, cache_dir)
     response.cache.hit = False
     response.cache.metadata_source = _metadata_source(raw_data_dir)
     response.cache.records_evaluated = len(index.front_records)
@@ -991,9 +826,6 @@ def compute_history_probability_response(
     radius_deg: float,
     raw_data_dir: Path | None = None,
     cache_dir: Path | None = None,
-    probability_rule: str = DEFAULT_PROBABILITY_RULE,
-    min_line_density_per_1000: float = 1.0,
-    max_front_distance_km: float = 50.0,
 ) -> HistoryProbabilityResponse:
     response = compute_history_response(
         observation_date=observation_date,
@@ -1002,9 +834,6 @@ def compute_history_probability_response(
         radius_deg=radius_deg,
         raw_data_dir=raw_data_dir,
         cache_dir=cache_dir,
-        probability_rule=probability_rule,
-        min_line_density_per_1000=min_line_density_per_1000,
-        max_front_distance_km=max_front_distance_km,
     )
     return HistoryProbabilityResponse(
         date=response.date,
@@ -1031,9 +860,6 @@ def compute_history_monthly_response(
     radius_deg: float,
     raw_data_dir: Path | None = None,
     cache_dir: Path | None = None,
-    probability_rule: str = DEFAULT_PROBABILITY_RULE,
-    min_line_density_per_1000: float = 1.0,
-    max_front_distance_km: float = 50.0,
 ) -> HistoryMonthlyResponse:
     response = compute_history_response(
         observation_date=observation_date,
@@ -1042,9 +868,6 @@ def compute_history_monthly_response(
         radius_deg=radius_deg,
         raw_data_dir=raw_data_dir,
         cache_dir=cache_dir,
-        probability_rule=probability_rule,
-        min_line_density_per_1000=min_line_density_per_1000,
-        max_front_distance_km=max_front_distance_km,
     )
     selected = next((item for item in response.monthly if item.month == observation_date.month), None)
     return HistoryMonthlyResponse(
@@ -1086,9 +909,6 @@ def compute_history_local_response(
     radius_deg: float,
     raw_data_dir: Path | None = None,
     cache_dir: Path | None = None,
-    probability_rule: str = DEFAULT_PROBABILITY_RULE,
-    min_line_density_per_1000: float = 1.0,
-    max_front_distance_km: float = 50.0,
 ) -> HistoryLocalResponse:
     response = compute_history_response(
         observation_date=observation_date,
@@ -1097,9 +917,6 @@ def compute_history_local_response(
         radius_deg=radius_deg,
         raw_data_dir=raw_data_dir,
         cache_dir=cache_dir,
-        probability_rule=probability_rule,
-        min_line_density_per_1000=min_line_density_per_1000,
-        max_front_distance_km=max_front_distance_km,
     )
     same_period_records = [
         _to_local_record(point, "same-month-day") for point in response.same_period_records

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sqlite3
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
@@ -7,9 +8,8 @@ from pathlib import Path
 
 from .data_access import (
     FrontFileRecord,
-    FrontIntensityFileRecord,
     SstFileRecord,
-    scan_front_intensity_records,
+    infer_date,
     scan_front_records,
     scan_sst_records,
 )
@@ -20,7 +20,7 @@ from .schemas import (
     DataIndexResponse,
 )
 
-DATA_INDEX_SCHEMA_VERSION = "data-index-v2"
+DATA_INDEX_SCHEMA_VERSION = "data-index-v1"
 DATASET_FRONT = "front_location"
 DATASET_SST = "sst"
 DATASET_INTENSITY = "front_intensity"
@@ -45,7 +45,10 @@ def build_sqlite_data_index(raw_data_dir: Path, processed_dir: Path) -> DataInde
 
     index_path = data_index_path(processed_dir)
     processed_dir.mkdir(parents=True, exist_ok=True)
-    temp_path = index_path.with_suffix(".sqlite.tmp")
+    # 临时文件名带上 pid：两个重建撞在一起时（例如抓数管线按年触发 + 人手动 POST）会互相
+    # 抢同一个 .tmp，先完成的把文件 rename 走，后一个就 FileNotFoundError → 500。
+    # （2026-09-24 线上真撞到过一次。）os.replace 仍是原子的，读者不会看到半成品。
+    temp_path = index_path.with_name(f"{index_path.name}.{os.getpid()}.tmp")
     if temp_path.exists():
         temp_path.unlink()
 
@@ -70,17 +73,6 @@ def build_sqlite_data_index(raw_data_dir: Path, processed_dir: Path) -> DataInde
 def get_or_build_sqlite_data_index(raw_data_dir: Path, processed_dir: Path) -> DataIndexResponse:
     index_path = data_index_path(processed_dir)
     if not index_path.is_file():
-        return build_sqlite_data_index(raw_data_dir, processed_dir)
-    try:
-        connection = sqlite3.connect(index_path)
-        connection.row_factory = sqlite3.Row
-        try:
-            schema_version = _read_meta(connection, "schema_version")
-        finally:
-            connection.close()
-    except sqlite3.Error:
-        return build_sqlite_data_index(raw_data_dir, processed_dir)
-    if schema_version != DATA_INDEX_SCHEMA_VERSION:
         return build_sqlite_data_index(raw_data_dir, processed_dir)
     return summarize_sqlite_data_index(raw_data_dir, processed_dir)
 
@@ -346,17 +338,26 @@ def _from_sst_record(record: SstFileRecord) -> IndexedFileRecord:
 
 
 def _scan_intensity_records(raw_data_dir: Path) -> list[IndexedFileRecord]:
-    return [_from_intensity_record(record) for record in scan_front_intensity_records(raw_data_dir)]
-
-
-def _from_intensity_record(record: FrontIntensityFileRecord) -> IndexedFileRecord:
-    return IndexedFileRecord(
-        dataset_type=DATASET_INTENSITY,
-        path=record.path,
-        observation_dates=record.observation_dates,
-        size_bytes=record.size_bytes,
-        mtime_ns=record.mtime_ns,
-    )
+    records: list[IndexedFileRecord] = []
+    for directory_name in ("intensity", "front_intensity"):
+        root = raw_data_dir / directory_name
+        if not root.exists():
+            continue
+        for path in sorted({*root.rglob("*.nc"), *root.rglob("*.nc4")}):
+            observation_date = infer_date(path)
+            if observation_date is None:
+                continue
+            stat = path.stat()
+            records.append(
+                IndexedFileRecord(
+                    dataset_type=DATASET_INTENSITY,
+                    path=path,
+                    observation_dates=(observation_date,),
+                    size_bytes=stat.st_size,
+                    mtime_ns=stat.st_mtime_ns,
+                )
+            )
+    return records
 
 
 def _create_schema(connection: sqlite3.Connection) -> None:
@@ -617,7 +618,6 @@ def _query_examples() -> list[str]:
         "select relative_path from files where dataset_type = 'front_location' and date_start = '2024-08-05';",
         "select observation_date from file_dates where dataset_type = 'front_location' intersect select observation_date from file_dates where dataset_type = 'sst';",
         "select observation_date from file_dates where dataset_type = 'front_location' except select observation_date from file_dates where dataset_type = 'sst';",
-        "select relative_path from files where dataset_type = 'front_intensity' and date_start = '2024-08-05';",
     ]
 
 

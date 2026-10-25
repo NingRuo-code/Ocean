@@ -1,0 +1,14 @@
+这里可以抽象出一个计算机的问题：如何表示、匹配、比较和探索大量时空锋面事件，以及它们与渔业活动响应之间的模式？然后也可以结合人机协同来做分析
+
+1、Visual Causality Analysis of Event Sequence Data
+2、Constructing Spaces and Times for Tactical Analysis in Football，这篇可以瞅一眼，对大量移动轨迹中的episode进行选择、对齐、聚合和比较。
+3、Context-aware Event Forecasting via Graph Disentanglement
+4、TPFlow: Progressive Partition and Multidimensional Pattern Extraction for Large-Scale Spatio-Temporal Data Analysis
+5、Robust Event Forecasting with Spatiotemporal Confounder Learning
+6、ProactiveVA: Proactive Visual Analytics with LLM-Based UI Agent
+7、Urbanite: A Dataflow-Based Framework for Human-AI Interactive Alignment in Urban Visual Analytics
+
+
+这是一些计算机的论文，有可能能帮你们拔高的
+
+交给老师的时候老师说要做的事情很清楚了，参考文献不太计算机，给一些参考

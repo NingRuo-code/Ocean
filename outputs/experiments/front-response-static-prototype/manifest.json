@@ -1,0 +1,66 @@
+{
+  "schema_version": "front-response-experiment-manifest/v1",
+  "experiment_id": "front-response-static-prototype",
+  "inputs": [
+    {
+      "path": "frontend/prototype/data/front_response/events.js",
+      "schema_version": "front-response/v1",
+      "metric": "apparent_fishing_effort",
+      "unit": "fishing_hours",
+      "public_boundary": "aggregate_only"
+    }
+  ],
+  "parameters": {
+    "buffer_km": [
+      10,
+      20,
+      30
+    ],
+    "pre_window_days": 7,
+    "post_window_days": [
+      1,
+      3
+    ],
+    "post7_window_days": null,
+    "post_response_field": "post1_3_hours",
+    "post_response_window_days": [
+      1,
+      3
+    ],
+    "exploratory_window_days": [
+      -7,
+      7
+    ],
+    "control": "same-day non-front control area",
+    "control_min_distance_km": 50,
+    "bootstrap_iterations": 2000,
+    "permutation_iterations": 2000,
+    "random_seed": 20261013
+  },
+  "readiness": {
+    "acceptance_item": "before_after_7day_windows",
+    "status": "partial",
+    "before_after_7day_complete": false,
+    "post_response_field": "post1_3_hours",
+    "post7_window_declared": false,
+    "available_record_count": 186,
+    "records_with_complete_post7": 0,
+    "missing_complete_post7_records": 186,
+    "required_next_steps": [
+      "Produce a true post7_hours aggregate from authorized real apparent-fishing-effort input.",
+      "Set time_window.post7_window_days to [1, 7] in the front-response input.",
+      "Rerun tools/build-front-response.mjs and tools/run-front-response-experiment.mjs before marking the 7-day experiment complete."
+    ]
+  },
+  "generated_artifacts": [
+    "outputs/experiments/front-response-static-prototype/manifest.json",
+    "outputs/experiments/front-response-static-prototype/summary.json",
+    "outputs/experiments/front-response-static-prototype/report.md"
+  ],
+  "caveats": [
+    "This experiment uses aggregate apparent fishing-effort hours only.",
+    "The committed aggregate has pre7_hours and post1_3_hours inside a -7 to +7 day exploratory window; it does not contain a separate post7_hours field, so the experiment uses post1_3_hours as the post-event response metric.",
+    "Missing or unavailable records are excluded from numerical samples and are reflected in coverage_ratio, not treated as zero.",
+    "Raw or fine-grained AIS/GFW data is not committed."
+  ]
+}

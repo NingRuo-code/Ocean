@@ -1,0 +1,400 @@
+{
+  "snapshots": [
+    {
+      "name": "current-state-static-prototype",
+      "method": "GET",
+      "path": "/api/query/current-state",
+      "params": {
+        "date": "2024-08-05",
+        "bbox": "122,27,124.2,29.6",
+        "step": 4
+      },
+      "status_code": 200,
+      "response": {
+        "kind": "current_state",
+        "status": "ok",
+        "source": {
+          "service": "viewport",
+          "query_service_version": "basic-query-v1",
+          "viewport_source": "static_prototype",
+          "viewport_cache": {
+            "enabled": true,
+            "hit": "<cache-dependent>",
+            "version": "static-prototype-v1-contract-v1"
+          }
+        },
+        "parameters": {
+          "date": "2024-08-05",
+          "bbox": [
+            122.0,
+            27.0,
+            124.2,
+            29.6
+          ],
+          "step": 4
+        },
+        "metrics": {
+          "front_feature_count": 2,
+          "sst_cell_count": 143,
+          "fishing_effort_cell_count": 3,
+          "total_apparent_fishing_hours": 50872.41,
+          "enhanced_response_count": 3
+        },
+        "evidence": [
+          {
+            "id": "front-feature-count",
+            "label": "front features",
+            "value": "2",
+            "detail": "Count of front features intersecting the requested viewport.",
+            "source_files": [
+              "front_location20240805.nc",
+              "sst_20240805.nc"
+            ]
+          },
+          {
+            "id": "sst-sample-count",
+            "label": "SST samples",
+            "value": "143",
+            "detail": "Number of sampled SST cells returned in Celsius.",
+            "source_files": [
+              "front_location20240805.nc",
+              "sst_20240805.nc"
+            ]
+          },
+          {
+            "id": "apparent-fishing-effort",
+            "label": "apparent fishing effort",
+            "value": "50872.41 fishing hours",
+            "detail": "Sum of returned apparent fishing-effort cells; this is not catch, yield, biomass, or revenue.",
+            "source_files": [
+              "front_location20240805.nc",
+              "sst_20240805.nc"
+            ]
+          }
+        ],
+        "coverage": {
+          "status": "ok",
+          "requestBbox": [
+            122.0,
+            27.0,
+            124.2,
+            29.6
+          ],
+          "coveredBbox": [
+            122.0,
+            27.0,
+            124.2,
+            29.6
+          ],
+          "layers": {
+            "fronts": "available",
+            "sst": "available",
+            "fishingEffort": "available"
+          },
+          "sample_count": null,
+          "expected_sample_count": null,
+          "coverage_ratio": null
+        },
+        "caveats": [
+          "Static prototype data is served through the backend viewport contract; raw NetCDF and raw AIS/GFW ingestion are not part of this endpoint yet.",
+          "Fishing layer uses apparent fishing effort measured as fishing hours, not catch or yield.",
+          "SST values are returned in Celsius and come from the committed static prototype SST artifact.",
+          "This endpoint summarizes deterministic viewport output for product queries; it does not call an AI model."
+        ]
+      }
+    },
+    {
+      "name": "front-response-static-prototype",
+      "method": "GET",
+      "path": "/api/query/front-response",
+      "params": {
+        "date": "2024-08-05",
+        "bbox": "122,27,124.2,29.6",
+        "step": 4
+      },
+      "status_code": 200,
+      "response": {
+        "kind": "front_response",
+        "status": "ok",
+        "source": {
+          "service": "viewport",
+          "query_service_version": "basic-query-v1",
+          "viewport_source": "static_prototype",
+          "viewport_cache": {
+            "enabled": true,
+            "hit": "<cache-dependent>",
+            "version": "static-prototype-v1-contract-v1"
+          }
+        },
+        "parameters": {
+          "date": "2024-08-05",
+          "bbox": [
+            122.0,
+            27.0,
+            124.2,
+            29.6
+          ],
+          "step": 4
+        },
+        "metrics": {
+          "response_record_count": 3,
+          "buffer_km": [
+            10,
+            20,
+            30
+          ],
+          "post_window_apparent_fishing_hours": 50872.41,
+          "pre7_apparent_fishing_hours": 30485.18,
+          "non_front_control_hours": 13355.25,
+          "enhanced_response_count": 3,
+          "mean_lift_percent": 78.67
+        },
+        "evidence": [
+          {
+            "id": "front-response-records",
+            "label": "response records",
+            "value": "3",
+            "detail": "Returned response records linked to front objects in the requested viewport.",
+            "source_files": [
+              "front_location20240805.nc",
+              "sst_20240805.nc"
+            ]
+          },
+          {
+            "id": "post-window-effort",
+            "label": "post-window apparent fishing effort",
+            "value": "50872.41 fishing hours",
+            "detail": "Apparent fishing-effort hours after front events, not catch or guaranteed fishing success.",
+            "source_files": [
+              "front_location20240805.nc",
+              "sst_20240805.nc"
+            ]
+          },
+          {
+            "id": "control-effort",
+            "label": "non-front control effort",
+            "value": "13355.25 fishing hours",
+            "detail": "Control-region effort carried from the deterministic front-response artifact.",
+            "source_files": [
+              "front_location20240805.nc",
+              "sst_20240805.nc"
+            ]
+          }
+        ],
+        "coverage": {
+          "status": "ok",
+          "requestBbox": [
+            122.0,
+            27.0,
+            124.2,
+            29.6
+          ],
+          "coveredBbox": [
+            122.0,
+            27.0,
+            124.2,
+            29.6
+          ],
+          "layers": {
+            "fronts": "available",
+            "sst": "available",
+            "fishingEffort": "available"
+          },
+          "sample_count": null,
+          "expected_sample_count": null,
+          "coverage_ratio": null
+        },
+        "caveats": [
+          "Static prototype data is served through the backend viewport contract; raw NetCDF and raw AIS/GFW ingestion are not part of this endpoint yet.",
+          "Fishing layer uses apparent fishing effort measured as fishing hours, not catch or yield.",
+          "SST values are returned in Celsius and come from the committed static prototype SST artifact.",
+          "Front-response output describes apparent fishing-effort response only; it must not be read as catch, yield, revenue, biomass, or guaranteed fishing success.",
+          "This endpoint summarizes committed deterministic response artifacts and does not call an AI model."
+        ]
+      }
+    },
+    {
+      "name": "historical-comparison-empty-raw-data",
+      "method": "GET",
+      "path": "/api/query/historical-comparison",
+      "params": {
+        "date": "2024-08-05",
+        "longitude": 120.5,
+        "latitude": 30.5,
+        "radius_deg": 1
+      },
+      "status_code": 200,
+      "response": {
+        "kind": "historical_comparison",
+        "status": "unavailable",
+        "source": {
+          "service": "history.probability",
+          "query_service_version": "basic-query-v1",
+          "cache": {
+            "hit": "<cache-dependent>",
+            "key": "0042abab897eb1203e8a2bc738d9629556c6e172",
+            "index_fingerprint": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+            "path": "<generated>",
+            "generated_at": "<generated>",
+            "cache_layer": "json-query-cache",
+            "metadata_source": "directory-scan",
+            "records_evaluated": 0,
+            "timeline_record_count": 0,
+            "duration_ms": "<generated>"
+          }
+        },
+        "parameters": {
+          "date": "2024-08-05",
+          "longitude": 120.5,
+          "latitude": 30.5,
+          "radius_deg": 1.0
+        },
+        "metrics": {
+          "same_period_probability": null,
+          "same_period_sample_count": 0,
+          "same_period_expected_sample_count": 43,
+          "same_period_coverage_ratio": 0.0,
+          "monthly_probability": null,
+          "monthly_sample_count": 0,
+          "monthly_expected_sample_count": 1333,
+          "monthly_coverage_ratio": 0.0,
+          "sample_reliability_level": "none",
+          "sample_reliability_label": "无同期样本"
+        },
+        "evidence": [
+          {
+            "id": "same-period-probability",
+            "label": "same-period front probability",
+            "value": "unavailable",
+            "detail": "0/0 same-period samples had front-line pixels.",
+            "source_files": []
+          },
+          {
+            "id": "monthly-probability",
+            "label": "monthly front probability",
+            "value": "unavailable",
+            "detail": "0/0 monthly samples had front-line pixels.",
+            "source_files": []
+          },
+          {
+            "id": "sample-coverage",
+            "label": "sample coverage",
+            "value": "无同期样本",
+            "detail": "当前没有同月同日历史样本；完整目标为 1982—2024 共 43 年。",
+            "source_files": []
+          }
+        ],
+        "coverage": {
+          "status": "unavailable",
+          "requestBbox": null,
+          "coveredBbox": null,
+          "layers": {},
+          "sample_count": 0,
+          "expected_sample_count": 43,
+          "coverage_ratio": 0.0
+        },
+        "caveats": [
+          "历史同期概率按同月同日记录计算。",
+          "月度概率按查询日期所在月份的全部本地历史记录计算。",
+          "每条参与记录均保留日期、命中状态、像元统计和源文件路径，便于复核。",
+          "本地数据目录中未找到可用的锋面历史文件。",
+          "请先把逐日 front NetCDF 放入 data/raw/front 后再查询历史统计。",
+          "当前没有同月同日历史样本；完整目标为 1982—2024 共 43 年。",
+          "Historical comparison is a deterministic sample statistic, not a forecast and not a confidence interval.",
+          "This endpoint does not call an AI model."
+        ]
+      }
+    },
+    {
+      "name": "current-state-unavailable-date",
+      "method": "GET",
+      "path": "/api/query/current-state",
+      "params": {
+        "date": "2024-09-01",
+        "bbox": "122,27,124.2,29.6",
+        "step": 4
+      },
+      "status_code": 200,
+      "response": {
+        "kind": "current_state",
+        "status": "unavailable",
+        "source": {
+          "service": "viewport",
+          "query_service_version": "basic-query-v1",
+          "viewport_source": "static_prototype",
+          "viewport_cache": {
+            "enabled": true,
+            "hit": "<cache-dependent>",
+            "version": "static-prototype-v1-contract-v1"
+          }
+        },
+        "parameters": {
+          "date": "2024-09-01",
+          "bbox": [
+            122.0,
+            27.0,
+            124.2,
+            29.6
+          ],
+          "step": 4
+        },
+        "metrics": {
+          "front_feature_count": null,
+          "sst_cell_count": null,
+          "fishing_effort_cell_count": null,
+          "total_apparent_fishing_hours": null,
+          "enhanced_response_count": null
+        },
+        "evidence": [
+          {
+            "id": "front-feature-count",
+            "label": "front features",
+            "value": "unavailable",
+            "detail": "Front layer is empty or unavailable for this request; this is not a zero-front measurement.",
+            "source_files": []
+          },
+          {
+            "id": "sst-sample-count",
+            "label": "SST samples",
+            "value": "unavailable",
+            "detail": "SST layer is empty or unavailable for this request; this is not a zero-temperature measurement.",
+            "source_files": []
+          },
+          {
+            "id": "apparent-fishing-effort",
+            "label": "apparent fishing effort",
+            "value": "unavailable",
+            "detail": "Fishing-effort layer is empty or unavailable; missing coverage is not interpreted as 0 fishing hours.",
+            "source_files": []
+          }
+        ],
+        "coverage": {
+          "status": "unavailable",
+          "requestBbox": [
+            122.0,
+            27.0,
+            124.2,
+            29.6
+          ],
+          "coveredBbox": null,
+          "layers": {
+            "fronts": "unavailable",
+            "sst": "unavailable",
+            "fishingEffort": "unavailable"
+          },
+          "sample_count": null,
+          "expected_sample_count": null,
+          "coverage_ratio": null
+        },
+        "caveats": [
+          "Static prototype data is served through the backend viewport contract; raw NetCDF and raw AIS/GFW ingestion are not part of this endpoint yet.",
+          "Fishing layer uses apparent fishing effort measured as fishing hours, not catch or yield.",
+          "SST values are returned in Celsius and come from the committed static prototype SST artifact.",
+          "Unavailable coverage means a required static prototype artifact is missing for this request, not zero activity.",
+          "At least one layer is unavailable for this date or source; clients must keep this distinct from zero values.",
+          "This endpoint summarizes deterministic viewport output for product queries; it does not call an AI model."
+        ]
+      }
+    }
+  ]
+}

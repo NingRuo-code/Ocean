@@ -1,0 +1,202 @@
+{
+  "parent": 35,
+  "work_package": 14,
+  "approval": "User confirmed the nine-ticket breakdown and blocking edges on 2026-10-24",
+  "tickets": [
+    {
+      "local_id": 1,
+      "title": "[P0 P01] 运行首份可追溯的数据审计快照",
+      "filename": "01-source-snapshot.md",
+      "number": 36,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/36",
+      "blocker_numbers": [],
+      "body_sha256": "30602413a2b72512a18ccdc8612f4fec98c016fd5ca8725850786c6250646583",
+      "database_id": 6008467230,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true
+    },
+    {
+      "local_id": 2,
+      "title": "[P0 P02] 逐日核实锋面与海温内容及有效支持",
+      "filename": "02-front-sst-validity.md",
+      "number": 37,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/37",
+      "blocker_numbers": [
+        36
+      ],
+      "body_sha256": "4b7c39c7de3f81794f82b7a27f8f91faed172934b9bcd9fa400d7707a5caaa6d",
+      "database_id": 6008467522,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true
+    },
+    {
+      "local_id": 3,
+      "title": "[P0 P03] 逐日核实AIS零值、粒度与小时守恒",
+      "filename": "03-ais-zero-resolution.md",
+      "number": 38,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/38",
+      "blocker_numbers": [
+        36
+      ],
+      "body_sha256": "cbd6204c09dae00eecb9b370cd4283b8a1dbc42bf3e5a023b442f7db4a987d02",
+      "database_id": 6008467794,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true
+    },
+    {
+      "local_id": 4,
+      "title": "[P0 P04] 对公里圆给出可复算的面积与分母",
+      "filename": "04-regional-geometry.md",
+      "number": 39,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/39",
+      "blocker_numbers": [
+        37,
+        38
+      ],
+      "body_sha256": "0e132d86501595a8a72366d68e464faae89e162dce5666889cc72595ac184f1f",
+      "database_id": 6008468042,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true
+    },
+    {
+      "local_id": 5,
+      "title": "[P0 P05] 核对本地、离线与服务器资料身份",
+      "filename": "05-environment-lineage.md",
+      "number": 40,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/40",
+      "blocker_numbers": [
+        36
+      ],
+      "body_sha256": "b15a5a918f3bceea82dc479e1491a92cf208c270c8015ba50a27e571cf54ab6c",
+      "database_id": 6008468300,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true
+    },
+    {
+      "local_id": 6,
+      "title": "[P0 P06] 判断完整月与事件窗口的数据资格",
+      "filename": "06-monthly-support.md",
+      "number": 41,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/41",
+      "blocker_numbers": [
+        39
+      ],
+      "body_sha256": "a2a136246fa4eef85eac31f729b10891bce9f68e3ed5b452f1b7ee6852b7ff9c",
+      "database_id": 6008468548,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true
+    },
+    {
+      "local_id": 7,
+      "title": "[P0 P07] 现有查询读取同一份轻量支持结论",
+      "filename": "07-query-support.md",
+      "number": 42,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/42",
+      "blocker_numbers": [
+        41
+      ],
+      "body_sha256": "ca0284f477631b7533c11885b286121cfb99ac898115380bb34149380806102c",
+      "database_id": 6008468812,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true
+    },
+    {
+      "local_id": 8,
+      "title": "[P0 P08] 源数据变化后旧资格不被误用",
+      "filename": "08-version-replay.md",
+      "number": 43,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/43",
+      "blocker_numbers": [
+        42
+      ],
+      "body_sha256": "4a92090346ddcd706663622e983d92d7999fcbbd46d80fecd4ebad74d3c1427c",
+      "database_id": 6008469096,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true
+    },
+    {
+      "local_id": 9,
+      "title": "[P0 P09] 交付东海2024年8月真实审计与研究关口证据",
+      "filename": "09-ecs-month-evidence.md",
+      "number": 44,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/44",
+      "blocker_numbers": [
+        40,
+        41
+      ],
+      "body_sha256": "46bb137ba897cf3565777306785c6361f73d68308477db0129191f85086fc25e",
+      "database_id": 6008469382,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true
+    }
+  ],
+  "edges": [
+    {
+      "child": 37,
+      "blocked_by": 36,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 38,
+      "blocked_by": 36,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 39,
+      "blocked_by": 37,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 39,
+      "blocked_by": 38,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 40,
+      "blocked_by": 36,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 41,
+      "blocked_by": 39,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 42,
+      "blocked_by": 41,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 43,
+      "blocked_by": 42,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 44,
+      "blocked_by": 40,
+      "text_reference_verified": true,
+      "native": true
+    },
+    {
+      "child": 44,
+      "blocked_by": 41,
+      "text_reference_verified": true,
+      "native": true
+    }
+  ],
+  "completed": true,
+  "parent_unchanged_verified": true,
+  "work_package_unchanged_verified": true,
+  "native_dependencies_available": true,
+  "frontier": [
+    36
+  ]
+}

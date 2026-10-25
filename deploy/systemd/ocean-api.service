@@ -1,0 +1,41 @@
+# 海洋锋面 · 后端服务（服务器端渲染 + 数据分析 API）
+# 安装：cp 到 /etc/systemd/system/ocean-api.service && systemctl daemon-reload && systemctl enable --now ocean-api
+#
+# 设计要点：
+# ① 只监听 127.0.0.1:8000，公网入口统一走 Nginx 反代（不暴露 uvicorn）
+# ② 数据与缓存路径用环境变量指定，代码里 config.py 的 PROJECT_ROOT 默认值只用于本地开发
+# ③ 2 vCPU / 4 GiB 下用 2 个 worker：单 worker 时并发请求（如 20 路 /api/catalog）
+#    会串行排队，最慢能到 9 s；xarray 读 NetCDF 只按窗口切片，实测 worker 常驻 205 MB，
+#    2 个 worker 仍远低于 4 GiB。若将来真的 OOM，先降回 --workers 1 再看。
+# ④ 以普通用户 ocean 运行：即使将来加固到公网域名，也不必以 root 暴露 Web 服务
+
+[Unit]
+Description=Ocean Front API (FastAPI offline data service)
+Documentation=file:/opt/ocean/deploy/RUNBOOK.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ocean
+Group=ocean
+WorkingDirectory=/opt/ocean/backend
+
+Environment=OCEAN_RAW_DATA_DIR=/srv/ocean/data/raw
+Environment=OCEAN_CACHE_DIR=/srv/ocean/data/cache
+Environment=OCEAN_DATASET_ID=global-daily-mesoscale-front-v1
+Environment=OCEAN_DATASET_VERSION=V1.0
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+ExecStart=/opt/ocean/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2
+Restart=on-failure
+RestartSec=3
+# 渲染大范围 raster 时给足时间，避免被 systemd 提前杀掉
+TimeoutStopSec=20
+
+# 基础加固：只让服务写下列数据路径
+ReadWritePaths=/srv/ocean/data/cache /srv/ocean/data/processed /srv/ocean/data/outputs
+
+[Install]
+WantedBy=multi-user.target

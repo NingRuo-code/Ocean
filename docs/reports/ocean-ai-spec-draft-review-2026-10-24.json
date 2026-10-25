@@ -1,0 +1,232 @@
+{
+  "status": "approved-published",
+  "date": "2026-10-24",
+  "spec": "docs/specs/ocean-ai-multiturn-evidence-workbench-spec-2026-10-24.md",
+  "proposed_title": "[Spec] AI 多轮分析：同条件任务执行、证据解释与有界在线模型",
+  "user_stories": 64,
+  "implementation_checks": 64,
+  "testing_decisions": 9,
+  "source_specs_match_remote": [
+    24,
+    95,
+    109,
+    125,
+    141,
+    159,
+    176
+  ],
+  "sources": [
+    {
+      "number": 101,
+      "title": "[W W06] 取消真实运行任务且不混入迟到成果",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "4e0571c56084d7661d0c2b7ab5563cc4218b7d11a56829ecafda1001de9acf96"
+    },
+    {
+      "number": 102,
+      "title": "[W W07] 失败后明确重试并区分原条件与新请求",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "fdea2477f53552f80f9e2358d172d1307497320bba38c5eb96b0b7b669573843"
+    },
+    {
+      "number": 107,
+      "title": "[W W12] 按原条件定位结果且保持地图与精简阅读",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "741c19cb5df3dd9ce48cc21e2d4be51922b762439aa0da75946ec8285ce00bd4"
+    },
+    {
+      "number": 109,
+      "title": "[Spec] TASK 公共任务中心：安全恢复、归档准备与分层保存",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "ee01726c8ec92ff56b0fbe1868d35e3cbb44dc6be680523280ba7690f5a98954"
+    },
+    {
+      "number": 113,
+      "title": "[TASK T04] 后台任务按资源排队并显示真实步骤进度",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "a03afa4b47098da291fac22c275d19acbca4c9431d4aaf85d079d0c6c9257f7c"
+    },
+    {
+      "number": 119,
+      "title": "[TASK T10] 保留轻量证据并说明大产物与复算状态",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "0e8a8e64ee4b928bec0c572d84c88a64adce6cd1d9e5f1477a7e90ccb8b7370e"
+    },
+    {
+      "number": 120,
+      "title": "[TASK T11] 保护已保存成果及活动共享引用",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "e6c5b9604ea691c944b3d1b060a27297727beea58ffd1e9c2162df50ca7dbe34"
+    },
+    {
+      "number": 123,
+      "title": "[TASK T14] 据混合负载实测冻结任务与保存限额",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "750897369759a3b0c804ca00e5b49cfed3f52ff87bada718b1bc844ea021cbee"
+    },
+    {
+      "number": 125,
+      "title": "[Spec] REPORT 案例与研究成果：版本快照、统一报告与同源导出",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "599b7f3fa25e0e61d71a28f91f9e67fe00a20d704facb7ceba0f5cf43e392a22"
+    },
+    {
+      "number": 127,
+      "title": "[REPORT R02] 保存并保护案例后按原版本重新打开",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "6b1cfe83e5f4a858e3c03797e8092bd91dc6396806abdd307dd4f65cbcaf721a"
+    },
+    {
+      "number": 128,
+      "title": "[REPORT R03] 检索案例并以新版本修改笔记和关联结果",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "a9f44085933c728ec4193ed994aeb2ffc271413219622dae6eea38cf05f2336c"
+    },
+    {
+      "number": 13,
+      "title": "执行总纲：可信历史分析 A→B→C 与界面、任务工作台改进",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "6d62cc98dc410af20b3b7ba0d550a6cbb20ec6206e0637422911dd77c639115b"
+    },
+    {
+      "number": 135,
+      "title": "[REPORT R10] 接入真实B事件案例和分窗口报告",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "028c9bbaa9c23a5765abeb37241a429174cec4481503c86d18079d829a825006"
+    },
+    {
+      "number": 138,
+      "title": "[REPORT R13] 按导出用途投影字段并核对文件元信息",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "93b89671a2d7dd83e928e239b20897d38411ead4f1a6f4c8266126047f545e8f"
+    },
+    {
+      "number": 141,
+      "title": "[Spec] G3 独立复核：跨年季节与海域的关系稳健性",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "531444fd3ee8dafeb89446e5337dd7d15980c1edae314782bbb822a0dc253c2d"
+    },
+    {
+      "number": 144,
+      "title": "[G3 V03] 登记资料接触并冻结可审查复核方案",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "0f363d6d9d798f15d71f3b4015de842633f9e38aac68b0e418b636681a89a23f"
+    },
+    {
+      "number": 145,
+      "title": "[G3 V04] 阻止重叠样本和相关事件跨入独立复核",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "4462c8abd65b220d491a5877481de17f6329aacc1b63c62923988a82d07019a6"
+    },
+    {
+      "number": 159,
+      "title": "[Spec] G3 相似案例与辅助匹配：可解释检索、响应对照与断档说明",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "f8c450dfabc95b52e86471864668b8a90f4837b14b837189edbd33a3467f2aac"
+    },
+    {
+      "number": 165,
+      "title": "[G3 S06] 展开原B响应并识别重复事件变体",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "6dfcb39cbd4582253c52e595fed6263b416ce35f2812a46a41972948a8703915"
+    },
+    {
+      "number": 167,
+      "title": "[G3 S08] 隔离验证保留资料并登记实际检索接触",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "45c7ddf12f5948d9d868138676bf81dde396dbff6e0862063db9d225fa42a750"
+    },
+    {
+      "number": 173,
+      "title": "[G3 S14] 回放真实历史检索与不同案例响应证据",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "4bb1b82be4f43d7d4bc7dfb4373fc8e994b1df506f47cdc7bae4132b3048c8c1"
+    },
+    {
+      "number": 176,
+      "title": "[Spec] PRED 活动预测：可知输入、简单基线与锋面增量独立回测",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "914eda9ca18040f6a48dc836ab743c0cbbe4f73c4c576f4754a27a2cb39d5655"
+    },
+    {
+      "number": 181,
+      "title": "[PRED P05] 登记预测分区并阻止窗口和目标泄漏",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "1005f5718e956bbccc2e136dcca105f1800ca3966aac6d2736ca65a2afd6f849"
+    },
+    {
+      "number": 192,
+      "title": "[PRED P16] 按原条件阅读预测并区分观测图层",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "61d53a1acfaeb2e36c51f62db87b04c251b02b581cf6da2d9c85ce04df3a843a"
+    },
+    {
+      "number": 198,
+      "title": "[PRED P22] 汇合预测实证与空间扩展并交接完整范围",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "43f30b900531b6d029cda48031916c7d6f341809f6dc2e0d26060a4abbe34293"
+    },
+    {
+      "number": 21,
+      "title": "[W] 工作台接入已验证的 A/B/C 分析任务",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "0a95219e31acef44ffb23f10e7659efb7501df70f7d3cd5390112b6c3e40fc90"
+    },
+    {
+      "number": 24,
+      "title": "[Spec] U1/U2 首批界面迁移：工作台、统一筛选与可信结果展示",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "13de9e3f7bd33db0f5eb9d7101f271e876869f6783e9ccb354d2be3f50754215"
+    },
+    {
+      "number": 95,
+      "title": "[Spec] W 分析工作台：A/B/C 引导提交、任务状态与同源结果联动",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "854716edcf9ace8eb94f27567ebb4d1fe465c0d9c7d70ab2f7d30161db2fee8f"
+    },
+    {
+      "number": 99,
+      "title": "[W W04] 本人显式提交A任务并取得持久受理记录",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "a86b5fae8a3bb33587465853ff476ae9309f4b4a2ee1f952ff146d81cd0174e6"
+    }
+  ],
+  "existing_issues_checked_through": 198,
+  "published": true,
+  "model_calls_executed": false,
+  "scientific_calculation_executed": false,
+  "parents_modified": false,
+  "testing_boundary_user_confirmed": true,
+  "issue": 199,
+  "url": "https://github.com/NingRuo-code/Ocean/issues/199",
+  "publication_report": "docs/reports/ocean-ai-spec-publication-2026-10-24.json"
+}

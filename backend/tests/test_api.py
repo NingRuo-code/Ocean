@@ -1,11 +1,17 @@
+import os
+import shutil
+from datetime import date as date_type
 from pathlib import Path
 
 import numpy as np
+import pytest
 import xarray as xr
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 from app.config import settings
 from app.main import app
+from app.schemas import ViewportCoverage, ViewportLayerCoverage, ViewportRequest
 
 client = TestClient(app)
 
@@ -13,13 +19,499 @@ client = TestClient(app)
 def test_health() -> None:
     response = client.get("/api/health")
     assert response.status_code == 200
-    assert response.json()["offline"] is True
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert payload["service"] == settings.app_name
+    assert payload["offline"] is True
+
+
+def test_ai_health() -> None:
     ai_response = client.get("/api/ai/health")
     assert ai_response.status_code == 200
     ai_payload = ai_response.json()
     assert ai_payload["provider"]
     assert ai_payload["offline"] is True
     assert ai_payload["checked_at"]
+
+
+def test_viewport_static_prototype_happy_path_contract(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
+    response = client.get(
+        "/api/viewport",
+        params={"date": "2024-08-05", "bbox": "122,27,124.2,29.6", "step": 4},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert set(payload) == {"meta", "layers", "coverage", "caveats"}
+    assert payload["meta"]["status"] == "ok"
+    assert payload["meta"]["source"] == "static_prototype"
+    assert payload["meta"]["date"] == "2024-08-05"
+    assert payload["meta"]["bbox"] == [122.0, 27.0, 124.2, 29.6]
+    assert payload["meta"]["step"] == 4
+    assert payload["meta"]["resolution"]["spatial_deg"] == 0.05
+    assert payload["meta"]["cache"]["enabled"] is True
+    assert payload["meta"]["cache"]["hit"] is False
+    assert payload["meta"]["cache"]["version"]
+
+    layers = payload["layers"]
+    assert set(layers) == {"fronts", "sst", "fishingEffort"}
+    assert layers["fronts"]["type"] == "FeatureCollection"
+    front_ids = {feature["properties"]["frontId"] for feature in layers["fronts"]["features"]}
+    assert "F002" in front_ids
+    assert layers["sst"]["unit"] == "celsius"
+    assert layers["sst"]["sourceUnit"] == "degree_C"
+    assert layers["sst"]["source"]["kind"] == "static_prototype_sst"
+    assert layers["sst"]["cells"]
+    assert isinstance(layers["sst"]["cells"][0]["value"], float)
+    assert layers["fishingEffort"]["metric"] == "apparent_fishing_effort"
+    assert layers["fishingEffort"]["unit"] == "fishing_hours"
+    assert layers["fishingEffort"]["source"]["kind"] == "gfw_apparent_fishing_effort"
+    assert layers["fishingEffort"]["cells"]
+    assert layers["fishingEffort"]["cells"][0]["frontId"] == "F002"
+    assert layers["fishingEffort"]["cells"][0]["hours"] > 0
+    assert payload["coverage"]["status"] == "ok"
+    assert payload["coverage"]["bbox"] == [122.0, 27.0, 124.2, 29.6]
+    assert payload["coverage"]["requestBbox"] == [122.0, 27.0, 124.2, 29.6]
+    assert payload["coverage"]["coveredBbox"] == [122.0, 27.0, 124.2, 29.6]
+    assert payload["coverage"]["layers"]["fronts"] == "available"
+    assert payload["coverage"]["layers"]["sst"] == "available"
+    assert payload["coverage"]["layers"]["fishingEffort"] == "available"
+    assert any("apparent fishing effort" in caveat for caveat in payload["caveats"])
+
+
+def test_viewport_pydantic_models_validate_contract() -> None:
+    request = ViewportRequest(date=date_type(2024, 8, 5), bbox=[120, 30, 121, 31], step=1)
+    assert request.bbox == [120, 30, 121, 31]
+
+    with pytest.raises(ValidationError):
+        ViewportRequest(date=date_type(2024, 8, 5), bbox=[120, 30, 121], step=1)
+    with pytest.raises(ValidationError):
+        ViewportRequest(date=date_type(2024, 8, 5), bbox=[120, 30, 121, 31], step=0)
+    with pytest.raises(ValidationError):
+        ViewportLayerCoverage(fronts="missing", sst="available", fishing_effort="available")
+    mixed_layers = ViewportLayerCoverage(
+        fronts="available",
+        sst="unavailable",
+        fishing_effort="partial",
+    )
+    assert mixed_layers.fronts == "available"
+    assert mixed_layers.sst == "unavailable"
+    assert mixed_layers.fishing_effort == "partial"
+    with pytest.raises(ValidationError):
+        ViewportCoverage(
+            status="future",
+            request_bbox=[120, 30, 121, 31],
+            bbox=[120, 30, 121, 31],
+            layers=ViewportLayerCoverage(
+                fronts="available",
+                sst="available",
+                fishing_effort="available",
+            ),
+        )
+
+
+def test_viewport_partial_coverage_is_explicit(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
+    response = client.get(
+        "/api/viewport",
+        params={"date": "2024-08-05", "bbox": "127,33,129,35", "step": 2},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["meta"]["status"] == "partial"
+    assert payload["coverage"]["status"] == "partial"
+    assert payload["coverage"]["bbox"] == [127.0, 33.0, 128.0, 34.0]
+    assert payload["coverage"]["requestBbox"] == [127.0, 33.0, 129.0, 35.0]
+    assert payload["coverage"]["coveredBbox"] == [127.0, 33.0, 128.0, 34.0]
+    assert payload["coverage"]["layers"]["fronts"] == "partial"
+    assert payload["coverage"]["layers"]["sst"] == "partial"
+    assert payload["coverage"]["layers"]["fishingEffort"] == "unavailable"
+    assert payload["layers"]["fronts"]["features"]
+    assert payload["layers"]["sst"]["cells"]
+    assert payload["layers"]["fishingEffort"]["cells"] == []
+    assert any("partial" in caveat.lower() for caveat in payload["caveats"])
+    assert any("not catch or yield" in caveat for caveat in payload["caveats"])
+
+
+def test_viewport_static_adapter_marks_missing_layer_sources_unavailable(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    prototype_root = tmp_path / "prototype"
+    (prototype_root / "day").mkdir(parents=True)
+    shutil.copyfile(
+        settings.prototype_data_dir / "day" / "2024-08-05.js",
+        prototype_root / "day" / "2024-08-05.js",
+    )
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
+    monkeypatch.setattr(settings, "prototype_data_dir", prototype_root)
+
+    response = client.get(
+        "/api/viewport",
+        params={"date": "2024-08-05", "bbox": "122,27,124.2,29.6", "step": 4},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["meta"]["status"] == "partial"
+    assert payload["coverage"]["layers"] == {
+        "fronts": "available",
+        "sst": "unavailable",
+        "fishingEffort": "unavailable",
+    }
+    assert payload["layers"]["fronts"]["features"]
+    assert payload["layers"]["sst"]["cells"] == []
+    assert payload["layers"]["fishingEffort"]["cells"] == []
+    assert any("At least one layer is unavailable" in caveat for caveat in payload["caveats"])
+
+
+def test_viewport_empty_coverage_does_not_mean_zero_activity(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
+    response = client.get(
+        "/api/viewport",
+        params={"date": "2024-08-05", "bbox": "150,30,151,31", "step": 1},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["meta"]["status"] == "empty"
+    assert payload["coverage"]["status"] == "empty"
+    assert payload["coverage"]["bbox"] is None
+    assert payload["coverage"]["requestBbox"] == [150.0, 30.0, 151.0, 31.0]
+    assert payload["coverage"]["coveredBbox"] is None
+    assert payload["coverage"]["layers"] == {
+        "fronts": "empty",
+        "sst": "empty",
+        "fishingEffort": "empty",
+    }
+    assert payload["layers"]["fronts"]["features"] == []
+    assert payload["layers"]["sst"]["cells"] == []
+    assert payload["layers"]["fishingEffort"]["cells"] == []
+    assert any("no covered static prototype cells" in caveat for caveat in payload["caveats"])
+    assert any("not zero activity" in caveat for caveat in payload["caveats"])
+
+
+def test_viewport_unavailable_date_is_a_structured_response(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
+    response = client.get(
+        "/api/viewport",
+        params={"date": "2024-09-01", "bbox": "120,30,121,31", "step": 1},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["meta"]["status"] == "unavailable"
+    assert payload["coverage"]["status"] == "unavailable"
+    assert payload["coverage"]["bbox"] is None
+    assert payload["coverage"]["requestBbox"] == [120.0, 30.0, 121.0, 31.0]
+    assert payload["coverage"]["coveredBbox"] is None
+    assert payload["coverage"]["layers"] == {
+        "fronts": "unavailable",
+        "sst": "unavailable",
+        "fishingEffort": "unavailable",
+    }
+    assert payload["layers"]["fronts"]["features"] == []
+    assert payload["layers"]["sst"]["cells"] == []
+    assert payload["layers"]["fishingEffort"]["cells"] == []
+    assert any("unavailable" in caveat.lower() for caveat in payload["caveats"])
+    assert any("apparent fishing effort" in caveat for caveat in payload["caveats"])
+
+
+def test_viewport_rejects_invalid_parameters() -> None:
+    assert (
+        client.get(
+            "/api/viewport",
+            params={"date": "2024-13-40", "bbox": "120,30,121,31", "step": 1},
+        ).status_code
+        == 422
+    )
+    assert (
+        client.get(
+            "/api/viewport",
+            params={"date": "2024-08-05", "bbox": "121,30,120,31", "step": 1},
+        ).status_code
+        == 422
+    )
+    assert (
+        client.get(
+            "/api/viewport",
+            params={"date": "2024-08-05", "bbox": "120,30,121", "step": 1},
+        ).status_code
+        == 422
+    )
+    assert (
+        client.get(
+            "/api/viewport",
+            params={"date": "2024-08-05", "bbox": "120,30,121,31", "step": 0},
+        ).status_code
+        == 422
+    )
+
+
+def test_viewport_cache_hits_equivalent_requests_and_respects_version(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from app import viewport as viewport_module
+
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
+    first = client.get(
+        "/api/viewport",
+        params={"date": "2024-08-05", "bbox": "120.0000,30.0,121.000,31", "step": 1},
+    )
+    assert first.status_code == 200
+    assert first.json()["meta"]["cache"]["hit"] is False
+
+    second = client.get(
+        "/api/viewport",
+        params={"date": "2024-08-05", "bbox": "120,30,121,31", "step": 1},
+    )
+    assert second.status_code == 200
+    second_payload = second.json()
+    assert second_payload["meta"]["cache"]["enabled"] is True
+    assert second_payload["meta"]["cache"]["hit"] is True
+    assert second_payload["meta"]["cache"]["version"] == viewport_module.VIEWPORT_CACHE_VERSION
+    assert second_payload["layers"] == first.json()["layers"]
+    assert len(list((tmp_path / "cache" / "viewport").rglob("*.json"))) == 1
+
+    monkeypatch.setattr(viewport_module, "VIEWPORT_CACHE_VERSION", "static-prototype-v99")
+    after_version_change = client.get(
+        "/api/viewport",
+        params={"date": "2024-08-05", "bbox": "120,30,121,31", "step": 1},
+    )
+    assert after_version_change.status_code == 200
+    assert after_version_change.json()["meta"]["cache"]["hit"] is False
+    assert after_version_change.json()["meta"]["cache"]["version"] == "static-prototype-v99"
+    assert len(list((tmp_path / "cache" / "viewport").rglob("*.json"))) == 2
+
+
+def test_viewport_cache_maintenance_warms_and_reports_contract(tmp_path: Path) -> None:
+    from app import viewport as viewport_module
+    from app.cache_maintenance import collect_viewport_cache_status, warm_viewport_cache
+
+    request = ViewportRequest(date=date_type(2024, 8, 5), bbox=[122, 27, 124.2, 29.6], step=4)
+    first = warm_viewport_cache(
+        [request],
+        cache_dir=tmp_path / "cache",
+        prototype_data_dir=settings.prototype_data_dir,
+    )
+    assert first["schema_version"] == "viewport-cache-maintenance/v1"
+    assert first["cache_version"] == viewport_module.VIEWPORT_CACHE_VERSION
+    assert first["request_count"] == 1
+    assert first["cache_hits"] == 0
+    assert first["cache_misses"] == 1
+    assert first["statuses"] == {"ok": 1}
+
+    second = warm_viewport_cache(
+        [request],
+        cache_dir=tmp_path / "cache",
+        prototype_data_dir=settings.prototype_data_dir,
+    )
+    assert second["cache_hits"] == 1
+    status = collect_viewport_cache_status(tmp_path / "cache")
+    assert status.file_count == 1
+    assert status.files_by_version == {viewport_module.VIEWPORT_CACHE_VERSION: 1}
+
+
+def test_viewport_cache_maintenance_prunes_old_versions_and_caps_active(
+    tmp_path: Path,
+) -> None:
+    from app import viewport as viewport_module
+    from app.cache_maintenance import prune_viewport_cache
+
+    root = tmp_path / "cache" / "viewport"
+    old_dir = root / "old-contract"
+    active_dir = root / viewport_module.VIEWPORT_CACHE_VERSION
+    old_dir.mkdir(parents=True)
+    active_dir.mkdir(parents=True)
+    (old_dir / "stale.json").write_text("{}", encoding="utf-8")
+    oldest = active_dir / "oldest.json"
+    newest = active_dir / "newest.json"
+    oldest.write_text("{}", encoding="utf-8")
+    newest.write_text("{}", encoding="utf-8")
+    os.utime(oldest, (1, 1))
+    os.utime(newest, (2, 2))
+
+    dry_run = prune_viewport_cache(
+        tmp_path / "cache",
+        max_files_per_version=1,
+        dry_run=True,
+    )
+    assert dry_run["removed_versions"] == ["old-contract"]
+    assert dry_run["removed_files"] == [f"{viewport_module.VIEWPORT_CACHE_VERSION}/oldest.json"]
+    assert old_dir.exists()
+    assert oldest.exists()
+
+    pruned = prune_viewport_cache(
+        tmp_path / "cache",
+        max_files_per_version=1,
+    )
+    assert pruned["removed_versions"] == ["old-contract"]
+    assert pruned["removed_files"] == [f"{viewport_module.VIEWPORT_CACHE_VERSION}/oldest.json"]
+    assert not old_dir.exists()
+    assert not oldest.exists()
+    assert newest.exists()
+    assert pruned["remaining"]["files_by_version"] == {viewport_module.VIEWPORT_CACHE_VERSION: 1}
+
+
+def test_viewport_cache_maintenance_rebuild_removes_only_requested_query(
+    tmp_path: Path,
+) -> None:
+    from app import viewport as viewport_module
+    from app.cache_maintenance import rebuild_viewport_cache, warm_viewport_cache
+
+    first = ViewportRequest(date=date_type(2024, 8, 5), bbox=[122, 27, 124.2, 29.6], step=4)
+    second = ViewportRequest(date=date_type(2024, 8, 5), bbox=[120, 30, 121, 31], step=1)
+    warm_viewport_cache(
+        [first, second],
+        cache_dir=tmp_path / "cache",
+        prototype_data_dir=settings.prototype_data_dir,
+    )
+    assert len(list((tmp_path / "cache" / "viewport").rglob("*.json"))) == 2
+
+    rebuilt = rebuild_viewport_cache(
+        [first],
+        cache_dir=tmp_path / "cache",
+        prototype_data_dir=settings.prototype_data_dir,
+    )
+    assert rebuilt["action"] == "rebuild"
+    assert rebuilt["cache_hits"] == 0
+    assert rebuilt["cache_misses"] == 1
+    assert rebuilt["file_count"] == 2
+    assert len(rebuilt["removed_files"]) == 1
+    assert rebuilt["removed_files"][0].startswith(viewport_module.VIEWPORT_CACHE_VERSION + "/")
+    assert len(list((tmp_path / "cache" / "viewport").rglob("*.json"))) == 2
+
+
+def test_basic_query_current_state_summarizes_viewport_contract(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
+    response = client.get(
+        "/api/query/current-state",
+        params={"date": "2024-08-05", "bbox": "122,27,124.2,29.6", "step": 4},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["kind"] == "current_state"
+    assert payload["status"] == "ok"
+    assert payload["source"]["service"] == "viewport"
+    assert payload["source"]["query_service_version"] == "basic-query-v1"
+    assert payload["parameters"] == {
+        "date": "2024-08-05",
+        "bbox": [122.0, 27.0, 124.2, 29.6],
+        "step": 4,
+    }
+    assert payload["metrics"]["front_feature_count"] > 0
+    assert payload["metrics"]["sst_cell_count"] > 0
+    assert payload["metrics"]["fishing_effort_cell_count"] > 0
+    assert payload["metrics"]["total_apparent_fishing_hours"] > 0
+    assert payload["coverage"]["requestBbox"] == [122.0, 27.0, 124.2, 29.6]
+    assert payload["coverage"]["layers"]["fishingEffort"] == "available"
+    assert {item["id"] for item in payload["evidence"]} >= {
+        "front-feature-count",
+        "sst-sample-count",
+        "apparent-fishing-effort",
+    }
+    assert any("not catch" in item["detail"] for item in payload["evidence"])
+    assert any("does not call an AI model" in caveat for caveat in payload["caveats"])
+
+
+def test_basic_query_front_response_keeps_effort_claim_boundary(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
+    response = client.get(
+        "/api/query/front-response",
+        params={"date": "2024-08-05", "bbox": "122,27,124.2,29.6", "step": 4},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["kind"] == "front_response"
+    assert payload["status"] == "ok"
+    assert payload["metrics"]["response_record_count"] > 0
+    assert payload["metrics"]["post_window_apparent_fishing_hours"] > 0
+    assert payload["metrics"]["non_front_control_hours"] >= 0
+    assert payload["metrics"]["mean_lift_percent"] is not None
+    assert payload["coverage"]["layers"]["fishingEffort"] == "available"
+    assert {item["id"] for item in payload["evidence"]} >= {
+        "front-response-records",
+        "post-window-effort",
+        "control-effort",
+    }
+    forbidden_claims = ("catch", "yield", "revenue", "biomass", "guaranteed fishing success")
+    assert any(all(claim in caveat for claim in forbidden_claims) for caveat in payload["caveats"])
+
+
+def test_basic_query_missing_viewport_data_is_not_reported_as_zero(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
+    current = client.get(
+        "/api/query/current-state",
+        params={"date": "2024-09-01", "bbox": "122,27,124.2,29.6", "step": 4},
+    )
+    assert current.status_code == 200
+    current_payload = current.json()
+    assert current_payload["status"] == "unavailable"
+    assert current_payload["metrics"]["front_feature_count"] is None
+    assert current_payload["metrics"]["sst_cell_count"] is None
+    assert current_payload["metrics"]["fishing_effort_cell_count"] is None
+    assert current_payload["metrics"]["total_apparent_fishing_hours"] is None
+    assert current_payload["metrics"]["enhanced_response_count"] is None
+    effort_evidence = next(
+        item for item in current_payload["evidence"] if item["id"] == "apparent-fishing-effort"
+    )
+    assert effort_evidence["value"] == "unavailable"
+    assert "not interpreted as 0 fishing hours" in effort_evidence["detail"]
+
+    response = client.get(
+        "/api/query/front-response",
+        params={"date": "2024-08-05", "bbox": "150,30,151,31", "step": 4},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "empty"
+    assert payload["metrics"]["response_record_count"] is None
+    assert payload["metrics"]["post_window_apparent_fishing_hours"] is None
+    assert payload["metrics"]["pre7_apparent_fishing_hours"] is None
+    assert payload["metrics"]["non_front_control_hours"] is None
+    assert payload["metrics"]["enhanced_response_count"] is None
+    assert payload["metrics"]["mean_lift_percent"] is None
+    post_evidence = next(item for item in payload["evidence"] if item["id"] == "post-window-effort")
+    assert post_evidence["value"] == "unavailable"
+    assert "not interpreted as 0 fishing hours" in post_evidence["detail"]
+
+
+def test_basic_query_historical_comparison_returns_unavailable_without_raw_history(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(settings, "raw_data_dir", tmp_path / "raw")
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
+    response = client.get(
+        "/api/query/historical-comparison",
+        params={
+            "date": "2024-08-05",
+            "longitude": 120.5,
+            "latitude": 30.5,
+            "radius_deg": 1,
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["kind"] == "historical_comparison"
+    assert payload["status"] == "unavailable"
+    assert payload["metrics"]["same_period_probability"] is None
+    assert payload["metrics"]["same_period_sample_count"] == 0
+    assert payload["coverage"]["sample_count"] == 0
+    assert payload["coverage"]["expected_sample_count"] == 43
+    assert {item["id"] for item in payload["evidence"]} >= {
+        "same-period-probability",
+        "monthly-probability",
+        "sample-coverage",
+    }
+    assert any("not a forecast" in caveat for caveat in payload["caveats"])
 
 
 def test_empty_catalog_is_explicit(tmp_path: Path, monkeypatch) -> None:
@@ -30,6 +522,61 @@ def test_empty_catalog_is_explicit(tmp_path: Path, monkeypatch) -> None:
     assert payload["ready"] is False
     assert payload["file_count"] == 0
     assert payload["message"]
+
+
+def test_catalog_hides_file_list_by_default_and_caches(tmp_path: Path, monkeypatch) -> None:
+    from app import catalog as catalog_module
+
+    raw_root = tmp_path / "raw"
+    monkeypatch.setattr(settings, "raw_data_dir", raw_root)
+    catalog_module.invalidate_catalog_cache()
+    _write_front_file(
+        raw_root / "front" / "2024" / "front_location20240805.nc",
+        np.array([[0, 0], [0, 0]], dtype=np.int8),
+        "2024-08-05",
+    )
+
+    first = client.get("/api/catalog")
+    assert first.status_code == 200
+    assert first.headers["X-Catalog-Cache"] == "miss"
+    payload = first.json()
+    assert payload["file_count"] == 1
+    assert payload["available_dates"] == ["2024-08-05"]
+    # 默认不返回逐文件清单：几千个文件时这个数组会把响应撑到几百 KB
+    assert payload["files"] == []
+    assert payload["files_included"] is False
+    assert payload["cached"] is False
+
+    # 第二次同样内容：目录指纹没变，直接命中缓存
+    second = client.get("/api/catalog")
+    assert second.headers["X-Catalog-Cache"] == "hit"
+    assert second.json()["cached"] is True
+    assert second.json()["file_count"] == 1
+
+    # 需要清单的老调用方显式要：?files=true
+    explicit = client.get("/api/catalog?files=true")
+    assert explicit.json()["files_included"] is True
+    assert [item["name"] for item in explicit.json()["files"]] == [
+        "front/2024/front_location20240805.nc"
+    ]
+    assert explicit.json()["files"][0]["size_bytes"] > 0
+
+    # 新文件落地（目录 mtime 变化）后必须立刻看到，不能吃旧缓存
+    _write_front_file(
+        raw_root / "front" / "2024" / "front_location20240806.nc",
+        np.array([[0, 0], [0, 0]], dtype=np.int8),
+        "2024-08-06",
+    )
+    third = client.get("/api/catalog")
+    assert third.headers["X-Catalog-Cache"] == "miss"
+    assert third.json()["file_count"] == 2
+    assert third.json()["available_dates"] == ["2024-08-05", "2024-08-06"]
+
+    # refresh=true 跳过缓存强制重扫
+    refreshed = client.get("/api/catalog?refresh=true")
+    assert refreshed.headers["X-Catalog-Cache"] == "miss"
+    assert refreshed.json()["file_count"] == 2
+    assert catalog_module.catalog_cache_stats()["misses"] >= 4
 
 
 def _write_front_file(path: Path, values: np.ndarray, observation_date: str) -> None:
@@ -79,21 +626,6 @@ def _write_sst_file(path: Path) -> None:
     dataset.to_netcdf(path, engine="h5netcdf")
 
 
-def _write_intensity_file(path: Path, values: np.ndarray, observation_date: str) -> None:
-    dataset = xr.Dataset(
-        data_vars={
-            "front_intensity": (("lat", "lon", "time"), values[:, :, np.newaxis].astype(np.float32)),
-        },
-        coords={
-            "lat": np.array([30.0, 31.0], dtype=np.float32),
-            "lon": np.array([120.0, 121.0], dtype=np.float32),
-            "time": np.array([np.datetime64(observation_date)], dtype="datetime64[ns]"),
-        },
-    )
-    path.parent.mkdir(parents=True, exist_ok=True)
-    dataset.to_netcdf(path, engine="h5netcdf")
-
-
 def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) -> None:
     raw_root = tmp_path / "raw"
     cache_root = tmp_path / "cache"
@@ -116,16 +648,11 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
         "2025-08-05",
     )
     _write_sst_file(raw_root / "sst" / "2024" / "sst_20240805_20250805.nc")
-    _write_intensity_file(
-        raw_root / "front_intensity" / "2024" / "front_intensity20240805.nc",
-        np.array([[0.1, 0.0], [0.4, 0.8]], dtype=np.float32),
-        "2024-08-05",
-    )
     _write_sst_file(raw_root / "_duplicates_backup" / "sst" / "2024" / "sst_backup_20240805.nc")
 
     catalog_response = client.get("/api/catalog")
     assert catalog_response.status_code == 200
-    assert catalog_response.json()["file_count"] == 5
+    assert catalog_response.json()["file_count"] == 4
 
     analysis_response = client.get(
         "/api/analysis/2024-08-05?longitude=120.5&latitude=30.5&radius_deg=1"
@@ -135,9 +662,6 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert analysis_payload["sst"]["range_celsius"] == 1.5
     assert analysis_payload["sst"]["gradient_c_per_km"] > 0
     assert analysis_payload["sst"]["max_gradient_c_per_km"] >= analysis_payload["sst"]["gradient_c_per_km"]
-    assert analysis_payload["intensity"]["available"] == "是"
-    assert analysis_payload["intensity"]["active_pixel_count"] == 3
-    assert analysis_payload["intensity"]["mean"] == 0.325
     assert analysis_payload["quality"]["geojson_sst_sample_step"] == 1
     assert analysis_payload["quality"]["geojson_front_sample_step"] == 1
     assert analysis_payload["rasters"]["sst"]["format"] == "image/png"
@@ -148,7 +672,6 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert analysis_payload["layers"]["cold_side"]["features"][0]["geometry"]["type"] == "Polygon"
     assert analysis_payload["layers"]["front_object_centroids"]["features"][0]["properties"]["front_id"] == "20240805-F001"
     assert analysis_payload["layers"]["front_object_bboxes"]["features"][0]["geometry"]["type"] == "Polygon"
-    assert len(analysis_payload["layers"]["front_intensity"]["features"]) == 3
 
     raster_response = client.get(
         "/api/analysis/2024-08-05/raster?longitude=120.5&latitude=30.5&radius_deg=1&kind=combined"
@@ -181,21 +704,14 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert plan_payload["missing_sst_dates"] == []
     assert plan_payload["missing_front_dates"] == []
     assert plan_payload["download_commands"][-1].endswith("phase1_12_smoke.py")
-    assert 0 <= plan_payload["readiness_score"] <= 1
-    assert plan_payload["readiness_level"]
-    assert plan_payload["next_action"]
-    assert plan_payload["required_front_sst_file_count"] >= 0
-    assert plan_payload["optional_intensity_file_count"] >= 0
-    assert plan_payload["priority_actions"]
-    assert any(command.endswith("phase1_12_smoke.py") for command in plan_payload["acceptance_commands"])
     assert plan_payload["source_notes"]
 
     data_index_response = client.get("/api/data/index")
     assert data_index_response.status_code == 200
     data_index_payload = data_index_response.json()
     assert data_index_payload["ready"] is True
-    assert data_index_payload["schema_version"] == "data-index-v2"
-    assert data_index_payload["total_file_count"] == 5
+    assert data_index_payload["schema_version"] == "data-index-v1"
+    assert data_index_payload["total_file_count"] == 4
     assert data_index_payload["indexed_date_count"] == 3
     assert data_index_payload["paired_date_count"] == 3
     assert data_index_payload["missing_sst_dates"] == []
@@ -208,8 +724,6 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert dataset_by_type["front_location"]["date_count"] == 3
     assert dataset_by_type["sst"]["file_count"] == 1
     assert dataset_by_type["sst"]["date_count"] == 3
-    assert dataset_by_type["front_intensity"]["file_count"] == 1
-    assert dataset_by_type["front_intensity"]["date_count"] == 1
 
     rebuild_index_response = client.post("/api/data/index/rebuild")
     assert rebuild_index_response.status_code == 200
@@ -221,8 +735,7 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert date_index_payload["complete"] is True
     assert date_index_payload["front_file_count"] == 1
     assert date_index_payload["sst_file_count"] == 1
-    assert date_index_payload["intensity_file_count"] == 1
-    assert len(date_index_payload["files"]) == 3
+    assert len(date_index_payload["files"]) == 2
     assert any(item["dataset_type"] == "front_location" for item in date_index_payload["files"])
     assert any(item["dataset_type"] == "sst" for item in date_index_payload["files"])
     assert all(item["canonical"] is True for item in date_index_payload["files"])
@@ -235,8 +748,6 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert objects_payload["object_count"] == 1
     assert objects_payload["nearest_front_id"] == "20240805-F001"
     assert objects_payload["objects"][0]["length_km"] > 0
-    assert objects_payload["objects"][0]["mean_intensity"] == 0.1
-    assert objects_payload["objects"][0]["max_intensity"] == 0.1
     assert objects_payload["layers"]["centroids"]["features"][0]["geometry"]["type"] == "Point"
 
     tracking_response = client.get(
@@ -247,10 +758,7 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert tracking_payload["days"] == 2
     assert tracking_payload["match_distance_km"] == 80.0
     assert tracking_payload["algorithm"] == "centroid-shape-overlap"
-    assert tracking_payload["algorithm_version"] == "v2"
     assert tracking_payload["algorithm_notes"]
-    assert tracking_payload["confidence_label"]
-    assert tracking_payload["gap_count"] == 1
     assert tracking_payload["tracked_step_count"] == 1
     assert tracking_payload["steps"][0]["front_id"] == "20240805-F001"
     assert tracking_payload["steps"][0]["matched_by"] == "query_anchor"
@@ -270,17 +778,11 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert response.status_code == 200
     payload = response.json()
     assert payload["summary"]["available_years"] == [2024, 2025]
-    assert payload["summary"]["probability_rule"] == "line_presence"
-    assert payload["summary"]["probability_rule_label"] == "窗口内存在锋面线像元"
-    assert "存在至少 1 个锋面线像元" in payload["summary"]["probability_rule_note"]
     assert payload["summary"]["same_period_sample_count"] == 2
     assert payload["summary"]["same_period_front_hit_count"] == 1
     assert payload["summary"]["same_period_probability"] == 0.5
     assert payload["summary"]["same_period_expected_sample_count"] == 43
     assert payload["summary"]["same_period_coverage_ratio"] == round(2 / 43, 4)
-    assert payload["summary"]["same_period_covered_years"] == [2024, 2025]
-    assert 1982 in payload["summary"]["same_period_missing_years"]
-    assert payload["summary"]["next_missing_same_period_dates"]
     assert payload["summary"]["monthly_expected_sample_count"] == 31 * 43
     assert payload["summary"]["monthly_coverage_ratio"] == round(3 / (31 * 43), 4)
     assert payload["summary"]["sample_reliability_level"] == "low"
@@ -294,8 +796,6 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert payload["summary"]["sst_gradient_c_per_km_mean"] > 0
     assert payload["timeline"][0]["date"] == "2024-08-05"
     assert payload["timeline"][0]["sst_gradient_c_per_km"] > 0
-    assert payload["timeline"][0]["front_line_density_per_1000_pixels"] == 250.0
-    assert payload["timeline"][0]["nearest_front_distance_km"] is not None
     assert payload["timeline"][1]["date"] == "2024-08-06"
     assert len(payload["same_period_records"]) == 2
     assert len(payload["monthly_records"]) == 3
@@ -313,52 +813,6 @@ def test_history_endpoint_builds_cached_statistics(tmp_path: Path, monkeypatch) 
     assert cached_payload["cache"]["records_evaluated"] == 0
     assert cached_payload["cache"]["timeline_record_count"] == 3
     assert cached_payload["summary"] == payload["summary"]
-
-    probability_rules_response = client.get("/api/history/probability-rules")
-    assert probability_rules_response.status_code == 200
-    probability_rules_payload = probability_rules_response.json()
-    assert probability_rules_payload["default_rule"] == "line_presence"
-    assert {item["id"] for item in probability_rules_payload["options"]} == {
-        "line_presence",
-        "density_threshold",
-        "distance_threshold",
-    }
-
-    distance_rule_response = client.get(
-        "/api/history/2024-08-05?longitude=120.5&latitude=30.5&radius_deg=1"
-        "&probability_rule=distance_threshold&max_front_distance_km=10"
-    )
-    assert distance_rule_response.status_code == 200
-    distance_rule_payload = distance_rule_response.json()
-    assert distance_rule_payload["summary"]["probability_rule"] == "distance_threshold"
-    assert distance_rule_payload["summary"]["probability_threshold"] == 10.0
-    assert distance_rule_payload["summary"]["same_period_probability"] == 0.0
-    assert distance_rule_payload["timeline"][0]["front_present"] is False
-
-    prediction_response = client.get(
-        "/api/prediction/2024-08-05?longitude=120.5&latitude=30.5&radius_deg=1&horizon_days=3"
-    )
-    assert prediction_response.status_code == 200
-    prediction_payload = prediction_response.json()
-    assert prediction_payload["algorithm"] == "historical-climatology-recent-baseline"
-    assert prediction_payload["forecast_count"] == 3
-    assert prediction_payload["predictions"][0]["target_date"] == "2024-08-06"
-    assert prediction_payload["predictions"][0]["probability"] is not None
-    assert prediction_payload["predictions"][0]["observed_front_present"] is False
-    assert prediction_payload["predictions"][0]["drivers"]
-
-    prediction_evaluation_response = client.get(
-        "/api/prediction/2024-08-05/evaluation?longitude=120.5&latitude=30.5"
-        "&radius_deg=1&horizon_days=2&max_anchor_dates=4"
-    )
-    assert prediction_evaluation_response.status_code == 200
-    prediction_evaluation_payload = prediction_evaluation_response.json()
-    assert prediction_evaluation_payload["evaluation_mode"] == "in-sample-local-backtest"
-    assert prediction_evaluation_payload["candidate_anchor_count"] == 1
-    assert prediction_evaluation_payload["evaluated_count"] == 1
-    assert prediction_evaluation_payload["brier_score"] is not None
-    assert prediction_evaluation_payload["points"][0]["anchor_date"] == "2024-08-05"
-    assert prediction_evaluation_payload["points"][0]["target_date"] == "2024-08-06"
 
     report_response = client.get(
         "/api/report/2024-08-05?longitude=120.5&latitude=30.5&radius_deg=1&days=2"
@@ -535,3 +989,136 @@ def test_ai_agent_extracts_task_invokes_tools_and_links_evidence(
     fallback_payload = fallback_response.json()
     assert "本地模型不可用或返回无效 JSON，已回退到本地规则解析器。" in fallback_payload["structured_task"]["assumptions"]
     assert fallback_payload["structured_task"]["parameters"]["date"] == "2024-08-05"
+def _write_window_front_file(path: Path, observation_date: str) -> None:
+    """写一份「全球风格」的小窗口测试文件：lon 100–110 / lat 20–30，0.05° 网格。
+
+    内容：中间一条东西向锋面线（10，纬度 25.0），其北侧冷侧（-20）、南侧暖侧（20），
+    西南角一块缺测（-128）；其余为 0（数据里 0 = 无锋面）。
+    """
+    lon = np.round(np.arange(100.0, 110.0 + 0.001, 0.05), 3)
+    lat = np.round(np.arange(20.0, 30.0 + 0.001, 0.05), 3)
+    values = np.zeros((lat.size, lon.size), dtype=np.int16)
+    row = int(round((25.0 - lat[0]) / 0.05))     # 纬度 25.0 那一行
+    values[row, 40:140] = 10                      # 锋面线（5° ≈ 500 km，够长，会被编号）
+    values[row + 20:row + 80, 40:140] = -20       # 冷侧（北，约 1–4°）
+    values[row - 80:row - 20, 40:140] = 20        # 暖侧（南，约 1–4°）
+    values[0:20, 0:20] = -128                     # 西南角缺测块
+    dataset = xr.Dataset(
+        data_vars={"front": (("lat", "lon", "time"), values[:, :, np.newaxis].astype(np.int8))},
+        coords={
+            "lat": lat.astype(np.float32),
+            "lon": lon.astype(np.float32),
+            "time": np.array([np.datetime64(observation_date)], dtype="datetime64[ns]"),
+        },
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    dataset.to_netcdf(path, engine="h5netcdf")
+
+
+def test_frontend_payload_window_bbox_and_lod(tmp_path: Path, monkeypatch) -> None:
+    """按窗口取数（bbox）+ 大窗口自动降采样概览（step）—— 「数据铺满」的后端契约。"""
+    raw_root = tmp_path / "raw"
+    monkeypatch.setattr(settings, "raw_data_dir", raw_root)
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
+    _write_window_front_file(raw_root / "front" / "2024" / "front_location20240805.nc", "2024-08-05")
+    _write_sst_file(raw_root / "sst" / "2024" / "sst_20240805.nc")   # 海温在 120–121°E：与下面的窗口无交集
+
+    # ① 默认窗口（作业海域）：仍是 0.05° 明细；海温文件（120–121°E）落在窗口内 → 一起返回
+    default = client.get("/api/frontend/day/2024-08-05")
+    assert default.status_code == 200
+    body = default.json()
+    assert body["window"]["default"] is True
+    assert body["window"]["step"] == 1 and body["window"]["mode"] == "detail"
+    assert "overview" not in body["front"]
+    assert body["front"]["grid"]["dlon"] == 0.05
+    assert body["sst"] is not None and body["front"]["has_sst"] is True
+    assert body["sst"]["grid"]["lon0"] == 120.0
+
+    # ② 显式窗口：0.05° 明细，对象识别照常；该窗口与海温文件无交集 → 明说没有，不编
+    detail = client.get("/api/frontend/day/2024-08-05", params={"bbox": "100,20,110,30"})
+    assert detail.status_code == 200
+    detail_body = detail.json()
+    assert detail_body["window"]["bbox"] == [100.0, 20.0, 110.0, 30.0]
+    assert detail_body["window"]["step"] == 1
+    assert detail_body["front"]["object_line_count"] == 1
+    assert detail_body["front"]["objects"][0]["front_id"] == "F001"
+    assert detail_body["sst"] is None and detail_body["front"]["has_sst"] is False
+
+    # ③ 同窗口 + step=20：降采样概览——不做对象识别，但带/冷/暖/缺测都要在
+    coarse = client.get("/api/frontend/day/2024-08-05", params={"bbox": "100,20,110,30", "step": 20})
+    assert coarse.status_code == 200
+    coarse_body = coarse.json()
+    assert coarse_body["window"]["step"] == 20 and coarse_body["window"]["resolution_deg"] == 1.0
+    assert coarse_body["window"]["mode"] == "overview"
+    assert coarse_body["front"]["overview"]["step"] == 20
+    assert "统计与对象清单仍用 0.05°" in coarse_body["front"]["overview"]["note"]
+    assert coarse_body["front"]["grid"]["dlon"] == 1.0
+    assert coarse_body["front"]["objects"] == [] and coarse_body["front"]["front_line"] == []
+    assert coarse_body["front"]["object_line_count"] == 0
+    # 25.0°N 的锋面线在第 100 行 → 1° 概览落在第 5 行（块内有线就记线，不会被邻居抹掉）
+    assert any(run[0] == 5 for run in coarse_body["front"]["front_band_rle"])
+    assert coarse_body["front"]["cold_side_rle"], "冷侧应聚合成概览格"
+    assert coarse_body["front"]["warm_side_rle"], "暖侧应聚合成概览格"
+    assert coarse_body["front"]["nodata_rle"], "整块缺测才记缺测"
+
+    # ④ 同参数第二次：命中磁盘缓存
+    again = client.get("/api/frontend/day/2024-08-05", params={"bbox": "100,20,110,30", "step": 20})
+    assert again.headers["X-Payload-Cache"] == "hit"
+    assert again.json()["cached"] is True
+
+    # ⑤ 参数不合法：bbox 顺序/个数、step 档位
+    assert client.get("/api/frontend/day/2024-08-05", params={"bbox": "110,20,100,30"}).status_code == 422
+    assert client.get("/api/frontend/day/2024-08-05", params={"bbox": "1,2,3"}).status_code == 422
+    assert client.get("/api/frontend/day/2024-08-05", params={"bbox": "100,20,110,30", "step": 3}).status_code == 422
+    assert client.get("/api/frontend/day/2024-08-05", params={"bbox": "100,20,110,30", "step": 41}).status_code == 422
+
+    # ⑥ 没有原始文件的那天：404（前端据此回退本地数据，不给空图）
+    assert client.get("/api/frontend/day/2024-08-06").status_code == 404
+
+
+
+def _write_global_sst_file(path: Path, cells: int = 40) -> None:
+    """写一份「全球粗格」合成海温（cells×cells，覆盖 -180..180 / -90..90），用于验证隔格取样。"""
+    lon = np.linspace(-180.0, 180.0, cells, dtype=np.float32)
+    lat = np.linspace(-90.0, 90.0, cells, dtype=np.float32)
+    values = np.full((cells, cells), 20.0, dtype=np.float32)
+    dataset = xr.Dataset(
+        data_vars={"analysed_sst": (("time", "latitude", "longitude"), values[np.newaxis, :, :])},
+        coords={
+            "time": np.array([np.datetime64("2024-08-05")], dtype="datetime64[ns]"),
+            "latitude": lat,
+            "longitude": lon,
+        },
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    dataset.to_netcdf(path, engine="h5netcdf")
+
+
+def test_frontend_payload_thins_dense_global_sst(tmp_path: Path, monkeypatch) -> None:
+    """全球粗格升到 0.25° 后，整球窗口必须被隔格取样（否则 payload 会有几十万条游程）。"""
+    from app import frontend_payload as payload_module
+
+    raw_root = tmp_path / "raw"
+    monkeypatch.setattr(settings, "raw_data_dir", raw_root)
+    monkeypatch.setattr(settings, "cache_dir", tmp_path / "cache")
+    monkeypatch.setattr(payload_module, "SST_MAX_CELLS", 500)        # 40×40 = 1600 格 → 必须隔格
+    _write_window_front_file(raw_root / "front" / "2024" / "front_location20240805.nc", "2024-08-05")
+    _write_global_sst_file(raw_root / "sst_global" / "2024" / "sst_20240805.nc", cells=40)
+
+    body = client.get("/api/frontend/day/2024-08-05",
+                      params={"bbox": "-180,-90,180,90", "step": 40}).json()
+    coarse = body["sst_coarse"]
+    assert coarse is not None, "整球窗口应带全球粗格海温"
+    grid = coarse["grid"]
+    # 40×40 且上限 500 → 隔 2 格 → 20×20、步长翻倍、起点不变
+    assert (grid["nx"], grid["ny"]) == (20, 20)
+    assert grid["lon0"] == -180.0 and grid["lat0"] == -90.0
+    assert grid["dlon"] == round(360.0 / 39 * 2, 3) and grid["dlat"] == round(180.0 / 39 * 2, 3)
+    assert body["front"]["has_sst"] is True
+
+    # 小窗口不该被隔格：同一份文件裁到很小一块时步长保持原样（起点/步长仍由坐标数组给出）
+    small = client.get("/api/frontend/day/2024-08-05",
+                       params={"bbox": "100,20,110,30", "step": 20}).json()["sst_coarse"]
+    # 合成文件是 40×40（步长 9.23°），10°×10° 的窗口取不到 2 个点 → 明说没有，而不是给个错的格子
+    assert small is None or small["grid"]["dlon"] == round(360.0 / 39, 3)
+

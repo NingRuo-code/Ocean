@@ -1,0 +1,525 @@
+{
+  "parent": 45,
+  "work_package": 17,
+  "approval": "User confirmed all fourteen tickets and their dependencies on 2026-10-24",
+  "tickets": [
+    {
+      "local_id": 1,
+      "phase": "近期",
+      "title": "[P1 F01] 复跑真实地图操作并输出端到端基线",
+      "filename": "01-browser-baseline.md",
+      "number": 46,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/46",
+      "internal_blocker_numbers": [],
+      "external_blocker_numbers": [],
+      "body_sha256": "15d9b1debc5331f6f312f5ba6aae42f9a76486a211825a0992a55ab962f1602b",
+      "blocker_numbers": [],
+      "database_id": 6009139164,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": []
+    },
+    {
+      "local_id": 2,
+      "phase": "近期",
+      "title": "[P1 F02] 盘点实际服务链与分层资源工作集",
+      "filename": "02-runtime-inventory.md",
+      "number": 47,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/47",
+      "internal_blocker_numbers": [],
+      "external_blocker_numbers": [],
+      "body_sha256": "ab884a7099f1fb17f976d176fe3c92bc7d4ffe5f09f453fdcefa811b59d00e4c",
+      "blocker_numbers": [],
+      "database_id": 6009139512,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": []
+    },
+    {
+      "local_id": 3,
+      "phase": "近期",
+      "title": "[P1 F03] 先概览后明细且当前操作优先",
+      "filename": "03-progressive-scheduling.md",
+      "number": 48,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/48",
+      "internal_blocker_numbers": [
+        46
+      ],
+      "external_blocker_numbers": [
+        28
+      ],
+      "body_sha256": "5b2a9040e01da951031c2a57b651629f5163bf395b0f5fdffea0cd886643cfd1",
+      "blocker_numbers": [
+        46,
+        28
+      ],
+      "database_id": 6009139792,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        28,
+        46
+      ]
+    },
+    {
+      "local_id": 4,
+      "phase": "近期",
+      "title": "[P1 F04] 长播放缓存有界并有限预取邻日概览",
+      "filename": "04-browser-cache-prefetch.md",
+      "number": 49,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/49",
+      "internal_blocker_numbers": [
+        48
+      ],
+      "external_blocker_numbers": [],
+      "body_sha256": "bb6885190688b322693741d0518e7ddc5469dd6637e3cb88cda656addebd6edc",
+      "blocker_numbers": [
+        48
+      ],
+      "database_id": 6009140112,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        48
+      ]
+    },
+    {
+      "local_id": 5,
+      "phase": "近期",
+      "title": "[P1 F05] 重复窗口读取的服务缓存与清理有界",
+      "filename": "05-server-cache-budget.md",
+      "number": 50,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/50",
+      "internal_blocker_numbers": [
+        46,
+        47
+      ],
+      "external_blocker_numbers": [],
+      "body_sha256": "3b11d6e951ae125bdc06c0e56ff0500557101842913f9e2c2e9caf8ac9545202",
+      "blocker_numbers": [
+        46,
+        47
+      ],
+      "database_id": 6009140401,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        46,
+        47
+      ]
+    },
+    {
+      "local_id": 6,
+      "phase": "近期",
+      "title": "[P1 F06] 减少地图重绘与隐藏面板的重复工作",
+      "filename": "06-incremental-drawing.md",
+      "number": 51,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/51",
+      "internal_blocker_numbers": [
+        46
+      ],
+      "external_blocker_numbers": [],
+      "body_sha256": "65cacc8397ef8b3ba13f009379cf2eb532250cad4c7cf32b5fc8ed8e32370070",
+      "blocker_numbers": [
+        46
+      ],
+      "database_id": 6009140693,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        46
+      ]
+    },
+    {
+      "local_id": 7,
+      "phase": "近期",
+      "title": "[P1 F07] 活动远景聚合守恒、近景显示完整有效格",
+      "filename": "07-complete-effort-lod.md",
+      "number": 52,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/52",
+      "internal_blocker_numbers": [
+        46
+      ],
+      "external_blocker_numbers": [
+        38
+      ],
+      "body_sha256": "abac85a5c58055fc02041512a171341c78fe509da7f1b49328c61c4d5809685b",
+      "blocker_numbers": [
+        46,
+        38
+      ],
+      "database_id": 6009140987,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        38,
+        46
+      ]
+    },
+    {
+      "local_id": 8,
+      "phase": "近期",
+      "title": "[P1 F08] 首轮同负载复测与服务器容量决策",
+      "filename": "08-capacity-decision.md",
+      "number": 53,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/53",
+      "internal_blocker_numbers": [
+        49,
+        50,
+        51,
+        52
+      ],
+      "external_blocker_numbers": [],
+      "body_sha256": "a5a447aadcc2daa98c6a2dfcd67634669f6593aa7adcd5904231da2a6f5627f7",
+      "blocker_numbers": [
+        49,
+        50,
+        51,
+        52
+      ],
+      "database_id": 6009141299,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        49,
+        50,
+        51,
+        52
+      ]
+    },
+    {
+      "local_id": 9,
+      "phase": "条件性",
+      "title": "[P1 F09] PNG图像层进入判断与最小端到端对照",
+      "filename": "09-png-experiment.md",
+      "number": 54,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/54",
+      "internal_blocker_numbers": [
+        46
+      ],
+      "external_blocker_numbers": [
+        37
+      ],
+      "body_sha256": "20105bf5899339ef95ece76982c343e9eb5050f9f01d3cade8edb6426f6471c1",
+      "blocker_numbers": [
+        46,
+        37
+      ],
+      "database_id": 6009141583,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        37,
+        46
+      ]
+    },
+    {
+      "local_id": 10,
+      "phase": "条件性",
+      "title": "[P1 F10] COG窗口读取进入判断与小切片对照",
+      "filename": "10-cog-experiment.md",
+      "number": 55,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/55",
+      "internal_blocker_numbers": [
+        46
+      ],
+      "external_blocker_numbers": [
+        37
+      ],
+      "body_sha256": "aa4ea14273de929cd4800c16b9c4c3741409e54d93ffcea2ae4072b22bcf2650",
+      "blocker_numbers": [
+        46,
+        37
+      ],
+      "database_id": 6009141930,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        37,
+        46
+      ]
+    },
+    {
+      "local_id": 11,
+      "phase": "条件性",
+      "title": "[P1 F11] 多年Zarr读取进入判断与两种分块对照",
+      "filename": "11-zarr-experiment.md",
+      "number": 56,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/56",
+      "internal_blocker_numbers": [
+        46
+      ],
+      "external_blocker_numbers": [
+        37
+      ],
+      "body_sha256": "41d85a092098274dbbaabd993aa91ec4e1089ad7d35ad9f9886cedd6325a73e0",
+      "blocker_numbers": [
+        46,
+        37
+      ],
+      "database_id": 6009142220,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        37,
+        46
+      ]
+    },
+    {
+      "local_id": 12,
+      "phase": "条件性",
+      "title": "[P1 F12] 冻结月度聚合普通参照与成本基线",
+      "filename": "12-ordinary-aggregation.md",
+      "number": 57,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/57",
+      "internal_blocker_numbers": [
+        46
+      ],
+      "external_blocker_numbers": [
+        18
+      ],
+      "body_sha256": "8bf78c210fde4dcada8a451473706019e7ba22a29b4ae488f0f266a5ff2c59eb",
+      "blocker_numbers": [
+        46,
+        18
+      ],
+      "database_id": 6009142488,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        18,
+        46
+      ]
+    },
+    {
+      "local_id": 13,
+      "phase": "条件性",
+      "title": "[P1 F13] Mosaic Selections进入判断与开关对照",
+      "filename": "13-mosaic-experiment.md",
+      "number": 58,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/58",
+      "internal_blocker_numbers": [
+        57
+      ],
+      "external_blocker_numbers": [],
+      "body_sha256": "b5fcd4818b230c44bcbc6d9fe8c118c9f6186bac8d311813b8ee228b37c33fbf",
+      "blocker_numbers": [
+        57
+      ],
+      "database_id": 6009142775,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        57
+      ]
+    },
+    {
+      "local_id": 14,
+      "phase": "条件性",
+      "title": "[P1 F14] 剩余绘制瓶颈的单一替代方案对照",
+      "filename": "14-renderer-experiment.md",
+      "number": 59,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/59",
+      "internal_blocker_numbers": [
+        51
+      ],
+      "external_blocker_numbers": [],
+      "body_sha256": "5b9a4ab42910c8ab906cb4e1de157f30632e4a57204c8dc1e45c2e3627352c0f",
+      "blocker_numbers": [
+        51
+      ],
+      "database_id": 6009143040,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        51
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "child": 48,
+      "blocked_by": 46,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 48,
+      "blocked_by": 28,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 49,
+      "blocked_by": 48,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 50,
+      "blocked_by": 46,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 50,
+      "blocked_by": 47,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 51,
+      "blocked_by": 46,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 52,
+      "blocked_by": 46,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 52,
+      "blocked_by": 38,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 53,
+      "blocked_by": 49,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 53,
+      "blocked_by": 50,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 53,
+      "blocked_by": 51,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 53,
+      "blocked_by": 52,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 54,
+      "blocked_by": 46,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 54,
+      "blocked_by": 37,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 55,
+      "blocked_by": 46,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 55,
+      "blocked_by": 37,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 56,
+      "blocked_by": 46,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 56,
+      "blocked_by": 37,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 57,
+      "blocked_by": 46,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 57,
+      "blocked_by": 18,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 58,
+      "blocked_by": 57,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 59,
+      "blocked_by": 51,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    }
+  ],
+  "completed": true,
+  "external_blockers": [
+    {
+      "number": 18,
+      "database_id": 5974115823,
+      "state": "open"
+    },
+    {
+      "number": 28,
+      "database_id": 6008320951,
+      "state": "open"
+    },
+    {
+      "number": 37,
+      "database_id": 6008467522,
+      "state": "open"
+    },
+    {
+      "number": 38,
+      "database_id": 6008467794,
+      "state": "open"
+    }
+  ],
+  "parent_unchanged_verified": true,
+  "work_package_unchanged_verified": true,
+  "native_dependencies_available": true,
+  "frontier": [
+    46,
+    47
+  ]
+}

@@ -6,9 +6,8 @@ from pathlib import Path
 
 from .data_access import (
     FrontFileRecord,
-    FrontIntensityFileRecord,
     SstFileRecord,
-    scan_front_intensity_records,
+    infer_date,
     scan_front_records,
     scan_sst_records,
 )
@@ -21,7 +20,7 @@ def build_data_manifest(
 ) -> DataManifestResponse:
     front_records = scan_front_records(raw_data_dir)
     sst_records = scan_sst_records(raw_data_dir)
-    intensity_records = scan_front_intensity_records(raw_data_dir)
+    intensity_records = _scan_dated_files(raw_data_dir, ("intensity", "front_intensity"))
 
     front_dates = {record.observation_date for record in front_records}
     sst_dates = {item for record in sst_records for item in record.observation_dates}
@@ -30,7 +29,7 @@ def build_data_manifest(
     datasets = [
         _front_dataset(raw_data_dir, front_records),
         _sst_dataset(raw_data_dir, sst_records),
-        _intensity_dataset(raw_data_dir, intensity_records),
+        _dated_file_dataset(raw_data_dir, "front_intensity", intensity_records, ["frontal_intensity"]),
     ]
     total_file_count = sum(item.file_count for item in datasets)
     total_size_bytes = sum(item.size_bytes for item in datasets)
@@ -57,6 +56,19 @@ def write_data_manifest(manifest: DataManifestResponse, output_path: Path | None
         encoding="utf-8",
     )
     return target
+
+
+def _scan_dated_files(raw_data_dir: Path, directory_names: tuple[str, ...]) -> list[tuple[Path, date]]:
+    records: list[tuple[Path, date]] = []
+    for directory_name in directory_names:
+        root = raw_data_dir / directory_name
+        if not root.exists():
+            continue
+        for path in sorted({*root.rglob("*.nc"), *root.rglob("*.nc4")}):
+            observation_date = infer_date(path)
+            if observation_date is not None:
+                records.append((path, observation_date))
+    return records
 
 
 def _front_dataset(root: Path, records: list[FrontFileRecord]) -> DataManifestDataset:
@@ -95,24 +107,25 @@ def _sst_dataset(root: Path, records: list[SstFileRecord]) -> DataManifestDatase
     )
 
 
-def _intensity_dataset(
+def _dated_file_dataset(
     root: Path,
-    records: list[FrontIntensityFileRecord],
+    dataset_type: str,
+    records: list[tuple[Path, date]],
+    variables: list[str],
 ) -> DataManifestDataset:
-    dates = sorted({item for record in records for item in record.observation_dates})
-    variables = sorted({record.variable_name for record in records if record.variable_name})
+    dates = sorted({observation_date for _, observation_date in records})
     return DataManifestDataset(
-        dataset_type="front_intensity",
+        dataset_type=dataset_type,
         root=f"{root / 'intensity'} | {root / 'front_intensity'}",
         file_count=len(records),
         date_count=len(dates),
-        size_bytes=sum(record.size_bytes for record in records),
+        size_bytes=sum(path.stat().st_size for path, _ in records),
         available_date_start=dates[0] if dates else None,
         available_date_end=dates[-1] if dates else None,
         available_dates=dates,
         available_years=_years(dates),
         available_months=_months(dates),
-        variables=variables or ["front_intensity"],
+        variables=variables,
         message=None if records else "未发现锋面强度 NetCDF 文件，当前阶段可选",
     )
 

@@ -1,0 +1,63 @@
+{
+  "schema": "ocean-source-registry/v1",
+  "processing_version": "ocean-prototype-source-registration/v1",
+  "sources": [
+    {
+      "id": "front-original", "kind": "front", "role": "analysis_source",
+      "locations": ["data/raw/front"],
+      "product": {"id": "zenodo-20356239-declared", "channel": "Zenodo archive; local availability unverified", "version": "V1.0-declared", "unit": "classification_code"},
+      "derived_from": [],
+      "license_claims": [{"value": "CC BY 4.0", "evidence": "frontend/prototype/data/meta.js:product.license"}]
+    },
+    {
+      "id": "front-display", "kind": "front", "role": "display",
+      "locations": ["frontend/prototype/data/meta.js", "frontend/prototype/data/day"],
+      "product": {"id": "zenodo-20356239-prototype-export", "channel": "committed display export", "version": "V1.0-declared", "unit": "classification_code"},
+      "derived_from": ["front-original"],
+      "license_claims": [{"value": "CC BY 4.0", "evidence": "frontend/prototype/data/meta.js:product.license"}]
+    },
+    {
+      "id": "sst-original", "kind": "sst", "role": "analysis_source",
+      "locations": ["data/raw/sst"],
+      "product": {"id": null, "channel": "local original; exact product pending audit", "version": null, "unit": null},
+      "derived_from": [], "license_claims": []
+    },
+    {
+      "id": "sst-display", "kind": "sst", "role": "display",
+      "locations": ["frontend/prototype/data/sst"],
+      "product": {"id": "noaacwBLENDEDCsstDaily", "channel": "NOAA ERDDAP, declared by display metadata", "version": "v1.0-declared", "unit": "degree_C"},
+      "derived_from": ["sst-original"],
+      "license_claims": [{"value": "GHRSST free and open declaration; product terms pending verification", "evidence": "frontend/prototype/data/meta.js:availability.sst.product.license"}]
+    },
+    {
+      "id": "effort-original", "kind": "activity", "role": "analysis_source",
+      "locations": ["data/raw/fishing"],
+      "product": {"id": "public-global-fishing-effort:latest", "channel": "GFW 4Wings API, source registration only", "version": null, "unit": "fishing_hours"},
+      "derived_from": [],
+      "license_claims": [
+        {"value": "CC BY-SA 4.0; API non-commercial terms", "evidence": "tools/pipeline/fetch_gfw_effort.py:8,426"},
+        {"value": "CC BY-NC 4.0", "evidence": "docs/data-governance-gfw-ais.md:42"}
+      ]
+    },
+    {
+      "id": "effort-display", "kind": "activity", "role": "display",
+      "locations": ["frontend/prototype/data/fishing_effort"],
+      "product": {"id": "GFW-derived-display-declared", "channel": "daily display export", "version": null, "unit": "fishing_hours"},
+      "derived_from": ["effort-original"], "license_claims": []
+    },
+    {
+      "id": "response-input", "kind": "response", "role": "precomputed",
+      "locations": ["frontend/prototype/data/front_response/real-effort-input.json"],
+      "product": {"id": "legacy-buffer-aggregate", "channel": "committed aggregate input", "version": "front-response-input/v1-declared", "unit": "fishing_hours"},
+      "derived_from": ["effort-original", "front-display"],
+      "license_claims": [{"value": "CC BY-NC 4.0", "evidence": "frontend/prototype/data/front_response/real-effort-input.json:source.license"}]
+    },
+    {
+      "id": "response-table", "kind": "response", "role": "precomputed",
+      "locations": ["frontend/prototype/data/front_response/events.js"],
+      "product": {"id": "legacy-front-response-table", "channel": "precomputed event table; not arbitrary fixed-region evidence", "version": "front-response/v1-declared", "unit": "fishing_hours"},
+      "derived_from": ["response-input"],
+      "license_claims": [{"value": "CC BY-NC 4.0", "evidence": "frontend/prototype/data/front_response/events.js:source.license"}]
+    }
+  ]
+}

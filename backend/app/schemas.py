@@ -1,14 +1,110 @@
 from __future__ import annotations
 
 from datetime import date as DateType
+from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+ViewportStatus = Literal["ok", "partial", "empty", "unavailable", "invalid"]
+ViewportLayerStatus = Literal["available", "partial", "empty", "unavailable"]
+BasicQueryKind = Literal["current_state", "historical_comparison", "front_response"]
+BasicQueryStatus = Literal["ok", "partial", "empty", "unavailable"]
 
 
 class HealthResponse(BaseModel):
     status: str
     service: str
     offline: bool
+
+
+class ViewportRequest(BaseModel):
+    date: DateType
+    bbox: list[float] = Field(min_length=4, max_length=4)
+    step: int = Field(ge=1, le=40)
+
+
+class ViewportResolution(BaseModel):
+    spatial_deg: float
+
+
+class ViewportCacheMetadata(BaseModel):
+    enabled: bool
+    hit: bool
+    version: str = Field(min_length=1)
+
+
+class ViewportMeta(BaseModel):
+    status: ViewportStatus
+    source: Literal["fixture", "static_prototype"]
+    date: DateType
+    bbox: list[float] = Field(min_length=4, max_length=4)
+    step: int = Field(ge=1, le=40)
+    resolution: ViewportResolution
+    cache: ViewportCacheMetadata
+
+
+class ViewportLayerCoverage(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    fronts: ViewportLayerStatus
+    sst: ViewportLayerStatus
+    fishing_effort: ViewportLayerStatus = Field(alias="fishingEffort")
+
+
+class ViewportCoverage(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    status: ViewportStatus
+    bbox: list[float] | None = Field(default=None, min_length=4, max_length=4)
+    request_bbox: list[float] = Field(alias="requestBbox", min_length=4, max_length=4)
+    covered_bbox: list[float] | None = Field(default=None, alias="coveredBbox", min_length=4, max_length=4)
+    layers: ViewportLayerCoverage
+
+
+class ViewportLayers(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    fronts: dict[str, object]
+    sst: dict[str, object]
+    fishing_effort: dict[str, object] = Field(alias="fishingEffort")
+
+
+class ViewportResponse(BaseModel):
+    meta: ViewportMeta
+    layers: ViewportLayers
+    coverage: ViewportCoverage
+    caveats: list[str]
+
+
+class BasicQueryEvidence(BaseModel):
+    id: str
+    label: str
+    value: str
+    detail: str
+    source_files: list[str] = Field(default_factory=list)
+
+
+class BasicQueryCoverage(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    status: BasicQueryStatus
+    request_bbox: list[float] | None = Field(default=None, alias="requestBbox")
+    covered_bbox: list[float] | None = Field(default=None, alias="coveredBbox")
+    layers: dict[str, str] = Field(default_factory=dict)
+    sample_count: int | None = None
+    expected_sample_count: int | None = None
+    coverage_ratio: float | None = None
+
+
+class BasicQueryResponse(BaseModel):
+    kind: BasicQueryKind
+    status: BasicQueryStatus
+    source: dict[str, object]
+    parameters: dict[str, object]
+    metrics: dict[str, object]
+    evidence: list[BasicQueryEvidence]
+    coverage: BasicQueryCoverage
+    caveats: list[str]
 
 
 class CatalogFile(BaseModel):
@@ -24,6 +120,10 @@ class CatalogResponse(BaseModel):
     file_count: int
     available_dates: list[DateType]
     files: list[CatalogFile]
+    # files 默认不返回（几千个文件会把响应撑到几百 KB），为 false 时 files 恒为空数组
+    files_included: bool = False
+    # 本次结果是否来自目录指纹缓存（抓取脚本持续写入时会不断 miss，属正常）
+    cached: bool = False
     message: str | None = None
 
 
@@ -44,7 +144,6 @@ class AnalysisResponse(BaseModel):
     radius_deg: float
     sst: dict[str, float | int | None]
     front: dict[str, int | str]
-    intensity: dict[str, float | int | str | None] = Field(default_factory=dict)
     quality: dict[str, float | int]
     files: list[str]
     layers: dict[str, object]
@@ -166,26 +265,6 @@ class DataPreparationGroup(BaseModel):
     note: str
 
 
-class HistoricalCoverageBatch(BaseModel):
-    label: str
-    date_start: DateType | None
-    date_end: DateType | None
-    date_count: int
-    missing_front_count: int
-    missing_sst_count: int
-    missing_intensity_count: int
-    priority: str
-    command_preview: str
-
-
-class DataPreparationPriority(BaseModel):
-    name: str
-    level: str
-    status: str
-    reason: str
-    command_preview: str | None = None
-
-
 class DataPreparationPlanResponse(BaseModel):
     generated_at: str
     raw_data_dir: str
@@ -195,7 +274,6 @@ class DataPreparationPlanResponse(BaseModel):
     target_dates: list[DateType]
     front_file_count: int
     sst_file_count: int
-    front_intensity_file_count: int = 0
     paired_date_count: int
     paired_dates: list[DateType]
     missing_front_dates: list[DateType]
@@ -208,20 +286,8 @@ class DataPreparationPlanResponse(BaseModel):
     historical_window_days: int
     historical_target_date_count: int
     historical_paired_date_count: int
-    historical_coverage_ratio: float | None = None
-    historical_covered_years: list[int] = []
-    historical_missing_years: list[int] = []
     historical_missing_front_dates: list[DateType]
     historical_missing_sst_dates: list[DateType]
-    historical_missing_intensity_dates: list[DateType] = []
-    next_historical_batches: list[HistoricalCoverageBatch] = Field(default_factory=list)
-    readiness_score: float
-    readiness_level: str
-    next_action: str
-    required_front_sst_file_count: int
-    optional_intensity_file_count: int
-    priority_actions: list[DataPreparationPriority] = Field(default_factory=list)
-    acceptance_commands: list[str] = Field(default_factory=list)
     duplicate_front_groups: list[DataPreparationGroup]
     duplicate_sst_groups: list[DataPreparationGroup]
     recommended_steps: list[str]
@@ -240,9 +306,6 @@ class FrontObject(BaseModel):
     codes: list[int]
     mean_sst_celsius: float | None = None
     temperature_range_celsius: float | None = None
-    mean_intensity: float | None = None
-    max_intensity: float | None = None
-    intensity_pixel_count: int = 0
     nearest_to_query_km: float | None = None
 
 
@@ -269,12 +332,8 @@ class FrontTrackStep(BaseModel):
     mean_sst_celsius: float | None
     nearest_to_query_km: float | None
     distance_from_previous_km: float | None
-    speed_km_per_day: float | None = None
-    bearing_deg: float | None = None
     matched_by: str
     match_score: float | None = None
-    continuity_score: float | None = None
-    confidence_label: str = "unknown"
     shape_similarity: float | None = None
     bbox_overlap_ratio: float | None = None
     candidates_considered: int
@@ -290,18 +349,10 @@ class FrontTrackingResponse(BaseModel):
     days: int
     match_distance_km: float
     algorithm: str = "centroid-shape-overlap"
-    algorithm_version: str = "v1"
     algorithm_notes: list[str] = []
     available_step_count: int
     tracked_step_count: int
     cumulative_displacement_km: float | None
-    mean_daily_displacement_km: float | None = None
-    max_daily_displacement_km: float | None = None
-    gap_count: int = 0
-    reset_count: int = 0
-    mean_match_score: float | None = None
-    confidence_score: float | None = None
-    confidence_label: str = "unknown"
     status: str
     steps: list[FrontTrackStep]
     layers: dict[str, object]
@@ -315,81 +366,6 @@ class ReportResponse(BaseModel):
     highlights: list[str]
     markdown: str
     html: str
-    source_files: list[str]
-
-
-class PredictionDriver(BaseModel):
-    name: str
-    value: str
-    weight: float
-    note: str
-
-
-class FrontPredictionPoint(BaseModel):
-    target_date: DateType
-    horizon_day: int
-    probability: float | None
-    predicted_status: str
-    confidence_label: str
-    same_period_sample_count: int
-    same_period_probability: float | None
-    monthly_probability: float | None
-    recent_signal: float | None
-    gradient_adjustment: float
-    observed_front_present: bool | None = None
-    observed_front_line_pixels: int | None = None
-    drivers: list[PredictionDriver] = Field(default_factory=list)
-    explanation: str
-
-
-class FrontPredictionResponse(BaseModel):
-    date: DateType
-    longitude: float
-    latitude: float
-    radius_deg: float
-    horizon_days: int
-    algorithm: str = "historical-climatology-recent-baseline"
-    algorithm_version: str = "v1"
-    generated_at: str
-    training_sample_count: int
-    sample_reliability_label: str
-    forecast_count: int
-    predictions: list[FrontPredictionPoint]
-    explanation: list[str]
-    source_files: list[str]
-
-
-class FrontPredictionEvaluationPoint(BaseModel):
-    anchor_date: DateType
-    target_date: DateType
-    horizon_day: int
-    probability: float
-    predicted_present: bool
-    observed_front_present: bool
-    observed_front_line_pixels: int
-    error: float
-    squared_error: float
-    confidence_label: str
-
-
-class FrontPredictionEvaluationResponse(BaseModel):
-    date: DateType
-    longitude: float
-    latitude: float
-    radius_deg: float
-    horizon_days: int
-    generated_at: str
-    algorithm: str = "historical-climatology-recent-baseline"
-    evaluation_mode: str = "in-sample-local-backtest"
-    evaluated_count: int
-    candidate_anchor_count: int
-    accuracy: float | None
-    brier_score: float | None
-    mean_absolute_error: float | None
-    positive_count: int
-    negative_count: int
-    notes: list[str]
-    points: list[FrontPredictionEvaluationPoint]
     source_files: list[str]
 
 
@@ -499,8 +475,6 @@ class HistoryTimelinePoint(BaseModel):
     front_line_pixels: int
     cold_side_pixels: int
     warm_side_pixels: int
-    front_line_density_per_1000_pixels: float = 0.0
-    nearest_front_distance_km: float | None = None
     front_present: bool
     sst_mean_celsius: float | None
     sst_min_celsius: float | None
@@ -519,19 +493,6 @@ class HistoryMonthlyPoint(BaseModel):
     sst_max_celsius: float | None
 
 
-class ProbabilityRuleOption(BaseModel):
-    id: str
-    label: str
-    description: str
-    default_threshold: float | None = None
-    threshold_unit: str | None = None
-
-
-class ProbabilityRuleOptionsResponse(BaseModel):
-    default_rule: str
-    options: list[ProbabilityRuleOption]
-
-
 class HistorySummary(BaseModel):
     available_date_start: DateType | None
     available_date_end: DateType | None
@@ -544,14 +505,7 @@ class HistorySummary(BaseModel):
     same_period_sample_count: int
     same_period_front_hit_count: int
     same_period_probability: float | None
-    probability_rule: str = "line_presence"
-    probability_rule_label: str = "窗口内存在锋面线像元"
-    probability_threshold: float | None = None
-    probability_rule_note: str = ""
     same_period_coverage_ratio: float | None = None
-    same_period_covered_years: list[int] = []
-    same_period_missing_years: list[int] = []
-    next_missing_same_period_dates: list[DateType] = []
     monthly_expected_sample_count: int = 0
     monthly_sample_count: int
     monthly_front_hit_count: int
@@ -689,3 +643,70 @@ class HistoryResponse(BaseModel):
     source_files: list[str]
     same_period_records: list[HistoryTimelinePoint] = []
     monthly_records: list[HistoryTimelinePoint] = []
+class FishingSource(BaseModel):
+    name: str
+    api: str
+    dataset: str
+    citation: str
+    url: str
+    license: str
+    terms: str
+    unit: str
+    meaning: str
+
+
+class FishingDaySummary(BaseModel):
+    date: DateType
+    cell_count: int
+    total_hours: float
+    vessel_count: int
+    file: str
+
+
+class FishingAvailabilityResponse(BaseModel):
+    ready: bool
+    day_count: int
+    first_date: DateType | None = None
+    last_date: DateType | None = None
+    days: list[FishingDaySummary] = Field(default_factory=list)
+    spatial_resolution_deg: float
+    bbox: list[float]
+    source: FishingSource
+    message: str | None = None
+
+
+class FishingCell(BaseModel):
+    lon: float
+    lat: float
+    hours: float
+    vessel_count: int
+    top_gears: list[str] = Field(default_factory=list)
+
+
+class FishingDayResponse(BaseModel):
+    date: DateType
+    cell_count: int
+    total_hours: float
+    vessel_count: int
+    flag_count: int | None = None
+    spatial_resolution_deg: float
+    bbox: list[float]
+    cells: list[FishingCell]
+    raster_url: str
+    raster_bounds: list[float]
+    source: FishingSource
+
+
+class FishingPointResponse(BaseModel):
+    date: DateType
+    longitude: float
+    latitude: float
+    matched: bool
+    cell_lon: float | None = None
+    cell_lat: float | None = None
+    hours: float | None = None
+    vessel_count: int | None = None
+    top_gears: list[str] = Field(default_factory=list)
+    source: FishingSource
+    message: str | None = None
+

@@ -1,0 +1,567 @@
+{
+  "parent": 60,
+  "work_package": 18,
+  "umbrella": 13,
+  "approval": "User confirmed all eleven tickets and their dependencies on 2026-10-24",
+  "acceptance_criteria": 70,
+  "user_stories_covered": 42,
+  "external_ancestor_edges_verified": {
+    "39": [
+      37,
+      38
+    ],
+    "41": [
+      39
+    ],
+    "43": [
+      42
+    ],
+    "44": [
+      40,
+      41
+    ],
+    "37": [
+      36
+    ],
+    "38": [
+      36
+    ],
+    "40": [
+      36
+    ],
+    "42": [
+      41
+    ],
+    "36": []
+  },
+  "dag_verified": true,
+  "tickets": [
+    {
+      "local_id": "A01",
+      "title": "[A A01] 显式运行并读取可手算的月分析样例",
+      "filename": "01-controlled-month-sample.md",
+      "number": 61,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/61",
+      "internal_blocker_numbers": [],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [],
+      "stories": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        7,
+        10,
+        33,
+        36,
+        39,
+        40
+      ],
+      "acceptance_criteria": 7,
+      "body_sha256": "69d381a6c4d319f47ae91f6c07a56a356c48376fea2b7ec6c384cd70e3d918d5",
+      "database_id": 6009419123,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": []
+    },
+    {
+      "local_id": "A02",
+      "title": "[A A02] 按最近锋面距离计算同日配对与月度密度",
+      "filename": "02-distance-month-reference.md",
+      "number": 62,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/62",
+      "internal_blocker_numbers": [
+        61
+      ],
+      "external_blocker_numbers": [
+        39
+      ],
+      "blocker_numbers": [
+        61,
+        39
+      ],
+      "stories": [
+        6,
+        8,
+        9,
+        11,
+        12,
+        13,
+        15,
+        16,
+        17,
+        18,
+        24
+      ],
+      "acceptance_criteria": 7,
+      "body_sha256": "0d1993173e16aeda5a7dcef610e557a00ae244e9ecdbf8c80e0a9a47e49c1c04",
+      "database_id": 6009419387,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        39,
+        61
+      ]
+    },
+    {
+      "local_id": "A03",
+      "title": "[A A03] 在可判定支持上比较冷暖侧与环境条件",
+      "filename": "03-side-environment.md",
+      "number": 63,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/63",
+      "internal_blocker_numbers": [
+        62
+      ],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [
+        62
+      ],
+      "stories": [
+        14,
+        21,
+        22,
+        23
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "032194b3b1f9ac07873e34a160485f789f340c8bf9e791bd014497601a9830d6",
+      "database_id": 6009419698,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        62
+      ]
+    },
+    {
+      "local_id": "A04",
+      "title": "[A A04] 月分析按P0资格放行并解释真实缺口",
+      "filename": "04-p0-qualification-consumption.md",
+      "number": 64,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/64",
+      "internal_blocker_numbers": [
+        61
+      ],
+      "external_blocker_numbers": [
+        41
+      ],
+      "blocker_numbers": [
+        61,
+        41
+      ],
+      "stories": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        9,
+        10,
+        36,
+        39
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "b9025474a55021219c853246c56bb1bc4efcacc0bf8d407bb9e2f8e181bdfff0",
+      "database_id": 6009420469,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        41,
+        61
+      ]
+    },
+    {
+      "local_id": "A05",
+      "title": "[A A05] 给出同月可比距离参照和匹配失败说明",
+      "filename": "05-same-month-controls.md",
+      "number": 65,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/65",
+      "internal_blocker_numbers": [
+        62
+      ],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [
+        62
+      ],
+      "stories": [
+        19,
+        20,
+        21,
+        25,
+        37
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "1651c28a21efa962db1a56e688841598c4a33c89b4da35504b7468d4a1fce806",
+      "database_id": 6009420698,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        62
+      ]
+    },
+    {
+      "local_id": "A06",
+      "title": "[A A06] 按相关日组估计效应区间并正确降级",
+      "filename": "06-correlated-uncertainty.md",
+      "number": 66,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/66",
+      "internal_blocker_numbers": [
+        65
+      ],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [
+        65
+      ],
+      "stories": [
+        25,
+        26,
+        27,
+        37
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "7a236d2f8bb15b60d8f4750a3f680f0b6c27d7cad5b2cfaca59852917f38b716",
+      "database_id": 6009420952,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        65
+      ]
+    },
+    {
+      "local_id": "A07",
+      "title": "[A A07] 冻结主方案并运行可追溯敏感性比较",
+      "filename": "07-frozen-sensitivity.md",
+      "number": 67,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/67",
+      "internal_blocker_numbers": [
+        63,
+        64,
+        66
+      ],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [
+        63,
+        64,
+        66
+      ],
+      "stories": [
+        28,
+        29,
+        30
+      ],
+      "acceptance_criteria": 7,
+      "body_sha256": "0ae2e2193be5b3db98ce6eff89bee45216e354f9bf396992cfb325c1af759877",
+      "database_id": 6009421209,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        63,
+        64,
+        66
+      ]
+    },
+    {
+      "local_id": "A08",
+      "title": "[A A08] 运行首个合格真实整月并交付直接计算证据",
+      "filename": "08-real-month-reference.md",
+      "number": 68,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/68",
+      "internal_blocker_numbers": [
+        67
+      ],
+      "external_blocker_numbers": [
+        44
+      ],
+      "blocker_numbers": [
+        67,
+        44
+      ],
+      "stories": [
+        5,
+        8,
+        9,
+        24,
+        37,
+        38,
+        42
+      ],
+      "acceptance_criteria": 7,
+      "body_sha256": "5c92ef1cee9c0d927b536a51de45da6b281b27b186849e5dd8067b928d0c3a01",
+      "database_id": 6009421476,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        44,
+        67
+      ]
+    },
+    {
+      "local_id": "A09",
+      "title": "[A A09] 将同一月结果呈现为主图、解释和证据包",
+      "filename": "09-charts-evidence-pack.md",
+      "number": 69,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/69",
+      "internal_blocker_numbers": [
+        63,
+        66
+      ],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [
+        63,
+        66
+      ],
+      "stories": [
+        16,
+        17,
+        24,
+        31,
+        32,
+        35,
+        37
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "651b94069eda71cef5bc91054e2fe52ca79701b59b3f1768fc9c71842d5fa546",
+      "database_id": 6009421724,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        63,
+        66
+      ]
+    },
+    {
+      "local_id": "A10",
+      "title": "[A A10] 重复读取复用正确结果且版本变化不串用",
+      "filename": "10-result-reuse-versioning.md",
+      "number": 70,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/70",
+      "internal_blocker_numbers": [
+        64
+      ],
+      "external_blocker_numbers": [
+        43
+      ],
+      "blocker_numbers": [
+        64,
+        43
+      ],
+      "stories": [
+        33,
+        34,
+        35,
+        39,
+        40
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "cb6009cfb061663cdc54ac4f7d6fa19e657ff520aa5769ae673ef1829e8d1939",
+      "database_id": 6009421951,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        43,
+        64
+      ]
+    },
+    {
+      "local_id": "A11",
+      "title": "[A A11] 复算真实月成果并交接可消费的A结果合同",
+      "filename": "11-real-replay-handoff.md",
+      "number": 71,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/71",
+      "internal_blocker_numbers": [
+        68,
+        69,
+        70
+      ],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [
+        68,
+        69,
+        70
+      ],
+      "stories": [
+        34,
+        35,
+        38,
+        41,
+        42
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "95fd5c76ce5fa729d1fd120badd06195a1309fdd484300c7b46ab3e3f51d8e27",
+      "database_id": 6009422168,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        68,
+        69,
+        70
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "child": 62,
+      "blocked_by": 61,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 62,
+      "blocked_by": 39,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 63,
+      "blocked_by": 62,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 64,
+      "blocked_by": 61,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 64,
+      "blocked_by": 41,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 65,
+      "blocked_by": 62,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 66,
+      "blocked_by": 65,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 67,
+      "blocked_by": 63,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 67,
+      "blocked_by": 64,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 67,
+      "blocked_by": 66,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 68,
+      "blocked_by": 67,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 68,
+      "blocked_by": 44,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 69,
+      "blocked_by": 63,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 69,
+      "blocked_by": 66,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 70,
+      "blocked_by": 64,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 70,
+      "blocked_by": 43,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 71,
+      "blocked_by": 68,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 71,
+      "blocked_by": 69,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 71,
+      "blocked_by": 70,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    }
+  ],
+  "completed": true,
+  "real_month_analysis_executed": false,
+  "application_tests_executed": false,
+  "external_blockers": [
+    {
+      "number": 39,
+      "database_id": 6008468042,
+      "state": "open"
+    },
+    {
+      "number": 41,
+      "database_id": 6008468548,
+      "state": "open"
+    },
+    {
+      "number": 43,
+      "database_id": 6008469096,
+      "state": "open"
+    },
+    {
+      "number": 44,
+      "database_id": 6008469382,
+      "state": "open"
+    }
+  ],
+  "parent_unchanged_verified": true,
+  "work_package_unchanged_verified": true,
+  "umbrella_unchanged_verified": true,
+  "native_dependencies_available": true,
+  "frontier": [
+    61
+  ]
+}
