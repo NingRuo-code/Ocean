@@ -45,8 +45,8 @@
     Object.keys(DAYS).forEach(key => delete DAYS[key]); Object.assign(DAYS, LOCAL_DAYS);
     Object.keys(SST).forEach(key => delete SST[key]); Object.assign(SST, LOCAL_SST);
     Object.keys(PATCHES).forEach(key => delete PATCHES[key]);
-    FISHING.days = {}; FISHING.inflight = {}; FISHING.failed = {};
-    SERVER.inflight = {}; SERVER.failed = {}; VIEW_WINDOW.inflight = {}; VIEW_WINDOW.failed = {};
+    FISHING.days = {}; FISHING.inflight = {};
+    SERVER.inflight = {}; VIEW_WINDOW.inflight = {};
   }
   async function requestJson(url, layer, epoch) {
     if (epoch !== requestEpoch) throw new Error("obsolete");
@@ -92,7 +92,6 @@
     sortedDates: [],
     dateSet: {},
     inflight: {},
-    failed: {},
     healthInflight: null,
   };
 
@@ -183,7 +182,7 @@
     SERVER.healthInflight = null;
     if (typeof VIEW_WINDOW !== "undefined") {
       VIEW_WINDOW.inflight = {};
-      VIEW_WINDOW.failed = {};
+
     }
   }
 
@@ -265,23 +264,14 @@
       SERVER.status = "manual_offline";
       SERVER.reason = "已手动切换到离线模式";
       VIEW_WINDOW.inflight = {};
-      VIEW_WINDOW.failed = {};
+
       return Promise.resolve(false);
     }
     SERVER.userMode = "auto";
     return initServerMode({ force: true });
   }
 
-  /** 失败重试间隔：太短会连着打服务器，太长则用户在视野里看不到数据。
-   *  （后端重启/网络抖动会造成 502，之前失败后被永久记住 → 那一片就永远是空的。）
-   *  语义 = 值得再试一次：没失败过，或上次失败已过去 RETRY_MS 以上。 */
-  const RETRY_MS = 20000;
-  const retryable = function (record, key) {
-    const at = record[key];
-    return !at || Date.now() - at >= RETRY_MS;
-  };
-
-  /** 按需把服务器单日数据注入 DAYS/SST；并发同一天只发一次，失败后 20s 允许重试。 */
+  /** 当前身份内共享单日请求；临时故障重试一次，其他失败由用户重试。 */
   function ensureDay(iso, force) {
     if (!force && Object.prototype.hasOwnProperty.call(DAYS, iso)) return Promise.resolve(true);
     if (!serverAvailable(iso)) return Promise.resolve(false);
@@ -291,15 +281,17 @@
     const task = requestJson(url, "day", epoch)
       .then(function (payload) {
         if (epoch !== requestEpoch) return false;
-        if (!payload || !payload.front) throw new Error("payload 缺少 front");
+        if (!payload?.front?.grid || (payload.front.date && payload.front.date !== iso)) throw new Error("invalid_front_payload");
         DAYS[iso] = payload.front;
         if (payload.sst) SST[iso] = payload.sst;
         if (payload.window) addPatch(iso, payload, true);   // 注册成「主片」（作业海域，永远是 0.05°）
-        delete SERVER.failed[iso];
         publishLoad("day", "ready");
         return true;
       })
-      .catch(function () { SERVER.failed[iso] = Date.now(); return false; })
+      .catch(function () {
+        if (epoch === requestEpoch && loadStates.day?.status === "loading") publishLoad("day", "error");
+        return false;
+      })
       .then(function (ok) { delete SERVER.inflight[identity]; return ok; });
     SERVER.inflight[identity] = task;
     return task;
@@ -311,7 +303,7 @@
   // 放大到 40° 以内自动换 0.05° 明细。离线（file://）没有服务器，只有本地那一片，行为不变。
   const PATCHES = {};              // iso -> [patch]（patch = 一片数据 + 自己的 grid）
   const MAX_PATCHES_PER_DATE = 4;
-  const VIEW_WINDOW = { key: null, bbox: null, step: 1, inflight: {}, failed: {} };
+  const VIEW_WINDOW = { key: null, bbox: null, step: 1, inflight: {} };
 
   /** 视野跨度 → 降采样档（与后端 STEPS 对齐：1=0.05°、4=0.2°、20=1°、40=2°）
    *  阈值按「屏幕上看什么」定：≤25° 仍给 0.05° 明细（25°×25° 约 25 万格，后端 ~0.5s、可缓存），
@@ -558,7 +550,7 @@
     };
   }
 
-  /** 取一片窗口数据（视野片与预热共用）：同一个 key 只发一次，失败 20s 后可重试 */
+  /** 视野与预热共享当前身份内请求；失败不关闭其他可用图层。 */
   function fetchPatch(iso, key, url, kind) {
     const list = PATCHES[iso] || [];
     if (list.some(function (item) { return item.key === key; })) return Promise.resolve(true);
@@ -574,7 +566,6 @@
         }
         const adapted = kind === "viewport" ? viewportPayloadToPatchPayload(iso, payload) : payload;
         const ok = !!addPatch(iso, adapted, false);
-        if (ok) delete VIEW_WINDOW.failed[key];
         publishLoad("viewport", ok ? "ready" : "unknown-coverage");
         return ok;
       })
@@ -651,7 +642,7 @@
 
   // 注意口径：这是基于 AIS 行为估计的「表观捕捞活动」（fishing hours），
   // 不是渔获量/产量/鱼群密度，界面必须照实标注（见 docs/data-governance-gfw-ais.md）。
-  const FISHING = { days: {}, inflight: {}, failed: {} };
+  const FISHING = { days: {}, inflight: {} };
 
   function fishingAvailable() {
     return SERVER.enabled === true || !!(META && META.status && META.status.fishing_grounds === "real");
@@ -660,8 +651,7 @@
   function fishingDay(iso) { return fishingAvailable() ? (FISHING.days[iso] || null) : null; }
 
   /** 按需取某天的渔场格点；未启用服务器、当日无数据（404）或取数失败时返回 false
-   *  （调用方按「无覆盖 / 当日无作业」处理，不按 0）。失败与 ensureDay 共用 20s 重试窗口，
-   *  避免一次后端抖动就把这一天永久钉成空白。 */
+   *  空记录只表示覆盖未知；临时故障自动重试一次，仍失败允许手动重试。 */
   function ensureFishing(iso) {
     if (FISHING.days[iso]) {
       const cells = FISHING.days[iso].cells;
@@ -676,7 +666,6 @@
         if (epoch !== requestEpoch) return false;
         if (data?.date && data.date !== iso) throw new Error("response_date_mismatch");
         FISHING.days[iso] = data && Array.isArray(data.cells) ? data : null;
-        delete FISHING.failed[iso];
         const cells = FISHING.days[iso]?.cells;
         publishLoad("fishing", !cells?.length ? "unknown-coverage" : cells.every(c => c.hours === 0) ? "ready-zero-records" : "ready");
         return !!FISHING.days[iso];
@@ -837,6 +826,7 @@
     setViewWindow: setViewWindow,
     viewWindow: viewWindow,
     ensureViewport: ensureViewport,
+    viewportReady: function (iso) { return !!(VIEW_WINDOW.bbox && coveredByPatch(iso, VIEW_WINDOW.bbox, VIEW_WINDOW.step)); },
     prefetchOverview: prefetchOverview,
     workingWindow: workingWindow,
     stepForWindow: stepForWindow,

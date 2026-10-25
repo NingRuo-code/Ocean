@@ -20,3 +20,9 @@
 ## Blocked by
 
 None (can start immediately).
+
+## Implementation evidence — 2026-10-25
+
+本地实现与CLI验证通过，待PR审查。来源缺口和许可冲突已公开记证，不解除后续研究资格关口。
+
+详见[首批实施、检查与残余项](../../reports/ocean-first-implementation-batch-2026-10-25.md)。分支 `codex/research-execution-plan`；Issue、PR、合并和生产部署分别记录，不以本地测试代替线上验收。

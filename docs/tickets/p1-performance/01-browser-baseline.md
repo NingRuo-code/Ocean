@@ -20,3 +20,9 @@
 ## Blocked by
 
 None (can start immediately).
+
+## Implementation evidence — 2026-10-25
+
+部分实现，继续补证。已有本地B0与受控浏览器计时；合法完整支持B1、实际服务及稳定尾部证据未完成，不结项。
+
+详见[首批实施、检查与残余项](../../reports/ocean-first-implementation-batch-2026-10-25.md)。分支 `codex/research-execution-plan`；Issue、PR、合并和生产部署分别记录，不以本地测试代替线上验收。

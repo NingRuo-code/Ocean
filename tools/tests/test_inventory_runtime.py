@@ -1,5 +1,8 @@
 import importlib.util
+import os
 from pathlib import Path
+
+import pytest
 
 spec = importlib.util.spec_from_file_location("inventory_runtime", Path(__file__).parents[1] / "inventory-runtime.py")
 module = importlib.util.module_from_spec(spec)
@@ -19,3 +22,16 @@ def test_local_inventory_distinguishes_missing_from_empty_and_never_claims_serve
     assert report["production"]["ram"] is None
     assert report["capacity"]["concurrency_budget"] is None
     assert str(tmp_path) not in str(report)
+
+
+def test_excluded_directory_link_is_partial(tmp_path):
+    data = tmp_path / "data/raw"
+    data.mkdir(parents=True)
+    outside = tmp_path / "separate"
+    outside.mkdir()
+    (outside / "file.csv").write_bytes(b"abc")
+    try:
+        os.symlink(outside, data / "link", target_is_directory=True)
+    except OSError:
+        pytest.skip("directory links unavailable on this host")
+    assert module.measure(tmp_path, "data/raw")["status"] == "partial"

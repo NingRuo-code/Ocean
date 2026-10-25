@@ -9,10 +9,20 @@ import time
 from pathlib import Path
 
 
+def excluded_link(path):
+    # Python 3.11 also exposes Windows reparse attributes (junctions included).
+    return path.is_symlink() or bool(getattr(path.lstat(), "st_file_attributes", 0) & 0x400)
+
+
 def measure(root, relative):
     target = root / relative
-    if not target.exists():
-        return {"status": "missing", "bytes": None, "files": None}
+    try:
+        if not target.exists():
+            return {"status": "missing", "bytes": None, "files": None}
+        if excluded_link(target):
+            return {"status": "partial", "bytes": None, "files": None}
+    except OSError:
+        return {"status": "unavailable", "bytes": None, "files": None}
     size = count = 0
     partial = False
     def denied(_error):
@@ -20,13 +30,22 @@ def measure(root, relative):
         partial = True
 
     for folder, dirs, files in os.walk(target, followlinks=False, onerror=denied):
-        dirs[:] = [name for name in dirs if not (Path(folder) / name).is_symlink()]
+        accepted = []
+        for name in dirs:
+            try:
+                if not excluded_link(Path(folder) / name):
+                    accepted.append(name)
+            except OSError:
+                partial = True
+        if len(accepted) != len(dirs):
+            partial = True
+        dirs[:] = accepted
         for name in files:
             path = Path(folder) / name
-            if path.is_symlink():
-                partial = True
-                continue
             try:
+                if excluded_link(path):
+                    partial = True
+                    continue
                 size += path.stat().st_size
                 count += 1
             except OSError:
@@ -38,7 +57,8 @@ def inventory(root, snapshot):
     disk = shutil.disk_usage(root)
     layers = {name: measure(root, path) for name, path in {
         "raw": "data/raw", "hot_display": "frontend/prototype/data",
-        "derived_and_staging": "data/processed", "cache": "data/cache",
+        "derived_unclassified": "data/processed", "indexes": "data/indexes",
+        "staging": "data/staging", "cache": "data/cache",
         "results": "data/outputs", "backup": "data/backups",
     }.items()}
     routes = {}

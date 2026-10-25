@@ -20,3 +20,9 @@
 ## Blocked by
 
 None (can start immediately).
+
+## Implementation evidence — 2026-10-25
+
+工具与部分清单已验证，待PR审查。当前服务器硬件/版本/进程仍未知，公开视野端点404已记录，不给采购结论。
+
+详见[首批实施、检查与残余项](../../reports/ocean-first-implementation-batch-2026-10-25.md)。分支 `codex/research-execution-plan`；Issue、PR、合并和生产部署分别记录，不以本地测试代替线上验收。

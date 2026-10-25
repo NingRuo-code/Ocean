@@ -20,3 +20,9 @@
 ## Blocked by
 
 None (can start immediately).
+
+## Implementation evidence — 2026-10-25
+
+本地实现与受控浏览器故障/乱序检查通过，待PR审查；真实生产权限和未声明数据版本仍需后续联调。
+
+详见[首批实施、检查与残余项](../../reports/ocean-first-implementation-batch-2026-10-25.md)。分支 `codex/research-execution-plan`；Issue、PR、合并和生产部署分别记录，不以本地测试代替线上验收。

@@ -869,8 +869,10 @@ function drawMap(opts) {
   syncViewHint(globe);
   updateScaleBar();
   const rendered = ok && !skipData ? OFData.patches(iso).filter(p => !globe || p.resolutionDeg > 0.1) : [];
+  svg.dataset.renderSupport = JSON.stringify(rendered.map(p => p.bbox || [p.grid.lon0, p.grid.lat0, p.grid.lon0 + p.grid.dlon * p.grid.nx, p.grid.lat0 + p.grid.dlat * p.grid.ny]));
   svg.dataset.renderDate = iso;
   svg.dataset.renderStatus = rendered.length ? "ready" : skipData || ok ? "base-only" : "unavailable";
+  if (OFData.serverEnabled() && !OFData.viewportReady(iso)) svg.dataset.renderStatus = viewportLoading ? "pending" : "partial";
   svg.dataset.mapMs = String(performance.now() - renderStarted);
   svg.dataset.dataStep = rendered.length ? String(Math.min(...rendered.map(p => p.resolutionDeg))) : "";
   syncRenderView();
@@ -878,7 +880,14 @@ function drawMap(opts) {
 
 // Public render evidence for the browser baseline; a basemap alone is never data-ready.
 function syncRenderView() {
-  $("mapSvg").dataset.viewKey = JSON.stringify([state.date, state.view.lon0, state.view.lat0, state.zoom, _view.mode]);
+  const svg = $("mapSvg");
+  svg.dataset.viewKey = JSON.stringify([state.date, state.view.lon0, state.view.lat0, state.zoom, _view.mode]);
+  const support = JSON.parse(svg.dataset.renderSupport || "[]");
+  const bounds = OFMap.visibleBounds(_view, mapAspect());
+  const overlaps = support.some(b => !bounds || b[0] <= bounds.lonMax && b[2] >= bounds.lonMin && b[1] <= bounds.latMax && b[3] >= bounds.latMin);
+  if (!overlaps) svg.dataset.renderStatus = "unavailable";
+  else if (OFData.serverEnabled() && !OFData.viewportReady(state.date)) svg.dataset.renderStatus = viewportLoading ? "pending" : "partial";
+  else if (svg.dataset.renderDate === state.date) svg.dataset.renderStatus = "ready";
 }
 
 // ==================== 鼠标放到地图上：看那个点的数据 ====================
@@ -1685,7 +1694,7 @@ function clampDate(iso) {
   return iso < DATE_MIN ? DATE_MIN : iso > DATE_MAX ? DATE_MAX : iso;
 }
 function loadThenRefresh(iso) {
-  syncRequestContext();
+  const identity = syncRequestContext();
   const local = OFData.hasDay(iso);
   if (local) refresh();                          // 先用本地数据渲染（快）
   if (!OFData.serverAvailable(iso)) {
@@ -1694,7 +1703,7 @@ function loadThenRefresh(iso) {
   }
   if (!local) refresh();                         // 本地没有：空态会说明「正在从服务器取这一天」
   OFData.ensureDay(iso, local).then(function (ok) {
-    if (state.date !== iso) return;              // 期间用户又换了日期，丢弃这次结果
+    if (state.date !== iso || identity !== syncRequestContext()) return;
     if (!ok && !OFData.hasDay(iso)) showToast(mdText(iso) + " 没取到，请换个日期");
     refresh();
     warmOverview(iso);                            // 顺手把全球 2° 概览取回来，缩到球面立刻有数据
@@ -1705,8 +1714,9 @@ function loadThenRefresh(iso) {
 // 预热全球概览：这一次取数不打乱界面（后台进行），到位后只重画地图
 function warmOverview(iso) {
   if (!OFData.serverEnabled()) return;
+  const identity = syncRequestContext();
   OFData.prefetchOverview(iso).then(function (ok) {
-    if (!ok || state.date !== iso) return;
+    if (!ok || state.date !== iso || identity !== syncRequestContext()) return;
     invalidate();
     drawMap();
     syncViewHint();
@@ -1719,8 +1729,9 @@ function warmOverview(iso) {
 function loadFishing(iso, notify) {
   if (!OFData.serverEnabled()) return;                    // 离线（file://）没有渔场数据源
   if (!state.layers.ground && notify !== true) return;    // 图层关着就不打扰服务器
+  const identity = syncRequestContext();
   OFData.ensureFishing(iso).then(function (ok) {
-    if (state.date !== iso) return;                       // 期间用户又换了日期，丢弃这次结果
+    if (state.date !== iso || identity !== syncRequestContext()) return;
     if (ok) {
       invalidate();
       drawMap();
@@ -2023,13 +2034,23 @@ function syncViewHint() {
 // 视野变了就去问服务器要这一片（防抖：拖动/缩放停稳后再发请求；同样的窗口不重复要）
 let viewportTimer = 0, viewportLoading = false;
 function syncRequestContext() {
-  return OFData.setRequestContext({ date: state.date, lon: state.lon, lat: state.lat, radius: state.range,
+  const prior = OFData.loadState();
+  const epoch = OFData.setRequestContext({ date: state.date, lon: state.lon, lat: state.lat, radius: state.range,
     view: [state.view.lon0, state.view.lat0, state.zoom], mode: OFData.serverMode().userMode,
     enabled: OFData.serverEnabled(), version: OFData.serverMode().dataVersion });
+  if (OFData.serverEnabled() && Object.values(prior).some(v => v.epoch !== epoch)) {
+    // Reissue canceled work under the new identity, including cached-view changes.
+    if (prior.day?.status === "loading") queueMicrotask(() => loadThenRefresh(state.date));
+    if (prior.fishing?.status === "loading") queueMicrotask(() => loadFishing(state.date, true));
+  }
+  return epoch;
 }
 function requestViewportPatch(soon) {
   if (!OFData.serverEnabled()) return;
   if (viewportTimer) clearTimeout(viewportTimer);
+  OFData.setViewWindow(OFMap.visibleBounds(_view, mapAspect()));
+  viewportLoading = !OFData.viewportReady(state.date);
+  if (viewportLoading) $("mapSvg").dataset.renderStatus = "pending";
   const delay = soon === false ? 0 : 420;
   viewportTimer = setTimeout(() => {
     viewportTimer = 0;

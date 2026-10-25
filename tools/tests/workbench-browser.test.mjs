@@ -22,6 +22,9 @@ test("nearby-front workbench keeps independent panels, factual results and an op
     const old = await c.evaluate("document.getElementById('mapSvg').getAttribute('viewBox')");
     await c.evaluate("document.getElementById('zoomIn').click()");
     assert.notEqual(await c.evaluate("document.getElementById('mapSvg').getAttribute('viewBox')"), old);
+    await c.evaluate("centerOn(0,0)");
+    assert.notEqual(await c.evaluate("document.getElementById('mapSvg').dataset.renderStatus"), "ready", "offline view outside all rendered support is not complete");
+    await c.evaluate("document.getElementById('recenter').click()");
     for (const width of [1440, 1280, 390]) {
       await c.send("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile: false });
       await c.evaluate("document.getElementById('workbenchClose').click();document.getElementById('resultClose').click()");
