@@ -1231,7 +1231,8 @@ function renderNow() {
   renderAisResponse(snap);
 }
 
-function renderAisResponse(snap) {
+function renderAisResponse(snap, explicit = false) {
+  if (window.OceanEvidence && !explicit) return;
   const tag = $("aisResponseTag");
   const list = $("aisResponseList");
   const why = $("aisResponseWhyBody");
@@ -1385,7 +1386,8 @@ function renderRecentClimWindow(days, label) {
 }
 
 // ==================== L2-预测（规则基线，不冒充正式预报） ====================
-function renderFuture() {
+function renderFuture(explicit = false) {
+  if (window.OceanEvidence && !explicit) { window.OceanEvidence.sync(); return; }
   const snap = snapshot();
   const recent = aggregateObservationDates(recentObservationDates(state.date, 4));
   const climRate = climRateFor(state.date.slice(5), state.range);
@@ -1395,7 +1397,7 @@ function renderFuture() {
   const best = inWindow.reduce((m, r) => (!m || r.score > m.score ? r : m), null);
   document.querySelectorAll("#futureWindow button").forEach((b) => b.classList.toggle("active", Number(b.dataset.window) === windowDays));
   $("futureTag").textContent = windowDays + " 天 · 规则参考";
-  $("futureBestTag").textContent = best ? ("第 " + best.offset + " 天 · " + best.score + "%") : "暂无";
+  $("futureBestTag").textContent = "实验 / 未独立验证";
   if (!snap.ok) {
     $("futureBars").innerHTML = "";
     $("futureList").innerHTML =
@@ -1405,10 +1407,10 @@ function renderFuture() {
     return;
   }
   $("futureList").innerHTML =
-    '<div class="row"><span class="i">0</span><span class="grow"><b>' + windowDays + " 天窗口首选 " +
-    (best ? mdText(best.date) + " · " + best.score + "%" : "暂无") + "</b>" +
+    '<div class="row"><span class="i">0</span><span class="grow"><b>' + windowDays + " 天规则窗口 " +
+    (best ? mdText(best.date) + " · 规则分值 " + best.score + "（非概率）" : "暂无") + "</b>" +
     "<small>点击 1 / 3 / 7 天切换评估窗口；下方仍保留 7 天全貌</small></span></div>" +
-    '<div class="row"><span class="i">1</span><span class="grow"><b>当前锋面信号 ' + snap.score + "%</b>" +
+    '<div class="row"><span class="i">1</span><span class="grow"><b>当前锋面规则分值 ' + snap.score + "（非概率）</b>" +
     "<small>使用范围内锋面区、最近距离、最长锋面区和数据覆盖计算</small></span></div>" +
     '<div class="row"><span class="i">2</span><span class="grow"><b>近几日持续性 ' +
     (recent.valid ? recent.present + "/" + recent.valid : "—") + "</b>" +
@@ -1418,23 +1420,26 @@ function renderFuture() {
     "<small>统一口径 front_present；强度、AIS、海况尚未接入</small></span></div>";
   $("futureBars").innerHTML = series.map((r) =>
     '<i class="future' + (best && r.offset === best.offset ? " active" : "") + (r.offset > windowDays ? " dim" : "") + '" title="第 ' + r.offset +
-    " 天规则参考 " + r.score + '%" style="height:' + Math.max(5, r.score) + '%"></i>').join("");
+      " 天规则分值 " + r.score + '（非概率）" style="height:' + Math.max(5, r.score) + '%"></i>').join("");
   $("futureDays").innerHTML =
     series.map((r) =>
       '<div class="row' + (r.hasObservation ? " clickable" : "") + (best && r.offset === best.offset ? " active" : "") + '" data-date="' + r.date + '">' +
       '<span class="i">' + r.offset + "</span><span class=\"grow\"><b>" + mdText(r.date) +
-      " · 规则参考 " + r.score + "%</b><small>" + (r.offset <= windowDays ? "窗口内" : "窗口外参考") + " · 依据完整度 " + r.confidence + "% · " +
+      " · 规则分值 " + r.score + "（非概率）</b><small>" + (r.offset <= windowDays ? "窗口内" : "窗口外参考") + " · 输入支持尚未独立验证 · " +
       (r.hasObservation ? "可切换查看该日实况" : "超出当前样例观测日期") +
       "</small></span></div>").join("");
   $("futureWhyBody").innerHTML =
-    '<div class="line"><span class="k">当前信号</span> → 当前把握度 <b>' + snap.score + "%</b></div>" +
+    '<div class="line"><span class="k">当前信号</span> → 既有规则分值 <b>' + snap.score + "（非概率）</b></div>" +
     '<div class="line"><span class="k">持续性</span> → 近几日范围内有锋面 <b>' +
     (recent.valid ? recent.present + "/" + recent.valid : "—") + "</b> 天</div>" +
     '<div class="line"><span class="k">历史参照</span> → 同期出现比例 <b>' +
     (climRate == null ? "暂无样本" : Math.round(climRate * 100) + "%") + "</b></div>" +
     '<div class="line"><span class="k">边界</span> → 未使用未来实况；强度、AIS、真实海况与业务预报尚未接入</div>';
   $("futureDays").querySelectorAll(".clickable").forEach((node) =>
-    node.addEventListener("click", () => setDate(node.dataset.date)));
+    node.addEventListener("click", () => {
+      if (window.OceanEvidence && !window.OceanEvidence.isCurrent("future")) { showToast("条件已改变，请先更新规则参考"); return; }
+      if (OFData.hasDay(node.dataset.date)) setDate(node.dataset.date);
+    }));
 }
 
 // ==================== L2-历史（实况聚合 + 真实多年度统计，口径见需求 §5.2） ====================
@@ -1456,7 +1461,8 @@ function climHeatHTML(dates) {
   }).join("");
 }
 
-function renderClim() {
+function renderClim(explicit = false) {
+  if (window.OceanEvidence && !explicit) { window.OceanEvidence.sync(); return; }
   const mode = state.climMode;
   document.querySelectorAll("#climPeriod button").forEach((b) => b.classList.toggle("active", b.dataset.period === mode));
   const bars = $("climBars"), heat = $("climHeat"), stat = $("climStat"), years = $("climYears"), hint = $("climHint");
@@ -2488,12 +2494,12 @@ function bind() {
 
   // 历史：只看哪一段（日期锚点跟着顶栏走，页内没有第二个日期控件）
   document.querySelectorAll("#climPeriod button").forEach((btn) => {
-    btn.addEventListener("click", () => { state.climMode = btn.dataset.period; renderClim(); });
+    btn.addEventListener("click", () => { state.climMode = btn.dataset.period; window.OceanEvidence ? window.OceanEvidence.read("clim") : renderClim(); });
   });
   document.querySelectorAll("#futureWindow button").forEach((btn) => {
     btn.addEventListener("click", () => {
       state.predWindow = Number(btn.dataset.window);
-      renderFuture();
+      window.OceanEvidence ? window.OceanEvidence.read("future") : renderFuture();
       renderAI();
     });
   });

@@ -74,6 +74,7 @@
   }
   function toggleWorkbench() {
     if (workbench.open) return closeWorkbench();
+    window.dispatchEvent(new Event("ocean-control-open"));
     if (matchMedia("(max-width:760px)").matches) closeResult();
     workbench.show(); // Intentionally non-modal: map remains interactive.
     $("workbenchToggle").setAttribute("aria-expanded", "true");
@@ -98,6 +99,7 @@
   function showFilters(open, opener, restoreFocus = true) {
     const restore = restoreFocus && filters.contains(document.activeElement);
     if (open && opener) filterOpener = opener;
+    if (open) window.dispatchEvent(new Event("ocean-control-open"));
     if (open) setDrawer(false);
     filters.hidden = !open;
     $("filterToggle").setAttribute("aria-expanded", String(open));
@@ -112,6 +114,7 @@
   }
   window.addEventListener("ocean-layer-panel", e => {
     $("wbLayers").setAttribute("aria-expanded", String(e.detail.open));
+    if (e.detail.open) window.dispatchEvent(new Event("ocean-control-open"));
     if (e.detail.open) showFilters(false, null, false);
   });
   function activateTask(pane) {
@@ -136,6 +139,7 @@
   $("filterToggle").onclick = $("headerFilter").onclick = e => showFilters(filters.hidden, e.currentTarget);
   $("filterClose").onclick = () => showFilters(false);
   window.addEventListener("ocean-map-activate", () => { showFilters(false, null, false); showLayers(false, false); });
+  window.addEventListener("ocean-evidence-open", () => { showFilters(false, null, false); showLayers(false, false); });
   $("wbLayers").onclick = () => showLayers(!state.drawerOpen);
   $("layerClose").onclick = () => showLayers(false);
   layers.addEventListener("keydown", e => {
