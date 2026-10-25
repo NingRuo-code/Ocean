@@ -1,0 +1,78 @@
+{
+  "schema": "ocean-ui-panel-layout/v1",
+  "scope": "local committed demonstration data; not research or production qualification",
+  "checks": [
+    {
+      "width": 1440,
+      "input": "actual CDP pointer",
+      "panel": "filters",
+      "left": 274,
+      "right": 894,
+      "top": 552,
+      "bottom": 886,
+      "hidden": false,
+      "overflow": false,
+      "screenshot": "docs/reports/screenshots/ocean-filters-1440.png"
+    },
+    {
+      "width": 1440,
+      "input": "actual CDP pointer",
+      "panel": "layers",
+      "left": 274,
+      "right": 614,
+      "top": 448,
+      "bottom": 886,
+      "hidden": false,
+      "overflow": false,
+      "screenshot": "docs/reports/screenshots/ocean-layers-1440.png"
+    },
+    {
+      "width": 1280,
+      "input": "actual CDP pointer",
+      "panel": "filters",
+      "left": 274,
+      "right": 894,
+      "top": 552,
+      "bottom": 886,
+      "hidden": false,
+      "overflow": false,
+      "screenshot": "docs/reports/screenshots/ocean-filters-1280.png"
+    },
+    {
+      "width": 1280,
+      "input": "actual CDP pointer",
+      "panel": "layers",
+      "left": 274,
+      "right": 614,
+      "top": 448,
+      "bottom": 886,
+      "hidden": false,
+      "overflow": false,
+      "screenshot": "docs/reports/screenshots/ocean-layers-1280.png"
+    },
+    {
+      "width": 390,
+      "input": "actual CDP touch",
+      "panel": "filters",
+      "left": 14,
+      "right": 376,
+      "top": 512,
+      "bottom": 886,
+      "hidden": false,
+      "overflow": false,
+      "screenshot": "docs/reports/screenshots/ocean-filters-390.png"
+    },
+    {
+      "width": 390,
+      "input": "actual CDP touch",
+      "panel": "layers",
+      "left": 14,
+      "right": 354,
+      "top": 466.5,
+      "bottom": 886,
+      "hidden": false,
+      "overflow": false,
+      "screenshot": "docs/reports/screenshots/ocean-layers-390.png"
+    }
+  ]
+}
