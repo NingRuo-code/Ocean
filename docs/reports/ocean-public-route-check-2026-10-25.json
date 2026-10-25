@@ -1,0 +1,29 @@
+{
+  "scope": "single read-only public entry checks; no server login or load test",
+  "checks": [
+    {
+      "entry": "entry",
+      "status": 200,
+      "bytes": 40646,
+      "sha256": "13dbcced78ec107cac851ebd24937664445025d5504a0d7d98ff487c08a84d4b",
+      "service_revision": null
+    },
+    {
+      "entry": "health",
+      "status": 200,
+      "bytes": 66,
+      "sha256": "bf9e65b2480835822c4db55956cc66ee4e9d08dbcf701000886c2d954aa5b914",
+      "service_revision": null,
+      "data_status": "ok"
+    },
+    {
+      "entry": "viewport",
+      "status": null,
+      "bytes": null,
+      "sha256": null,
+      "service_revision": null,
+      "error_class": "HTTPError",
+      "http_status": 404
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "schema": "ocean-runtime-inventory/v1",
+  "generated_at": "2026-10-25T01:57:37Z",
+  "scope": "local checkout only; production unverified",
+  "source_snapshot_id": "sha256:653f86c7d75726ec9e5b3b677784d15b92ec765d54735197317bba077d5f1755",
+  "local": {
+    "os": "Windows",
+    "cpu_count": 32,
+    "disk_total_bytes": 349848989696,
+    "disk_free_bytes": 240569454592,
+    "ram_bytes": null,
+    "io_rate": null,
+    "bandwidth": null,
+    "workers": null,
+    "load": null
+  },
+  "layers": {
+    "raw": {
+      "status": "missing",
+      "bytes": null,
+      "files": null
+    },
+    "hot_display": {
+      "status": "measured",
+      "bytes": 4260067,
+      "files": 134
+    },
+    "derived_and_staging": {
+      "status": "measured",
+      "bytes": 129179,
+      "files": 3
+    },
+    "cache": {
+      "status": "measured",
+      "bytes": 98271,
+      "files": 9
+    },
+    "results": {
+      "status": "missing",
+      "bytes": null,
+      "files": null
+    },
+    "backup": {
+      "status": "missing",
+      "bytes": null,
+      "files": null
+    }
+  },
+  "route_config_sha256": {
+    "deploy/nginx/ocean.conf": "08c0e570c42a09f65f756af02adafa2f55f048b7506bf574e14cc4feb7044642",
+    "deploy/systemd/ocean-api.service": "de656c141059e4d76dfada042ffc444ff7830731571b1758aa970564ca911925",
+    "frontend/prototype/prototype-data.js": "04b724ee6c88cfc8a3b2193ee1c93ce12c6760e1ad29dd2f84aeabcc1f208cb4"
+  },
+  "production": {
+    "status": "unverified",
+    "revision": null,
+    "cpu": null,
+    "ram": null,
+    "disk": null,
+    "io": null,
+    "bandwidth": null,
+    "workers": null,
+    "load": null
+  },
+  "capacity": {
+    "current_demo": "local bytes only",
+    "east_china_sea_multiyear": "unknown",
+    "global_archive": "unknown",
+    "concurrency_budget": null,
+    "cache_budget_bytes": null
+  },
+  "limitations": [
+    "Logical file lengths, not allocated disk or decompressed working arrays.",
+    "One snapshot cannot measure growth or peak concurrent memory.",
+    "Use deploy/inventory-server.sh privately on the server; publish only reviewed summaries.",
+    "No downloads, load tests, cache clearing or procurement recommendation."
+  ]
+}
