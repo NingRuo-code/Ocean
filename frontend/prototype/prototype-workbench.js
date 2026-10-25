@@ -21,6 +21,11 @@
   filters.querySelectorAll(".ctx-lab")[0].textContent = "分析点";
   filters.querySelectorAll(".ctx-lab")[2].textContent = "观测日";
   main.append(filters);
+  const playback = document.createElement("div"); playback.className = "playback-notice";
+  playback.innerHTML = '<p id="playbackStatus" role="status"></p><button id="playbackContinue" hidden>继续下一可读日</button><button id="playbackStop" hidden>停止播放</button>';
+  filters.append(playback);
+  $("playbackContinue").onclick = continuePlayback;
+  $("playbackStop").onclick = () => setPlaying(false);
   const layers = $("layerDrawer");
   layers.classList.add("layer-panel");
   main.append(layers);
@@ -96,19 +101,20 @@
     filters.hidden = !open;
     $("filterToggle").setAttribute("aria-expanded", String(open));
     $("headerFilter").setAttribute("aria-expanded", String(open));
-    if (!open && restore) filterOpener.focus({ preventScroll: true });
+    if (!open && restore) (filterOpener.getClientRects().length ? filterOpener : $("headerFilter")).focus({ preventScroll: true });
   }
   function showLayers(open, restoreFocus = true) {
     const restore = restoreFocus && layers.contains(document.activeElement);
     if (open) showFilters(false, null, false);
     setDrawer(open);
-    if (!open && restore) $("wbLayers").focus({ preventScroll: true });
+    if (!open && restore) (workbench.open ? $("wbLayers") : $("workbenchToggle")).focus({ preventScroll: true });
   }
   window.addEventListener("ocean-layer-panel", e => {
     $("wbLayers").setAttribute("aria-expanded", String(e.detail.open));
     if (e.detail.open) showFilters(false, null, false);
   });
   function activateTask(pane) {
+    setPlaying(false);
     if (["now", "clim", "future"].includes(pane)) {
       Object.assign(state.layers, { sst: pane !== "clim", band: true, front: true, coldwarm: true, nodata: true, ground: false, fishing: false });
       window.dispatchEvent(new Event("ocean-layer-preset"));

@@ -6,13 +6,14 @@
   notice.id = "preferenceStatus"; notice.setAttribute("role", "status");
   $("taskWorkbench").querySelector(".wb-shortcuts").append(notice);
   const layerKeys = Object.keys(state.layers);
-  let ready = false, touched = false, stored = null, storageFailed = false, manualLayers = {};
+  let ready = false, touched = false, stored = null, storageFailed = false, storedPresent = false, parseFailed = false, manualLayers = {};
   const feedback = text => { notice.textContent = text; };
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) {
+    if (raw !== null) {
+      storedPresent = true;
       try { stored = JSON.parse(raw); }
-      catch { feedback("保存条件已损坏，已使用默认值。"); }
+      catch { parseFailed = true; feedback("保存条件已损坏，已使用默认值。"); }
     }
   }
   catch { storageFailed = true; feedback("无法读取保存条件，当前操作仍可继续。"); }
@@ -57,7 +58,7 @@
       $("locInput").value = fmtCoord(state.lon, state.lat);
       loadThenRefresh(state.date);
       feedback(invalid ? "部分上次条件已失效，已使用可用默认值。" : "已恢复上次筛选和手动图层。");
-    } else if (stored) feedback("保存条件格式已失效，已使用默认值。");
+    } else if (storedPresent && !parseFailed) feedback("保存条件格式已失效，已使用默认值。");
     ready = true;
     document.removeEventListener("input", userTouched, true);
     document.removeEventListener("pointerdown", userTouched, true);

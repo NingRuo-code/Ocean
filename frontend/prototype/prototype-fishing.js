@@ -1065,8 +1065,8 @@ function renderLegend() {
       row.dataset.readiness = label.textContent;
       if (on && ["sst", "front", "coldwarm", "ground"].includes(k)) {
         const ready = label.textContent === "已显示";
-        const swatch = row.querySelector(".swatch");
-        legendRows.push('<div class="key-row">' + (ready && swatch ? swatch.outerHTML : "") +
+        const swatches = [...row.querySelectorAll(".swatch")].map(n => n.outerHTML).join("");
+        legendRows.push('<div class="key-row">' + (ready ? swatches : "") +
           ({ sst: "水温 / 现有分档", front: "锋面线", coldwarm: "冷侧 / 暖侧", ground: "表观活动 / 小时" }[k]) + (ready ? "" : "：" + label.textContent) + "</div>");
       }
     }
@@ -1723,15 +1723,16 @@ function loadThenRefresh(iso) {
   if (local) refresh();                          // 先用本地数据渲染（快）
   if (!OFData.serverAvailable(iso)) {
     if (!local) refresh();                       // 本地也没有 → 走空态
-    return;
+    return Promise.resolve(local);
   }
   if (!local) refresh();                         // 本地没有：空态会说明「正在从服务器取这一天」
-  OFData.ensureDay(iso, local).then(function (ok) {
-    if (state.date !== iso || identity !== syncRequestContext()) return;
+  return OFData.ensureDay(iso, local).then(function (ok) {
+    if (state.date !== iso || identity !== syncRequestContext()) return false;
     if (!ok && !OFData.hasDay(iso)) showToast(mdText(iso) + " 没取到，请换个日期");
     refresh();
     warmOverview(iso);                            // 顺手把全球 2° 概览取回来，缩到球面立刻有数据
     loadFishing(iso);                             // 渔场线索图层开着时，同一天也把当日捕捞格点取回来
+    return ok && OFData.hasDay(iso);
   });
 }
 
@@ -1768,6 +1769,7 @@ function loadFishing(iso, notify) {
 }
 
 function setDate(iso) {
+  setPlaying(false);
   const d = clampDate(iso);
   if (!d) return;
   if (d !== iso) showToast("可选日期为 " + mdText(DATE_MIN) + " ~ " + mdText(DATE_MAX));
@@ -1776,27 +1778,61 @@ function setDate(iso) {
   loadThenRefresh(d);
 }
 
-let playTimer = null;
-function setPlaying(on) {
-  if (playTimer) {
-    clearInterval(playTimer);
-    playTimer = null;
-  }
+let playTimer = null, playActive = false, playGeneration = 0, playbackPaused = false;
+function playbackUi(message) {
   const btn = $("datePlay");
-  if (!on) {
-    btn.textContent = "▶";
-    btn.classList.remove("on");
-    btn.title = "播放逐日变化";
+  btn.textContent = playActive ? "Ⅱ" : "▶";
+  btn.classList.toggle("on", playActive);
+  btn.title = playActive ? "暂停播放" : "播放逐日变化";
+  const status = $("playbackStatus");
+  if (status) status.textContent = message || "";
+  const next = $("playbackContinue"), stop = $("playbackStop");
+  if (next) next.hidden = !playbackPaused || !AVAILABLE_DATES.some(d => d > state.date);
+  if (stop) stop.hidden = !playActive && !playbackPaused;
+}
+function setPlaying(on) {
+  clearTimeout(playTimer); playTimer = null;
+  playGeneration++; playActive = !!on; playbackPaused = false;
+  playbackUi(on ? "按日历逐日播放；缺日将暂停。" : "");
+  if (on) schedulePlayback();
+}
+function schedulePlayback() {
+  const generation = playGeneration;
+  playTimer = setTimeout(() => {
+    playTimer = null;
+    if (!playActive || generation !== playGeneration) return;
+    if (state.date >= DATE_MAX) { setPlaying(false); playbackUi("已到资料范围末尾，播放停止。"); return; }
+    advancePlayback(addDays(state.date, 1), generation);
+  }, 900);
+}
+async function advancePlayback(iso, generation) {
+  state.date = iso;
+  playbackUi(iso + "：正在读取日资料。");
+  let failedLayer = "day";
+  let loaded = await loadThenRefresh(iso);
+  if (loaded && state.layers.ground && playActive && generation === playGeneration) {
+    failedLayer = "fishing";
+    loaded = await OFData.ensureFishing(iso);
+    if (OFData.loadState().fishing?.status === "unknown-coverage") loaded = false;
+  }
+  if (!playActive || generation !== playGeneration || state.date !== iso) return;
+  const quality = OFData.quality(iso);
+  if (!loaded || !OFData.hasDay(iso) || quality?.valid_cells === 0) {
+    const status = OFData.loadState()[failedLayer]?.status;
+    const reason = quality?.valid_cells === 0 ? "全天没有有效观测" : ({ unprepared: "资料未准备", forbidden: "无权访问", error: "读取失败", "day-missing": "整日缺资料", "unknown-coverage": "无活动记录／覆盖未知" }[status]) || (failedLayer === "fishing" ? "活动资料未就绪" : "当日缺资料或支持未知");
+    setPlaying(false); playbackPaused = true;
+    playbackUi(iso + "：" + reason + "，已暂停。可继续下一可读日。");
     return;
   }
-  btn.textContent = "Ⅱ";
-  btn.classList.add("on");
-  btn.title = "暂停播放";
-  playTimer = setInterval(() => {
-    const idx = dateIndex(state.date);
-    const next = idx >= 0 && idx < AVAILABLE_DATES.length - 1 ? AVAILABLE_DATES[idx + 1] : AVAILABLE_DATES[0];
-    setDate(next);
-  }, 900);
+  playbackUi(iso + (quality?.nodata_cells > 0 ? "：部分格点缺测；不代表完整海域支持。" : "：日资料可读，研究完整性另核。"));
+  schedulePlayback();
+}
+function continuePlayback() {
+  const next = AVAILABLE_DATES.find(d => d > state.date);
+  setPlaying(false);
+  if (!next) { playbackUi("后续没有已登记可读日期。"); return; }
+  playActive = true;
+  advancePlayback(next, playGeneration);
 }
 function renderTimeRail() {
   const idx = Math.max(0, dateIndex(state.date));
@@ -2183,6 +2219,7 @@ function setOrigin(lon, lat, source) {
     showToast("坐标超出范围：经度需在−180至180，纬度需在−90至90之间");
     return false;
   }
+  setPlaying(false);
   state.lon = lon;
   state.lat = lat;
   state.select = null;
@@ -2202,6 +2239,7 @@ function bind() {
   // ② 找多远
   document.querySelectorAll("#rangeSeg button").forEach((btn) => {
     btn.addEventListener("click", () => {
+      setPlaying(false);
       state.range = Number(btn.dataset.range);
       state.select = null;
       refresh();
@@ -2213,7 +2251,7 @@ function bind() {
   $("timeDate").addEventListener("change", (e) => setDate(e.target.value));
   $("datePrev").addEventListener("click", () => setDate(addDays(state.date, -1)));
   $("dateNext").addEventListener("click", () => setDate(addDays(state.date, 1)));
-  $("datePlay").addEventListener("click", () => setPlaying(!playTimer));
+  $("datePlay").addEventListener("click", () => setPlaying(!playActive));
   $("timeRail").addEventListener("input", (e) => {
     const d = AVAILABLE_DATES[Number(e.target.value)];
     if (d) setDate(d);
@@ -2417,6 +2455,7 @@ function bind() {
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); row.click(); }
     });
     row.addEventListener("click", () => {
+      setPlaying(false);
       const k = row.dataset.layer;
       state.layers[k] = !state.layers[k];
       if (!state.layers[k] && state.select && state.select.type === k) state.select = null;
@@ -2453,6 +2492,7 @@ function bind() {
   });
   $("toBasis").addEventListener("click", () => switchTab("basis"));
   $("serverModeToggle").addEventListener("click", () => {
+    setPlaying(false);
     const mode = OFData.serverMode ? OFData.serverMode() : { enabled: false };
     if (mode.enabled) {
       OFData.setServerMode("offline").then(function () {

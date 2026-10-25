@@ -135,3 +135,58 @@ for (const scenario of ["expired", "corrupt", "blocked"]) test(`saved preference
     if (scenario !== "blocked") assert.equal(await c.evaluate("JSON.parse(localStorage.getItem('ocean.applied.v1')).radius_km"), 30, "corrupt data must not permanently disable future valid saving");
   } finally { await browser.close(); }
 });
+
+test("calendar playback pauses at an internal missing day and resumes only by explicit continuation", async () => {
+  const browser = await launchBrowser(process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe");
+  const c = browser.cdp;
+  try {
+    await c.send("Page.enable");
+    await c.send("Page.addScriptToEvaluateOnNewDocument", { source: "window.OF_DATA_DAYS=new Proxy({}, {set(target,key,value){if(key!=='2024-08-06')target[key]=value;return true;}});" });
+    await c.send("Page.navigate", { url: page }); await sleep(650);
+    await click(c, "#headerFilter"); await click(c, "#datePlay"); await sleep(1150);
+    assert.equal(await c.evaluate("document.getElementById('timeDate').value"), "2024-08-06", "missing calendar days must not be silently skipped");
+    assert.equal(await c.evaluate("document.getElementById('datePlay').classList.contains('on')"), false);
+    assert.match(await c.evaluate("document.getElementById('playbackStatus').textContent"), /2024-08-06.*缺|2024-08-06.*未/);
+    assert.notEqual(await c.evaluate("document.getElementById('mapSvg').dataset.renderStatus"), "ready");
+    await click(c, "#playbackContinue"); await sleep(150);
+    assert.equal(await c.evaluate("document.getElementById('timeDate').value"), "2024-08-07");
+    await click(c, "#playbackStop"); await sleep(1050);
+    assert.equal(await c.evaluate("document.getElementById('timeDate').value"), "2024-08-07");
+    await c.evaluate("document.getElementById('timeDate').value='2024-08-31';document.getElementById('timeDate').dispatchEvent(new Event('change',{bubbles:true}))");
+    await click(c, "#datePlay"); await sleep(1050);
+    assert.equal(await c.evaluate("document.getElementById('timeDate').value"), "2024-08-31", "end of range must stop instead of wrapping");
+    assert.equal(await c.evaluate("document.getElementById('datePlay').classList.contains('on')"), false);
+  } finally { await browser.close(); }
+});
+
+for (const scenario of ["unprepared", "network", "late"]) test(`playback isolates ${scenario} responses and never restarts after a manual day change`, async () => {
+  const browser = await launchBrowser(process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe");
+  const c = browser.cdp;
+  try {
+    await c.send("Page.enable");
+    await c.send("Page.addScriptToEvaluateOnNewDocument", { source: `
+      window.OF_API_BASE='http://controlled.invalid/api';window.requests=[];
+      window.fetch=(url)=>{url=String(url);window.requests.push(url);const reply=(body,status=200)=>new Response(JSON.stringify(body),{status});
+        if(url.endsWith('/health'))return Promise.resolve(reply({status:'ok'}));
+        if(url.includes('/frontend/day/')){const iso=url.split('/').pop();
+          if(iso==='2024-08-06'&&${JSON.stringify(scenario)}==='unprepared')return Promise.resolve(reply({},409));
+          if(iso==='2024-08-06'&&${JSON.stringify(scenario)}==='network')return Promise.reject(new TypeError('network'));
+          const front=structuredClone(window.OF_DATA_DAYS[iso]);
+          return new Promise(done=>setTimeout(()=>done(reply({front})),iso==='2024-08-06'&&${JSON.stringify(scenario)}==='late'?700:10));}
+        return Promise.resolve(reply({meta:{status:'empty'},layers:{}}));};` });
+    await c.send("Page.navigate", { url: page }); await sleep(650);
+    await click(c, "#headerFilter"); await click(c, "#datePlay");
+    if (scenario === "late") {
+      await sleep(1000); await click(c, "#dateNext"); await sleep(900);
+      assert.equal(await c.evaluate("document.getElementById('timeDate').value"), "2024-08-07");
+      assert.equal(await c.evaluate("document.getElementById('mapSvg').dataset.renderDate"), "2024-08-07");
+    } else {
+      await sleep(1600);
+      assert.equal(await c.evaluate("document.getElementById('timeDate').value"), "2024-08-06");
+      assert.match(await c.evaluate("document.getElementById('playbackStatus').textContent"), scenario === "network" ? /读取失败/ : /未准备/);
+      assert.equal(await c.evaluate("window.requests.filter(u=>u.includes('/frontend/day/2024-08-06')).length"), scenario === "network" ? 2 : 1);
+    }
+    assert.equal(await c.evaluate("document.getElementById('datePlay').classList.contains('on')"), false);
+    assert.equal(await c.evaluate("window.requests.some(u=>/prepare|analysis|model|tasks/.test(u))"), false);
+  } finally { await browser.close(); }
+});
