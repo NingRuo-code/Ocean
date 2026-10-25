@@ -1,6 +1,6 @@
 /* Variant: coldstore / ice, cool paper, tight cut, calm motion.
    Main visual: the original ocean map. Console: left controls / right evidence.
-   Map geometry, ocean colors and controls retain their existing rendering. */
+   Map geometry and controls are retained; scientific colours share their legend mapping. */
 @font-face{font-family:Saira;src:url("fonts/Saira.ttf") format("truetype");font-weight:100 900;font-stretch:50% 125%;font-display:swap}
 :root{--wb-signal:#7de6ff;--wb-paper:#f0f3f5;--wb-ink:#19252e;--wb-rule:#d3dadf}
 body{font-family:Saira,"Microsoft YaHei",sans-serif;font-variant-numeric:tabular-nums}
@@ -49,6 +49,7 @@ button:focus-visible,input:focus-visible{outline:2px solid currentColor!importan
 #layerPresetNote{font-size:11px;line-height:1.5;color:#b6c4cd}#layerPresetNote:empty{display:none}
 #preferenceStatus{font-size:11px;line-height:1.5;color:#b6c4cd}#preferenceStatus:empty{display:none}
 .compact-legend{width:auto;max-width:230px;border-radius:0;padding:6px 9px;font-size:11px;pointer-events:none}.compact-legend .key-row{display:flex;align-items:center;gap:6px;min-height:20px}.compact-legend .swatch{width:12px;height:10px;border-radius:0}.load-status{bottom:auto;top:58px}
+.compact-legend .scale-key{pointer-events:auto;display:block;min-height:44px;padding:5px;border:1px solid #637987;background:#17232b;color:#edf4f8;font:inherit;text-align:left;cursor:pointer}.scale-ramp{display:block;height:10px;min-width:130px;margin-bottom:4px}.compact-legend .key-row:has(.scale-key){display:block}#colorSettings{padding-top:16px;border-top:1px solid #637987;font-size:12px;line-height:1.6}#colorSettings p{overflow-wrap:anywhere}#colorSettings button{min-height:44px;border:1px solid #637987;padding:8px;color:#edf4f8;background:#263943;border-radius:0;cursor:pointer}.color-actions{display:flex;gap:6px;flex-wrap:wrap}#colorSettings a{color:#b5e9fa}
 @media(min-width:761px){.main:has(.workbench[open]) .filter-panel,.main:has(.workbench[open]) .layer-panel{left:274px;max-width:calc(100% - 288px)}}
 @media(max-width:760px){.topbar{padding:8px!important}.brand .logo,.brand small{display:none}.header-actions{gap:4px}.header-actions button{padding:8px}.workbench{position:absolute;top:0;left:0;width:min(280px,78vw);height:100%;max-height:100%}.side{position:absolute;right:0;top:0;bottom:0;z-index:13;width:min(320px,84vw)!important}.side .m .v{font-size:19px}.side .panel-head button,.workbench button,.header-actions button,.filter-panel button{min-height:44px}.filter-panel{max-height:75%}.filter-panel .time-rail{width:100%}}
 /* On narrow screens the workbench and its floating editor get separate scroll

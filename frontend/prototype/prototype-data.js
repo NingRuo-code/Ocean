@@ -489,7 +489,7 @@
         return {
           lon: Number(cell.lon),
           lat: Number(cell.lat),
-          hours: Number(cell.hours) || 0,
+          hours: typeof cell.hours === "number" ? cell.hours : NaN,
           vessel_count: Number(cell.vesselCount || cell.vessel_count) || 0,
           frontId: cell.frontId || null,
         };
@@ -648,6 +648,14 @@
     return SERVER.enabled === true || !!(META && META.status && META.status.fishing_grounds === "real");
   }
 
+  function sstSources(iso) {
+    const list = [];
+    patches(iso).forEach(patch => {
+      if (patch.sst) list.push({ sst: patch.sst, primary: patch.primary, overview: patch.overview });
+      if (patch.sstCoarse) list.push({ sst: patch.sstCoarse, primary: false, overview: true });
+    });
+    return list.sort((a, b) => a.sst.grid.dlon - b.sst.grid.dlon || Number(b.primary) - Number(a.primary));
+  }
   function fishingDay(iso) { return fishingAvailable() ? (FISHING.days[iso] || null) : null; }
   function fishingCellValid(cell) {
     return !!cell && [cell.lon, cell.lat, cell.hours].every(Number.isFinite) && cell.hours >= 0 && Math.abs(cell.lon) <= 180 && Math.abs(cell.lat) <= 90;
@@ -655,6 +663,22 @@
   function fishingHoursUnitSupported(day) {
     const unit = day?.source?.unit;
     return unit === undefined || unit === null || unit === "" || ["hours", "hour", "fishing_hours", "h"].includes(unit);
+  }
+  function fishingCellAt(iso, lon, lat) {
+    const day = fishingDay(iso), resolution = day?.spatial_resolution_deg;
+    if (!day) return { status: "unavailable" };
+    if (!fishingHoursUnitSupported(day)) return { status: "unit-conflict" };
+    if (!Number.isFinite(resolution) || resolution <= 0) return { status: "unknown-resolution" };
+    let cell = null, distance = Infinity, tied = false;
+    for (const candidate of day.cells || []) {
+      if (!fishingCellValid(candidate)) continue;
+      const dx = Math.min(Math.abs(lon - candidate.lon), 360 - Math.abs(lon - candidate.lon)), dy = Math.abs(lat - candidate.lat);
+      if (dx > resolution / 2 + 1e-9 || dy > resolution / 2 + 1e-9) continue;
+      const d = dx * dx + dy * dy;
+      if (Math.abs(d - distance) < 1e-12) tied = true;
+      else if (d < distance) { cell = candidate; distance = d; tied = false; }
+    }
+    return tied ? { status: "ambiguous" } : cell ? { status: "ready", hours: cell.hours } : { status: "unknown-coverage" };
   }
   function fishingLoadStatus(day) {
     if (!fishingHoursUnitSupported(day)) return "unit-conflict";
@@ -846,6 +870,7 @@
     fishingDay: fishingDay,
     fishingCellValid: fishingCellValid,
     fishingHoursUnitSupported: fishingHoursUnitSupported,
+    fishingCellAt: fishingCellAt,
     primaryCellInfo: function (iso, lon, lat) {
       const day = DAYS[iso];
       return day?.grid ? cellInfoInPatch({ front: day, grid: day.grid }, lon, lat) : null;
@@ -940,15 +965,8 @@
     // v1.9：海温可能来自不同的片（东海子集 + 按视野取的子集），从最细的一片开始找
     // v1.11：同一片还可能有全球粗格海温（sstCoarse）→ 一并纳入候选，仍按分辨率从细到粗找
     sstCell: function (iso, lon, lat) {
-      const candidates = [];
-      patches(iso).forEach(function (item) {
-        if (item.sst) candidates.push({ sst: item.sst });
-        if (item.sstCoarse) candidates.push({ sst: item.sstCoarse });
-      });
+      const candidates = sstSources(iso);
       if (!candidates.length) return null;
-      candidates.sort(function (a, b) {
-        return (a.sst.grid.dlon || 0.05) - (b.sst.grid.dlon || 0.05);
-      });
       let outside = null;
       for (let i = 0; i < candidates.length; i++) {
         const info = sstCellInPatch(candidates[i], lon, lat);
@@ -960,6 +978,7 @@
     },
 
     // ---- 明确「还没有」的东西：一律返回 false，让界面说清楚 ----
+    sstSources: sstSources,
     sstAvailable: function () { return !!(META && META.status && META.status.sst === "real"); },
     intensityAvailable: function () { return !!(META && META.status && META.status.intensity === "real"); },
     forecastAvailable: function () { return !!(META && META.status && META.status.forecast === "real"); },
