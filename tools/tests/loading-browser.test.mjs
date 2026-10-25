@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { launchBrowser, sleep } from "../lib/browser-driver.mjs";
+import { launchBrowser, sleep, waitFor } from "../lib/browser-driver.mjs";
 
 test("actual page isolates late day responses and classifies/retries activity failures without dropping other layers", async () => {
   const browser = await launchBrowser(process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe");
@@ -36,7 +36,7 @@ test("actual page isolates late day responses and classifies/retries activity fa
         return Promise.resolve(reply({meta:{status:'empty'},layers:{}}));
       };` });
     await c.send("Page.navigate", { url: pathToFileURL(resolve("frontend/prototype/prototype-fishing.html")).href });
-    await sleep(900);
+    await waitFor(c, "document.getElementById('preferenceStatus')?.getAttribute('aria-busy') === 'false'");
     const view = await c.evaluate("document.getElementById('mapSvg').getAttribute('viewBox')");
     await c.evaluate("document.getElementById('dateNext').click()");
     await sleep(60);

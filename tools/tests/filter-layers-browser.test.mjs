@@ -2,9 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { launchBrowser, sleep } from "../lib/browser-driver.mjs";
+import { launchBrowser, sleep, waitFor } from "../lib/browser-driver.mjs";
 
 const page = pathToFileURL(resolve("frontend/prototype/prototype-fishing.html")).href;
+const ready = c => waitFor(c, "document.getElementById('preferenceStatus')?.getAttribute('aria-busy') === 'false'");
 async function click(c, selector) {
   const point = await c.evaluate(`(()=>{const n=document.querySelector(${JSON.stringify(selector)});n.scrollIntoView({block:'nearest'});const r=n.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()`);
   await c.send("Input.dispatchMouseEvent", { type: "mousePressed", ...point, button: "left", clickCount: 1 });
@@ -33,7 +34,7 @@ test("unified filters preserve drafts, apply only valid coordinates and distingu
   try {
     await c.send("Page.enable");
     await c.send("Page.navigate", { url: page });
-    await sleep(650);
+    await ready(c);
     await click(c, "#headerFilter");
     assert.equal(await c.evaluate("document.querySelectorAll('#topbar .ctx').length"), 0);
     await fill(c, "#locInput", "125,31");
@@ -71,7 +72,7 @@ test("layer controls are exclusive with filters, keyboard accessible and preserv
   const browser = await launchBrowser(process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe");
   const c = browser.cdp;
   try {
-    await c.send("Page.enable"); await c.send("Page.navigate", { url: page }); await sleep(650);
+    await c.send("Page.enable"); await c.send("Page.navigate", { url: page }); await ready(c);
     await click(c, "#workbenchToggle"); await click(c, "#filterToggle"); await click(c, "#wbLayers");
     assert.equal(await c.evaluate("document.getElementById('filterPanel').hidden"), true);
     assert.equal(await c.evaluate("document.getElementById('layerDrawer').getAttribute('aria-hidden')"), "false");
@@ -100,14 +101,14 @@ test("reopening restores only applied conditions and manual layers while retaini
   const browser = await launchBrowser(process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe");
   const c = browser.cdp;
   try {
-    await c.send("Page.enable"); await c.send("Page.navigate", { url: page }); await sleep(650);
+    await c.send("Page.enable"); await c.send("Page.navigate", { url: page }); await ready(c);
     await click(c, "#headerFilter"); await fill(c, "#locInput", "125,31"); await click(c, "#locateBtn");
     await click(c, "#rangeSeg [data-range='30']"); await click(c, "#dateNext");
     await fill(c, "#locInput", "126,32"); await click(c, "#filterClose");
     await click(c, "#workbenchToggle"); await click(c, "#wbLayers"); await click(c, "#layerDrawer [data-layer='sst']");
     await click(c, "#layerClose"); await click(c, "#workbenchClose"); await sleep(650);
     const before = await c.evaluate("document.getElementById('mapSvg').getAttribute('viewBox')");
-    await c.send("Page.reload"); await sleep(750);
+    await c.send("Page.reload"); await ready(c);
     assert.equal(await c.evaluate("document.getElementById('locInput').value"), "125.00°E, 31.00°N");
     assert.equal(await c.evaluate("document.getElementById('timeDate').value"), "2024-08-06");
     assert.equal(await c.evaluate("document.querySelector('#rangeSeg button.active').dataset.range"), "30");
@@ -126,7 +127,7 @@ for (const scenario of ["expired", "corrupt", "blocked"]) test(`saved preference
     const source = scenario === "blocked" ? "Object.defineProperty(window,'localStorage',{get(){throw new DOMException('disabled','SecurityError')}})" :
       `localStorage.setItem('ocean.applied.v1',${JSON.stringify(scenario === "corrupt" ? "{invalid" : JSON.stringify({ schema: "ocean-applied-preferences/v1", date: "2099-01-01", point: { lon: 300, lat: 95 }, radius_km: 999, layers: { sst: false, unknown: true } }))});`;
     await c.send("Page.addScriptToEvaluateOnNewDocument", { source });
-    await c.send("Page.navigate", { url: page }); await sleep(650);
+    await c.send("Page.navigate", { url: page }); await ready(c);
     assert.equal(await c.evaluate("document.getElementById('timeDate').value"), "2024-08-05");
     assert.equal(await c.evaluate("document.getElementById('locInput').value"), "124.50°E, 30.20°N");
     assert.match(await c.evaluate("document.getElementById('preferenceStatus').textContent"), /无法|失效|损坏/);
@@ -142,7 +143,7 @@ test("calendar playback pauses at an internal missing day and resumes only by ex
   try {
     await c.send("Page.enable");
     await c.send("Page.addScriptToEvaluateOnNewDocument", { source: "window.OF_DATA_DAYS=new Proxy({}, {set(target,key,value){if(key!=='2024-08-06')target[key]=value;return true;}});" });
-    await c.send("Page.navigate", { url: page }); await sleep(650);
+    await c.send("Page.navigate", { url: page }); await ready(c);
     await click(c, "#headerFilter"); await click(c, "#datePlay"); await sleep(1150);
     assert.equal(await c.evaluate("document.getElementById('timeDate').value"), "2024-08-06", "missing calendar days must not be silently skipped");
     assert.equal(await c.evaluate("document.getElementById('datePlay').classList.contains('on')"), false);
@@ -174,7 +175,7 @@ for (const scenario of ["unprepared", "network", "late"]) test(`playback isolate
           const front=structuredClone(window.OF_DATA_DAYS[iso]);
           return new Promise(done=>setTimeout(()=>done(reply({front})),iso==='2024-08-06'&&${JSON.stringify(scenario)}==='late'?700:10));}
         return Promise.resolve(reply({meta:{status:'empty'},layers:{}}));};` });
-    await c.send("Page.navigate", { url: page }); await sleep(650);
+    await c.send("Page.navigate", { url: page }); await ready(c);
     await click(c, "#headerFilter"); await click(c, "#datePlay");
     if (scenario === "late") {
       await sleep(1000); await click(c, "#dateNext"); await sleep(900);

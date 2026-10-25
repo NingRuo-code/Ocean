@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { mkdir, writeFile } from "node:fs/promises";
-import { launchBrowser, sleep } from "../lib/browser-driver.mjs";
+import { launchBrowser, sleep, waitFor } from "../lib/browser-driver.mjs";
 
 test("nearby-front workbench keeps independent panels, factual results and an operable map", async () => {
   const browser = await launchBrowser(process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe");
@@ -11,7 +11,7 @@ test("nearby-front workbench keeps independent panels, factual results and an op
   try {
     await c.send("Page.enable");
     await c.send("Page.navigate", { url: pathToFileURL(resolve("frontend/prototype/prototype-fishing.html")).href });
-    await sleep(600);
+    await waitFor(c, "document.getElementById('preferenceStatus')?.getAttribute('aria-busy') === 'false'");
     assert.equal(await c.evaluate("!!document.getElementById('workbenchToggle')"), true);
     await c.evaluate("document.getElementById('workbenchToggle').click();document.getElementById('nearbyFront').click()");
     assert.equal(await c.evaluate("document.getElementById('taskWorkbench').open && !document.getElementById('resultPanel').hidden"), true);

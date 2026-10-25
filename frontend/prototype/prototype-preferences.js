@@ -4,6 +4,7 @@
   const KEY = "ocean.applied.v1";
   const notice = document.createElement("p");
   notice.id = "preferenceStatus"; notice.setAttribute("role", "status");
+  notice.setAttribute("aria-busy", "true");
   $("taskWorkbench").querySelector(".wb-shortcuts").append(notice);
   const layerKeys = Object.keys(state.layers);
   let ready = false, touched = false, stored = null, storageFailed = false, storedPresent = false, parseFailed = false, manualLayers = {};
@@ -60,9 +61,10 @@
       feedback(invalid ? "部分上次条件已失效，已使用可用默认值。" : "已恢复上次筛选和手动图层。");
     } else if (storedPresent && !parseFailed) feedback("保存条件格式已失效，已使用默认值。");
     ready = true;
+    notice.setAttribute("aria-busy", "false");
     document.removeEventListener("input", userTouched, true);
     document.removeEventListener("pointerdown", userTouched, true);
     document.removeEventListener("keydown", userTouched, true);
     save();
-  }).catch(() => { ready = true; feedback("资料范围尚未确认，未恢复上次条件。"); });
+  }).catch(() => { ready = true; notice.setAttribute("aria-busy", "false"); feedback("资料范围尚未确认，未恢复上次条件。"); });
 })();
