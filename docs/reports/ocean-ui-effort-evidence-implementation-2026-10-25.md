@@ -75,3 +75,7 @@
 ![小屏实验规则证据](screenshots/ocean-forecast-evidence-390.png)
 
 其余视图及几何见[九组布局记录](ocean-ui-evidence-layout-2026-10-25.json)。原地图的科学颜色、分档与活动显示截断保持既有边界；接下来按 #33 → #34 推进科学色标与叠加可读性，正式跨期域、全量聚合、资源容量仍依赖 P0/P1 实测。真实整月 A/B/C、正式预测、完整 AI、任务中心与生产部署继续按各自规格推进。
+
+## 后续合并核验
+
+2026-10-25 已按用户授权合并 [PR #283](https://github.com/NingRuo-code/Ocean/pull/283)，主分支提交 `8a3def01ccd4c7eba0bd2576b57eb2b7d8b0b1d1`，GitHub #29/#30 均已关闭。以上表格保留本批实施时的历史快照；当前 #33/#34 配色进度见[科学色标实施记录](ocean-ui-scientific-colors-implementation-2026-10-25.md)。未做生产部署。

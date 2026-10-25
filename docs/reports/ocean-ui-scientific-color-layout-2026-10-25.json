@@ -1,0 +1,90 @@
+{
+  "schema": "ocean-ui-scientific-color-layout/v1",
+  "scope": "existing redistributable SST/front archive demonstration; not activity domain, monthly research or production qualification",
+  "checks": [
+    {
+      "width": 1440,
+      "input": "actual CDP pointer",
+      "view": "sst-fixed",
+      "overflow": false,
+      "panelOpen": false,
+      "left": 0,
+      "right": 0,
+      "top": 0,
+      "bottom": 0,
+      "legend": "20.5–33 °C / 限定归档固定",
+      "sourceVersion": "sst-export/3803cb0e1ed6",
+      "screenshot": "docs/reports/screenshots/ocean-sst-fixed-1440.png"
+    },
+    {
+      "width": 1440,
+      "input": "actual CDP pointer",
+      "view": "sst-local-settings",
+      "overflow": false,
+      "panelOpen": true,
+      "left": 14,
+      "right": 354,
+      "top": 253.75,
+      "bottom": 886,
+      "legend": "26.5–32.5 °C / 局部增强",
+      "sourceVersion": "sst-export/3803cb0e1ed6",
+      "screenshot": "docs/reports/screenshots/ocean-sst-local-settings-1440.png"
+    },
+    {
+      "width": 1280,
+      "input": "actual CDP pointer",
+      "view": "sst-fixed",
+      "overflow": false,
+      "panelOpen": false,
+      "left": 0,
+      "right": 0,
+      "top": 0,
+      "bottom": 0,
+      "legend": "20.5–33 °C / 限定归档固定",
+      "sourceVersion": "sst-export/3803cb0e1ed6",
+      "screenshot": "docs/reports/screenshots/ocean-sst-fixed-1280.png"
+    },
+    {
+      "width": 1280,
+      "input": "actual CDP pointer",
+      "view": "sst-local-settings",
+      "overflow": false,
+      "panelOpen": true,
+      "left": 14,
+      "right": 354,
+      "top": 253.75,
+      "bottom": 886,
+      "legend": "26.5–32.5 °C / 局部增强",
+      "sourceVersion": "sst-export/3803cb0e1ed6",
+      "screenshot": "docs/reports/screenshots/ocean-sst-local-settings-1280.png"
+    },
+    {
+      "width": 390,
+      "input": "actual CDP touch",
+      "view": "sst-fixed",
+      "overflow": false,
+      "panelOpen": false,
+      "left": 0,
+      "right": 0,
+      "top": 0,
+      "bottom": 0,
+      "legend": "20.5–33 °C / 限定归档固定",
+      "sourceVersion": "sst-export/3803cb0e1ed6",
+      "screenshot": "docs/reports/screenshots/ocean-sst-fixed-390.png"
+    },
+    {
+      "width": 390,
+      "input": "actual CDP touch",
+      "view": "sst-local-settings",
+      "overflow": false,
+      "panelOpen": true,
+      "left": 14,
+      "right": 354,
+      "top": 256.75,
+      "bottom": 886,
+      "legend": "26.5–32.5 °C / 局部增强",
+      "sourceVersion": "sst-export/3803cb0e1ed6",
+      "screenshot": "docs/reports/screenshots/ocean-sst-local-settings-390.png"
+    }
+  ]
+}

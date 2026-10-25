@@ -24,6 +24,6 @@
 
 ## Implementation status — 2026-10-25
 
-软件实现与本地验收完成，分支 `codex/ui-evidence-reading`，待 PR 合并；票据实际合并前保持开放。证据见[活动概况与历史预测阅读实施记录](../../reports/ocean-ui-effort-evidence-implementation-2026-10-25.md)：35 项工具测试、129 项地图回归、922 项数据检查及四档布局通过，包含真实小屏触摸和独立 Standards / Spec 复核。
+已随 [PR #283](https://github.com/NingRuo-code/Ocean/pull/283) 合并到主分支，合并提交 `8a3def01ccd4c7eba0bd2576b57eb2b7d8b0b1d1`；GitHub #29/#30 均已关闭。证据见[活动概况与历史预测阅读实施记录](../../reports/ocean-ui-effort-evidence-implementation-2026-10-25.md)：35 项工具测试、129 项地图回归、922 项数据检查及四档布局通过，包含真实小屏触摸和独立 Standards / Spec 复核。
 
 未做生产部署；活动只报告完整返回数组的部分累计，不证明全圈覆盖。历史只消费已有归档样例，可信整月研究汇总未接入；预测仍为未独立验证的规则演示。真实研究资格和 #33/#34 色标显示任务继续保留。
