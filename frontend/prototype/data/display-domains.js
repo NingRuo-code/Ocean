@@ -3,7 +3,7 @@ window.OF_DISPLAY_DOMAINS = {
   "schema": "ocean-display-domains/v1",
   "sst": {
     "status": "scoped",
-    "version": "sst-export/d9e539ac9448",
+    "version": "sst-export/3803cb0e1ed6",
     "domain": [
       20.5,
       33
@@ -83,254 +83,255 @@ window.OF_DISPLAY_DOMAINS = {
       127.975,
       33.975
     ],
+    "source_hash_encoding": "utf8-lf",
     "sources": [
       {
         "file": "2024-07-01.js",
-        "sha256": "ea04710d3fbab3d6aed34b5a08601f7dfd4196a49c6fa6e360ff901f0dfc346d"
+        "sha256": "345c0ca5da71581c526c08d600728fde286bfbedc5c1505190be511d666820ff"
       },
       {
         "file": "2024-07-02.js",
-        "sha256": "496e1f03675d1c54009e46b713781386a9dd4bffc7b9d2a832c9cf20b6a6b376"
+        "sha256": "af2397fefeb9a3b2a16744ef7131328ee77525165bc721f61796f84a393c4c2c"
       },
       {
         "file": "2024-07-03.js",
-        "sha256": "9cf0c1fb0be8d046aeefb586463d6d7f5a6e3dcaae723af74fbb852bd8181eaf"
+        "sha256": "8536942518178e37ee7776e9af9062232ff828ab1a4301f7415576841123aee4"
       },
       {
         "file": "2024-07-04.js",
-        "sha256": "3985dd7d4897f4d85ea3816cb3cf4ce3596c598bf0c2f49bb5fe41536237bc24"
+        "sha256": "37f4c47ff344724ae8c64574c966e3ee19dd2665d6dd75cd9fc2269b7fbea4f8"
       },
       {
         "file": "2024-07-05.js",
-        "sha256": "963b33c3982bff184c8b4552229300dc367cd7aa167c688d803d424e77a35b15"
+        "sha256": "6a2a246c1d9200264b0d4523105e6f8a39af39c4496de6d24f2d6649b4f6326b"
       },
       {
         "file": "2024-07-06.js",
-        "sha256": "a4fdaa385f22c3d89e461d4cd4b7cf331a9fdaf04a2ec8f3bd1eb3d11966443c"
+        "sha256": "a600f40dae67c867b25d44304460c78d16cec95162236ff394c538553de8d133"
       },
       {
         "file": "2024-07-07.js",
-        "sha256": "f7777bc12b68025f3b90bb8cf1c14c82e3a6cfe18edf9ac2b5a6de719afe81d8"
+        "sha256": "3f4a5c3bf52b62cce8065d3a688d4e5f489d78cdbcdc340a4003e7e57c1e102c"
       },
       {
         "file": "2024-07-08.js",
-        "sha256": "384944867c3d69090376388988b708471f48a95fb063fc926135af5a3c19201d"
+        "sha256": "732c33811643d8acc04ce27926c44260b640acff186d4fc48cee72d16f76dc1e"
       },
       {
         "file": "2024-07-09.js",
-        "sha256": "2a484383f8ff76714f1c5a0218278691235c74400e4d1c6eb0781703adcc37d6"
+        "sha256": "db63928d77de8b5bade9c46bf9e4537a35c856a59175fb7ce895fea82d8f220c"
       },
       {
         "file": "2024-07-10.js",
-        "sha256": "6d64d3933f446e9b5a1e5631bdbb7a00d923c9a75a784f0ad96ed25cdf2c3194"
+        "sha256": "32db365c3aac8e8322e3d4c5b8db79d77f4e88760d5f594057813a97f16ea628"
       },
       {
         "file": "2024-07-11.js",
-        "sha256": "403853f5a9d6ddd7431c8cbeef16c28dafa0d7383580f2762af45459fd31d20c"
+        "sha256": "e920286332ab3a6f13cdba2637c4c52b30662537a4284890f2f8771dfd268c22"
       },
       {
         "file": "2024-07-12.js",
-        "sha256": "afee96385ecb7cc79917a9872f3dc98411eaeb9bff0fa41ddea945ece90f3abe"
+        "sha256": "a0fb40d2abe51a5eaf779f0e58f1191142b6ddae1a1c2110e5ad0fea48c52d3f"
       },
       {
         "file": "2024-07-13.js",
-        "sha256": "9872367d549a1ea1db09c0c2cbf3658c31294dec5adf4063edaab1a8850e1b80"
+        "sha256": "dce512d3b1605b64fcfa4bb80bb791d63a2300b81a6d83d83a5dd5b07a7f47a6"
       },
       {
         "file": "2024-07-14.js",
-        "sha256": "fbd79e913b3fb89df1aa061e4ca852e899e2ae57fe943a116e383ba818de4da5"
+        "sha256": "4f48f96c2df7cc87887a091b3f9ef9231e75aa2d7a0a546bd90c2835a85e45c7"
       },
       {
         "file": "2024-07-15.js",
-        "sha256": "4a6079060a72da8ca81c10e19f9bc1193cfc28a8a428dac1290459477d1e8dac"
+        "sha256": "1210f876eb00db112b698852662d8e9db03e70997c8beb00da96cb1e36f7f782"
       },
       {
         "file": "2024-07-16.js",
-        "sha256": "109a3ef7a8f220f4157aae7c856a648613fdb5fa1a809c24ac2f8be3c2c84a60"
+        "sha256": "ce4e03c2af97742319d77247ddf7b0836c10601cb2566f3044a378f336b473eb"
       },
       {
         "file": "2024-07-17.js",
-        "sha256": "c35261a7035b302f388facf3de0c7fd63ce3235d7add7c603402de52223db7a6"
+        "sha256": "cee5f03d24f37548abd765d390595e796cb44b2bb95a899074d80a162c236891"
       },
       {
         "file": "2024-07-18.js",
-        "sha256": "6b9617baa6caa6e0bdd7150a7beb2d490e7f7e56f5f12fc34d10fed7f81c503e"
+        "sha256": "045c3ad75ac3da108688f3a8b092ec240e8adb957e783053ab13fc5e3b204d90"
       },
       {
         "file": "2024-07-19.js",
-        "sha256": "7c9b82361c477a26cf0fa43a24bcd4f1f68fd6c6de0828237dccb87e022eac50"
+        "sha256": "76e1b2e3ed8acfbd29fff14cfc9d8c5d364b128182d7233ece68b2bd3423e23e"
       },
       {
         "file": "2024-07-20.js",
-        "sha256": "4be649ab50df94a619abb885303cf0ec4698d7882c66ebdbb1d83739653f25c0"
+        "sha256": "90c5222886563eeccb459cf18bf412114b634f0d24a239027bf741cf840c5ad1"
       },
       {
         "file": "2024-07-21.js",
-        "sha256": "361df7e1cf06e6d7ceece903b9d48a1497c683d9677b6838634627a9f0177847"
+        "sha256": "6d5f7dfecb49c49ef9d7e259fe39599d8addb63b577debd04897b5c37ab0cbf0"
       },
       {
         "file": "2024-07-22.js",
-        "sha256": "352eb7c899c970eda10394cec9798f21e4dcaed9b8b512142879fb9c3a7dba7b"
+        "sha256": "4b9609511c4481e506afbb9455c791189955a0b4445dfa40bd56afdfbf99fabd"
       },
       {
         "file": "2024-07-23.js",
-        "sha256": "4a58031482c88c4682e176ef6b01cb33aa837b596a1404da17eb5067906b9060"
+        "sha256": "b08ee57f20cd787b6cc0f9d1934cc95e544ed3c48133d96b13b201851bd2dba2"
       },
       {
         "file": "2024-07-24.js",
-        "sha256": "bdd3c1b4138ceecdb5dcec027d3d7129c0cdf786ec00595b8c256c23e481a7cb"
+        "sha256": "2d3f47fcf17eaa346056fcfe79c1efee47414525aa65c5f797cbfc8f6fea02b0"
       },
       {
         "file": "2024-07-25.js",
-        "sha256": "22a4065e613cae857256811f0a2c51984f1323d1c89f26b022212e1e701d1faf"
+        "sha256": "2c5916d27558ad93bc53aeb0ad58fd2af6aaa8525f41f4202cbc3ac0a86066d9"
       },
       {
         "file": "2024-07-26.js",
-        "sha256": "cf5cfac68b806c33fe5ec27ea9b38b662178c283b1d5612e69ed43affa248ca9"
+        "sha256": "3732ed366be8bb4e70b8f9a6ae9dd051b41b4af54ddf1dd0f83f610a151eef9b"
       },
       {
         "file": "2024-07-27.js",
-        "sha256": "3d8e10ceaf819d90459ffe7303737ecbc82b1d16e5f4b00248dc0fea2e3d66d4"
+        "sha256": "f934e70f231dfa130c577298872d57b9746b5c965faf642a7f5b92b80f702fea"
       },
       {
         "file": "2024-07-28.js",
-        "sha256": "fbfbf7463b99d877239063fbbf9bf85b4dd5a4b7682db4fc86469176a955e00a"
+        "sha256": "d69cc5bb4e8d56c12d0c5459edd183fd75a93d75c8644faf9b7c062786dce494"
       },
       {
         "file": "2024-07-29.js",
-        "sha256": "89a7e99d39708d01590a27b61dab0f091802ccb5aebad7d8b75c41f799545ce0"
+        "sha256": "1189bd6ea7feb25fe317cfc1773008743c86215895121c01a962b7d0a870e0c8"
       },
       {
         "file": "2024-07-30.js",
-        "sha256": "7da1d4c5ed263c6f8937e6e0f7cd9a4576b7bbd544b29c63dae926ee8fd3fcb9"
+        "sha256": "6a0271ee63af9080796aac85835c5b181f637b58f7f19eaf32276e4ecdab5ed3"
       },
       {
         "file": "2024-07-31.js",
-        "sha256": "7d159f65c4fdf04990cfa8929ed495f0ce4c3f182ad34c90929366c78a69104f"
+        "sha256": "dfed258024e4bbd00b0d1530c3c0eb0a10b79c4f30b0f01ad7e1dbcb18ac49a8"
       },
       {
         "file": "2024-08-01.js",
-        "sha256": "3bebaf45e78183822f4ef1f9c426974fc408a3684732252be9787036b2c57676"
+        "sha256": "181b306d87ffa0739cb1267b35e314f3d04ac0155f3a560dbc6434910749e777"
       },
       {
         "file": "2024-08-02.js",
-        "sha256": "1d3406331be93d3f298b45a63438655e533bdf8f08e8116e5acc572096bd297c"
+        "sha256": "2e177b112105c2aa9a5004a4e26dfbcc7461c86b22c20bb2a462d2748e581c49"
       },
       {
         "file": "2024-08-03.js",
-        "sha256": "58016760a2a7a28dcdd344b03f8785b31bd5d24e0ea916a130646be71376f4bf"
+        "sha256": "0100320a100bf056296d5ee3572917c67a0b28d5043fbf4c5dec72bf2923dd6c"
       },
       {
         "file": "2024-08-04.js",
-        "sha256": "758c1d28c6e97ed9385c23e79b84e0b5359a27b49748f2724abd5353b29605d5"
+        "sha256": "74529b7a7a76d56c03c6852b19a806e5e4ddd2ee2f6d631aba0ed19fc775ee33"
       },
       {
         "file": "2024-08-05.js",
-        "sha256": "287d590a031a84d0ecfa4828c5c3f89545fc2f31183aec26c1258704f533e4eb"
+        "sha256": "37543f450ec553c837830b33298878dfb1bdcf7499048e6085e001617e2727b9"
       },
       {
         "file": "2024-08-06.js",
-        "sha256": "5055e7a029afab424a2f478db2ea95aa6c406b25994aa5c4ddad00030596f376"
+        "sha256": "8ef87792e00a5636bc5b54d4600ed54bc319bcbd505541dcb14b798477a840e4"
       },
       {
         "file": "2024-08-07.js",
-        "sha256": "bd0eae3b7f3e3e888625bfce30323f2522e2d3c4053a7b617692f4813b6e42af"
+        "sha256": "ef32570d30ac69ddbb408baf122b1143f4dcc0558ee51743cf06c833fbed4afa"
       },
       {
         "file": "2024-08-08.js",
-        "sha256": "d2d8eed75682a9735686ab316434e5fa91505ca3eebc2cb8958cd5757b0a3fc1"
+        "sha256": "521ea01d8dc29078b4bfe0bb04c6752b03a39c7cf79d481abdbfe398bfad4f80"
       },
       {
         "file": "2024-08-09.js",
-        "sha256": "fad3a18c438c3478dda7567651354ae3b00664600617cd2a1bb06ce87ea33840"
+        "sha256": "6798611a417133055561b6d6c6cf8c7de81bdc606d7d07cb33b3c4a870b2b460"
       },
       {
         "file": "2024-08-10.js",
-        "sha256": "8e5b0cd693bd838c511102fe17d12d5a5ce89132a86e90a6f92a97dc1554757a"
+        "sha256": "72eb81b99f8feee66ee88e8efbb106b8111ffa3fac05852ba825c8af0bae6ade"
       },
       {
         "file": "2024-08-11.js",
-        "sha256": "d965f7cf779ea28ef8b8c10b8616a3987842a21d7310613ecc28d9008f6e7f65"
+        "sha256": "d5c920cc6c983cb275226d54bbe96daa061c77c6e992d5e4437c577c89462d06"
       },
       {
         "file": "2024-08-12.js",
-        "sha256": "ab851bb278bee9b98971ebd3261e88eea7311257b6aef8dc2271aaffb3745813"
+        "sha256": "a7e036c109943a0add23f74d0f3e823d7c0d3f9175fb7de630b0e4ffb483b5d2"
       },
       {
         "file": "2024-08-13.js",
-        "sha256": "b45a0a82a9235956b0b12ac938b60f6ff506b354e22dadd333a0854b20f02279"
+        "sha256": "7a66f4c89db5fd8166a8c786649ee016af2d90fd5483bc40f60e5c428d38779e"
       },
       {
         "file": "2024-08-14.js",
-        "sha256": "c8cfd57839dc7103f080c1053f2c2134dd219578251473333457d7a13b2e55e0"
+        "sha256": "8ccf2de30363de1018b948c44f53c9342c4fd9717653bc26d20d7c3153f24b8a"
       },
       {
         "file": "2024-08-15.js",
-        "sha256": "4449be8fda2784f5b36ae197c8f79c3691b26aaeb15896d719b78f803f329890"
+        "sha256": "87279702b118e45b09a96e6127c7bf3049e61b1d32398d7974ee9ae2ebe40ee5"
       },
       {
         "file": "2024-08-16.js",
-        "sha256": "adbdbde79440e07abb0d229ac70e379e7c29205b508e07468753d79339c029a0"
+        "sha256": "a4720fa23b801d76784d790dc5b6a0b1d14b4bc2c87d918985d0f4a2bcf1236e"
       },
       {
         "file": "2024-08-17.js",
-        "sha256": "5cc8f1f0e6aab8d7bfac79a943ae99a369b794a567206a5ad38ada833082d839"
+        "sha256": "34b286b65c9f14f859e29306507751a66f044961a590c9128d09fe41e448af0c"
       },
       {
         "file": "2024-08-18.js",
-        "sha256": "e15afb16df36f8d7e477e1e8b4a22b517de8b48d68e8744f9913f674be659b5a"
+        "sha256": "69aae0856388faee2e221dd8826f4b836000017a625f4a5a4d8205e332ecdf86"
       },
       {
         "file": "2024-08-19.js",
-        "sha256": "0a302612bf59582dc50a6b6075593fdc8528229a13c5c3fa55fc033ee174aa02"
+        "sha256": "c2085f8840b354bd86db05fe888cda35bfb107c168c2dfa1465cc3c005e0657c"
       },
       {
         "file": "2024-08-20.js",
-        "sha256": "8d03442084b73968df0aa90e9bb1b08f8330542b9f13f5a2ae64fac049f79377"
+        "sha256": "e7600da0a9263e3f6a3d993e9a791049673e3abfb44705c62a0754e2f78d1193"
       },
       {
         "file": "2024-08-21.js",
-        "sha256": "b08ab7b406daf0313b740bf4e146bb22043013c9b95b6d59095066c088003b49"
+        "sha256": "ed482897fbec13d448e323984d513f3ea3bd142dcc3305594a0766d9f0aa5afd"
       },
       {
         "file": "2024-08-22.js",
-        "sha256": "4785eccb6ead40eba2aaf265c6686916947bcdf6482f79afedaacae5330de915"
+        "sha256": "dec7591bac8c1d0d2b3a8a45888602e8bc58087fbb34f75a334667b5a071ef73"
       },
       {
         "file": "2024-08-23.js",
-        "sha256": "c85202f04fafcbf76d1368f6bc62acee3ec4b664e8f865cc676bea70b107c7dd"
+        "sha256": "095c3951f06615416e1ceac781fe1ca6d666f3a93aa74ada51774fd3aef76665"
       },
       {
         "file": "2024-08-24.js",
-        "sha256": "eebadb5576bff2ab361ec5227631668325f3bea280b1113e836cebd82222efd4"
+        "sha256": "ccda573d321180a0a72debfbfb779aed10158e90b53ef26cc693a3dc6f9a43c3"
       },
       {
         "file": "2024-08-25.js",
-        "sha256": "8c8081574084d07df6b8d2f5e009d0568a9c4509d80bc6f553ba64c95fa74c65"
+        "sha256": "513e0b73572341e541726f09d3116cdfa98cc04ffa0b7ef0711f2f0c22b90416"
       },
       {
         "file": "2024-08-26.js",
-        "sha256": "de507d467c0491ab8ba0f235afb725b59117976cb795d21d95c2a9b984e8bb65"
+        "sha256": "b8918701d1c88d9a2d951bc6048267fa476c99a4d40c538e5ac77fcb91a7fc53"
       },
       {
         "file": "2024-08-27.js",
-        "sha256": "b30d59f89371b04a4dc2146d83d93f46f2062085f3e63d6cceeeca1b9ba641f9"
+        "sha256": "2796084ff0026d1d89b89ab9fd62101af62ade44929100fe260f5731eddfd3ef"
       },
       {
         "file": "2024-08-28.js",
-        "sha256": "d09e5f2fb272c946ed691772cb1d3caf3d7f3d790e8a7a8fefd51f2133fa8e6d"
+        "sha256": "12f7495319d799497dcccf36e72d63d2cd7430259c342bbb81eb79aa256b7fe4"
       },
       {
         "file": "2024-08-29.js",
-        "sha256": "3d9ea1bb3a92e5e6be87d6527e00a6e451a28a8104a14cd70594b4bbf3be309a"
+        "sha256": "626157b3eb5f7e601adaae82ae3cea0276b1067da8d9c812c1e47e59a3d60086"
       },
       {
         "file": "2024-08-30.js",
-        "sha256": "7f673511df0e6eb398a95886229ddd7ffba8d4ec119773ca25dd140b14c4a8b7"
+        "sha256": "6e1c38749232f704ccb124fce20c1fae55c38b470ed1babd60802d8bf07427ac"
       },
       {
         "file": "2024-08-31.js",
-        "sha256": "cb7bf0c33fc77b0d2064b456a86a7f568c821770026ddc42fcdd9e3b915ca91e"
+        "sha256": "d235d998c248be253cfb5bcf714476682750e883eb3643f5d6198617a6aca986"
       }
     ],
     "note": "Encoded export-bin extent, limited to the listed archive files; not a yearly or research-domain qualification."

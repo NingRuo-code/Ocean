@@ -504,6 +504,7 @@ const sstNow = await evalJS(`var iso = document.getElementById("timeDate").value
   var bins = {}; ((day || {}).runs || []).forEach(function (r) { bins[r[3]] = 1; });
   return { tag: document.getElementById("nowScopeTag").textContent,
     cell: OFData.sstCell(iso, 124.5, 30.2), stats: OFData.sstStats(iso),
+    encodedValues: Object.keys(bins).map(bin => Number(bin) * day.bin_c),
     bins: Object.keys(bins).length,
     paths: document.querySelectorAll('#mapSvg path[data-layer="sst"]').length };`);
 const shownTemp = (sstNow.tag.match(/定位点水温 ([\d.]+) °C/) || [])[1];
@@ -511,11 +512,9 @@ check("页面上的水温与数据文件一致（定位点档位，不是编造�
   sstNow.cell && sstNow.cell.valueC !== null ? shownTemp === sstNow.cell.valueC.toFixed(1)
     : shownTemp === undefined,
   "页面 " + (shownTemp || "—") + " vs 数据 " + (sstNow.cell ? sstNow.cell.valueC : "null"));
-check("页面不出现数据里没有的温度（范围也来自同一天的数据）",
-  !/\d+\.\d °C/.test(now.bodyText) ||
-  (sstNow.stats && parseFloat(now.bodyText.match(/([\d.]+) °C/)[1]) >= sstNow.stats.vmin_c - 0.05 &&
-    parseFloat(now.bodyText.match(/([\d.]+) °C/)[1]) <= sstNow.stats.vmax_c + 0.05),
-  "数据 " + (sstNow.stats ? sstNow.stats.vmin_c + "~" + sstNow.stats.vmax_c + " °C" : "—"));
+check("定位点读数属于当日真实导出档位（图例固定参照域不是当日极值）",
+  shownTemp === undefined || sstNow.encodedValues.some(value => Math.abs(value - Number(shownTemp)) < 0.05),
+  "定位点 " + (shownTemp || "—") + " °C / " + sstNow.encodedValues.length + " 个实际档位");
 check("地图上海温一层一档（档位数 = 数据文件里的档位数，没有手写色块）",
   sstNow.paths > 0 && sstNow.paths === sstNow.bins, sstNow.paths + " = " + sstNow.bins);
 await shot("shot-2-now-detail.png");

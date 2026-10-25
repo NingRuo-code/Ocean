@@ -964,8 +964,8 @@
     // 某个经纬度落在哪一档海温：直接在真实游程里查，不做插值
     // v1.9：海温可能来自不同的片（东海子集 + 按视野取的子集），从最细的一片开始找
     // v1.11：同一片还可能有全球粗格海温（sstCoarse）→ 一并纳入候选，仍按分辨率从细到粗找
-    sstCell: function (iso, lon, lat) {
-      const candidates = sstSources(iso);
+    sstCell: function (iso, lon, lat, displaySources) {
+      const candidates = displaySources || sstSources(iso);
       if (!candidates.length) return null;
       let outside = null;
       for (let i = 0; i < candidates.length; i++) {

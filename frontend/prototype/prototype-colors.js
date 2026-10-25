@@ -19,18 +19,16 @@
       const { sst } = sources[i];
       const g = sst.grid;
       for (const [row, col, count, bin] of sst.runs || []) {
-        const lat = g.lat0 + row * g.dlat, left = g.lon0 + col * g.dlon, right = left + (count - 1) * g.dlon;
-        if (lat < box.latMin || lat > box.latMax || right < box.lonMin || left > box.lonMax) continue;
-        const start = Math.max(col, Math.ceil((box.lonMin - g.lon0) / g.dlon)), end = Math.min(col + count - 1, Math.floor((box.lonMax - g.lon0) / g.dlon));
-        let visible = false;
-        for (let c = start; c <= end && !visible; c++) {
-          const lon = g.lon0 + c * g.dlon;
-          visible = !sources.slice(0, i).some(other => {
-            const f = other.sst.grid, x = Math.round((lon - f.lon0) / f.dlon), y = Math.round((lat - f.lat0) / f.dlat);
-            return x >= 0 && x < f.nx && y >= 0 && y < f.ny;
-          });
+        // Use the rendered run's full face, clipped to the view, rather than
+        // its centre. A partly masked coarse cell can still contribute colour.
+        let visible = [[Math.max(box.lonMin, g.lon0 + col * g.dlon), Math.max(box.latMin, g.lat0 + row * g.dlat),
+          Math.min(box.lonMax, g.lon0 + (col + count) * g.dlon), Math.min(box.latMax, g.lat0 + (row + 1) * g.dlat)]];
+        visible = visible.filter(r => r[0] < r[2] && r[1] < r[3]);
+        for (let j = 0; j < i && visible.length; j++) {
+          const f = sources[j].sst.grid, cover = [f.lon0, f.lat0, f.lon0 + f.nx * f.dlon, f.lat0 + f.ny * f.dlat];
+          visible = visible.flatMap(rect => subtractRect(rect, cover));
         }
-        if (!visible) continue;
+        if (!visible.length) continue;
         const v = bin * sst.bin_c;
         if (Number.isFinite(v)) { min = Math.min(min, v); max = Math.max(max, v); }
       }
@@ -38,6 +36,11 @@
     if (!Number.isFinite(min)) return false;
     if (min === max) { min -= 0.25; max += 0.25; }
     local = { domain: [min, max], date, box }; return true;
+  }
+  function subtractRect(rect, cover) {
+    const [l, b, r, t] = rect, x0 = Math.max(l, cover[0]), y0 = Math.max(b, cover[1]), x1 = Math.min(r, cover[2]), y1 = Math.min(t, cover[3]);
+    if (x0 >= x1 || y0 >= y1) return [rect];
+    return [[l, b, x0, t], [x1, b, r, t], [x0, b, x1, y0], [x0, y1, x1, t]].filter(a => a[0] < a[2] && a[1] < a[3]);
   }
   function gradient(colors) { return "linear-gradient(90deg," + colors.map((color, i) => color + " " + i * 100 / (colors.length - 1) + "%").join(",") + ")"; }
   function sstModeLabel() {

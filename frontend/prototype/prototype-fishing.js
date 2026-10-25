@@ -957,23 +957,24 @@ function probeHTML(lon, lat) {
   const st = dataStatus();
   if (!st.ok) return head + '<div class="mp-note">' + st.title + "，该日期无数据，不做估算</div>" + foot;
 
+  // SST and front masks are independent. A missing front observation must not
+  // hide an available temperature; globe probes use the displayed coarse source.
+  const sstHere = OFData.sstCell(state.date, lon, lat, state.layers.sst ? sstDisplaySources() : undefined);
+  const tempV = sstHere && sstHere.valueC !== null ? sstHere.valueC.toFixed(1) + " °C"
+    : sstHere && sstHere.inGrid ? "该格无水温数据" : "该位置无水温资料";
+  head += '<div class="mp-row"><span class="mp-k">水温' + (!state.layers.sst ? "（图层关闭）" : "") + '</span><span class="mp-v">' + tempV +
+    (sstHere?.resolutionDeg ? " / " + sstHere.resolutionDeg + "° 网格" : "") + "</span></div>";
   const cell = cellAt(lon, lat);
   const bbox = OFData.attribution() ? OFData.attribution().region.bbox : null;
   if (!cell || !cell.inGrid) {
-    return head + '<div class="mp-note">该位置不在数据范围内' +
+    return head + '<div class="mp-note">该位置不在锋面数据范围内' +
       (bbox ? "（已覆盖 " + bbox[0] + "~" + bbox[2] + "°E，" + bbox[1] + "~" + bbox[3] + "°N）" : "") + "</div>" + foot;
   }
   if (cell.nodata) {
-    return head + '<div class="mp-note">这里没有观测数据（陆地、云或未观测，数据里统一用 -128 表示）</div>' + foot;
+    return head + '<div class="mp-note">锋面缺测（陆地、云或未观测，锋面资料用 -128 表示）</div>' + foot;
   }
 
   let h = head;
-  // 水温：这一格的真实档位值（NOAA GHRSST，与锋面不同源），没有就直说，绝不插值
-  const sstHere = OFData.sstCell(state.date, lon, lat);
-  const tempV = sstHere && sstHere.valueC !== null ? sstHere.valueC.toFixed(1) + " °C"
-    : sstHere && sstHere.inGrid ? "该格无水温数据" : "该日期无数据";
-  h += '<div class="mp-row"><span class="mp-k">水温</span><span class="mp-v">' + tempV + "</span></div>";
-
   // 最近锋面：只给距离（往哪个方向开，看地图上的锋面线与范围环）
   const nf = nearestFrontFrom(lon, lat);
   h += '<div class="mp-row"><span class="mp-k">最近锋面</span><span class="mp-v">' +

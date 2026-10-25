@@ -47,15 +47,17 @@ test("front lines remain visible while only nearest and selected primary objects
   }finally{await b.close();}
 });
 
+const sstFixture = (partialCover = false, globe = false) => `window.OF_API_BASE='http://controlled.invalid/api';window.fetch=url=>{url=String(url);const reply=x=>Promise.resolve(new Response(JSON.stringify(x)));
+      if(url.endsWith('/health'))return reply({status:'ok'});
+      if(url.includes('/frontend/day/')){const iso=url.split('/').pop().split('?')[0],front=structuredClone(window.OF_DATA_DAYS[iso]);return reply({front,
+        window:{bbox:[120,27,128,34],step:1,resolution_deg:.05},sst:{date:iso,bin_c:.5,product:{id:'contract-fixture',version:'synthetic'},grid:${JSON.stringify(globe ? {lon0:123,lat0:29,dlon:.05,dlat:.05,nx:80,ny:80} : {lon0:124.5,lat0:30.2,dlon:.05,dlat:.05,nx:2,ny:2})},runs:${JSON.stringify(globe ? Array.from({length:80},(_,r)=>[r,0,80,30]) : partialCover ? [[0,0,2,60],[1,0,2,60]] : [[0,0,1,30],[0,1,1,60],[1,0,1,80]])}},
+        sst_coarse:{bin_c:.5,grid:{lon0:124.5,lat0:30.2,dlon:1,dlat:1,nx:1,ny:1},runs:[[0,0,1,40]]}});}
+      return reply({meta:{status:'empty'},layers:{}});};`;
+
 test("fine SST masks the coarse field including holes, while out-of-domain readings keep their true values",async()=>{
   const b=await launchBrowser(edge),c=b.cdp;
   try{
-    await open(c,`window.OF_API_BASE='http://controlled.invalid/api';window.fetch=url=>{url=String(url);const reply=x=>Promise.resolve(new Response(JSON.stringify(x)));
-      if(url.endsWith('/health'))return reply({status:'ok'});
-      if(url.includes('/frontend/day/')){const iso=url.split('/').pop().split('?')[0],front=structuredClone(window.OF_DATA_DAYS[iso]);return reply({front,
-        window:{bbox:[120,27,128,34],step:1,resolution_deg:.05},sst:{date:iso,bin_c:.5,product:{id:'contract-fixture',version:'synthetic'},grid:{lon0:124.5,lat0:30.2,dlon:.05,dlat:.05,nx:2,ny:2},runs:[[0,0,1,30],[0,1,1,60],[1,0,1,80]]},
-        sst_coarse:{bin_c:.5,grid:{lon0:124,lat0:30,dlon:1,dlat:1,nx:2,ny:2},runs:[[0,0,2,40],[1,0,2,40]]}});}
-      return reply({meta:{status:'empty'},layers:{}});};`);
+    await open(c,sstFixture());
     assert.match(await c.evaluate("document.getElementById('nowScopeTag').textContent"),/水温 15.0 °C/);
     assert.match(await c.evaluate("document.getElementById('sstLegendOpen').textContent"),/适用性待确认/);
     assert.equal(await c.evaluate("document.querySelector('#mapSvg [data-layer=sst][data-value-c=\"15\"]').getAttribute('data-range')"),"below");
@@ -156,5 +158,44 @@ test("small-screen touch opens the shared scale panel, Escape returns focus and 
     await click(c,"#layerClose");
     assert.equal(await c.evaluate("document.activeElement.id"),"workbenchToggle");
     assert.equal(await c.evaluate("document.querySelectorAll('#mapSvg [data-layer=sst]').length"),0);
+  }finally{await b.close();}
+});
+
+
+test("local enhancement includes the visible remainder of a partly masked coarse cell",async()=>{
+  const b=await launchBrowser(edge),c=b.cdp;
+  try{
+    await open(c,sstFixture(true));await click(c,"#sstLegendOpen");await click(c,"#sstLocalEnhance");
+    assert.match(await c.evaluate("document.getElementById('sstDomainInfo').textContent"),/20–30 °C/);
+    assert.equal(await c.evaluate("document.querySelector('#mapSvg [data-value-c=\"20\"]').getAttribute('data-range')"),"within");
+  }finally{await b.close();}
+});
+
+test("globe probe reports the same coarse temperature and resolution as the displayed source",async()=>{
+  const b=await launchBrowser(edge),c=b.cdp;
+  try{
+    await open(c,sstFixture(false,true));await click(c,"#globeReset");
+    const point=await c.evaluate("(()=>{const e=document.querySelector('#mapSvg .pulse'),s=document.getElementById('mapSvg'),p=new DOMPoint(+e.getAttribute('cx'),+e.getAttribute('cy')).matrixTransform(s.getScreenCTM());return {x:p.x,y:p.y};})()");
+    await c.send("Input.dispatchMouseEvent",{type:"mouseMoved",x:point.x+2,y:point.y-1});
+    await waitFor(c,"document.getElementById('mapProbe').textContent.includes('水温')");
+    const probe=await c.evaluate("document.getElementById('mapProbe').textContent");
+    assert.match(probe,/20.0 °C/);assert.match(probe,/1°/);assert.doesNotMatch(probe,/15.0 °C/);
+    assert.equal(await c.evaluate("document.querySelectorAll('#mapSvg [data-value-c=\"15\"]').length"),0);
+  }finally{await b.close();}
+});
+
+test("a missing front observation does not hide the independent valid SST archive reading",async()=>{
+  const b=await launchBrowser(edge),c=b.cdp;
+  try{
+    await open(c);await click(c,"#headerFilter");await click(c,"#locInput");
+    await c.send("Input.dispatchKeyEvent",{type:"keyDown",key:"a",code:"KeyA",modifiers:2});
+    await c.send("Input.dispatchKeyEvent",{type:"keyUp",key:"a",code:"KeyA",modifiers:2});
+    await c.send("Input.insertText",{text:"120.625°E, 27.475°N"});
+    await click(c,"#locateBtn");await click(c,"#filterClose");
+    const p=await c.evaluate("(()=>{const e=document.querySelector('#mapSvg .pulse'),s=document.getElementById('mapSvg'),p=new DOMPoint(+e.getAttribute('cx'),+e.getAttribute('cy')).matrixTransform(s.getScreenCTM());return {x:p.x,y:p.y};})()");
+    await c.send("Input.dispatchMouseEvent",{type:"mouseMoved",...p});
+    await waitFor(c,"document.getElementById('mapProbe').textContent.includes('水温')");
+    const probe=await c.evaluate("document.getElementById('mapProbe').textContent");
+    assert.match(probe,/29.5 °C/);assert.match(probe,/锋面缺测/);
   }finally{await b.close();}
 });

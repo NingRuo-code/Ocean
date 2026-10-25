@@ -122,6 +122,13 @@
   $("historyRead").onclick = () => read("clim"); $("forecastRead").onclick = () => read("future");
   $("historyDetails").onclick = e => show("clim", e.currentTarget); $("forecastDetails").onclick = e => show("future", e.currentTarget);
   $("evidenceClose").onclick = () => close();
+  // Some touch browsers suppress the compatibility click after a map drag.
+  // Closing is idempotent, so a later click may safely use the same action.
+  $("evidenceClose").addEventListener("pointerup", e => {
+    if (e.pointerType !== "touch") return;
+    const r = e.currentTarget.getBoundingClientRect();
+    if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) close();
+  });
   panel.addEventListener("keydown", e => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); } });
   for (const button of [$("historyDetails"), $("forecastDetails")]) button.addEventListener("keydown", e => {
     if (e.key === "Escape" && !panel.hidden && opener === button) { e.preventDefault(); e.stopPropagation(); close(); }

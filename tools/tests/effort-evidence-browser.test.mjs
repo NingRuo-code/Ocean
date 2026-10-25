@@ -170,7 +170,9 @@ test("small-screen evidence is touch reachable, preserves map dragging and retur
     await c.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 45, y: 500 }] });
     await c.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     assert.notEqual(await c.evaluate("document.getElementById('mapSvg').getAttribute('viewBox')"), before);
-    await tap("#evidenceClose"); await tap("#historyDetails");
+    await tap("#evidenceClose");
+    await waitFor(c,"document.getElementById('evidencePanel').hidden");
+    await tap("#historyDetails");
     assert.equal(await c.evaluate("document.getElementById('evidencePanel').hidden"), false, "touch reopens the evidence before Escape");
     await c.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape" });
     await c.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape" });
