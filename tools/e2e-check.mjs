@@ -292,23 +292,23 @@ await shot("shot-1-now.png");
 
 // ===== 2) L0 顶栏：顺序看得见、时间只有一个入口 =====
 const top = await evalJS(`return {
-  nums: document.querySelectorAll(".topbar .ctx .num").length,
-  labels: [].map.call(document.querySelectorAll(".topbar .ctx .ctx-lab"), function(n){ return n.textContent; }),
-  dateInputs: document.querySelectorAll(".topbar input[type=date]").length,
-  railInputs: document.querySelectorAll(".topbar input[type=range]#timeRail").length,
+  nums: document.querySelectorAll("#filterPanel .ctx .num").length,
+  labels: [].map.call(document.querySelectorAll("#filterPanel .ctx .ctx-lab"), function(n){ return n.textContent; }),
+  dateInputs: document.querySelectorAll("#filterPanel input[type=date]").length,
+  railInputs: document.querySelectorAll("#filterPanel input[type=range]#timeRail").length,
   playBtns: document.querySelectorAll("#datePlay").length,
   pickOriginBtns: document.querySelectorAll("#pickOriginBtn").length,
   railMax: document.getElementById("timeRail").max,
   railText: document.getElementById("timeRailText").textContent,
-  otherInputs: document.querySelectorAll(".topbar input[type=month], .topbar input[type=number]").length,
+  otherInputs: document.querySelectorAll("#filterPanel input[type=month], #filterPanel input[type=number]").length,
   hasFamily: !!document.getElementById("familySeg"),
-  topText: (document.querySelector(".topbar") || {}).textContent || "",
+  topText: (document.querySelector("#filterPanel") || {}).textContent || "",
   rangeBtns: document.querySelectorAll("#rangeSeg button").length,
   fishingDefault: !!state.layers.fishing,
   fishingPaths: document.querySelectorAll('#mapSvg [data-layer="fishing"]').length,
   fishingLegend: (document.querySelector('.legend-row[data-layer="fishing"]') || {}).textContent || "" };`);
-check("顶栏按使用顺序分成 3 组（出发地/作业范围/出海日）",
-  top.nums === 3 && top.labels.join("|") === "出发地|作业范围|出海日", top.nums + " 组 · " + top.labels.join("/"));
+check("筛选模块合并三组条件且去除装饰序号",
+  top.nums === 0 && top.labels.join("|") === "出发地|作业范围|出海日", top.labels.length + " 组 · " + top.labels.join("/"));
 check("顶栏没有第二套数据来源开关（观测/预报/气候 已删）",
   top.hasFamily === false && !/观测来源|预报|气候/.test(top.topText), "familySeg 不存在");
 check("顶栏只有 1 个日期控件，无 month/number",
@@ -330,9 +330,9 @@ const tabs = await evalJS(`var bs = [].slice.call(document.querySelectorAll("#ta
     secondary: bs.filter(function(b){ return b.classList.contains("secondary"); }).map(function(b){ return b.textContent.trim(); }),
     active: document.querySelector("#tabs button.active").dataset.pane,
     paneNow: document.getElementById("pane-now").classList.contains("active") };`);
-check("页签 = 当前 / 历史 / 预测 / AI 分析",
-  tabs.n === 4 && tabs.primary.join(",") === "now,clim,future,ai" &&
-  tabs.labels.join("/") === "当前/历史/预测/AI 分析" && tabs.secondary.length === 0, JSON.stringify(tabs));
+check("右侧页签 = 当前 / 历史 / 预测",
+  tabs.n === 3 && tabs.primary.join(",") === "now,clim,future" &&
+  tabs.labels.join("/") === "当前/历史/预测" && tabs.secondary.length === 0, JSON.stringify(tabs));
 check("默认落在「当前」页", tabs.active === "now" && tabs.paneNow === true, tabs.active);
 
 // ===== 3.1) 历史 AIS 响应：Front Response Table 契约入口 =====
@@ -355,11 +355,11 @@ check("AIS 响应表通过 OFData 暴露，并带真实来源与「单日临时 
   ais20.response.available === true && ais20.response.frontIdScope === "local_day",
   JSON.stringify({ status: ais20.meta.status, synthetic: ais20.meta.isSynthetic,
     kind: ais20.meta.source && ais20.meta.source.kind, scope: ais20.response.frontIdScope }));
-check("当前页历史 AIS 响应卡片展示真实响应与 caveat（数值与数据同源、不参与评分）",
+check("历史页 AIS 响应卡片展示真实响应与 caveat（数值与数据同源、不参与评分）",
   /^(响应增强|未见明确增强)$/.test(ais20.tag.trim()) &&
   ais20.list.indexOf(fmtHoursE2e(ais20.response.post13Hours)) >= 0 &&
   ais20.list.indexOf("control " + fmtHoursE2e(ais20.response.controlHours)) >= 0 &&
-  /用于解释历史表观捕捞活动响应/.test(ais20.list) && /不参与当前把握度评分/.test(ais20.list) &&
+  /用于解释历史表观捕捞活动响应/.test(ais20.list) && /不代表渔获量/.test(ais20.list) &&
   ais20.why.indexOf("pre7=" + fmtHoursE2e(ais20.response.pre7Hours)) >= 0 &&
   ais20.why.indexOf("post1-3=" + fmtHoursE2e(ais20.response.post13Hours)) >= 0 &&
   ais20.why.indexOf("control=" + fmtHoursE2e(ais20.response.controlHours)) >= 0 &&
@@ -458,19 +458,15 @@ const hero = await evalJS(`return {
   why: document.getElementById("heroWhyBody").textContent };`);
 check("结论块在「当前」页内，不再有常驻 hero 与首选点位卡",
   hero.inNow === true && hero.legacy === false, "inNow=" + hero.inNow + " · legacy=" + hero.legacy);
-check("结论块给出三档结论之一（值得去 / 可以看看 / 线索不足）",
-  ["值得去", "可以看看", "线索不足"].indexOf(hero.verdict) >= 0, hero.verdict);
-check("结论行含范围内锋面区数量 / 把握度 / 方位 / 距离（已无航时·油耗）",
-  /作业范围 20 km 内/.test(hero.line) && /(个锋面区|暂无锋面区)/.test(hero.line) &&
-  /把握度 \d+%/.test(hero.line) && /(正北|东北|正东|东南|正南|西南|正西|西北)/.test(hero.line) &&
-  /km/.test(hero.line) && !/小时|油耗/.test(hero.line), hero.line.slice(0, 70));
+check("附近锋面以真实距离为主值，保留范围、数量和方位事实",
+  /^\d+\.\d km$/.test(hero.verdict) && /20 km 范围内有 \d+ 个锋面区/.test(hero.line) &&
+  /(正北|东北|正东|东南|正南|西南|正西|西北)/.test(hero.line) && !/把握度|值得去/.test(hero.line), hero.line);
 check("结论卡写明看的是哪一天、数据是实况观测",
-  /（今天）|（\+\d 天）|（-\d 天）/.test(hero.when) && /观测/.test(hero.when), hero.when);
+  /2024-08-05/.test(hero.when) && /归档观测/.test(hero.when), hero.when);
 check("结论块首选锋面区指向数据里的真实对象编号（取「作业线索」首条）",
   /F\d{3}/.test(hero.lead) && boot.dataObjects > 0, hero.lead.replace(/\s+/g, " ").slice(0, 48));
-check("「评分依据」列出分项与合计，并说明未参与评分的项",
-  /起评分/.test(hero.why) && /合计把握/.test(hero.why) &&
-  /数据来源/.test(hero.why) && /未参与评分/.test(hero.why), hero.why.slice(0, 40));
+check("数据口径解释距离和来源，不恢复评分结论",
+  /Zenodo/.test(hero.why) && /最近距离/.test(hero.why) && /不代表捕捞收益/.test(hero.why) && !/合计把握/.test(hero.why), hero.why);
 
 // ===== 5) 现在页（真实观测数据） =====
 const now = await evalJS(`var ms = [].slice.call(document.querySelectorAll("#nowMetrics .m")).map(function(n){ return n.textContent; });
@@ -484,14 +480,14 @@ const now = await evalJS(`var ms = [].slice.call(document.querySelectorAll("#now
     dataObjects: OFData.objects(document.getElementById("timeDate").value).length,
     coverage: 100 - OFData.quality(document.getElementById("timeDate").value).nodata_percent,
     bodyText: document.body.innerText };`);
-check("现在页 4 个指标格（锋面区 / 最近锋面 / 所处侧 / 把握度）",
-  now.ms.length === 4 && /锋面区/.test(now.ms[0]) && /把握/.test(now.ms[3]), now.ms.length + " 格");
+check("现在页三项事实指标（范围内锋面区 / 水温 / 所处侧）",
+  now.ms.length === 3 && /锋面区/.test(now.ms[0]) && /水温/.test(now.ms[1]) && /所处侧/.test(now.ms[2]), now.ms.length + " 格");
 check("现在页的范围标签跟着「作业范围」走，并标出数据覆盖",
   /20 km/.test(now.scope) && new RegExp(now.coverage.toFixed(1) + "%").test(now.scope), now.scope);
 check("海况安全提示标成「示例数据 · 仅供参考」，并提示以官方预报为准",
   /示例数据/.test(now.seaTag) && /仅供参考/.test(now.seaTag) && /官方海洋预报/.test(now.sea), now.seaTag);
-check("当前页默认三张信息卡（当前观测 / 历史 AIS 响应 / 展开细节），海况仍作为展开项",
-  now.cards === 3 && /全部锋面区/.test(now.detailsText), "cards=" + now.cards + " · " + now.detailsText);
+check("当前页保留两张事实卡，AIS 响应已迁入历史",
+  now.cards === 2 && /全部锋面区/.test(now.detailsText), "cards=" + now.cards + " · " + now.detailsText);
 check("当前页默认作业线索不超过 3 条，完整清单保留在展开项",
   now.leadRows >= 1 && now.leadRows <= 3 && now.fronts === now.dataObjects,
   "lead=" + now.leadRows + " / all=" + now.fronts + " / data=" + now.dataObjects);
@@ -651,13 +647,8 @@ const ai = await evalJS(`return {
   evidence: document.getElementById("aiEvidenceBody").textContent,
   cards: document.querySelectorAll("#pane-ai > .card").length,
   planBox: !!document.getElementById("aiPlanBox") };`);
-check("AI 分析只做证据组织与任务编排（AIS 证据随真实数据，不冒充渔获量）",
-  /证据驱动/.test(ai.tag) && /解析任务/.test(ai.plan) && /证据边界/.test(ai.plan) &&
-  /AI 只组织证据/.test(ai.plan) && /查看规则预测参考/.test(ai.next) &&
-  /当前证据/.test(ai.evidence) && /预测证据/.test(ai.evidence) && /AIS 响应/.test(ai.evidence) &&
-  /post1-3=[\d.]+ h/.test(ai.evidence) && /pre7=[\d.]+ h/.test(ai.evidence) &&
-  /不等于渔获量/.test(ai.evidence),
-  ai.tag + " · " + ai.plan.slice(0, 36));
+check("工作台 AI 明确模型未接入，列出待接入能力与当前条件",
+  /模型未接入/.test(ai.tag) && /验收后接入/.test(ai.plan) && /日期/.test(ai.evidence) && /半径/.test(ai.evidence), ai.tag);
 check("AI 页合并为一张复核卡，任务编排放入展开项",
   ai.cards === 1 && ai.planBox === true, "cards=" + ai.cards);
 await evalJS(`switchTab("basis"); return 1;`);
@@ -676,8 +667,8 @@ check("全页（含隐藏面板）不再出现「航时 / 油耗」文案", basi
 check("数据来源写清产品、许可与底图出处",
   /zenodo\.20356239/.test(basis.dataText) && /CC BY 4\.0/.test(basis.dataText) &&
   /Natural Earth/.test(basis.dataText), "DOI / 许可 / 底图都有了");
-check("算法说明给出口径（起评分 / 数据覆盖 / front_present）",
-  /起评分/.test(basis.rulesText) && /数据覆盖/.test(basis.rulesText) && /front_present/.test(basis.rulesText), "ok");
+check("算法说明给出口径及旧规则边界（取消评分 / 数据覆盖 / front_present）",
+  /取消评分/.test(basis.rulesText) && /未验证/.test(basis.rulesText) && /数据覆盖/.test(basis.rulesText) && /front_present/.test(basis.rulesText), "ok");
 check("数据说明写清 AIS response 的 source、metric、unit、公开边界和不入评分",
   /apparent_fishing_effort/.test(basis.dataText) && /fishing_hours/.test(basis.dataText) &&
   /gfw_apparent_fishing_effort/.test(basis.dataText) && /CC BY-NC 4\.0/.test(basis.dataText) &&
@@ -975,7 +966,7 @@ const emptyState = await evalJS(`var no = new Date(Date.parse(OFData.firstDate()
     desc: document.getElementById("mapEmptyDesc").textContent,
     hero: document.getElementById("heroVerdict").textContent };`);
 check("没有数据的那一天才出现遮罩，并说明原因（不给结论）",
-  emptyState.display !== "none" && /没有数据/.test(emptyState.title) && /先看数据/.test(emptyState.hero),
+  emptyState.display !== "none" && /没有数据/.test(emptyState.title) && emptyState.hero === "—",
   emptyState.display + " · " + emptyState.title + " · " + emptyState.hero);
 await shot("shot-10-empty.png");
 await evalJS(`state.date = "${localLast}"; refresh(); return 1;`);

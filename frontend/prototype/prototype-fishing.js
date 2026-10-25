@@ -136,12 +136,7 @@ function distKm(from, to) { return Math.hypot((to[0] - from[0]) * kmPerLon(from[
 // ==================== 数据入口（一律走 OFData） ====================
 function dataStatus() { return OFData.dateInfo(state.date); }
 function timeLabel() {
-  const base = mdText(state.date);
-  if (!TODAY) return base + " · 实况观测";
-  const n = Math.round((Date.parse(state.date) - Date.parse(TODAY)) / 86400000);
-  if (n === 0) return base + "（今天）· 实况观测";
-  const tail = state.date === DATE_MAX ? "（最新数据）" : "";
-  return base + (n > 0 ? "（+" + n + " 天）" : "（" + n + " 天）") + "· 实况观测" + tail;
+  return state.date + " / 归档观测";
 }
 function originCell() { return OFData.cellInfo(state.date, state.lon, state.lat); }
 function qualityOf() { return OFData.quality(state.date); }
@@ -825,6 +820,7 @@ function resolutionLabel(deg) {
 }
 
 function drawMap(opts) {
+  const renderStarted = performance.now();
   const skipData = !!(opts && opts.skipData);   // 球面档拖动中：只画底图与框，松手再补数据
   const svg = $("mapSvg");
   svg.innerHTML = "";
@@ -872,6 +868,17 @@ function drawMap(opts) {
     "@keyframes pulseAnim{0%{r:8;opacity:.9}100%{r:32;opacity:0}}.pulse{animation:pulseAnim 1.6s ease-out infinite}";
   syncViewHint(globe);
   updateScaleBar();
+  const rendered = ok && !skipData ? OFData.patches(iso).filter(p => !globe || p.resolutionDeg > 0.1) : [];
+  svg.dataset.renderDate = iso;
+  svg.dataset.renderStatus = rendered.length ? "ready" : skipData || ok ? "base-only" : "unavailable";
+  svg.dataset.mapMs = String(performance.now() - renderStarted);
+  svg.dataset.dataStep = rendered.length ? String(Math.min(...rendered.map(p => p.resolutionDeg))) : "";
+  syncRenderView();
+}
+
+// Public render evidence for the browser baseline; a basemap alone is never data-ready.
+function syncRenderView() {
+  $("mapSvg").dataset.viewKey = JSON.stringify([state.date, state.view.lon0, state.view.lat0, state.zoom, _view.mode]);
 }
 
 // ==================== 鼠标放到地图上：看那个点的数据 ====================
@@ -1057,46 +1064,15 @@ function heroTarget() {
 }
 
 function renderHero() {
-  const snap = snapshot();
-  const v = $("heroVerdict"), l = $("heroLine"), body = $("heroWhyBody");
+  const snap = snapshot(), near = snap.nearest;
   $("heroWhen").textContent = timeLabel();
-
-  if (!snap.ok) {
-    v.textContent = "先看数据";
-    v.className = "verdict caution";
-    l.innerHTML = "<b>" + snap.status.title + "</b> — " + snap.status.desc;
-    body.innerHTML = '<div class="line"><span class="k">当前日期</span> → ' + timeLabel() + "</div>" +
-      '<div class="line"><span class="k">说明</span> → 该日期没有实况数据，不输出评分与建议</div>';
-    syncSelect(); renderPick();
-    return;
-  }
-
-  const verdict = verdictOf(snap.score);
-  v.textContent = verdict.text;
-  v.className = "verdict " + verdict.cls;
-
-  const t = heroTarget();
-  const inRangeCount = snap.inRange.filter((f) => f.isObject).length;
-  let line = "作业范围 " + state.range + " km 内 <b>" +
-    (inRangeCount ? inRangeCount + " 个锋面区" : "暂无锋面区") + "</b> · 把握度 <b>" + snap.score + "%</b>。";
-  // 首选（或回退最近）锋面：把强度一并说明，找最近锋面时同样能给强度
-  if (t) {
-    const target = (snap.fronts || []).find((f) => f.isObject && f.id === t.id);
-    const ti = intensityOf(target);
-    line += "首选 <b>" + t.bearing + " " + t.km.toFixed(1) + " km</b> 的" + t.label +
-      (ti ? "（强度 <b>" + ti.label + "</b>）" : "") + "。";   // 温差/梯度等细节放在选中回执卡里，结论行保持简短
-  } else line += "可扩大作业范围或换个日期。";
-  l.innerHTML = line;
-
-  body.innerHTML =
-    snap.items.map((it) => '<div class="line"><span class="k">' + it[0] + "</span> → <b>" +
-      (it[1] > 0 ? "+" : "") + it[1] + "</b></div>").join("") +
-    '<div class="line"><span class="k">合计把握度</span> → <b>' + snap.score + "%</b></div>" +
-    '<div class="line"><span class="k">数据来源</span> → 锋面：Zenodo 20356239 · 水温：NOAA GHRSST</div>' +
-    '<div class="line"><span class="k">未参与评分</span> → 水温、锋面强度、海况、预报、渔场</div>' +
-    '<div class="line"><span class="k">结论分档</span> → ≥70% 值得去 · 50–69% 可以看看 · <50% 线索不足</div>';
-  syncSelect();
-  renderPick();
+  $("heroVerdict").className = "verdict";
+  $("heroVerdict").textContent = snap.ok && near ? near.km.toFixed(1) + " km" : "—";
+  $("heroLine").textContent = !snap.ok ? snap.status.title + "：" + snap.status.desc :
+    near ? "最近锋面在" + near.bearing + "，" + state.range + " km 范围内有 " + snap.inRange.filter(f => f.isObject).length + " 个锋面区。" :
+    "当前支持范围内未检出锋面；缺测区域不作判断。";
+  $("heroWhyBody").textContent = "锋面来自 Zenodo 展示数据；距离为定位点至锋面几何的最近距离，不代表捕捞收益。";
+  syncSelect(); renderPick();
 }
 
 // ==================== L2-当前（真实观测数据） ====================
@@ -1133,7 +1109,7 @@ function aisShortCaveat(meta, response) {
   if (!meta) return "未声明数据来源";
   if (response && response.available === false) return "缺测/未授权/缺范围只表示证据不可用，不等于 0 fishing hours";
   if (meta.isSynthetic) return "synthetic fixture 只验证契约与界面路径，不是真实 AIS/GFW 证据";
-  return "用于解释历史表观捕捞活动响应，不参与当前把握度评分";
+  return "用于解释历史表观捕捞活动响应，不代表渔获量";
 }
 function aisEvidenceLine(response) {
   if (!response) return "AIS 响应待接入";
@@ -1170,11 +1146,9 @@ function renderNow() {
     (coverage === null ? "" : " · 数据覆盖 " + coverage.toFixed(1) + "%") +
     (anchorSst && anchorSst.valueC !== null ? " · 定位点水温 " + anchorSst.valueC.toFixed(1) + " °C" : "");
   $("nowMetrics").innerHTML =
-    metricCell("锋面区", String(objects.length), "个") +
-    metricCell("最近锋面", nearest ? nearest.km.toFixed(1) : "—", "km", "front",
-      nearest && nearest.isObject ? nearest.id : "") +
-    metricCell("所处侧", snap.side || "锋区外", "", "coldwarm") +
-    metricCell("把握度", String(snap.score), "%");
+    metricCell("范围内锋面区", String(snap.inRange.filter(f => f.isObject).length), "个") +
+    metricCell("水温", anchorSst && anchorSst.valueC !== null ? anchorSst.valueC.toFixed(1) : "—", "°C") +
+    metricCell("所处侧", snap.side || "锋区外", "", "coldwarm");
 
   // 海况：示例数据，不参与评分
   const sea = seaState(state.date);
@@ -1184,7 +1158,7 @@ function renderNow() {
     '<div class="row"><span class="i">≈</span><span class="grow"><b>风力 ' + sea.wind + " 级 · 浪高 " + sea.wave +
     " m · 涌浪 " + sea.swell + ' m</b><small>示例数据，非实况</small></span></div>' +
     '<div class="row"><span class="i">!</span><span class="grow"><b>正式出海请以官方海洋预报为准</b>' +
-    "<small>本页评分不含海况</small></span></div>";
+    "<small>示例不用于作业判断</small></span></div>";
 
   const objectLines = snap.fronts.filter((f) => f.isObject);
   const inRangeObjects = objectLines.filter((f) => f.inRange);
@@ -1661,9 +1635,9 @@ function renderBasis() {
     ["数据版本", a.generatedAt],
   ]);
   $("basisRules").innerHTML = listRows([
-    ["1", "<b>作业范围</b>：以出发地为圆心，" + a.region.ranges_km.join(" / ") + " km 内的锋面计入评分；范围内没有编号锋面时展示最近的一条并注明"],
-    ["2", "<b>把握度</b>：起评分 30；范围内每个锋面区 +12（最多 3 个）；最近锋面 ≤10 km +8、≤20 km +4；最长锋面区 ≥100 km +8、≥50 km +4；数据覆盖 ≥85% +4、<70% −4；冷暖侧只展示、不加分"],
-    ["3", "<b>结论分档</b>：≥70% 值得去 · 50–69% 可以看看 · <50% 线索不足"],
+    ["1", "<b>作业范围</b>：以出发地为圆心，" + a.region.ranges_km.join(" / ") + " km 内展示锋面；范围内没有编号锋面时展示最近的一条并注明"],
+    ["2", "<b>当前结果</b>：只报告距离、方位、水温和数据覆盖；冷暖侧只展示、不加分，当前页已取消评分"],
+    ["3", "<b>旧规则演示</b>：历史与预测页仍保留未验证的规则信号；这些值没有概率解释，不用于作业判断"],
     ["4", "<b>历史同期</b>：半径内锋面线格数 > 0 记 front_present = true；比例 = 有锋面的天数 ÷ 有效天数"],
     ["5", "<b>锋面区识别</b>：连通域中心线 + 抽稀（6 km），长度 ≥ " +
       (OFData.quality(a.days[a.days.length - 1]) ? OFData.quality(a.days[a.days.length - 1]).object_min_length_km : 20) + " km 才编号"],
@@ -1672,7 +1646,7 @@ function renderBasis() {
         responseMethod.post_window_days.join("-") + " 天与前 " + responseMethod.pre_window_days +
         " 天基线、同日非锋面对照区比较"
       : "待接入 front-response 方法")],
-    ["7", "<b>AIS 不参与评分</b>：AIS response 是证据来源与解释材料，不改变当前把握度 Product Score"],
+    ["7", "<b>AIS 不参与评分</b>：AIS response 是历史证据来源与解释材料，不能推出当前捕捞收益"],
   ]);
   $("basisLimits").innerHTML = listRows(
     a.knownIssues.map((text) => ["!", text]).concat([
@@ -1691,99 +1665,27 @@ function renderBasis() {
 
 // ==================== L2-AI 分析（证据组织，不直接生成科学数值） ====================
 function renderAI() {
-  const snap = snapshot();
-  const summary = $("aiSummary"), plan = $("aiPlan"), next = $("aiNext");
-  if (!snap.ok) {
-    $("aiTag").textContent = "等待数据";
-    $("aiPlanTag").textContent = "未执行";
-    $("aiNextTag").textContent = "换日期";
-    summary.innerHTML = '<div class="row"><span class="i">!</span><span class="grow"><b>' + snap.status.title +
-      "</b><small>" + snap.status.desc + "</small></span></div>";
-    plan.innerHTML = "";
-    $("aiEvidenceBody").innerHTML = "";
-    next.innerHTML = '<div class="row"><span class="i">1</span><span class="grow"><b>切换出海日</b><small>当前可选 ' +
-      DATE_MIN + " ~ " + DATE_MAX + "</small></span></div>";
-    return;
-  }
-  const verdict = verdictOf(snap.score);
-  const target = heroTarget();
-  const recent = aggregateObservationDates(recentObservationDates(state.date, 4));
-  const month = aggregateObservationDates(datesInMonth(state.date));
-  const base = baselineSeries();
-  const bestBase = base.reduce((m, r) => (!m || r.score > m.score ? r : m), null);
-  const climRate = climRateFor(state.date.slice(5), state.range);
-  const sea = seaState(state.date);
-  const responseMeta = OFData.frontResponseMeta();
-  const response = OFData.frontResponse(state.date, state.range);
-  const responseReady = OFData.frontResponseAvailable() && response;
-
-  $("aiTag").textContent = "证据驱动";
-  $("aiPlanTag").textContent = "本地规则";
-  $("aiNextTag").textContent = target ? "继续验证" : "扩大范围";
-  summary.innerHTML =
-    '<div class="row"><span class="i">1</span><span class="grow"><b>' + verdict.text + " · 把握度 " + snap.score +
-    "%</b><small>结论由当前锋面区、距离、长度和数据覆盖计算</small></span></div>" +
-    '<div class="row"><span class="i">2</span><span class="grow"><b>' +
-    (target ? target.label + " · " + target.bearing + " " + target.km.toFixed(1) + " km" : "作业范围内暂无明确锋面区") +
-    "</b><small>" + (target ? (target.fallback ? "范围内暂无线索，展示最近的一条" : "范围内首选，已在地图标出") :
-      "可放大作业范围或换相邻日期复核") + "</small></span></div>" +
-    '<div class="row"><span class="i">3</span><span class="grow"><b>历史参照 ' +
-    (climRate == null ? "样本不足" : Math.round(climRate * 100) + "%") +
-    "</b><small>当前月样例 " + month.present + "/" + month.valid + " 天在范围内有锋面</small></span></div>" +
-    '<div class="row"><span class="i">4</span><span class="grow"><b>' + aisEvidenceLine(response) +
-    "</b><small>AIS response 只作为证据来源，不改变当前把握度评分</small></span></div>";
-
-  plan.innerHTML =
-    '<div class="row"><span class="i">A</span><span class="grow"><b>解析任务</b><small>' +
-    mdText(state.date) + "，" + fmtCoord(state.lon, state.lat) + "，作业范围 " + state.range + " km</small></span></div>" +
-    '<div class="row"><span class="i">B</span><span class="grow"><b>调用工具</b><small>当前查询 → 历史同期 → AIS response → 规则预测参考 → 限制检查</small></span></div>' +
-    '<div class="row"><span class="i">C</span><span class="grow"><b>证据边界</b><small>海况为示例值（风力 ' +
-    sea.wind + " 级、浪高 " + sea.wave + " m），AI 只组织证据，不生成 fishing hours 或科学数值</small></span></div>";
-
-  $("aiEvidenceBody").innerHTML =
-    '<div class="line"><span class="k">当前证据</span> → <b>当前页</b>：锋面区数量、最近距离、所处侧和数据覆盖</div>' +
-    '<div class="line"><span class="k">历史证据</span> → <b>历史页</b>：当日 / 3 日 / 7 日 / 15 日 / 当月 / 整年的可用样例与同期统计</div>' +
-    '<div class="line"><span class="k">AIS 响应</span> → <b>当前页</b>：' +
-    (responseReady ? aisEvidenceLine(response) : "已预留数据入口，真实 apparent fishing effort 样例待接入") +
-    (responseMeta && responseMeta.note ? "；" + responseMeta.note : "") + "</div>" +
-    '<div class="line"><span class="k">预测证据</span> → <b>预测页</b>：' + state.predWindow + " 天规则预测参考，首选 " +
-    (bestBase ? mdText(bestBase.date) + " · " + bestBase.score + "%" : "暂无") + "</div>" +
-    '<div class="line"><span class="k">限制证据</span> → <b>数据说明</b>：强度、真实海况、真实预报尚未接入；' +
-    (responseMeta && responseMeta.isSynthetic
-      ? "AIS fixture 不是真实 GFW/AIS 证据"
-      : "AIS 响应为 GFW 表观捕捞活动聚合，不等于渔获量 / 产量 / 收益") + "</div>";
-
-  next.innerHTML =
-    '<div class="row clickable" data-pane-jump="future"><span class="i">1</span><span class="grow"><b>查看规则预测参考</b><small>' +
-    (bestBase ? "当前规则建议优先看第 " + bestBase.offset + " 天，规则参考 " + bestBase.score + "%" : "当前日期暂无规则参考") +
-    "</small></span></div>" +
-    '<div class="row clickable" data-pane-jump="clim"><span class="i">2</span><span class="grow"><b>切到历史尺度</b><small>对照当日、近三日、当月和整年样例</small></span></div>' +
-    '<div class="row clickable" data-pane-jump="basis"><span class="i">3</span><span class="grow"><b>核对数据说明</b><small>确认哪些数据真实接入，哪些仍是示例或未接入</small></span></div>';
-  next.querySelectorAll("[data-pane-jump]").forEach((node) =>
-    node.addEventListener("click", () => switchTab(node.dataset.paneJump)));
+  $("aiTag").textContent = "模型未接入";
+  $("aiNextTag").textContent = "本地证据";
+  $("aiSummary").textContent = "可先查看附近锋面、历史观测与数据来源。多轮分析待接入。";
+  $("aiEvidenceBody").textContent = "日期 " + state.date + " / 半径 " + state.range + " km；结果随筛选即时更新。";
+  $("aiPlan").textContent = "月度统计、事件响应、区域比较将在对应任务验收后接入。";
+  $("aiNext").textContent = "";
 }
 
-// ==================== 提示条（只用于确认操作，不播报结论） ====================
 let toastTimer;
 function showToast(text) {
   $("toastLoc").textContent = text;
-  const t = $("toast");
-  t.classList.add("show");
+  $("toast").classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
+  toastTimer = setTimeout(() => $("toast").classList.remove("show"), 1800);
 }
-
-// ==================== 统一刷新（state → 全部渲染） ====================
 function clampDate(iso) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
-  if (iso < DATE_MIN) return DATE_MIN;
-  if (iso > DATE_MAX) return DATE_MAX;
-  return iso;
+  return iso < DATE_MIN ? DATE_MIN : iso > DATE_MAX ? DATE_MAX : iso;
 }
-// 服务器增强模式：服务器上的数据窗口比离线兜底大（105–150°E vs 东海），
-// 所以本地有数据时也拉一份服务器版本覆盖；先用本地渲染保证首屏快，拉到后再重渲染。
-// 离线（file://）下 serverAvailable() 恒为 false，等价于原来的「直接 refresh」，行为不变。
 function loadThenRefresh(iso) {
+  syncRequestContext();
   const local = OFData.hasDay(iso);
   if (local) refresh();                          // 先用本地数据渲染（快）
   if (!OFData.serverAvailable(iso)) {
@@ -1870,6 +1772,8 @@ function renderTimeRail() {
 }
 
 function refresh() {
+  syncRequestContext();
+  const panelStarted = performance.now();
   invalidate();
   renderLegend();
   drawMap();
@@ -1890,6 +1794,7 @@ function refresh() {
   renderTimeRail();
   syncOriginPicker();
   requestViewportPatch(true);        // 换日期后这一片也要跟着换（窗口没变则命中缓存，不重复取）
+  $("mapSvg").dataset.panelMs = String(Math.max(0, performance.now() - panelStarted - Number($("mapSvg").dataset.mapMs || 0)));
 }
 
 // 服务器增强模式启用后刷新日期范围与视野（AVAILABLE_DATES / DATE_MIN / DATE_MAX 用 let 的原因）
@@ -2005,7 +1910,9 @@ function applyZoom(smooth, opts) {
   }
   updateScaleBar();
   saveViewSoon();
+  syncRequestContext();
   requestViewportPatch(true);                           // 视野变了 → 防抖后按需取这一片
+  syncRenderView();
 }
 // 投影切换：新档从半透明淡入，遮住"等距平面 ↔ 正射球面"那一下形变
 function fadeInStage() {
@@ -2115,6 +2022,11 @@ function syncViewHint() {
 
 // 视野变了就去问服务器要这一片（防抖：拖动/缩放停稳后再发请求；同样的窗口不重复要）
 let viewportTimer = 0, viewportLoading = false;
+function syncRequestContext() {
+  return OFData.setRequestContext({ date: state.date, lon: state.lon, lat: state.lat, radius: state.range,
+    view: [state.view.lon0, state.view.lat0, state.zoom], mode: OFData.serverMode().userMode,
+    enabled: OFData.serverEnabled(), version: OFData.serverMode().dataVersion });
+}
 function requestViewportPatch(soon) {
   if (!OFData.serverEnabled()) return;
   if (viewportTimer) clearTimeout(viewportTimer);
@@ -2122,17 +2034,20 @@ function requestViewportPatch(soon) {
   viewportTimer = setTimeout(() => {
     viewportTimer = 0;
     const iso = state.date;
+    const identity = syncRequestContext();
     if (!OFData.hasDay(iso) && !OFData.serverAvailable(iso)) return;
     const bounds = OFMap.visibleBounds(_view, mapAspect());
-    if (!OFData.setViewWindow(bounds)) { syncViewHint(); return; }   // 窗口没变：不用取
+    OFData.setViewWindow(bounds); // ensureViewport handles cache coverage; date and mode are part of request identity.
     viewportLoading = true;
     if (globeMode()) syncViewHint();
     // 只有慢的时候才提示（快的时候提示反而刷屏）
     const slowNotice = setTimeout(function () {
+      if (identity !== syncRequestContext()) return;
       showToast("正在取这一片的数据（按当前视野取数，窗口很大时给概览）…");
     }, 600);
     OFData.ensureViewport(iso).then((ok) => {
       clearTimeout(slowNotice);
+      if (identity !== syncRequestContext()) return;
       viewportLoading = false;
       syncServerModeUi();
       if (!ok && !OFData.serverEnabled()) showToast("服务器取数失败，已回到离线模式");

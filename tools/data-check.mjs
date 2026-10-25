@@ -271,12 +271,8 @@ check("渔场线索图层打开时会按需调用 ensureFishing，不会只读�
   /k === "ground" && state\.layers\[k\]\) loadFishing\(state\.date, true\)/.test(prototypeFishingText) &&
   /loadFishing\(iso\)/.test(prototypeFishingText),
   "loadFishing + ground toggle + date refresh wiring");
-check("ensureFishing 失败后记录时间戳并走 retryable 重试窗口，不会一次失败永久空白",
-  /function ensureFishing\(iso\)/.test(prototypeDataText) &&
-  /!serverEnabled\(\) \|\| !retryable\(FISHING\.failed, iso\)/.test(prototypeDataText) &&
-  /FISHING\.failed\[iso\] = Date\.now\(\)/.test(prototypeDataText) &&
-  /delete FISHING\.failed\[iso\]/.test(prototypeDataText),
-  "retryable + timestamp failure + success clears failure");
+// Bounded retry, stale-response isolation and missing-vs-zero are behavior-tested
+// through the actual browser/fetch boundary in tools/tests/loading-browser.test.mjs.
 
 // ===== 部署冒烟检查：渔业活动服务端契约 =====
 const serverSmokePath = join(ROOT, "deploy", "server-smoke.ps1");

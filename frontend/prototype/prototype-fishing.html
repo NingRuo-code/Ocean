@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-ef-variant="coldstore">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -387,6 +387,7 @@
     .legend-note { display: none; }
   }
 </style>
+<link rel="stylesheet" href="prototype-workbench.css">
 </head>
 <body>
 <div class="app">
@@ -475,7 +476,8 @@
     </section>
 
     <!-- ===== 右侧：页签面板（结论已并入「当前」页，不再常驻） ===== -->
-    <aside class="side">
+    <aside class="side" id="resultPanel" aria-label="分析结果">
+<div class="panel-head"><span>// RESULTS　结果</span><button id="resultClose" aria-label="收起结果">×</button></div>
 
       <!-- L2 页签：当前 / 历史 / 预测 / AI 分析；数据说明由页脚进入 -->
       <nav class="tabs" id="tabs" role="tablist">
@@ -489,7 +491,7 @@
         <!-- 当前 -->
         <section class="pane active" id="pane-now">
           <div class="card">
-            <h3>当前渔情 <span class="tag ok" id="nowScopeTag">—</span></h3>
+            <h3>附近锋面 <span class="tag ok" id="nowScopeTag">—</span></h3>
             <!-- 结论块：原常驻 hero 于 2026-09-14 并入本卡（页面上唯一的结论出口） -->
             <div class="hero-top">
               <span class="verdict ok" id="heroVerdict">—</span>
@@ -498,7 +500,7 @@
             <p class="hero-line" id="heroLine"></p>
             <div class="metric" id="nowMetrics"></div>
             <details class="why" id="heroWhy">
-              <summary>评分依据</summary>
+              <summary>数据口径</summary>
               <div class="why-body" id="heroWhyBody"></div>
             </details>
             <details class="why" id="seaDetails">
@@ -594,7 +596,7 @@
             <div class="table" id="basisData"></div>
           </div>
           <div class="card">
-            <h3>评分规则</h3>
+            <h3>方法与边界</h3>
             <div class="list" id="basisRules"></div>
           </div>
           <div class="card">
@@ -640,6 +642,7 @@
 <!-- 地图投影与视野（平面档 ↔ 球面档、经纬网、视野夹取） -->
 <script src="prototype-map.js"></script>
 <script src="prototype-fishing.js"></script>
+<script src="prototype-workbench.js"></script>
 </body>
 </html>
 

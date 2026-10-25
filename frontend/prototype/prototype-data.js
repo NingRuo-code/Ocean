@@ -21,6 +21,61 @@
   const FRONT_RESPONSE = window.OF_FRONT_RESPONSE || null;
   const SORTED_DATES = Object.keys(DAYS).sort();
   const SST_DATES = Object.keys(SST).sort();
+  const LOCAL_DAYS = { ...DAYS }, LOCAL_SST = { ...SST };
+  let requestContext = "initial", requestEpoch = 0, modeGeneration = 0, dataVersion = null;
+  const activeRequests = new Set(), loadStates = {};
+  function publishLoad(layer, status) {
+    loadStates[layer] = { status, epoch: requestEpoch, context: requestContext };
+    window.dispatchEvent(new CustomEvent("ocean-load-state"));
+  }
+  function setRequestContext(context) {
+    const key = JSON.stringify(context);
+    if (key === requestContext) return requestEpoch;
+    requestContext = key; requestEpoch++;
+    for (const controller of activeRequests) controller.abort();
+    activeRequests.clear();
+    Object.keys(loadStates).forEach(key => delete loadStates[key]);
+    window.dispatchEvent(new CustomEvent("ocean-load-state"));
+    return requestEpoch;
+  }
+  function loadState() { return JSON.parse(JSON.stringify(loadStates)); }
+  function resetServerData() {
+    modeGeneration++;
+    setRequestContext(["mode-change", requestEpoch]);
+    Object.keys(DAYS).forEach(key => delete DAYS[key]); Object.assign(DAYS, LOCAL_DAYS);
+    Object.keys(SST).forEach(key => delete SST[key]); Object.assign(SST, LOCAL_SST);
+    Object.keys(PATCHES).forEach(key => delete PATCHES[key]);
+    FISHING.days = {}; FISHING.inflight = {}; FISHING.failed = {};
+    SERVER.inflight = {}; SERVER.failed = {}; VIEW_WINDOW.inflight = {}; VIEW_WINDOW.failed = {};
+  }
+  async function requestJson(url, layer, epoch) {
+    if (epoch !== requestEpoch) throw new Error("obsolete");
+    publishLoad(layer, "loading");
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const controller = new AbortController(); activeRequests.add(controller);
+      const timer = setTimeout(() => controller.abort(), 8000);
+      let transient = false;
+      try {
+        const response = await fetch(url, { cache: "no-store", signal: controller.signal });
+        if (epoch !== requestEpoch) throw new Error("obsolete");
+        if (!response.ok) {
+          transient = response.status === 408 || response.status === 429 || response.status >= 500;
+          const error = new Error("request_failed");
+          error.loadStatus = response.status === 401 || response.status === 403 ? "forbidden" : response.status === 404 ? "day-missing" : response.status === 409 ? "unprepared" : "error";
+          throw error;
+        }
+        const payload = await response.json();
+        if (epoch !== requestEpoch) throw new Error("obsolete");
+        return payload;
+      } catch (error) {
+        if (epoch !== requestEpoch) throw new Error("obsolete");
+        transient = transient || error.name === "TypeError" || error.name === "AbortError";
+        if (transient && attempt === 0) continue;
+        publishLoad(layer, error.loadStatus || "error");
+        throw error;
+      } finally { clearTimeout(timer); activeRequests.delete(controller); }
+    }
+  }
 
   // ---- 服务器增强模式（可选）----
   // 后端 /api/frontend/day/<date> 会按需产出与离线 data/day|sst/<date>.js 完全一致的结构，
@@ -155,13 +210,18 @@
     SERVER.checking = true;
     SERVER.status = "checking";
     SERVER.reason = "";
+    const healthGeneration = modeGeneration;
     const task = fetch(base + "/health", { cache: "no-store" })
       .then(function (response) {
         if (!response.ok) throw new Error("health HTTP " + response.status);
         return response.json();
       })
       .then(function (data) {
+        if (healthGeneration !== modeGeneration || SERVER.userMode === "offline") return false;
         if (!data || data.status !== "ok") throw new Error("health status " + (data && data.status ? data.status : "unknown"));
+        const nextVersion = data.data_version ?? data.revision ?? data.version ?? null;
+        if (dataVersion !== nextVersion) resetServerData();
+        dataVersion = nextVersion;
         SERVER.available = true;
         SERVER.enabled = true;
         SERVER.checking = false;
@@ -170,6 +230,7 @@
         return true;
       })
       .catch(function (error) {
+        if (healthGeneration !== modeGeneration) return false;
         setServerOffline(error && error.message ? error.message : "服务器不可用");
         return false;
       })
@@ -192,10 +253,12 @@
       userMode: SERVER.userMode,
       status: SERVER.status,
       reason: SERVER.reason,
+      dataVersion: dataVersion,
     };
   }
 
   function setServerMode(mode) {
+    resetServerData();
     if (mode === "offline") {
       SERVER.userMode = "offline";
       SERVER.enabled = false;
@@ -221,25 +284,24 @@
   /** 按需把服务器单日数据注入 DAYS/SST；并发同一天只发一次，失败后 20s 允许重试。 */
   function ensureDay(iso, force) {
     if (!force && Object.prototype.hasOwnProperty.call(DAYS, iso)) return Promise.resolve(true);
-    if (!serverAvailable(iso) || !retryable(SERVER.failed, iso)) return Promise.resolve(false);
-    if (SERVER.inflight[iso]) return SERVER.inflight[iso];
+    if (!serverAvailable(iso)) return Promise.resolve(false);
+    const epoch = requestEpoch, identity = epoch + ":" + iso;
+    if (SERVER.inflight[identity]) return SERVER.inflight[identity];
     const url = SERVER.base + "/frontend/day/" + iso;
-    const task = fetch(url, { cache: "no-store" })
-      .then(function (response) {
-        if (!response.ok) throw new Error("frontend/day HTTP " + response.status);
-        return response.json();
-      })
+    const task = requestJson(url, "day", epoch)
       .then(function (payload) {
+        if (epoch !== requestEpoch) return false;
         if (!payload || !payload.front) throw new Error("payload 缺少 front");
         DAYS[iso] = payload.front;
         if (payload.sst) SST[iso] = payload.sst;
         if (payload.window) addPatch(iso, payload, true);   // 注册成「主片」（作业海域，永远是 0.05°）
         delete SERVER.failed[iso];
+        publishLoad("day", "ready");
         return true;
       })
       .catch(function () { SERVER.failed[iso] = Date.now(); return false; })
-      .then(function (ok) { delete SERVER.inflight[iso]; return ok; });
-    SERVER.inflight[iso] = task;
+      .then(function (ok) { delete SERVER.inflight[identity]; return ok; });
+    SERVER.inflight[identity] = task;
     return task;
   }
 
@@ -500,26 +562,28 @@
   function fetchPatch(iso, key, url, kind) {
     const list = PATCHES[iso] || [];
     if (list.some(function (item) { return item.key === key; })) return Promise.resolve(true);
-    if (!retryable(VIEW_WINDOW.failed, key)) return Promise.resolve(false);
-    if (VIEW_WINDOW.inflight[key]) return VIEW_WINDOW.inflight[key];
-    const task = fetch(url, { cache: "no-store" })
-      .then(function (response) {
-        if (!response.ok) throw new Error("frontend/day window HTTP " + response.status);
-        return response.json();
-      })
+    const epoch = requestEpoch, identity = epoch + ":" + iso + ":" + key;
+    if (VIEW_WINDOW.inflight[identity]) return VIEW_WINDOW.inflight[identity];
+    const task = requestJson(url, "viewport", epoch)
       .then(function (payload) {
+        if (epoch !== requestEpoch) return false;
+        if (payload.meta?.date && payload.meta.date !== iso) throw new Error("response_date_mismatch");
+        if (payload.meta?.status === "empty" || payload.meta?.status === "unavailable") {
+          publishLoad("viewport", payload.meta.status === "empty" ? "unknown-coverage" : "unprepared");
+          return false;
+        }
         const adapted = kind === "viewport" ? viewportPayloadToPatchPayload(iso, payload) : payload;
         const ok = !!addPatch(iso, adapted, false);
         if (ok) delete VIEW_WINDOW.failed[key];
+        publishLoad("viewport", ok ? "ready" : "unknown-coverage");
         return ok;
       })
       .catch(function (error) {
-        VIEW_WINDOW.failed[key] = Date.now();
-        setServerOffline(error && error.message ? error.message : "viewport 请求失败");
+        if (epoch === requestEpoch && !loadStates.viewport?.status?.match(/forbidden|day-missing|unprepared|error/)) publishLoad("viewport", "error");
         return false;
       })
-      .then(function (ok) { delete VIEW_WINDOW.inflight[key]; return ok; });
-    VIEW_WINDOW.inflight[key] = task;
+      .then(function (ok) { delete VIEW_WINDOW.inflight[identity]; return ok; });
+    VIEW_WINDOW.inflight[identity] = task;
     return task;
   }
 
@@ -599,22 +663,27 @@
    *  （调用方按「无覆盖 / 当日无作业」处理，不按 0）。失败与 ensureDay 共用 20s 重试窗口，
    *  避免一次后端抖动就把这一天永久钉成空白。 */
   function ensureFishing(iso) {
-    if (FISHING.days[iso]) return Promise.resolve(true);
-    if (!serverEnabled() || !retryable(FISHING.failed, iso)) return Promise.resolve(false);
-    if (FISHING.inflight[iso]) return FISHING.inflight[iso];
-    const task = fetch(SERVER.base + "/fishing/" + iso, { cache: "no-store" })
-      .then(function (response) {
-        if (!response.ok) throw new Error("fishing HTTP " + response.status);
-        return response.json();
-      })
+    if (FISHING.days[iso]) {
+      const cells = FISHING.days[iso].cells;
+      publishLoad("fishing", !cells?.length ? "unknown-coverage" : cells.every(c => c.hours === 0) ? "ready-zero-records" : "ready");
+      return Promise.resolve(true);
+    }
+    if (!serverEnabled()) return Promise.resolve(false);
+    const epoch = requestEpoch, identity = epoch + ":" + iso;
+    if (FISHING.inflight[identity]) return FISHING.inflight[identity];
+    const task = requestJson(SERVER.base + "/fishing/" + iso, "fishing", epoch)
       .then(function (data) {
+        if (epoch !== requestEpoch) return false;
+        if (data?.date && data.date !== iso) throw new Error("response_date_mismatch");
         FISHING.days[iso] = data && Array.isArray(data.cells) ? data : null;
         delete FISHING.failed[iso];
+        const cells = FISHING.days[iso]?.cells;
+        publishLoad("fishing", !cells?.length ? "unknown-coverage" : cells.every(c => c.hours === 0) ? "ready-zero-records" : "ready");
         return !!FISHING.days[iso];
       })
-      .catch(function () { FISHING.failed[iso] = Date.now(); FISHING.days[iso] = null; return false; })
-      .then(function (ok) { delete FISHING.inflight[iso]; return ok; });
-    FISHING.inflight[iso] = task;
+      .catch(function () { if (epoch === requestEpoch && loadStates.fishing?.status === "loading") publishLoad("fishing", "error"); return false; })
+      .then(function (ok) { delete FISHING.inflight[identity]; return ok; });
+    FISHING.inflight[identity] = task;
     return task;
   }
 
@@ -744,6 +813,8 @@
   }
 
   const OFData = {
+    setRequestContext: setRequestContext,
+    loadState: loadState,
     meta: META,
     basemap: BASE,                                  // 1:10m 东海细节（离线兜底档）
     basemapAsia: window.OF_DATA_ASIA || null,       // 1:50m 西太平洋（区域档）
