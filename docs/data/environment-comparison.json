@@ -1,0 +1,29 @@
+{
+  "schema": "ocean-environment-lineage-config/v1",
+  "environments": [
+    {
+      "id": "local",
+      "evidence_kind": "real_local_artifacts",
+      "source_snapshot": "../reports/ocean-environment-local-source-2026-10-25.json",
+      "daily_snapshot": "../reports/ocean-environment-local-daily-2026-10-25.json",
+      "acquired_at": "2026-10-25T06:47:34.105279+00:00",
+      "deployment_commit": "77f323c6f7e4e632efcb8f61a6e034913c934319"
+    },
+    {
+      "id": "offline",
+      "evidence_kind": "real_local_artifacts",
+      "source_snapshot": "../reports/ocean-environment-offline-source-2026-10-25.json",
+      "daily_snapshot": "../reports/ocean-environment-offline-daily-2026-10-25.json",
+      "acquired_at": "2026-10-25T06:47:35.944432+00:00",
+      "deployment_commit": null
+    },
+    {
+      "id": "server",
+      "evidence_kind": "captured_remote_artifacts",
+      "source_snapshot": "../reports/ocean-environment-server-source-2026-10-25.json",
+      "daily_snapshot": "../reports/ocean-environment-server-daily-2026-10-25.json",
+      "acquired_at": "2026-10-25T06:47:38.723386+00:00",
+      "deployment_commit": null
+    }
+  ]
+}
