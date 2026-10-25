@@ -5,10 +5,108 @@ import subprocess
 from pathlib import Path
 
 import numpy as np
+import pytest
 import xarray as xr
 
 ROOT = Path(__file__).resolve().parents[2]
 CLI = ROOT / "tools/audit-research-baseline.mjs"
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("source", None),
+        ("coverage", None),
+        ("matching", None),
+        ("source", []),
+        ("coverage", "bad"),
+        ("matching", 3),
+    ],
+)
+def test_optional_metadata_is_controlled_without_aborting_other_sources(
+    tmp_path, field, value
+):
+    bad = tmp_path / "effort20240805.json"
+    bad.write_text(
+        json.dumps(
+            {"date": "2024-08-05", "unit": "fishing_hours", "cells": [], field: value}
+        ),
+        encoding="utf-8",
+    )
+    good = tmp_path / "front20240805.nc"
+    front_file(good)
+    prepare(
+        tmp_path,
+        [
+            ("effort", "activity", bad, {"format": "activity-json"}),
+            ("front", "front", good, {"format": "netcdf", "variable": "front"}),
+        ],
+    )
+    sources = audit(tmp_path)["sources"]
+    assert sources[1]["days"][0]["valid_samples"] == 3
+    if value is None:
+        assert sources[0]["days"][0]["record_counts"]["total"] == 0
+    else:
+        assert sources[0]["errors"][0]["reason"] == "invalid_metadata_object"
+
+
+def test_content_day_is_checked_even_when_filename_is_outside_window(tmp_path):
+    source = tmp_path / "effort20240804.json"
+    source.write_text(
+        json.dumps(
+            {
+                "date": "2024-08-05",
+                "unit": "fishing_hours",
+                "cells": [{"lon": 122, "lat": 30, "hours": 0}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    prepare(tmp_path, [("effort", "activity", source, {"format": "activity-json"})])
+    row = audit(tmp_path)["sources"][0]["days"][0]
+    assert "filename_content_date_mismatch" in row["reasons"]
+    assert row["record_counts"]["zero"] == 1
+
+
+def test_unsigned_packing_is_explicitly_rejected_until_supported(tmp_path):
+    source = tmp_path / "sst20240805.nc"
+    ds = xr.Dataset(
+        {"sst": (("time", "lat", "lon"), np.array([[[-32000]]], dtype=np.int16))},
+        coords={"time": [0], "lat": [30], "lon": [122]},
+    )
+    ds.time.attrs.update(units="hours since 2024-08-05", calendar="standard")
+    ds.sst.attrs.update(units="K", scale_factor=0.009, _Unsigned="true")
+    ds.to_netcdf(source, engine="h5netcdf")
+    prepare(tmp_path, [("sst", "sst", source, {"format": "netcdf", "variable": "sst"})])
+    result = audit(tmp_path)["sources"][0]
+    assert result["errors"][0]["reason"] == "unsupported_unsigned_encoding"
+    assert result["days"][0]["state"] == "missing"
+
+
+def test_mixed_csv_units_cannot_be_verified_by_registry_fallback(tmp_path):
+    source = tmp_path / "effort20240805.csv"
+    source.write_text(
+        "date,lon,lat,hours,unit\n2024-08-05,122,30,1,fishing_hours\n2024-08-05,123,30,2,minutes\n",
+        encoding="utf-8",
+    )
+    prepare(
+        tmp_path,
+        [
+            (
+                "effort",
+                "activity",
+                source,
+                {"format": "activity-csv", "unit": "fishing_hours"},
+            )
+        ],
+    )
+    row = audit(tmp_path)["sources"][0]["days"][0]
+    assert row["unit_status"] == "conflict"
+    assert "activity_unit_conflict" in row["reasons"]
+    assert row["reported_valid_hours_sum"] is None
+    assert row["unique_cell_hours_sum"] is None
+    assert row["legacy_max_diagnostic_hours"] is None
+    assert row["state"] == "conflict"
 
 
 def prepare(tmp_path, sources):

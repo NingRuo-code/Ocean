@@ -90,6 +90,8 @@ def metadata_value(value):
 
 
 def decode_sst(raw, valid, attrs):
+    if str(attrs.get("_Unsigned", "false")).lower() != "false":
+        raise ValueError("unsupported_unsigned_encoding")
     if "valid_range" in attrs:
         low, high = attrs["valid_range"]
         valid &= (raw >= low) & (raw <= high)
@@ -154,6 +156,15 @@ def number(value, csv_input=False):
     return float(value) if isinstance(value, (int, float)) else None
 
 
+def object_field(payload, key):
+    value = payload.get(key)
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise TypeError("invalid_metadata_object")
+    return value
+
+
 def activity_rows(path, entry, file, source, support):
     csv_input = (
         entry["format"] == "activity-csv"
@@ -166,7 +177,12 @@ def activity_rows(path, entry, file, source, support):
         payload = {}
     else:
         payload = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise TypeError("invalid_activity_payload")
         cells = payload[entry.get("records_field", "cells")]
+    source_metadata = object_field(payload, "source")
+    coverage = object_field(payload, "coverage")
+    matching = object_field(payload, "matching")
     if not isinstance(cells, list) or len(cells) > MAX_SAMPLES:
         raise ValueError("invalid_record_budget")
     by_day = {}
@@ -236,16 +252,25 @@ def activity_rows(path, entry, file, source, support):
                 values.append(hours)
                 maxima[key] = max(maxima.get(key, hours), hours)
         duplicates = sum(count > 1 for count in observed.values())
-        csv_units = {record.get("unit") for record in records}
-        unit = (
-            next(iter(csv_units))
-            if csv_input and len(csv_units) == 1
-            else payload.get(
-                "unit", payload.get("source", {}).get("unit", entry.get("unit"))
-            )
+        units = (
+            [record.get("unit") for record in records]
+            if csv_input
+            else [payload.get("unit"), source_metadata.get("unit")]
         )
-        unit_verified = unit in ["fishing_hours", "fishing hours"] and (
-            csv_input or "unit" in payload or "unit" in payload.get("source", {})
+        units = [value for value in units if value is not None and value != ""]
+        if any(not isinstance(value, str) for value in units):
+            raise TypeError("invalid_activity_unit")
+        normalized_units = {
+            "fishing_hours" if value == "fishing hours" else value for value in units
+        }
+        unit_conflict = len(normalized_units) > 1
+        unit = (
+            next(iter(normalized_units))
+            if len(normalized_units) == 1
+            else entry.get("unit")
+        )
+        unit_verified = normalized_units == {"fishing_hours"} and (
+            not csv_input or len(units) == len(records)
         )
         resolution = number(
             payload.get("spatial_resolution_deg", entry.get("resolution_deg"))
@@ -262,9 +287,10 @@ def activity_rows(path, entry, file, source, support):
             reasons.append("filename_content_date_mismatch")
         if not unit_verified:
             reasons.append("activity_unit_unverified")
+        if unit_conflict:
+            reasons.append("activity_unit_conflict")
         if resolution_check != "declared_at_or_finer_than_target; not_accuracy_proof":
             reasons.append("analysis_resolution_not_verified")
-        coverage = payload.get("coverage", {})
         bounds = coverage.get("bbox")
         domain_valid = (
             isinstance(bounds, list)
@@ -286,7 +312,6 @@ def activity_rows(path, entry, file, source, support):
         )
         if not time_verified:
             reasons.append("day_boundary_or_content_date_unverified")
-        matching = payload.get("matching", {})
         strategy = matching.get("strategy")
         offset = number(matching.get("offset_km"))
         spatial_match = {
@@ -307,19 +332,27 @@ def activity_rows(path, entry, file, source, support):
             "date": day,
             "file_id": file["id"],
             "file_sha256": file["sha256"],
-            "state": "conflict" if duplicates else "parsed",
+            "state": "conflict"
+            if duplicates or unit_conflict
+            else "parsed"
+            if unit_verified
+            else "unverified",
             "reasons": reasons,
             "unit": unit,
-            "unit_status": "file_attribute"
+            "unit_status": "conflict"
+            if unit_conflict
+            else "file_attribute"
             if unit_verified
             else "unverified_declaration",
             "record_counts": counts,
-            "reported_valid_hours_sum": math.fsum(values) if values else None,
+            "reported_valid_hours_sum": math.fsum(values)
+            if values and unit_verified
+            else None,
             "unique_cell_hours_sum": None
-            if duplicates or not values
+            if duplicates or not values or not unit_verified
             else math.fsum(values),
             "legacy_max_diagnostic_hours": math.fsum(maxima.values())
-            if maxima
+            if maxima and unit_verified
             else None,
             "duplicate_cell_groups": duplicates,
             "coverage_status": "source_declared_complete_not_verified"
@@ -411,8 +444,13 @@ def display_rows(path, entry, file, source, support):
     payload, end = json.JSONDecoder().raw_decode(text[match.end() :])
     if text[match.end() + end :].strip() != ";":
         raise ValueError("trailing_display_program")
+    if not isinstance(payload, dict):
+        raise TypeError("invalid_display_payload")
     day = date.fromisoformat(payload["date"]).isoformat()
-    grid = payload["grid"]
+    grid = object_field(payload, "grid")
+    quality = object_field(payload, "quality")
+    product = object_field(payload, "product")
+    stats = object_field(payload, "stats")
     nx, ny = grid["nx"], grid["ny"]
     if (
         not isinstance(nx, int)
@@ -474,21 +512,21 @@ def display_rows(path, entry, file, source, support):
             cold, warm = int(cold_mask.sum()), int(warm_mask.sum())
         else:
             reasons.append("side_masks_unavailable")
-        declared = payload.get("quality", {}).get("valid_cells")
+        declared = quality.get("valid_cells")
         unit = "classification_code; display_contract"
     else:
         valid, bins = runs_mask(payload["runs"], True)
         quantum = number(payload["bin_c"])
         if quantum is None or not np.isfinite(quantum) or quantum <= 0:
             raise ValueError("invalid_temperature_quantization")
-        unit = payload.get("product", {}).get("unit")
+        unit = product.get("unit")
         valid, decoding, temperature = decode_sst(
             bins * quantum, valid, {"units": unit}
         )
         decoding["quantization_step_c"] = quantum
         if temperature is None:
             reasons.append("sst_unit_unverified; no_heuristic_conversion")
-        declared = payload.get("stats", {}).get("valid_cells")
+        declared = stats.get("valid_cells")
     if declared is not None and declared != int(valid.sum()):
         reasons.append("declared_valid_count_mismatch")
     return [
@@ -847,15 +885,6 @@ def main():
             ):
                 continue
             named_day = file_date(path)
-            if (
-                named_day
-                and (
-                    named_day < args.start.isoformat()
-                    or named_day > args.end.isoformat()
-                )
-                and entry["format"] != "netcdf"
-            ):
-                continue
             try:
                 if path.stat().st_size != file["bytes"]:
                     raise ValueError("snapshot_content_changed")
