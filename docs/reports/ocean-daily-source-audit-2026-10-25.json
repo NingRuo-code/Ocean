@@ -1,0 +1,1510 @@
+{
+  "schema": "ocean-daily-source-audit/v1",
+  "source_snapshot_id": "sha256:653f86c7d75726ec9e5b3b677784d15b92ec765d54735197317bba077d5f1755",
+  "registry_sha256": "b7533f6d42bd78ce16170de7e20966cf6263c98ff246d245340948a28430736b",
+  "auditor_sha256": "4ac80fada55bf2747cba7b7bcf29ab87d5931278ff43361eda9bb491a7a001ea",
+  "range": [
+    "2024-08-05",
+    "2024-08-07"
+  ],
+  "evidence_kind": "real_local_artifacts; original_source_qualification_pending",
+  "sources": [
+    {
+      "id": "front-original",
+      "kind": "front",
+      "role": "analysis_source",
+      "source_access": "missing",
+      "source_gaps": [
+        "missing_location",
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ],
+      "days": [
+        {
+          "date": "2024-08-05",
+          "state": "missing",
+          "reasons": [
+            "no_parsed_daily_input"
+          ],
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-06",
+          "state": "missing",
+          "reasons": [
+            "no_parsed_daily_input"
+          ],
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-07",
+          "state": "missing",
+          "reasons": [
+            "no_parsed_daily_input"
+          ],
+          "valid_samples": null
+        }
+      ],
+      "errors": [],
+      "file_evidence": []
+    },
+    {
+      "id": "front-display",
+      "kind": "front",
+      "role": "display",
+      "source_access": "readable",
+      "source_gaps": [
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ],
+      "days": [
+        {
+          "date": "2024-08-05",
+          "file_id": "front-display:0037",
+          "file_sha256": "b4a57b8060dcfad6323e1d694278c59f3184ff219f0a92b98e8af662311f3e8f",
+          "filename_date": "2024-08-05",
+          "time_verified": false,
+          "time_basis": "display_declared_date; original_time_coordinate_unverified",
+          "state": "parsed",
+          "reasons": [],
+          "grid": {
+            "lon": {
+              "first": 120.025,
+              "last": 127.97500000000001,
+              "count": 160,
+              "step": 0.04999999999999716,
+              "regular": true,
+              "min": 120.025,
+              "max": 127.97500000000001
+            },
+            "lat": {
+              "first": 27.025,
+              "last": 33.975,
+              "count": 140,
+              "step": 0.05000000000000071,
+              "regular": true,
+              "min": 27.025,
+              "max": 33.975
+            },
+            "convention": "display_sample_positions; cell bounds unverified"
+          },
+          "unit": "classification_code; display_contract",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "front_detected_samples": 411,
+          "cold_samples": 2096,
+          "warm_samples": 2512,
+          "temperature_c": null,
+          "decoding": null,
+          "support_scope": "display_mask_only",
+          "support_artifact": "b89bd69c71170b4a1f9f45a963256f5c1df8d0b8920d1c351c34fc56ca1e5164.npz"
+        },
+        {
+          "date": "2024-08-06",
+          "file_id": "front-display:0038",
+          "file_sha256": "904c8259721fb7431942d0402a5259730099769865a095e2629c2056bea78c75",
+          "filename_date": "2024-08-06",
+          "time_verified": false,
+          "time_basis": "display_declared_date; original_time_coordinate_unverified",
+          "state": "parsed",
+          "reasons": [],
+          "grid": {
+            "lon": {
+              "first": 120.025,
+              "last": 127.97500000000001,
+              "count": 160,
+              "step": 0.04999999999999716,
+              "regular": true,
+              "min": 120.025,
+              "max": 127.97500000000001
+            },
+            "lat": {
+              "first": 27.025,
+              "last": 33.975,
+              "count": 140,
+              "step": 0.05000000000000071,
+              "regular": true,
+              "min": 27.025,
+              "max": 33.975
+            },
+            "convention": "display_sample_positions; cell bounds unverified"
+          },
+          "unit": "classification_code; display_contract",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "front_detected_samples": 374,
+          "cold_samples": 2016,
+          "warm_samples": 2000,
+          "temperature_c": null,
+          "decoding": null,
+          "support_scope": "display_mask_only",
+          "support_artifact": "d33a9d6a63c171f81eeaec7a3b9da0a96c89d86c206908f3756766356a655f17.npz"
+        },
+        {
+          "date": "2024-08-07",
+          "file_id": "front-display:0039",
+          "file_sha256": "656aefa11b672e30a6218d40b81cbfa9e62d5c353f3d3f213d39769494f58d9c",
+          "filename_date": "2024-08-07",
+          "time_verified": false,
+          "time_basis": "display_declared_date; original_time_coordinate_unverified",
+          "state": "parsed",
+          "reasons": [],
+          "grid": {
+            "lon": {
+              "first": 120.025,
+              "last": 127.97500000000001,
+              "count": 160,
+              "step": 0.04999999999999716,
+              "regular": true,
+              "min": 120.025,
+              "max": 127.97500000000001
+            },
+            "lat": {
+              "first": 27.025,
+              "last": 33.975,
+              "count": 140,
+              "step": 0.05000000000000071,
+              "regular": true,
+              "min": 27.025,
+              "max": 33.975
+            },
+            "convention": "display_sample_positions; cell bounds unverified"
+          },
+          "unit": "classification_code; display_contract",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "front_detected_samples": 377,
+          "cold_samples": 2147,
+          "warm_samples": 2555,
+          "temperature_c": null,
+          "decoding": null,
+          "support_scope": "display_mask_only",
+          "support_artifact": "2ecd2a7b6418186cf6edcf9f74d9eb54055737845a676d8a5a7bf2abbaada87a.npz"
+        }
+      ],
+      "errors": [],
+      "file_evidence": [
+        {
+          "file_id": "front-display:0002",
+          "filename_date": "2024-07-01",
+          "content_dates": [
+            "2024-07-01"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0003",
+          "filename_date": "2024-07-02",
+          "content_dates": [
+            "2024-07-02"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0004",
+          "filename_date": "2024-07-03",
+          "content_dates": [
+            "2024-07-03"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0005",
+          "filename_date": "2024-07-04",
+          "content_dates": [
+            "2024-07-04"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0006",
+          "filename_date": "2024-07-05",
+          "content_dates": [
+            "2024-07-05"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0007",
+          "filename_date": "2024-07-06",
+          "content_dates": [
+            "2024-07-06"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0008",
+          "filename_date": "2024-07-07",
+          "content_dates": [
+            "2024-07-07"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0009",
+          "filename_date": "2024-07-08",
+          "content_dates": [
+            "2024-07-08"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0010",
+          "filename_date": "2024-07-09",
+          "content_dates": [
+            "2024-07-09"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0011",
+          "filename_date": "2024-07-10",
+          "content_dates": [
+            "2024-07-10"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0012",
+          "filename_date": "2024-07-11",
+          "content_dates": [
+            "2024-07-11"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0013",
+          "filename_date": "2024-07-12",
+          "content_dates": [
+            "2024-07-12"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0014",
+          "filename_date": "2024-07-13",
+          "content_dates": [
+            "2024-07-13"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0015",
+          "filename_date": "2024-07-14",
+          "content_dates": [
+            "2024-07-14"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0016",
+          "filename_date": "2024-07-15",
+          "content_dates": [
+            "2024-07-15"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0017",
+          "filename_date": "2024-07-16",
+          "content_dates": [
+            "2024-07-16"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0018",
+          "filename_date": "2024-07-17",
+          "content_dates": [
+            "2024-07-17"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0019",
+          "filename_date": "2024-07-18",
+          "content_dates": [
+            "2024-07-18"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0020",
+          "filename_date": "2024-07-19",
+          "content_dates": [
+            "2024-07-19"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0021",
+          "filename_date": "2024-07-20",
+          "content_dates": [
+            "2024-07-20"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0022",
+          "filename_date": "2024-07-21",
+          "content_dates": [
+            "2024-07-21"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0023",
+          "filename_date": "2024-07-22",
+          "content_dates": [
+            "2024-07-22"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0024",
+          "filename_date": "2024-07-23",
+          "content_dates": [
+            "2024-07-23"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0025",
+          "filename_date": "2024-07-24",
+          "content_dates": [
+            "2024-07-24"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0026",
+          "filename_date": "2024-07-25",
+          "content_dates": [
+            "2024-07-25"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0027",
+          "filename_date": "2024-07-26",
+          "content_dates": [
+            "2024-07-26"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0028",
+          "filename_date": "2024-07-27",
+          "content_dates": [
+            "2024-07-27"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0029",
+          "filename_date": "2024-07-28",
+          "content_dates": [
+            "2024-07-28"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0030",
+          "filename_date": "2024-07-29",
+          "content_dates": [
+            "2024-07-29"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0031",
+          "filename_date": "2024-07-30",
+          "content_dates": [
+            "2024-07-30"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0032",
+          "filename_date": "2024-07-31",
+          "content_dates": [
+            "2024-07-31"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0033",
+          "filename_date": "2024-08-01",
+          "content_dates": [
+            "2024-08-01"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0034",
+          "filename_date": "2024-08-02",
+          "content_dates": [
+            "2024-08-02"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0035",
+          "filename_date": "2024-08-03",
+          "content_dates": [
+            "2024-08-03"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0036",
+          "filename_date": "2024-08-04",
+          "content_dates": [
+            "2024-08-04"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0037",
+          "filename_date": "2024-08-05",
+          "content_dates": [
+            "2024-08-05"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0038",
+          "filename_date": "2024-08-06",
+          "content_dates": [
+            "2024-08-06"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0039",
+          "filename_date": "2024-08-07",
+          "content_dates": [
+            "2024-08-07"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0040",
+          "filename_date": "2024-08-08",
+          "content_dates": [
+            "2024-08-08"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0041",
+          "filename_date": "2024-08-09",
+          "content_dates": [
+            "2024-08-09"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0042",
+          "filename_date": "2024-08-10",
+          "content_dates": [
+            "2024-08-10"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0043",
+          "filename_date": "2024-08-11",
+          "content_dates": [
+            "2024-08-11"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0044",
+          "filename_date": "2024-08-12",
+          "content_dates": [
+            "2024-08-12"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0045",
+          "filename_date": "2024-08-13",
+          "content_dates": [
+            "2024-08-13"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0046",
+          "filename_date": "2024-08-14",
+          "content_dates": [
+            "2024-08-14"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0047",
+          "filename_date": "2024-08-15",
+          "content_dates": [
+            "2024-08-15"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0048",
+          "filename_date": "2024-08-16",
+          "content_dates": [
+            "2024-08-16"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0049",
+          "filename_date": "2024-08-17",
+          "content_dates": [
+            "2024-08-17"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0050",
+          "filename_date": "2024-08-18",
+          "content_dates": [
+            "2024-08-18"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0051",
+          "filename_date": "2024-08-19",
+          "content_dates": [
+            "2024-08-19"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0052",
+          "filename_date": "2024-08-20",
+          "content_dates": [
+            "2024-08-20"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0053",
+          "filename_date": "2024-08-21",
+          "content_dates": [
+            "2024-08-21"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0054",
+          "filename_date": "2024-08-22",
+          "content_dates": [
+            "2024-08-22"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0055",
+          "filename_date": "2024-08-23",
+          "content_dates": [
+            "2024-08-23"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0056",
+          "filename_date": "2024-08-24",
+          "content_dates": [
+            "2024-08-24"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0057",
+          "filename_date": "2024-08-25",
+          "content_dates": [
+            "2024-08-25"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0058",
+          "filename_date": "2024-08-26",
+          "content_dates": [
+            "2024-08-26"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0059",
+          "filename_date": "2024-08-27",
+          "content_dates": [
+            "2024-08-27"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0060",
+          "filename_date": "2024-08-28",
+          "content_dates": [
+            "2024-08-28"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0061",
+          "filename_date": "2024-08-29",
+          "content_dates": [
+            "2024-08-29"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0062",
+          "filename_date": "2024-08-30",
+          "content_dates": [
+            "2024-08-30"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "front-display:0063",
+          "filename_date": "2024-08-31",
+          "content_dates": [
+            "2024-08-31"
+          ],
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "id": "sst-original",
+      "kind": "sst",
+      "role": "analysis_source",
+      "source_access": "missing",
+      "source_gaps": [
+        "product.id",
+        "product.version",
+        "product.unit",
+        "missing_location",
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ],
+      "days": [
+        {
+          "date": "2024-08-05",
+          "state": "missing",
+          "reasons": [
+            "no_parsed_daily_input"
+          ],
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-06",
+          "state": "missing",
+          "reasons": [
+            "no_parsed_daily_input"
+          ],
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-07",
+          "state": "missing",
+          "reasons": [
+            "no_parsed_daily_input"
+          ],
+          "valid_samples": null
+        }
+      ],
+      "errors": [],
+      "file_evidence": []
+    },
+    {
+      "id": "sst-display",
+      "kind": "sst",
+      "role": "display",
+      "source_access": "readable",
+      "source_gaps": [
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ],
+      "days": [
+        {
+          "date": "2024-08-05",
+          "file_id": "sst-display:0036",
+          "file_sha256": "287d590a031a84d0ecfa4828c5c3f89545fc2f31183aec26c1258704f533e4eb",
+          "filename_date": "2024-08-05",
+          "time_verified": false,
+          "time_basis": "display_declared_date; original_time_coordinate_unverified",
+          "state": "parsed",
+          "reasons": [],
+          "grid": {
+            "lon": {
+              "first": 120.025,
+              "last": 127.97500000000001,
+              "count": 160,
+              "step": 0.04999999999999716,
+              "regular": true,
+              "min": 120.025,
+              "max": 127.97500000000001
+            },
+            "lat": {
+              "first": 27.025,
+              "last": 33.975,
+              "count": 140,
+              "step": 0.05000000000000071,
+              "regular": true,
+              "min": 27.025,
+              "max": 33.975
+            },
+            "convention": "display_sample_positions; cell bounds unverified"
+          },
+          "unit": "degree_C",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "front_detected_samples": null,
+          "cold_samples": null,
+          "warm_samples": null,
+          "temperature_c": {
+            "min": 26.5,
+            "max": 32.5
+          },
+          "decoding": {
+            "source_unit": "degree_C",
+            "unit_basis": "file_attribute",
+            "scale_factor": 1.0,
+            "add_offset": 0.0,
+            "valid_range_domain": "packed",
+            "mask_attributes": {},
+            "quantization_step_c": 0.5
+          },
+          "support_scope": "display_mask_only",
+          "support_artifact": "9cf1e24e82f765537ac5c6e2796c01a456425f6ed8059af7d1c63cdd0957fc22.npz"
+        },
+        {
+          "date": "2024-08-06",
+          "file_id": "sst-display:0037",
+          "file_sha256": "5055e7a029afab424a2f478db2ea95aa6c406b25994aa5c4ddad00030596f376",
+          "filename_date": "2024-08-06",
+          "time_verified": false,
+          "time_basis": "display_declared_date; original_time_coordinate_unverified",
+          "state": "parsed",
+          "reasons": [],
+          "grid": {
+            "lon": {
+              "first": 120.025,
+              "last": 127.97500000000001,
+              "count": 160,
+              "step": 0.04999999999999716,
+              "regular": true,
+              "min": 120.025,
+              "max": 127.97500000000001
+            },
+            "lat": {
+              "first": 27.025,
+              "last": 33.975,
+              "count": 140,
+              "step": 0.05000000000000071,
+              "regular": true,
+              "min": 27.025,
+              "max": 33.975
+            },
+            "convention": "display_sample_positions; cell bounds unverified"
+          },
+          "unit": "degree_C",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "front_detected_samples": null,
+          "cold_samples": null,
+          "warm_samples": null,
+          "temperature_c": {
+            "min": 26.5,
+            "max": 32.5
+          },
+          "decoding": {
+            "source_unit": "degree_C",
+            "unit_basis": "file_attribute",
+            "scale_factor": 1.0,
+            "add_offset": 0.0,
+            "valid_range_domain": "packed",
+            "mask_attributes": {},
+            "quantization_step_c": 0.5
+          },
+          "support_scope": "display_mask_only",
+          "support_artifact": "b5858ec1fc14e8ccb8c769687b94b5c389eb2972dbed60f33f0b28995ad1415e.npz"
+        },
+        {
+          "date": "2024-08-07",
+          "file_id": "sst-display:0038",
+          "file_sha256": "bd0eae3b7f3e3e888625bfce30323f2522e2d3c4053a7b617692f4813b6e42af",
+          "filename_date": "2024-08-07",
+          "time_verified": false,
+          "time_basis": "display_declared_date; original_time_coordinate_unverified",
+          "state": "parsed",
+          "reasons": [],
+          "grid": {
+            "lon": {
+              "first": 120.025,
+              "last": 127.97500000000001,
+              "count": 160,
+              "step": 0.04999999999999716,
+              "regular": true,
+              "min": 120.025,
+              "max": 127.97500000000001
+            },
+            "lat": {
+              "first": 27.025,
+              "last": 33.975,
+              "count": 140,
+              "step": 0.05000000000000071,
+              "regular": true,
+              "min": 27.025,
+              "max": 33.975
+            },
+            "convention": "display_sample_positions; cell bounds unverified"
+          },
+          "unit": "degree_C",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "front_detected_samples": null,
+          "cold_samples": null,
+          "warm_samples": null,
+          "temperature_c": {
+            "min": 26.5,
+            "max": 32.5
+          },
+          "decoding": {
+            "source_unit": "degree_C",
+            "unit_basis": "file_attribute",
+            "scale_factor": 1.0,
+            "add_offset": 0.0,
+            "valid_range_domain": "packed",
+            "mask_attributes": {},
+            "quantization_step_c": 0.5
+          },
+          "support_scope": "display_mask_only",
+          "support_artifact": "93096b9599b65f0bfadfa1a282048a09f48d5a96370d15a65180f25373837198.npz"
+        }
+      ],
+      "errors": [],
+      "file_evidence": [
+        {
+          "file_id": "sst-display:0001",
+          "filename_date": "2024-07-01",
+          "content_dates": [
+            "2024-07-01"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0002",
+          "filename_date": "2024-07-02",
+          "content_dates": [
+            "2024-07-02"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0003",
+          "filename_date": "2024-07-03",
+          "content_dates": [
+            "2024-07-03"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0004",
+          "filename_date": "2024-07-04",
+          "content_dates": [
+            "2024-07-04"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0005",
+          "filename_date": "2024-07-05",
+          "content_dates": [
+            "2024-07-05"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0006",
+          "filename_date": "2024-07-06",
+          "content_dates": [
+            "2024-07-06"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0007",
+          "filename_date": "2024-07-07",
+          "content_dates": [
+            "2024-07-07"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0008",
+          "filename_date": "2024-07-08",
+          "content_dates": [
+            "2024-07-08"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0009",
+          "filename_date": "2024-07-09",
+          "content_dates": [
+            "2024-07-09"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0010",
+          "filename_date": "2024-07-10",
+          "content_dates": [
+            "2024-07-10"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0011",
+          "filename_date": "2024-07-11",
+          "content_dates": [
+            "2024-07-11"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0012",
+          "filename_date": "2024-07-12",
+          "content_dates": [
+            "2024-07-12"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0013",
+          "filename_date": "2024-07-13",
+          "content_dates": [
+            "2024-07-13"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0014",
+          "filename_date": "2024-07-14",
+          "content_dates": [
+            "2024-07-14"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0015",
+          "filename_date": "2024-07-15",
+          "content_dates": [
+            "2024-07-15"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0016",
+          "filename_date": "2024-07-16",
+          "content_dates": [
+            "2024-07-16"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0017",
+          "filename_date": "2024-07-17",
+          "content_dates": [
+            "2024-07-17"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0018",
+          "filename_date": "2024-07-18",
+          "content_dates": [
+            "2024-07-18"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0019",
+          "filename_date": "2024-07-19",
+          "content_dates": [
+            "2024-07-19"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0020",
+          "filename_date": "2024-07-20",
+          "content_dates": [
+            "2024-07-20"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0021",
+          "filename_date": "2024-07-21",
+          "content_dates": [
+            "2024-07-21"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0022",
+          "filename_date": "2024-07-22",
+          "content_dates": [
+            "2024-07-22"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0023",
+          "filename_date": "2024-07-23",
+          "content_dates": [
+            "2024-07-23"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0024",
+          "filename_date": "2024-07-24",
+          "content_dates": [
+            "2024-07-24"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0025",
+          "filename_date": "2024-07-25",
+          "content_dates": [
+            "2024-07-25"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0026",
+          "filename_date": "2024-07-26",
+          "content_dates": [
+            "2024-07-26"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0027",
+          "filename_date": "2024-07-27",
+          "content_dates": [
+            "2024-07-27"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0028",
+          "filename_date": "2024-07-28",
+          "content_dates": [
+            "2024-07-28"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0029",
+          "filename_date": "2024-07-29",
+          "content_dates": [
+            "2024-07-29"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0030",
+          "filename_date": "2024-07-30",
+          "content_dates": [
+            "2024-07-30"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0031",
+          "filename_date": "2024-07-31",
+          "content_dates": [
+            "2024-07-31"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0032",
+          "filename_date": "2024-08-01",
+          "content_dates": [
+            "2024-08-01"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0033",
+          "filename_date": "2024-08-02",
+          "content_dates": [
+            "2024-08-02"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0034",
+          "filename_date": "2024-08-03",
+          "content_dates": [
+            "2024-08-03"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0035",
+          "filename_date": "2024-08-04",
+          "content_dates": [
+            "2024-08-04"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0036",
+          "filename_date": "2024-08-05",
+          "content_dates": [
+            "2024-08-05"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0037",
+          "filename_date": "2024-08-06",
+          "content_dates": [
+            "2024-08-06"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0038",
+          "filename_date": "2024-08-07",
+          "content_dates": [
+            "2024-08-07"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0039",
+          "filename_date": "2024-08-08",
+          "content_dates": [
+            "2024-08-08"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0040",
+          "filename_date": "2024-08-09",
+          "content_dates": [
+            "2024-08-09"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0041",
+          "filename_date": "2024-08-10",
+          "content_dates": [
+            "2024-08-10"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0042",
+          "filename_date": "2024-08-11",
+          "content_dates": [
+            "2024-08-11"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0043",
+          "filename_date": "2024-08-12",
+          "content_dates": [
+            "2024-08-12"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0044",
+          "filename_date": "2024-08-13",
+          "content_dates": [
+            "2024-08-13"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0045",
+          "filename_date": "2024-08-14",
+          "content_dates": [
+            "2024-08-14"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0046",
+          "filename_date": "2024-08-15",
+          "content_dates": [
+            "2024-08-15"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0047",
+          "filename_date": "2024-08-16",
+          "content_dates": [
+            "2024-08-16"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0048",
+          "filename_date": "2024-08-17",
+          "content_dates": [
+            "2024-08-17"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0049",
+          "filename_date": "2024-08-18",
+          "content_dates": [
+            "2024-08-18"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0050",
+          "filename_date": "2024-08-19",
+          "content_dates": [
+            "2024-08-19"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0051",
+          "filename_date": "2024-08-20",
+          "content_dates": [
+            "2024-08-20"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0052",
+          "filename_date": "2024-08-21",
+          "content_dates": [
+            "2024-08-21"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0053",
+          "filename_date": "2024-08-22",
+          "content_dates": [
+            "2024-08-22"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0054",
+          "filename_date": "2024-08-23",
+          "content_dates": [
+            "2024-08-23"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0055",
+          "filename_date": "2024-08-24",
+          "content_dates": [
+            "2024-08-24"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0056",
+          "filename_date": "2024-08-25",
+          "content_dates": [
+            "2024-08-25"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0057",
+          "filename_date": "2024-08-26",
+          "content_dates": [
+            "2024-08-26"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0058",
+          "filename_date": "2024-08-27",
+          "content_dates": [
+            "2024-08-27"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0059",
+          "filename_date": "2024-08-28",
+          "content_dates": [
+            "2024-08-28"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0060",
+          "filename_date": "2024-08-29",
+          "content_dates": [
+            "2024-08-29"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0061",
+          "filename_date": "2024-08-30",
+          "content_dates": [
+            "2024-08-30"
+          ],
+          "reasons": []
+        },
+        {
+          "file_id": "sst-display:0062",
+          "filename_date": "2024-08-31",
+          "content_dates": [
+            "2024-08-31"
+          ],
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "id": "effort-original",
+      "kind": "activity",
+      "role": "analysis_source",
+      "source_access": "missing",
+      "source_gaps": [
+        "product.version",
+        "missing_location",
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ],
+      "days": [
+        {
+          "date": "2024-08-05",
+          "state": "missing",
+          "reasons": [
+            "no_parsed_daily_input"
+          ],
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-06",
+          "state": "missing",
+          "reasons": [
+            "no_parsed_daily_input"
+          ],
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-07",
+          "state": "missing",
+          "reasons": [
+            "no_parsed_daily_input"
+          ],
+          "valid_samples": null
+        }
+      ],
+      "errors": [],
+      "file_evidence": []
+    },
+    {
+      "id": "effort-display",
+      "kind": "activity",
+      "role": "display",
+      "source_access": "missing",
+      "source_gaps": [
+        "product.version",
+        "missing_location",
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ],
+      "days": [
+        {
+          "date": "2024-08-05",
+          "state": "missing",
+          "reasons": [
+            "no_parsed_daily_input"
+          ],
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-06",
+          "state": "missing",
+          "reasons": [
+            "no_parsed_daily_input"
+          ],
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-07",
+          "state": "missing",
+          "reasons": [
+            "no_parsed_daily_input"
+          ],
+          "valid_samples": null
+        }
+      ],
+      "errors": [],
+      "file_evidence": []
+    }
+  ],
+  "research_ready": false,
+  "public_release_approved": false,
+  "lineage_checks": [
+    {
+      "source": "effort-original",
+      "derived": "effort-display",
+      "date": "2024-08-05",
+      "state": "not_verified",
+      "difference_hours": null,
+      "scope": "declared_same_input_scope; observed_record_totals_only; not_coverage_proof"
+    },
+    {
+      "source": "effort-original",
+      "derived": "effort-display",
+      "date": "2024-08-06",
+      "state": "not_verified",
+      "difference_hours": null,
+      "scope": "declared_same_input_scope; observed_record_totals_only; not_coverage_proof"
+    },
+    {
+      "source": "effort-original",
+      "derived": "effort-display",
+      "date": "2024-08-07",
+      "state": "not_verified",
+      "difference_hours": null,
+      "scope": "declared_same_input_scope; observed_record_totals_only; not_coverage_proof"
+    }
+  ],
+  "daily_snapshot_id": "sha256:cf6f521d171d92c41578fddb04f7b8a327cc24a62fb55674e6eba49725febde1"
+}

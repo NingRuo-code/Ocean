@@ -20,3 +20,7 @@
 ## Blocked by
 
 - #36 (https://github.com/NingRuo-code/Ocean/issues/36)
+
+## Implementation evidence — 2026-10-25
+
+前置#36已随PR #22合入main并关闭。同一CLI已支持JSON/CSV零/缺测/异常/重复审计、0.01°目标核对、取最大反事实及同源记录小时守恒，见[实施记录](../../reports/ocean-p0-daily-audit-implementation-2026-10-25.md)。真实逐日活动/原粒度和加工链输入仍缺，许可冲突未解；保持实际证据关口未完成，不能用合成测试或旧响应表补齐。

@@ -3,8 +3,13 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { runSourceAudit } from "./lib/source-audit.mjs";
+import { spawnSync } from "node:child_process";
 
-if (process.argv.includes("--source-registry") || process.argv.includes("--read-snapshot")) {
+if (process.argv.includes("--daily-registry") || process.argv.includes("--read-daily-snapshot")) {
+  const result = spawnSync(process.env.OCEAN_AUDIT_PYTHON || "python", [join(dirname(fileURLToPath(import.meta.url)), "audit_daily_sources.py"), ...process.argv.slice(2)], { stdio: "inherit" });
+  if (result.error) console.error("Daily audit runtime unavailable; configure OCEAN_AUDIT_PYTHON.");
+  process.exitCode = result.status ?? 1;
+} else if (process.argv.includes("--source-registry") || process.argv.includes("--read-snapshot")) {
   try { await runSourceAudit(process.argv.slice(2), resolve(dirname(fileURLToPath(import.meta.url)), "..")); }
   catch (error) { console.error(`Source audit failed (${error.code ?? "invalid_input"}).`); process.exitCode = 1; }
 } else {
