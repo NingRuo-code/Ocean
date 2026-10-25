@@ -1,0 +1,12 @@
+{
+  "schema": "ocean-daily-audit-registry/v1",
+  "evidence_kind": "real_local_artifacts; original_source_qualification_pending",
+  "sources": [
+    {"id": "front-original", "format": "netcdf", "variable": "front", "file_pattern": ".*\\.nc", "day_boundary": "UTC", "bbox": [120, 27, 128, 34]},
+    {"id": "front-display", "format": "front-display", "file_pattern": "\\d{4}-\\d{2}-\\d{2}\\.js", "day_boundary": "UTC"},
+    {"id": "sst-original", "format": "netcdf", "variable": "analysed_sst", "file_pattern": ".*\\.nc", "day_boundary": "UTC", "bbox": [120, 27, 128, 34]},
+    {"id": "sst-display", "format": "sst-display", "file_pattern": "\\d{4}-\\d{2}-\\d{2}\\.js", "day_boundary": "UTC"},
+    {"id": "effort-original", "format": "activity-files", "file_pattern": ".*\\d{4}-?\\d{2}-?\\d{2}.*\\.(json|csv)", "day_boundary": "UTC"},
+    {"id": "effort-display", "format": "activity-files", "file_pattern": ".*\\d{4}-?\\d{2}-?\\d{2}.*\\.(json|csv)", "day_boundary": "UTC", "compare_to": "effort-original"}
+  ]
+}
