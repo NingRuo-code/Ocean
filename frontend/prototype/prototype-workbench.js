@@ -13,15 +13,18 @@
   const filters = document.createElement("section");
   filters.id = "filterPanel"; filters.className = "filter-panel"; filters.hidden = true;
   filters.setAttribute("aria-label", "筛选条件");
-  filters.innerHTML = '<div class="panel-head"><h2>筛选条件</h2><button id="filterClose" aria-label="收起筛选">×</button></div><p>修改后即时更新</p>';
+  filters.innerHTML = '<div class="panel-head"><h2>筛选条件</h2><button id="filterClose" aria-label="收起筛选">×</button></div><p>日期与范围即时更新；坐标点击“应用”后生效。</p>';
   header.querySelectorAll(".ctx").forEach(item => filters.append(item));
   filters.querySelectorAll(".num").forEach(item => item.remove());
   filters.querySelectorAll("input").forEach(input => input.setAttribute("aria-label", input.id === "locInput" ? "定位坐标" : input.id === "timeDate" ? "观测日期" : "日期滑块"));
+  filters.querySelector("#locateBtn").textContent = "应用";
+  filters.querySelectorAll(".ctx-lab")[0].textContent = "分析点";
+  filters.querySelectorAll(".ctx-lab")[2].textContent = "观测日";
   main.append(filters);
   const actions = document.createElement("nav");
   actions.className = "header-actions";
   actions.setAttribute("aria-label", "面板");
-  actions.innerHTML = '<button id="workbenchToggle" aria-controls="taskWorkbench" aria-expanded="false">工作台</button><button id="headerFilter">筛选</button><button id="resultToggle" aria-controls="resultPanel" aria-expanded="true">结果</button>';
+  actions.innerHTML = '<button id="workbenchToggle" aria-controls="taskWorkbench" aria-expanded="false">工作台</button><button id="headerFilter" aria-controls="filterPanel" aria-expanded="false">筛选</button><button id="resultToggle" aria-controls="resultPanel" aria-expanded="true">结果</button>';
   header.append(actions);
   const loading = document.createElement("div"); loading.id = "loadStatus"; loading.className = "load-status";
   loading.setAttribute("role", "status");
@@ -72,11 +75,14 @@
     resizeMap();
     if (restore) $("resultToggle").focus();
   }
-  function showFilters(open) {
-    const restore = filters.contains(document.activeElement);
+  let filterOpener = $("headerFilter");
+  function showFilters(open, opener, restoreFocus = true) {
+    const restore = restoreFocus && filters.contains(document.activeElement);
+    if (open && opener) filterOpener = opener;
     filters.hidden = !open;
     $("filterToggle").setAttribute("aria-expanded", String(open));
-    if (!open && restore) $("headerFilter").focus();
+    $("headerFilter").setAttribute("aria-expanded", String(open));
+    if (!open && restore) filterOpener.focus({ preventScroll: true });
   }
   $("workbenchToggle").onclick = toggleWorkbench;
   $("workbenchClose").onclick = closeWorkbench;
@@ -84,8 +90,9 @@
   $("resultToggle").onclick = () => side.hidden ? showResult(state.tab === "ai" ? "now" : state.tab) : closeResult();
   $("nearbyFront").onclick = () => showResult("now");
   workbench.querySelectorAll("[data-open-pane]").forEach(b => b.onclick = () => showResult(b.dataset.openPane));
-  $("filterToggle").onclick = $("headerFilter").onclick = () => showFilters(filters.hidden);
+  $("filterToggle").onclick = $("headerFilter").onclick = e => showFilters(filters.hidden, e.currentTarget);
   $("filterClose").onclick = () => showFilters(false);
+  window.addEventListener("ocean-map-activate", () => showFilters(false, null, false));
   $("wbLayers").onclick = () => { drawerPinned = !state.drawerOpen; setDrawer(drawerPinned); };
   workbench.addEventListener("keydown", e => {
     if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); closeWorkbench(); }

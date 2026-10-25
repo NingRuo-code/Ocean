@@ -106,10 +106,13 @@ function parseCoord(raw) {
     if (tag === "W" || tag === "西" || tag === "S" || tag === "南") value = -Math.abs(value);
     hits.push({ value, tag });
   }
-  if (hits.length < 2) return null;
+  if (hits.length !== 2 || text.replace(re, "").replace(/[\s,°]/g, "")) return null;
   const lonHit = hits.find((h) => h.tag === "E" || h.tag === "W" || h.tag === "东" || h.tag === "西");
   const latHit = hits.find((h) => h.tag === "N" || h.tag === "S" || h.tag === "北" || h.tag === "南");
+  if (hits.filter(h => /[EW东西]/.test(h.tag)).length > 1 || hits.filter(h => /[NS南北]/.test(h.tag)).length > 1) return null;
   if (lonHit && latHit) return [lonHit.value, latHit.value];
+  if (lonHit) return [lonHit.value, hits.find(h => h !== lonHit).value];
+  if (latHit) return [hits.find(h => h !== latHit).value, latHit.value];
   return [hits[0].value, hits[1].value];
 }
 
@@ -2156,6 +2159,10 @@ function syncOriginPicker() {
   if (map) map.classList.toggle("pick-origin", state.pickOrigin);
 }
 function setOrigin(lon, lat, source) {
+  if (!Number.isFinite(lon) || !Number.isFinite(lat) || lon < -180 || lon > 180 || lat < -90 || lat > 90) {
+    showToast("坐标超出范围：经度需在−180至180，纬度需在−90至90之间");
+    return false;
+  }
   state.lon = lon;
   state.lat = lat;
   state.select = null;
@@ -2167,6 +2174,7 @@ function setOrigin(lon, lat, source) {
   refresh();
   centerOn(state.lon, state.lat);
   showToast((source === "map" ? "已把出发地设为 " : "已定位到 ") + fmtCoord(state.lon, state.lat));
+  return true;
 }
 
 // ==================== 事件绑定 ====================
@@ -2299,6 +2307,7 @@ function bind() {
   map.addEventListener("click", (e) => {
     if (suppressClick) { suppressClick = false; return; }   // 拖动之后的那一下不算点击
     if (e.target.closest && e.target.closest(".map-legend, .map-controls, .map-pick, .map-probe, .map-empty")) return;
+    window.dispatchEvent(new Event("ocean-map-activate"));
     const g = geoOfScreen(e.clientX, e.clientY);
     if (!g) { showToast("这一点在地球背面或球外，没有坐标"); return; }
     if (state.pickOrigin) {
