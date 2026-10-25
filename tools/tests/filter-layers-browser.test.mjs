@@ -97,6 +97,53 @@ test("layer controls are exclusive with filters, keyboard accessible and preserv
   } finally { await browser.close(); }
 });
 
+test("small-screen floating controls leave both workbench modules reachable by touch", async () => {
+  const browser = await launchBrowser(process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe");
+  const c = browser.cdp;
+  async function tap(selector) {
+    const p = await c.evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});e.scrollIntoView({block:'nearest'});const r=e.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()`);
+    assert.equal(await c.evaluate(`document.querySelector(${JSON.stringify(selector)}).contains(document.elementFromPoint(${p.x},${p.y}))`), true, selector + " must be unobstructed");
+    await c.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p] });
+    await c.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  }
+  try {
+    await c.send("Page.enable");
+    await c.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 900, deviceScaleFactor: 1, mobile: true });
+    await c.send("Emulation.setTouchEmulationEnabled", { enabled: true });
+    await c.send("Page.navigate", { url: page }); await ready(c);
+    await tap("#workbenchToggle");
+    for (const [button, panel] of [["#wbLayers", "#layerDrawer"], ["#filterToggle", "#filterPanel"]]) {
+      await tap(button);
+      assert.equal(await c.evaluate(`(()=>{const w=document.getElementById('taskWorkbench').getBoundingClientRect(),p=document.querySelector(${JSON.stringify(panel)}).getBoundingClientRect();return w.bottom<=p.top;})()`), true, "small-screen panels must not cover the workbench");
+      await tap("#aiEvidence summary");
+      assert.equal(await c.evaluate("document.getElementById('aiEvidence').open"), true);
+      await tap("#aiEvidence summary");
+      assert.equal(await c.evaluate("document.querySelector('#taskWorkbench').open"), true);
+    }
+  } finally { await browser.close(); }
+});
+
+test("empty activity remains coverage-unknown after an ordinary radius refresh", async () => {
+  const browser = await launchBrowser(process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe");
+  const c = browser.cdp;
+  try {
+    await c.send("Page.enable");
+    await c.send("Page.addScriptToEvaluateOnNewDocument", { source: `
+      window.OF_API_BASE='http://controlled.invalid/api';
+      window.fetch=url=>{url=String(url);const reply=body=>Promise.resolve(new Response(JSON.stringify(body)));
+        if(url.endsWith('/health'))return reply({status:'ok'});
+        if(url.includes('/frontend/day/'))return reply({front:structuredClone(window.OF_DATA_DAYS[url.split('/').pop()])});
+        if(url.includes('/fishing/'))return reply({cells:[]});
+        return reply({meta:{status:'empty'},layers:{}});};` });
+    await c.send("Page.navigate", { url: page }); await ready(c);
+    await click(c, "#workbenchToggle"); await click(c, "#wbLayers"); await click(c, "#layerDrawer [data-layer=ground]");
+    await waitFor(c, "document.querySelector('#layerDrawer [data-layer=ground] .layer-status').textContent==='覆盖未知'");
+    await click(c, "#filterToggle"); await click(c, "#rangeSeg [data-range='30']"); await click(c, "#wbLayers");
+    assert.match(await c.evaluate("document.querySelector('#layerDrawer [data-layer=ground] .layer-status').textContent"), /覆盖未知/);
+    assert.equal(await c.evaluate("[...document.querySelectorAll('#mapLegendSummary .key-row')].find(n=>n.textContent.includes('表观活动')).querySelectorAll('.swatch').length"), 0);
+  } finally { await browser.close(); }
+});
+
 test("reopening restores only applied conditions and manual layers while retaining the independent map view", async () => {
   const browser = await launchBrowser(process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe");
   const c = browser.cdp;

@@ -9,9 +9,9 @@
  * 不插值，不把示例值冒充实测值（需求 FR-7「无数据不编造」）。
  *
  * 信息架构（三层）：
- *   L0 顶栏      ① 从哪出发 ② 找多远 ③ 出海日 —— 全局唯一真源（目标鱼种本期不做，见需求 FR-10）
- *   L1 结论块    已并入「当前」页（2026-09-14）：这天值不值得去 + 首选锋面区 + 为什么
- *   L2 页签      当前 / 历史 / 预测 / AI 分析；数据说明作为支撑入口
+ *   L0 左侧浮层  分析点 / 作业范围 / 观测日 —— 统一应用条件（坐标草稿另存于输入框）
+ *   L1 右侧摘要  最近锋面 / 范围内对象 / 资料限制，不表示捕捞收益
+ *   L2 工作台    快捷功能与 AI 说明；右侧保留当前 / 历史 / 预测，数据说明作为支撑入口
  *
  * 数据流：state（唯一真源） --渲染--> DOM；所有 render* 只读 state，不写 state。
  */
@@ -1058,13 +1058,18 @@ function renderLegend() {
       const k = row.dataset.layer;
       const status = OFData.loadState();
       const load = status[k === "ground" ? "fishing" : "day"];
-      label.textContent = k === "fishing" ? "示例，非实测" : k === "ground" && !OFData.fishingAvailable() && !OFData.serverEnabled() ? "离线未接入" :
-        load && ["loading", "error", "forbidden", "day-missing", "unprepared", "unknown-coverage"].includes(load.status) ? ({ loading: "加载中", error: "请求失败", forbidden: "无权访问", "day-missing": "当日缺资料", unprepared: "未准备", "unknown-coverage": "覆盖未知" }[load.status]) :
-        (k === "ground" ? !!OFData.fishingDay(state.date) : k === "sst" ? OFData.hasSst(state.date) : OFData.hasDay(state.date)) ? (on ? "已显示" : "已隐藏") : "当日未就绪";
+      const fishing = k === "ground" ? OFData.fishingDay(state.date) : null;
+      const unavailable = ["loading", "error", "forbidden", "day-missing", "unprepared", "unknown-coverage"];
+      const readiness = k === "fishing" ? "example" : k === "ground" && !OFData.fishingAvailable() && !OFData.serverEnabled() ? "offline" :
+        load && unavailable.includes(load.status) ? load.status :
+        k === "ground" && fishing && !fishing.cells?.length ? "unknown-coverage" :
+        (k === "ground" ? !!fishing?.cells?.length : k === "sst" ? OFData.hasSst(state.date) : OFData.hasDay(state.date)) ? "ready" : "not-ready";
+      label.textContent = readiness === "ready" ? (on ? "已显示" : "已隐藏") :
+        ({ example: "示例，非实测", offline: "离线未接入", loading: "加载中", error: "请求失败", forbidden: "无权访问", "day-missing": "当日缺资料", unprepared: "未准备", "unknown-coverage": "覆盖未知", "not-ready": "当日未就绪" }[readiness]);
       row.dataset.visibility = on ? "on" : "off";
-      row.dataset.readiness = label.textContent;
+      row.dataset.readiness = readiness;
       if (on && ["sst", "front", "coldwarm", "ground"].includes(k)) {
-        const ready = label.textContent === "已显示";
+        const ready = readiness === "ready";
         const swatches = [...row.querySelectorAll(".swatch")].map(n => n.outerHTML).join("");
         legendRows.push('<div class="key-row">' + (ready ? swatches : "") +
           ({ sst: "水温 / 现有分档", front: "锋面线", coldwarm: "冷侧 / 暖侧", ground: "表观活动 / 小时" }[k]) + (ready ? "" : "：" + label.textContent) + "</div>");
