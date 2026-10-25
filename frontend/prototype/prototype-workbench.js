@@ -7,7 +7,7 @@
   workbench.className = "workbench";
   workbench.setAttribute("aria-label", "工作台");
   workbench.innerHTML = `<div class="panel-head"><div><small>// WORKBENCH</small><h2>工作台</h2></div><button id="workbenchClose" aria-label="收起工作台">×</button></div>
-    <section class="wb-shortcuts"><h3>快捷功能</h3><button id="nearbyFront">⌖　附近锋面</button><button data-open-pane="clim">◷　历史观测</button><button data-open-pane="future">↗　预测参考</button><button id="filterToggle" aria-controls="filterPanel" aria-expanded="false">☷　筛选条件</button><button id="wbLayers" aria-controls="layerDrawer" aria-expanded="false">▧　图层开关</button><button data-open-pane="basis">ⓘ　数据说明</button><p id="layerPresetNote" role="status"></p></section>
+    <section class="wb-shortcuts"><h3>快捷功能</h3><button id="nearbyFront">⌖　附近锋面</button><button id="fishingActivity">◉　捕捞活动</button><button data-open-pane="clim">◷　历史观测</button><button data-open-pane="future">↗　预测参考</button><button id="filterToggle" aria-controls="filterPanel" aria-expanded="false">☷　筛选条件</button><button id="wbLayers" aria-controls="layerDrawer" aria-expanded="false">▧　图层开关</button><button data-open-pane="basis">ⓘ　数据说明</button><p id="layerPresetNote" role="status"></p></section>
     <section id="wbAI"><h3>AI 分析</h3></section>`;
   main.prepend(workbench);
   const filters = document.createElement("section");
@@ -48,9 +48,11 @@
   loading.innerHTML = '<span id="loadStatusText"></span><button id="retryData" hidden>重试当前条件</button>';
   $("map").append(loading);
   const stateText = { loading: "加载中", ready: "就绪", "ready-zero-records": "返回记录均为零（不代表完整海域）",
+    "unit-conflict": "单位冲突，未按小时显示",
     "unknown-coverage": "无记录／覆盖未知", "day-missing": "整日缺资料", unprepared: "资料未准备", forbidden: "无权访问", error: "请求失败" };
   window.addEventListener("ocean-load-state", () => {
     renderLegend();
+    renderEffortSummary();
     const entries = Object.entries(OFData.loadState());
     $("loadStatusText").textContent = entries.map(([key, value]) => ({ day: "日资料", viewport: "视野", fishing: "活动" }[key]) + "：" + (stateText[value.status] || value.status)).join(" / ");
     $("retryData").hidden = !entries.some(([, value]) => ["error", "day-missing", "unprepared", "forbidden"].includes(value.status));
@@ -73,6 +75,7 @@
   }
   function toggleWorkbench() {
     if (workbench.open) return closeWorkbench();
+    window.dispatchEvent(new Event("ocean-control-open"));
     if (matchMedia("(max-width:760px)").matches) closeResult();
     workbench.show(); // Intentionally non-modal: map remains interactive.
     $("workbenchToggle").setAttribute("aria-expanded", "true");
@@ -97,6 +100,7 @@
   function showFilters(open, opener, restoreFocus = true) {
     const restore = restoreFocus && filters.contains(document.activeElement);
     if (open && opener) filterOpener = opener;
+    if (open) window.dispatchEvent(new Event("ocean-control-open"));
     if (open) setDrawer(false);
     filters.hidden = !open;
     $("filterToggle").setAttribute("aria-expanded", String(open));
@@ -111,27 +115,32 @@
   }
   window.addEventListener("ocean-layer-panel", e => {
     $("wbLayers").setAttribute("aria-expanded", String(e.detail.open));
+    if (e.detail.open) window.dispatchEvent(new Event("ocean-control-open"));
     if (e.detail.open) showFilters(false, null, false);
   });
   function activateTask(pane) {
     setPlaying(false);
-    if (["now", "clim", "future"].includes(pane)) {
-      Object.assign(state.layers, { sst: pane !== "clim", band: true, front: true, coldwarm: true, nodata: true, ground: false, fishing: false });
+    state.currentTask = pane === "effort" ? "effort" : "front";
+    if (["now", "clim", "future", "effort"].includes(pane)) {
+      Object.assign(state.layers, { sst: pane !== "clim", band: true, front: true, coldwarm: true, nodata: true, ground: pane === "effort", fishing: false });
       window.dispatchEvent(new Event("ocean-layer-preset"));
       $("layerPresetNote").textContent = pane === "future" ? "图层仍为所选日期观测，未绘制未来预报。" : "已应用图层搭配；可在图层中调整。";
       refresh();
     }
-    showResult(pane);
+    showResult(pane === "effort" ? "now" : pane);
+    if (pane === "effort") loadFishing(state.date, true);
   }
   $("workbenchToggle").onclick = toggleWorkbench;
   $("workbenchClose").onclick = closeWorkbench;
   $("resultClose").onclick = closeResult;
   $("resultToggle").onclick = () => side.hidden ? showResult(state.tab === "ai" ? "now" : state.tab) : closeResult();
   $("nearbyFront").onclick = () => activateTask("now");
+  $("fishingActivity").onclick = () => activateTask("effort");
   workbench.querySelectorAll("[data-open-pane]").forEach(b => b.onclick = () => activateTask(b.dataset.openPane));
   $("filterToggle").onclick = $("headerFilter").onclick = e => showFilters(filters.hidden, e.currentTarget);
   $("filterClose").onclick = () => showFilters(false);
   window.addEventListener("ocean-map-activate", () => { showFilters(false, null, false); showLayers(false, false); });
+  window.addEventListener("ocean-evidence-open", () => { showFilters(false, null, false); showLayers(false, false); });
   $("wbLayers").onclick = () => showLayers(!state.drawerOpen);
   $("layerClose").onclick = () => showLayers(false);
   layers.addEventListener("keydown", e => {

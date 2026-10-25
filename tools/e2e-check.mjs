@@ -336,6 +336,7 @@ check("右侧页签 = 当前 / 历史 / 预测",
 check("默认落在「当前」页", tabs.active === "now" && tabs.paneNow === true, tabs.active);
 
 // ===== 3.1) 历史 AIS 响应：Front Response Table 契约入口 =====
+await click('#historyRead');
 const ais20 = await evalJS(`var r = OFData.frontResponse(document.getElementById("timeDate").value, state.range);
   return {
     available: OFData.frontResponseAvailable(),
@@ -382,7 +383,7 @@ const aisPlaceholder = await evalJS(`window.__frontResponseFns = {
   }; };
   setDate("2024-08-05");
   document.querySelector('#rangeSeg button[data-range="20"]').click();
-  renderAisResponse(snapshot());
+  document.getElementById('historyRead').click();
   return {
     tag: document.getElementById("aisResponseTag").textContent,
     list: document.getElementById("aisResponseList").textContent,
@@ -399,6 +400,7 @@ await evalJS(`OFData.frontResponseAvailable = window.__frontResponseFns.availabl
   refresh();
   return 1;`);
 const ais10 = await evalJS(`document.querySelector('#rangeSeg button[data-range="10"]').click();
+  document.getElementById('historyRead').click();
   var r = OFData.frontResponse(document.getElementById("timeDate").value, state.range);
   return { range: state.range, response: r, tag: document.getElementById("aisResponseTag").textContent,
     list: document.getElementById("aisResponseList").textContent };`);
@@ -409,10 +411,11 @@ check("切到 10 km 后，同一契约给出该半径自己的响应（不复用
   ais10.tag + " · range=" + ais10.range + " · post13=" + ais10.response.post13Hours);
 const aisFollowContext = await evalJS(`document.querySelector('#rangeSeg button[data-range="30"]').click();
   setDate("2024-08-06");
+  document.getElementById('historyRead').click();
   var r = OFData.frontResponse(document.getElementById("timeDate").value, state.range);
   return { date: state.date, range: state.range, response: r, tag: document.getElementById("aisResponseTag").textContent,
     list: document.getElementById("aisResponseList").textContent, why: document.getElementById("aisResponseWhyBody").textContent };`);
-check("日期与作业范围变化时，AIS 响应证据跟随同一个全局上下文（数值与数据同源）",
+check("日期与作业范围变化后显式更新，AIS 证据使用新条件（数值与数据同源）",
   aisFollowContext.date === "2024-08-06" && aisFollowContext.range === 30 &&
   aisFollowContext.response.available === true && aisFollowContext.response.bufferKm === 30 &&
   aisFollowContext.list.indexOf(fmtHoursE2e(aisFollowContext.response.post13Hours)) >= 0 &&
@@ -430,7 +433,7 @@ const aisMissing = await evalJS(`window.__frFns = { r: OFData.frontResponse };
   };
   document.querySelector('#rangeSeg button[data-range="20"]').click();
   setDate("2024-08-07");
-  renderAisResponse(snapshot());
+  document.getElementById('historyRead').click();
   var out = { date: state.date, range: state.range, response: OFData.frontResponse(state.date, state.range),
     tag: document.getElementById("aisResponseTag").textContent,
     list: document.getElementById("aisResponseList").textContent };
@@ -519,6 +522,7 @@ await shot("shot-2-now-detail.png");
 
 // ===== 6) 预测页：规则预测参考，不冒充业务预报 =====
 await click('#tabs button[data-pane="future"]');
+await click('#forecastRead');
 const fut = await evalJS(`return {
   cards: document.querySelectorAll("#pane-future > .card").length,
   dayBox: !!document.getElementById("futureDaysBox"),
@@ -530,13 +534,13 @@ const fut = await evalJS(`return {
   why: document.getElementById("futureWhyBody").textContent,
   observable: [1,2,3,4,5,6,7].filter(function (n) {
     var d = new Date(Date.parse(document.getElementById("timeDate").value + "T00:00:00Z") + n * 86400000).toISOString().slice(0, 10);
-    return OFData.hasDay(d);
+    return observationReadable(d);
   }).length,
   tag: document.getElementById("futureTag").textContent,
   list: document.getElementById("futureList").textContent,
   days: OFData.availableDates() };`);
 check("预测页给出 7 天规则预测参考（有柱、有行）", fut.bars === 7 && fut.rows === 7, `bars=${fut.bars} rows=${fut.rows}`);
-check("预测页合并为一张预测卡，逐日明细放入展开项",
+check("预测页保留一张简短结果卡，逐日规则明细迁到底部证据",
   fut.cards === 1 && fut.dayBox === true, "cards=" + fut.cards);
 check("预测页支持 1 / 3 / 7 天窗口切换，并提供依据展开",
   fut.windows.join("/") === "1 天/3 天/7 天" && fut.activeWindow === "3" &&
@@ -570,6 +574,12 @@ check("日期变化后时间轴同步",
 
 // ===== 7) 历史（真实多年度统计 + 实况聚合，页内没有日期控件） =====
 await click('#tabs button[data-pane="clim"]');
+await click('#historyRead');
+const monthEntry = await evalJS(`return { month: document.getElementById('historyMonth').textContent,
+  summary: document.getElementById('historySummary').textContent, active: document.querySelector('#climPeriod button.active').dataset.period };`);
+check("历史默认月份入口，只把已导出归档作为样例，不宣称合格整月汇总",
+  /样例/.test(monthEntry.summary) && /整月研究汇总未接入/.test(monthEntry.summary) && /\d{4}-\d{2}/.test(monthEntry.month), monthEntry.summary);
+await evalJS(`document.querySelector('#climPeriod button[data-period="day"]').click(); return 1;`);
 const clim = await evalJS(`var data = OFData.clim;
   return { inputs: document.querySelectorAll("#pane-clim input").length,
     btns: [].map.call(document.querySelectorAll("#climPeriod button"), function(b){ return b.textContent.trim(); }),
@@ -587,9 +597,9 @@ const clim = await evalJS(`var data = OFData.clim;
       return Object.keys(data.by_year).some(function (y) { return yearsOfDay.indexOf(y) < 0; });
     })(),
     missingMarked: [].slice.call(document.querySelectorAll("#climBars i")).some(function(b){ return /缺测/.test(b.getAttribute("title") || ""); }),
-    note: (document.querySelector("#pane-clim .hint") || {}).textContent || "" };`);
-check("历史页没有任何日期输入框（锚点跟着顶栏出海日）",
-  clim.inputs === 0 && /出海日/.test(clim.note), "inputs=" + clim.inputs);
+    identity: document.getElementById("historyIdentity").textContent };`);
+check("历史没有重复日期输入，结果身份保留原观测日期和分析范围",
+  clim.inputs === 0 && /\d{4}-\d{2}-\d{2}.*km/.test(clim.identity), "inputs=" + clim.inputs + " / " + clim.identity);
 check("历史尺度有 6 个按钮：当日 / 3日 / 7日 / 15日 / 当月 / 整年",
   clim.btns.join("/") === "当日/3 日/7 日/15 日/当月/整年", clim.btns.join("/"));
 check("「这一天」柱数 = 数据里覆盖的全部年份（有缺样本的年份才标「缺测」）",
@@ -613,14 +623,14 @@ const climWeek = await evalJS(`document.querySelector('#climPeriod button[data-p
     stat: document.getElementById("climStat").textContent, years: document.getElementById("climYears").textContent,
     hint: document.getElementById("climHint").textContent };`);
 check("「7 日」展示连续日实况窗口，并说明多年连续窗口缺口",
-  climWeek.bars > 0 && climWeek.heat === climWeek.bars && /近 7 日/.test(climWeek.stat) && /连续日实况回放/.test(climWeek.years), climWeek.hint);
+  climWeek.bars > 0 && climWeek.heat === climWeek.bars && /近 7 日/.test(climWeek.stat) && /连续日历窗口/.test(climWeek.years), climWeek.hint);
 const climHalf = await evalJS(`document.querySelector('#climPeriod button[data-period="halfmonth"]').click();
   return { bars: document.querySelectorAll("#climBars i").length,
     heat: document.querySelectorAll("#climHeat .heat-cell").length,
     stat: document.getElementById("climStat").textContent, years: document.getElementById("climYears").textContent,
     hint: document.getElementById("climHint").textContent };`);
 check("「15 日」展示连续日实况窗口，并说明样本边界",
-  climHalf.bars > 0 && climHalf.heat === climHalf.bars && /近 15 日/.test(climHalf.stat) && /未导出的日期不进入分母/.test(climHalf.years), climHalf.hint);
+  climHalf.bars > 0 && climHalf.heat === climHalf.bars && /近 15 日/.test(climHalf.stat) && /无有效观测的日期不进入分母/.test(climHalf.years), climHalf.hint);
 const climMonth = await evalJS(`document.querySelector('#climPeriod button[data-period="month"]').click();
   return { bars: document.querySelectorAll("#climBars i").length,
     heat: document.querySelectorAll("#climHeat .heat-cell").length,
