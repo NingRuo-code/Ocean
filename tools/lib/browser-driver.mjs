@@ -4,6 +4,14 @@ import { tmpdir } from "node:os";
 import { join, resolve, dirname, basename } from "node:path";
 
 export const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+export async function waitFor(cdp, expression, timeoutMs = 10000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await cdp.evaluate(expression)) return;
+    await sleep(50);
+  }
+  throw new Error("Browser condition did not become ready: " + expression);
+}
 
 export async function connectCdp(url) {
   const socket = new WebSocket(url);

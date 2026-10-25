@@ -9,9 +9,9 @@
  * 不插值，不把示例值冒充实测值（需求 FR-7「无数据不编造」）。
  *
  * 信息架构（三层）：
- *   L0 顶栏      ① 从哪出发 ② 找多远 ③ 出海日 —— 全局唯一真源（目标鱼种本期不做，见需求 FR-10）
- *   L1 结论块    已并入「当前」页（2026-09-14）：这天值不值得去 + 首选锋面区 + 为什么
- *   L2 页签      当前 / 历史 / 预测 / AI 分析；数据说明作为支撑入口
+ *   L0 左侧浮层  分析点 / 作业范围 / 观测日 —— 统一应用条件（坐标草稿另存于输入框）
+ *   L1 右侧摘要  最近锋面 / 范围内对象 / 资料限制，不表示捕捞收益
+ *   L2 工作台    快捷功能与 AI 说明；右侧保留当前 / 历史 / 预测，数据说明作为支撑入口
  *
  * 数据流：state（唯一真源） --渲染--> DOM；所有 render* 只读 state，不写 state。
  */
@@ -106,10 +106,13 @@ function parseCoord(raw) {
     if (tag === "W" || tag === "西" || tag === "S" || tag === "南") value = -Math.abs(value);
     hits.push({ value, tag });
   }
-  if (hits.length < 2) return null;
+  if (hits.length !== 2 || text.replace(re, "").replace(/[\s,°]/g, "")) return null;
   const lonHit = hits.find((h) => h.tag === "E" || h.tag === "W" || h.tag === "东" || h.tag === "西");
   const latHit = hits.find((h) => h.tag === "N" || h.tag === "S" || h.tag === "北" || h.tag === "南");
+  if (hits.filter(h => /[EW东西]/.test(h.tag)).length > 1 || hits.filter(h => /[NS南北]/.test(h.tag)).length > 1) return null;
   if (lonHit && latHit) return [lonHit.value, latHit.value];
+  if (lonHit) return [lonHit.value, hits.find(h => h !== lonHit).value];
+  if (latHit) return [hits.find(h => h !== latHit).value, latHit.value];
   return [hits[0].value, hits[1].value];
 }
 
@@ -1043,12 +1046,38 @@ function syncSelect() {
   });
 }
 function renderLegend() {
+  const legendRows = [];
   document.querySelectorAll(".legend-row[data-layer]").forEach((row) => {
     const on = !!state.layers[row.dataset.layer];
+    row.setAttribute("aria-pressed", String(on));
     row.style.opacity = on ? "1" : "0.45";
     row.style.filter = on ? "none" : "grayscale(1)";
     row.style.textDecoration = on ? "none" : "line-through";
+    const label = row.querySelector(".layer-status");
+    if (label) {
+      const k = row.dataset.layer;
+      const status = OFData.loadState();
+      const load = status[k === "ground" ? "fishing" : "day"];
+      const fishing = k === "ground" ? OFData.fishingDay(state.date) : null;
+      const unavailable = ["loading", "error", "forbidden", "day-missing", "unprepared", "unknown-coverage"];
+      const readiness = k === "fishing" ? "example" : k === "ground" && !OFData.fishingAvailable() && !OFData.serverEnabled() ? "offline" :
+        load && unavailable.includes(load.status) ? load.status :
+        k === "ground" && fishing && !fishing.cells?.length ? "unknown-coverage" :
+        (k === "ground" ? !!fishing?.cells?.length : k === "sst" ? OFData.hasSst(state.date) : OFData.hasDay(state.date)) ? "ready" : "not-ready";
+      label.textContent = readiness === "ready" ? (on ? "已显示" : "已隐藏") :
+        ({ example: "示例，非实测", offline: "离线未接入", loading: "加载中", error: "请求失败", forbidden: "无权访问", "day-missing": "当日缺资料", unprepared: "未准备", "unknown-coverage": "覆盖未知", "not-ready": "当日未就绪" }[readiness]);
+      row.dataset.visibility = on ? "on" : "off";
+      row.dataset.readiness = readiness;
+      if (on && ["sst", "front", "coldwarm", "ground"].includes(k)) {
+        const ready = readiness === "ready";
+        const swatches = [...row.querySelectorAll(".swatch")].map(n => n.outerHTML).join("");
+        legendRows.push('<div class="key-row">' + (ready ? swatches : "") +
+          ({ sst: "水温 / 现有分档", front: "锋面线", coldwarm: "冷侧 / 暖侧", ground: "表观活动 / 小时" }[k]) + (ready ? "" : "：" + label.textContent) + "</div>");
+      }
+    }
   });
+  const summary = $("mapLegendSummary");
+  if (summary) { summary.innerHTML = legendRows.join(""); summary.hidden = !legendRows.length; }
 }
 
 // ==================== 结论块（已并入「当前」页，随页签切换显示） ====================
@@ -1699,15 +1728,16 @@ function loadThenRefresh(iso) {
   if (local) refresh();                          // 先用本地数据渲染（快）
   if (!OFData.serverAvailable(iso)) {
     if (!local) refresh();                       // 本地也没有 → 走空态
-    return;
+    return Promise.resolve(local);
   }
   if (!local) refresh();                         // 本地没有：空态会说明「正在从服务器取这一天」
-  OFData.ensureDay(iso, local).then(function (ok) {
-    if (state.date !== iso || identity !== syncRequestContext()) return;
+  return OFData.ensureDay(iso, local).then(function (ok) {
+    if (state.date !== iso || identity !== syncRequestContext()) return false;
     if (!ok && !OFData.hasDay(iso)) showToast(mdText(iso) + " 没取到，请换个日期");
     refresh();
     warmOverview(iso);                            // 顺手把全球 2° 概览取回来，缩到球面立刻有数据
     loadFishing(iso);                             // 渔场线索图层开着时，同一天也把当日捕捞格点取回来
+    return ok && OFData.hasDay(iso);
   });
 }
 
@@ -1744,6 +1774,7 @@ function loadFishing(iso, notify) {
 }
 
 function setDate(iso) {
+  setPlaying(false);
   const d = clampDate(iso);
   if (!d) return;
   if (d !== iso) showToast("可选日期为 " + mdText(DATE_MIN) + " ~ " + mdText(DATE_MAX));
@@ -1752,27 +1783,61 @@ function setDate(iso) {
   loadThenRefresh(d);
 }
 
-let playTimer = null;
-function setPlaying(on) {
-  if (playTimer) {
-    clearInterval(playTimer);
-    playTimer = null;
-  }
+let playTimer = null, playActive = false, playGeneration = 0, playbackPaused = false;
+function playbackUi(message) {
   const btn = $("datePlay");
-  if (!on) {
-    btn.textContent = "▶";
-    btn.classList.remove("on");
-    btn.title = "播放逐日变化";
+  btn.textContent = playActive ? "Ⅱ" : "▶";
+  btn.classList.toggle("on", playActive);
+  btn.title = playActive ? "暂停播放" : "播放逐日变化";
+  const status = $("playbackStatus");
+  if (status) status.textContent = message || "";
+  const next = $("playbackContinue"), stop = $("playbackStop");
+  if (next) next.hidden = !playbackPaused || !AVAILABLE_DATES.some(d => d > state.date);
+  if (stop) stop.hidden = !playActive && !playbackPaused;
+}
+function setPlaying(on) {
+  clearTimeout(playTimer); playTimer = null;
+  playGeneration++; playActive = !!on; playbackPaused = false;
+  playbackUi(on ? "按日历逐日播放；缺日将暂停。" : "");
+  if (on) schedulePlayback();
+}
+function schedulePlayback() {
+  const generation = playGeneration;
+  playTimer = setTimeout(() => {
+    playTimer = null;
+    if (!playActive || generation !== playGeneration) return;
+    if (state.date >= DATE_MAX) { setPlaying(false); playbackUi("已到资料范围末尾，播放停止。"); return; }
+    advancePlayback(addDays(state.date, 1), generation);
+  }, 900);
+}
+async function advancePlayback(iso, generation) {
+  state.date = iso;
+  playbackUi(iso + "：正在读取日资料。");
+  let failedLayer = "day";
+  let loaded = await loadThenRefresh(iso);
+  if (loaded && state.layers.ground && playActive && generation === playGeneration) {
+    failedLayer = "fishing";
+    loaded = await OFData.ensureFishing(iso);
+    if (OFData.loadState().fishing?.status === "unknown-coverage") loaded = false;
+  }
+  if (!playActive || generation !== playGeneration || state.date !== iso) return;
+  const quality = OFData.quality(iso);
+  if (!loaded || !OFData.hasDay(iso) || quality?.valid_cells === 0) {
+    const status = OFData.loadState()[failedLayer]?.status;
+    const reason = quality?.valid_cells === 0 ? "全天没有有效观测" : ({ unprepared: "资料未准备", forbidden: "无权访问", error: "读取失败", "day-missing": "整日缺资料", "unknown-coverage": "无活动记录／覆盖未知" }[status]) || (failedLayer === "fishing" ? "活动资料未就绪" : "当日缺资料或支持未知");
+    setPlaying(false); playbackPaused = true;
+    playbackUi(iso + "：" + reason + "，已暂停。可继续下一可读日。");
     return;
   }
-  btn.textContent = "Ⅱ";
-  btn.classList.add("on");
-  btn.title = "暂停播放";
-  playTimer = setInterval(() => {
-    const idx = dateIndex(state.date);
-    const next = idx >= 0 && idx < AVAILABLE_DATES.length - 1 ? AVAILABLE_DATES[idx + 1] : AVAILABLE_DATES[0];
-    setDate(next);
-  }, 900);
+  playbackUi(iso + (quality?.nodata_cells > 0 ? "：部分格点缺测；不代表完整海域支持。" : "：日资料可读，研究完整性另核。"));
+  schedulePlayback();
+}
+function continuePlayback() {
+  const next = AVAILABLE_DATES.find(d => d > state.date);
+  setPlaying(false);
+  if (!next) { playbackUi("后续没有已登记可读日期。"); return; }
+  playActive = true;
+  advancePlayback(next, playGeneration);
 }
 function renderTimeRail() {
   const idx = Math.max(0, dateIndex(state.date));
@@ -1806,6 +1871,7 @@ function refresh() {
   syncOriginPicker();
   requestViewportPatch(true);        // 换日期后这一片也要跟着换（窗口没变则命中缓存，不重复取）
   $("mapSvg").dataset.panelMs = String(Math.max(0, performance.now() - panelStarted - Number($("mapSvg").dataset.mapMs || 0)));
+  window.dispatchEvent(new Event("ocean-applied-context"));
 }
 
 // 服务器增强模式启用后刷新日期范围与视野（AVAILABLE_DATES / DATE_MIN / DATE_MAX 用 let 的原因）
@@ -1847,18 +1913,16 @@ function syncServerModeUi() {
   btn.title = mode.reason ? "服务器不可用：" + mode.reason + "；点击重新检测" : "当前使用本地离线数据；点击检测服务器";
 }
 
-// 图层抽屉：默认收起在左侧；鼠标靠近左边缘自动呼出，移开延时自动收起；点 ☰ 可固定展开
-let drawerTimer = null;
-let drawerPinned = false;
-
 function setDrawer(open) {
   const drawer = $("layerDrawer");
   const btn = $("layerToggle");
   if (!drawer || !btn) return;
   drawer.classList.toggle("open", open);
+  drawer.hidden = !open;
   drawer.setAttribute("aria-hidden", open ? "false" : "true");
   btn.setAttribute("aria-expanded", open ? "true" : "false");
   state.drawerOpen = open;
+  window.dispatchEvent(new CustomEvent("ocean-layer-panel", { detail: { open } }));
 }
 
 function switchTab(name) {
@@ -2156,6 +2220,11 @@ function syncOriginPicker() {
   if (map) map.classList.toggle("pick-origin", state.pickOrigin);
 }
 function setOrigin(lon, lat, source) {
+  if (!Number.isFinite(lon) || !Number.isFinite(lat) || lon < -180 || lon > 180 || lat < -90 || lat > 90) {
+    showToast("坐标超出范围：经度需在−180至180，纬度需在−90至90之间");
+    return false;
+  }
+  setPlaying(false);
   state.lon = lon;
   state.lat = lat;
   state.select = null;
@@ -2167,6 +2236,7 @@ function setOrigin(lon, lat, source) {
   refresh();
   centerOn(state.lon, state.lat);
   showToast((source === "map" ? "已把出发地设为 " : "已定位到 ") + fmtCoord(state.lon, state.lat));
+  return true;
 }
 
 // ==================== 事件绑定 ====================
@@ -2174,6 +2244,7 @@ function bind() {
   // ② 找多远
   document.querySelectorAll("#rangeSeg button").forEach((btn) => {
     btn.addEventListener("click", () => {
+      setPlaying(false);
       state.range = Number(btn.dataset.range);
       state.select = null;
       refresh();
@@ -2185,7 +2256,7 @@ function bind() {
   $("timeDate").addEventListener("change", (e) => setDate(e.target.value));
   $("datePrev").addEventListener("click", () => setDate(addDays(state.date, -1)));
   $("dateNext").addEventListener("click", () => setDate(addDays(state.date, 1)));
-  $("datePlay").addEventListener("click", () => setPlaying(!playTimer));
+  $("datePlay").addEventListener("click", () => setPlaying(!playActive));
   $("timeRail").addEventListener("input", (e) => {
     const d = AVAILABLE_DATES[Number(e.target.value)];
     if (d) setDate(d);
@@ -2299,6 +2370,7 @@ function bind() {
   map.addEventListener("click", (e) => {
     if (suppressClick) { suppressClick = false; return; }   // 拖动之后的那一下不算点击
     if (e.target.closest && e.target.closest(".map-legend, .map-controls, .map-pick, .map-probe, .map-empty")) return;
+    window.dispatchEvent(new Event("ocean-map-activate"));
     const g = geoOfScreen(e.clientX, e.clientY);
     if (!g) { showToast("这一点在地球背面或球外，没有坐标"); return; }
     if (state.pickOrigin) {
@@ -2382,13 +2454,20 @@ function bind() {
 
   // 图层开关（图例）
   document.querySelectorAll(".legend-row[data-layer]").forEach((row) => {
+    row.setAttribute("role", "button");
+    row.setAttribute("tabindex", "0");
+    row.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); row.click(); }
+    });
     row.addEventListener("click", () => {
+      setPlaying(false);
       const k = row.dataset.layer;
       state.layers[k] = !state.layers[k];
       if (!state.layers[k] && state.select && state.select.type === k) state.select = null;
       renderLegend(); drawMap(); syncSelect(); renderPick();
       const meta = LAYER_META.find((m) => m[0] === k) || [k, k];
       showToast("图层「" + meta[1] + "」已" + (state.layers[k] ? "打开" : "关掉"));
+      window.dispatchEvent(new CustomEvent("ocean-layer-choice", { detail: { key: k, value: state.layers[k] } }));
       if (k === "ground" && state.layers[k]) loadFishing(state.date, true);
     });
   });
@@ -2418,6 +2497,7 @@ function bind() {
   });
   $("toBasis").addEventListener("click", () => switchTab("basis"));
   $("serverModeToggle").addEventListener("click", () => {
+    setPlaying(false);
     const mode = OFData.serverMode ? OFData.serverMode() : { enabled: false };
     if (mode.enabled) {
       OFData.setServerMode("offline").then(function () {
@@ -2441,43 +2521,6 @@ function bind() {
     });
   });
 
-  // 图层抽屉：靠近左边缘自动呼出；固定展开后不随鼠标自动收起
-  const mapEl = $("map");
-  const drawerEl = $("layerDrawer");
-  const EDGE = 28;                                  // 距左边缘多少 px 触发展开
-  mapEl.addEventListener("mousemove", (event) => {
-    const r = mapEl.getBoundingClientRect();
-    if (event.clientX - r.left <= EDGE) {
-      clearTimeout(drawerTimer);
-      setDrawer(true);
-      return;
-    }
-    if (!state.drawerOpen || drawerPinned) return;
-    const dr = drawerEl.getBoundingClientRect();
-    const insideDrawer = event.clientX <= dr.right && event.clientY >= dr.top && event.clientY <= dr.bottom;
-    if (!insideDrawer) {
-      clearTimeout(drawerTimer);
-      drawerTimer = setTimeout(() => { if (!drawerPinned) setDrawer(false); }, 600);
-    }
-  });
-  drawerEl.addEventListener("mouseenter", () => clearTimeout(drawerTimer));
-  drawerEl.addEventListener("mouseleave", () => {
-    if (drawerPinned) return;
-    clearTimeout(drawerTimer);
-    drawerTimer = setTimeout(() => { if (!drawerPinned) setDrawer(false); }, 600);
-  });
-  // ☰ 三态：收起 → 固定展开 → 收起。悬停展开时点 ☰ 是「转为固定」而不是直接收掉，
-  // 这样「点 ☰ 可固定展开」在悬停入口下也成立（否则要「先收再点」才固定，很绕）。
-  $("layerToggle").addEventListener("click", () => {
-    if (!state.drawerOpen) { drawerPinned = true; setDrawer(true); return; }
-    if (!drawerPinned) { drawerPinned = true; return; }
-    drawerPinned = false;
-    setDrawer(false);
-  });
-  $("layerClose").addEventListener("click", () => {
-    drawerPinned = false;
-    setDrawer(false);
-  });
 }
 
 // ==================== 启动 ====================
@@ -2498,7 +2541,7 @@ if (viewRestored) showToast("已回到上次停留的视野（“◎”回到出
 
 // 服务器增强模式（可选）：成功则把日期范围扩到服务器上的全量日期并重渲染；
 // file:// 打开或 API 不可达时静默跳过，页面保持纯离线行为。
-OFData.initServerMode().then(function (enabled) {
+window.OceanMapReady = OFData.initServerMode().then(function (enabled) {
   syncServerModeUi();
   if (!enabled) return;
   applyServerRange();

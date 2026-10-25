@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { launchBrowser, sleep } from "./lib/browser-driver.mjs";
+import { launchBrowser, waitFor } from "./lib/browser-driver.mjs";
 
 const browser = await launchBrowser(process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe");
 const c = browser.cdp;
@@ -10,7 +10,7 @@ try {
   for (const width of [1680, 1440, 1280, 390]) {
     await c.send("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile: false });
     await c.send("Page.navigate", { url: process.env.PAGE || pathToFileURL(resolve("frontend/prototype/prototype-fishing.html")).href });
-    await sleep(500);
+    await waitFor(c, "document.getElementById('preferenceStatus')?.getAttribute('aria-busy') === 'false'");
     const before = await c.evaluate(`(()=>{const side=document.getElementById('resultPanel'),wb=document.getElementById('taskWorkbench');
       return {overflow:document.documentElement.scrollWidth>innerWidth,closed:side.hidden&&!wb.open,top:document.getElementById('topbar').offsetHeight};})()`);
     assert.equal(before.overflow, false, `page overflow ${width}`);
