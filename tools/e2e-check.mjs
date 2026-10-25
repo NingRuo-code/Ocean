@@ -733,7 +733,7 @@ check("浮层里的海温就是该点在数据文件里的值（与数据同源�
 check("浮层不会跑出地图边界", p1.inBounds === true, String(p1.inBounds));
 await shot("shot-6-probe.png");
 
-// 缺测像元（陆地 / 云）：必须只说没观测，不给数值
+// Front missingness is independent of SST support.
 const noDataPoint = await evalJS(`var iso = document.getElementById("timeDate").value;
   var day = OFData.day(iso), g = day.grid, best = null;
   day.nodata_rle.forEach(function(r){ var d = Math.pow(r[0]-g.ny/2,2) + Math.pow(r[1]-g.nx/2,2);
@@ -741,9 +741,9 @@ const noDataPoint = await evalJS(`var iso = document.getElementById("timeDate").
   return { lon: g.lon0 + best.col * g.dlon, lat: g.lat0 + best.row * g.dlat };`);
 await hoverGeo(noDataPoint.lon, noDataPoint.lat);
 const p2 = await evalJS(PROBE);
-check("鼠标移到没有观测的像元 → 直说没有观测数据，不给任何数值",
-  /没有观测数据/.test(p2.text) && !/离你/.test(p2.text) && !/待接入/.test(p2.text) &&
-  !/最近锋面/.test(p2.text) && p2.rows === 0, "rows=" + p2.rows + " · " + p2.text.slice(0, 30));
+check("锋面缺测与水温分开说明，缺锋面时不编造最近距离",
+  /锋面缺测/.test(p2.text) && !/离你/.test(p2.text) && !/待接入/.test(p2.text) &&
+  !/最近锋面/.test(p2.text) && p2.rows === 1 && /水温/.test(p2.text), "rows=" + p2.rows + " · " + p2.text.slice(0, 50));
 
 // 钉住 / 取消 / Esc
 await hoverGeo(bandPoint.lon, bandPoint.lat);

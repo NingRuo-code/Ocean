@@ -188,9 +188,8 @@ test("a missing front observation does not hide the independent valid SST archiv
   const b=await launchBrowser(edge),c=b.cdp;
   try{
     await open(c);await click(c,"#headerFilter");await click(c,"#locInput");
-    await c.send("Input.dispatchKeyEvent",{type:"keyDown",key:"a",code:"KeyA",modifiers:2});
-    await c.send("Input.dispatchKeyEvent",{type:"keyUp",key:"a",code:"KeyA",modifiers:2});
-    await c.send("Input.insertText",{text:"120.625°E, 27.475°N"});
+    await c.evaluate("document.getElementById('locInput').select()");
+    await c.send("Input.insertText",{text:"120.625,27.475"});
     await click(c,"#locateBtn");await click(c,"#filterClose");
     const p=await c.evaluate("(()=>{const e=document.querySelector('#mapSvg .pulse'),s=document.getElementById('mapSvg'),p=new DOMPoint(+e.getAttribute('cx'),+e.getAttribute('cy')).matrixTransform(s.getScreenCTM());return {x:p.x,y:p.y};})()");
     await c.send("Input.dispatchMouseEvent",{type:"mouseMoved",...p});
