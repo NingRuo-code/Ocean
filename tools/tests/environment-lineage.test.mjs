@@ -29,6 +29,13 @@ function compare(w, environments) {
   writeFileSync(w.config, JSON.stringify({ schema: "ocean-environment-lineage-config/v1", environments }));
   return spawnSync(process.execPath, [cli, "--compare-environments", w.config, "--out", w.output, "--report-out", join(w.root, "comparison.md")], { encoding: "utf8" });
 }
+function daily(folder, resolution, options = {}) {
+  const registry = join(folder, "daily-config.json"), output = join(folder, "daily.json");
+  writeFileSync(registry, JSON.stringify({ schema: "ocean-daily-audit-registry/v1", evidence_kind: "synthetic", sources: [{ id: "effort", day_boundary: "UTC", format: "activity-csv", resolution_deg: resolution, ...options }] }));
+  const r = spawnSync(process.execPath, [cli, "--daily-registry", registry, "--source-snapshot", join(folder, "snapshot.json"), "--private-locators", join(folder, "private.json"), "--start", "2024-08-05", "--end", "2024-08-05", "--out", output], { encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  return output;
+}
 
 test("same frozen content at different paths matches bytes without inventing deployment or research identity", () => {
   const w = fixture();
@@ -54,13 +61,6 @@ test("daily audit evidence exposes date, unit and resolution declarations separa
   const w = fixture();
   const content = "date,lon,lat,hours,unit\n2024-08-05,122,30,2,fishing_hours\n";
   const a = snapshot(w, "local", content), b = snapshot(w, "offline", content);
-  function daily(folder, resolution) {
-    const registry = join(folder, "daily-config.json"), output = join(folder, "daily.json");
-    writeFileSync(registry, JSON.stringify({ schema: "ocean-daily-audit-registry/v1", evidence_kind: "synthetic", sources: [{ id: "effort", day_boundary: "UTC", format: "activity-csv", resolution_deg: resolution }] }));
-    const r = spawnSync(process.execPath, [cli, "--daily-registry", registry, "--source-snapshot", join(folder, "snapshot.json"), "--private-locators", join(folder, "private.json"), "--start", "2024-08-05", "--end", "2024-08-05", "--out", output], { encoding: "utf8" });
-    assert.equal(r.status, 0, r.stderr);
-    return output;
-  }
   const da = daily(join(w.root, "local"), .01), db = daily(join(w.root, "offline"), .1);
   const r = compare(w, [{ id: "local", source_snapshot: a, daily_snapshot: da, evidence_kind: "synthetic" }, { id: "offline", source_snapshot: b, daily_snapshot: db, evidence_kind: "synthetic" }]);
   assert.equal(r.status, 0, r.stderr);
@@ -72,6 +72,20 @@ test("daily audit evidence exposes date, unit and resolution declarations separa
   assert.equal(row.fields.find(f => f.field === "daily.resolution_observed").status, "unknown");
   assert.deepEqual(report.environments[0].daily_summary[0].actual_dates, ["2024-08-05"]);
   assert.equal(report.research_ready, false);
+});
+
+test("same source with a different hours field exposes changed daily processing and result evidence", () => {
+  const w = fixture();
+  const content = "date,lon,lat,hours,alt_hours,unit\n2024-08-05,122,30,2,20,fishing_hours\n";
+  const a = snapshot(w, "local", content), b = snapshot(w, "offline", content);
+  const da = daily(join(w.root, "local"), .01), db = daily(join(w.root, "offline"), .01, { hours_field: "alt_hours" });
+  assert.equal(compare(w, [{ id: "local", source_snapshot: a, daily_snapshot: da, evidence_kind: "synthetic" }, { id: "offline", source_snapshot: b, daily_snapshot: db, evidence_kind: "synthetic" }]).status, 0);
+  const row = JSON.parse(readFileSync(w.output, "utf8")).comparisons[0].sources[0];
+  assert.equal(row.content.status, "matched");
+  assert.equal(row.fields.find(f => f.field === "daily.audit_configuration").status, "different");
+  assert.equal(row.fields.find(f => f.field === "daily.auditor").status, "matched");
+  assert.equal(row.fields.find(f => f.field === "daily.result_evidence").status, "different");
+  assert.equal(row.status, "different");
 });
 
 test("same name and size cannot hide changed bytes, processing, roles or license evidence", () => {

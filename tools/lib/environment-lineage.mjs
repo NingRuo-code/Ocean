@@ -12,11 +12,13 @@ const within = (parent, child) => { const p = relative(parent, child); return p 
 const known = value => value !== null && value !== undefined && value !== "";
 
 function dailySummary(snapshot) {
+  if (![snapshot.registry_sha256, snapshot.auditor_sha256].every(v => typeof v === "string" && /^[a-f0-9]{64}$/.test(v))) throw new Error("Invalid daily processing evidence");
   return snapshot.sources.map(source => {
     if (!identifier(source.id) || !Array.isArray(source.days) || source.days.some(r => typeof r.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(r.date) || !Number.isFinite(Date.parse(r.date)))) throw new Error("Invalid daily summary");
     const rows = source.days.filter(r => r.file_id);
     const unique = values => [...new Set(values)].sort();
     return { source_id: source.id, requested_range: snapshot.range, actual_dates: unique(rows.map(r => r.date)),
+      audit_configuration: `sha256:${snapshot.registry_sha256}`, auditor: `sha256:${snapshot.auditor_sha256}`, result_evidence: `sha256:${hash(source.days)}`,
       resolution_observed: unique(rows.flatMap(r => r.grid ? [r.grid.lon?.step, r.grid.lat?.step].filter(v => typeof v === "number" && Number.isFinite(v) && v !== 0).map(Math.abs) : [])),
       resolution_declared: unique(rows.map(r => r.resolution_deg_declared).filter(v => typeof v === "number" && Number.isFinite(v) && v > 0)),
       unit_evidence: unique(rows.filter(r => typeof r.unit === "string").map(r => hash([r.unit, r.unit_status ?? r.decoding?.unit_basis ?? "unverified"]))),
@@ -41,7 +43,7 @@ function sourceComparison(a, b, left, right) {
   fields.push(field("license_claims", claims(a), claims(b)));
   const da = left.daily?.find(s => s.source_id === (a?.id ?? b.id));
   const db = right.daily?.find(s => s.source_id === (a?.id ?? b.id));
-  for (const [name, key] of [["requested_range", "requested_range"], ["dates", "actual_dates"], ["resolution_observed", "resolution_observed"], ["resolution_declared", "resolution_declared"], ["units", "unit_evidence"], ["time_verified_dates", "time_verified_dates"], ["missing_dates", "missing_dates"]])
+  for (const [name, key] of [["audit_configuration", "audit_configuration"], ["auditor", "auditor"], ["result_evidence", "result_evidence"], ["requested_range", "requested_range"], ["dates", "actual_dates"], ["resolution_observed", "resolution_observed"], ["resolution_declared", "resolution_declared"], ["units", "unit_evidence"], ["time_verified_dates", "time_verified_dates"], ["missing_dates", "missing_dates"]])
     fields.push(field(`daily.${name}`, da && (key === "missing_dates" || da[key]?.length) ? da[key] : null, db && (key === "missing_dates" || db[key]?.length) ? db[key] : null));
   const complete = source => source?.inspection?.access === "readable" && Array.isArray(source.files) && source.files.length > 0;
   const fingerprints = source => source.files.map(f => `${f.sha256}:${f.bytes}`).sort();
