@@ -7,6 +7,8 @@ function renderEffortSummary() {
   if (!active) return;
 
   const day = OFData.fishingDay(state.date), load = OFData.loadState().fishing;
+  const source = day?.source || {}, unit = source.unit;
+  const unitConflict = !OFData.fishingHoursUnitSupported(day);
   const status = load?.status;
   const unavailable = { loading: "活动资料加载中", error: "活动资料请求失败，可重试", forbidden: "无权访问活动资料", "day-missing": "当日缺活动资料", unprepared: "活动资料尚未准备" };
   const cells = Array.isArray(day?.cells) ? day.cells : [];
@@ -18,7 +20,7 @@ function renderEffortSummary() {
   }
   let hours = 0, count = 0, rejected = 0;
   for (const cell of cells) {
-    if (!cell || ![cell.lon, cell.lat, cell.hours].every(Number.isFinite) || Math.abs(cell.lon) > 180 || Math.abs(cell.lat) > 90 || cell.hours < 0 || keys.get(cell.lon + ":" + cell.lat) !== 1) { rejected++; continue; }
+    if (!OFData.fishingCellValid(cell) || keys.get(cell.lon + ":" + cell.lat) !== 1) { rejected++; continue; }
     // Great-circle distance between the analysis point and each display-cell
     // centre. Include the boundary; do not imply exact polygon clipping.
     const rad = Math.PI / 180, a = Math.sin((cell.lat - state.lat) * rad / 2) ** 2 +
@@ -26,7 +28,7 @@ function renderEffortSummary() {
     const km = 6371.0088 * 2 * Math.asin(Math.sqrt(Math.min(1, a)));
     if (km <= state.range + 1e-9) { hours += cell.hours; count++; }
   }
-  const blocked = unavailable[status] || (!OFData.serverEnabled() && !day ? "离线未接入活动资料" : "");
+  const blocked = unavailable[status] || (unitConflict ? "活动单位冲突，不能按小时汇总" : "") || (!OFData.serverEnabled() && !day ? "离线未接入活动资料" : "");
   const readable = !blocked && count > 0 && Number.isFinite(hours) && (!day.date || day.date === state.date);
   const reason = blocked || (cells.length ? "圈内无有效返回格点，覆盖未知" : "无活动记录，覆盖未知");
   const resolution = Number.isFinite(day?.spatial_resolution_deg) && day.spatial_resolution_deg > 0 ? day.spatial_resolution_deg + "° 展示网格" : "展示粒度未声明";
@@ -37,8 +39,8 @@ function renderEffortSummary() {
   $("heroLine").textContent = readable ? (hours === 0 ? "返回有效记录均为零；" : "圈内已返回格点的部分累计；") + "覆盖未知，不代表全圈总量或渔获。" : reason + "，不能视为零活动。";
   $("nowMetrics").innerHTML = metricCell("圈内返回格", String(count), "个") +
     metricCell("最近锋面", near ? near.km.toFixed(1) : "—", "km") + metricCell("作业范围", String(state.range), "km");
-  const source = day?.source || {};
   $("heroWhyBody").textContent = "日期 " + state.date + "；分析点 " + fmtCoord(state.lon, state.lat) + "；范围 " + state.range + " km。来源：" + (source.name || "未声明") +
+    "；来源单位：" + (unit ?? "未声明，沿用现有 hours 字段合同") +
     "；来源声明许可：" + (source.license || "未声明") + "；使用条款：" + (source.terms || "未声明，需另行核验") +
     "；署名：" + (source.citation || source.name || "未声明") + "；资料版本：" + (day?.version || "未声明") + "；" + resolution +
     "。按格心大圆距离筛入，累加完整返回数组中的有效唯一格点，不按绘制圆点反算；无完整覆盖合同，始终只报告已返回记录的部分累计。" +

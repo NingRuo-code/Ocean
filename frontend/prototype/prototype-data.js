@@ -649,13 +649,24 @@
   }
 
   function fishingDay(iso) { return fishingAvailable() ? (FISHING.days[iso] || null) : null; }
+  function fishingCellValid(cell) {
+    return !!cell && [cell.lon, cell.lat, cell.hours].every(Number.isFinite) && cell.hours >= 0 && Math.abs(cell.lon) <= 180 && Math.abs(cell.lat) <= 90;
+  }
+  function fishingHoursUnitSupported(day) {
+    const unit = day?.source?.unit;
+    return unit === undefined || unit === null || unit === "" || ["hours", "hour", "fishing_hours", "h"].includes(unit);
+  }
+  function fishingLoadStatus(day) {
+    if (!fishingHoursUnitSupported(day)) return "unit-conflict";
+    const cells = Array.isArray(day?.cells) ? day.cells.filter(fishingCellValid) : [];
+    return !cells.length ? "unknown-coverage" : cells.every(c => c.hours === 0) ? "ready-zero-records" : "ready";
+  }
 
   /** 按需取某天的渔场格点；未启用服务器、当日无数据（404）或取数失败时返回 false
    *  空记录只表示覆盖未知；临时故障自动重试一次，仍失败允许手动重试。 */
   function ensureFishing(iso) {
     if (FISHING.days[iso]) {
-      const cells = FISHING.days[iso].cells;
-      publishLoad("fishing", !cells?.length ? "unknown-coverage" : cells.every(c => c?.hours === 0) ? "ready-zero-records" : "ready");
+      publishLoad("fishing", fishingLoadStatus(FISHING.days[iso]));
       return Promise.resolve(true);
     }
     if (!serverEnabled()) return Promise.resolve(false);
@@ -666,8 +677,7 @@
         if (epoch !== requestEpoch) return false;
         if (data?.date && data.date !== iso) throw new Error("response_date_mismatch");
         FISHING.days[iso] = data && Array.isArray(data.cells) ? data : null;
-        const cells = FISHING.days[iso]?.cells;
-        publishLoad("fishing", !cells?.length ? "unknown-coverage" : cells.every(c => c?.hours === 0) ? "ready-zero-records" : "ready");
+        publishLoad("fishing", fishingLoadStatus(FISHING.days[iso]));
         return !!FISHING.days[iso];
       })
       .catch(function () { if (epoch === requestEpoch && loadStates.fishing?.status === "loading") publishLoad("fishing", "error"); return false; })
@@ -834,6 +844,12 @@
     // ---- 渔场线索（GFW 表观捕捞活动；仅服务器模式可用）----
     fishingAvailable: fishingAvailable,
     fishingDay: fishingDay,
+    fishingCellValid: fishingCellValid,
+    fishingHoursUnitSupported: fishingHoursUnitSupported,
+    primaryCellInfo: function (iso, lon, lat) {
+      const day = DAYS[iso];
+      return day?.grid ? cellInfoInPatch({ front: day, grid: day.grid }, lon, lat) : null;
+    },
     ensureFishing: ensureFishing,
 
     // ---- 锋面强度（口径：跨锋面 SST 温差 / 梯度）----

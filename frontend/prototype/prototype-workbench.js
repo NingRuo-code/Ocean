@@ -48,6 +48,7 @@
   loading.innerHTML = '<span id="loadStatusText"></span><button id="retryData" hidden>重试当前条件</button>';
   $("map").append(loading);
   const stateText = { loading: "加载中", ready: "就绪", "ready-zero-records": "返回记录均为零（不代表完整海域）",
+    "unit-conflict": "单位冲突，未按小时显示",
     "unknown-coverage": "无记录／覆盖未知", "day-missing": "整日缺资料", unprepared: "资料未准备", forbidden: "无权访问", error: "请求失败" };
   window.addEventListener("ocean-load-state", () => {
     renderLegend();

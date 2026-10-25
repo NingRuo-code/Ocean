@@ -171,9 +171,76 @@ test("small-screen evidence is touch reachable, preserves map dragging and retur
     await c.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     assert.notEqual(await c.evaluate("document.getElementById('mapSvg').getAttribute('viewBox')"), before);
     await tap("#evidenceClose"); await tap("#historyDetails");
+    assert.equal(await c.evaluate("document.getElementById('evidencePanel').hidden"), false, "touch reopens the evidence before Escape");
     await c.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape" });
     await c.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape" });
     assert.equal(await c.evaluate("document.getElementById('evidencePanel').hidden"), true);
     assert.equal(await c.evaluate("document.activeElement.id"), "historyDetails");
+  } finally { await b.close(); }
+});
+
+test("whole-day nodata is a disabled missing day in history and cannot become an observed forecast target", async () => {
+  const b = await launchBrowser(edge), c = b.cdp;
+  try {
+    await c.send("Page.enable");
+    await c.send("Page.addScriptToEvaluateOnNewDocument", { source: `window.OF_DATA_DAYS=new Proxy({}, {set(target,key,value){
+      if(key==='2024-08-06'){value=structuredClone(value);value.quality.valid_cells=0;value.quality.nodata_percent=100;
+        value.objects=[];value.front_line=[];value.front_band_rle=[];value.cold_side_rle=[];value.warm_side_rle=[];
+        value.nodata_rle=Array.from({length:value.grid.ny},(_,row)=>[row,0,value.grid.nx]);}
+      target[key]=value;return true;}});` });
+    await open(c); await click(c, "#tabs [data-pane=clim]"); await click(c, "#historyRead");
+    assert.equal(await c.evaluate("document.querySelector('#historyChart [data-date=\"2024-08-06\"]').disabled"), true);
+    assert.match(await c.evaluate("document.querySelector('#historyChart [data-date=\"2024-08-06\"]').getAttribute('aria-label')"), /缺资料|缺测/);
+    await click(c, "#tabs [data-pane=future]"); await click(c, "#forecastRead"); await click(c, "#forecastDetails");
+    assert.equal(await c.evaluate("document.querySelector('#futureDays [data-date=\"2024-08-06\"]').classList.contains('clickable')"), false);
+  } finally { await b.close(); }
+});
+
+test("historical details retain observation facts and never resurrect unvalidated confidence scores", async () => {
+  const b = await launchBrowser(edge), c = b.cdp;
+  try {
+    await open(c); await click(c, "#tabs [data-pane=clim]"); await click(c, "#historyRead"); await click(c, "#historyDetails");
+    for (const mode of ["month", "week", "year"]) {
+      await click(c, `#climPeriod [data-period=${mode}]`);
+      assert.doesNotMatch(await c.evaluate("document.getElementById('historyEvidence').textContent+[...document.querySelectorAll('#climBars i,#climHeat span')].map(n=>n.title).join(' ' )"), /把握度|最佳日期|评分/);
+    }
+  } finally { await b.close(); }
+});
+
+test("an explicitly conflicting activity unit cannot be relabelled as hours", async () => {
+  const b = await launchBrowser(edge), c = b.cdp;
+  try {
+    await open(c, { date: "2024-08-05", cells: [{ lon: 124.5, lat: 30.2, hours: 120 }], source: { unit: "minutes" } });
+    await click(c, "#workbenchToggle"); await click(c, "#fishingActivity");
+    await waitFor(c, "document.getElementById('heroLine').textContent.includes('单位冲突')");
+    assert.equal(await c.evaluate("document.getElementById('heroVerdict').textContent"), "—");
+    assert.match(await c.evaluate("document.getElementById('heroWhyBody').textContent"), /minutes/);
+    assert.equal(await c.evaluate("document.querySelectorAll('#mapSvg [data-layer=ground]').length"), 0);
+  } finally { await b.close(); }
+});
+
+test("a changed payload under the same conditions makes the frozen evidence stale without recalculation", async () => {
+  const b = await launchBrowser(edge), c = b.cdp;
+  try {
+    await c.send("Page.enable");
+    await c.send("Page.addScriptToEvaluateOnNewDocument", { source: `
+      window.OF_API_BASE='http://controlled.invalid/api';window.revised=false;window.dayReads=0;
+      window.fetch=url=>{url=String(url);const reply=(body,status=200)=>Promise.resolve(new Response(JSON.stringify(body),{status}));
+        if(url.endsWith('/health'))return reply({status:'ok'});
+        if(url.includes('/frontend/day/')){window.dayReads++;const day=structuredClone(window.OF_DATA_DAYS[url.split('/').pop().split('?')[0]]);
+          if(window.revised){day.objects=[];day.front_line=[];day.front_band_rle=[];}return reply({front:day});}
+        return url.includes('/viewport') ? reply({},503) : reply({meta:{status:'empty'},layers:{}});};` });
+    await c.send("Page.navigate", { url: page });
+    await waitFor(c, "document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
+    await click(c, "#tabs [data-pane=clim]"); await click(c, "#historyRead");
+    const frozen = await c.evaluate("document.getElementById('historyChart').innerHTML");
+    await waitFor(c, "!document.getElementById('retryData').hidden");
+    await c.evaluate("window.revised=true");
+    await click(c, "#retryData");
+    await waitFor(c, "document.getElementById('nowFrontTag').textContent.includes('共 0 个')");
+    assert.equal(await c.evaluate("document.getElementById('historyChart').innerHTML"), frozen);
+    assert.match(await c.evaluate("document.getElementById('historyStale').textContent"), /待更新/);
+    await click(c, "#historyRead");
+    assert.equal(await c.evaluate("document.getElementById('historyStale').textContent"), "");
   } finally { await b.close(); }
 });

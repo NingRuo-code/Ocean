@@ -719,7 +719,7 @@ function drawExtras(svg, snap, iso, sel) {
   // 刻意与 SST 的连续色带在形态上区分（点阵 vs 色带）；低于当日中位数的格子不画，避免糊成一片。
   if (state.layers.ground) {
     const fishing = OFData.fishingDay(iso);
-    const cells = fishing && Array.isArray(fishing.cells) ? fishing.cells.filter(c => c && [c.lon, c.lat, c.hours].every(Number.isFinite) && c.hours >= 0 && Math.abs(c.lon) <= 180 && Math.abs(c.lat) <= 90) : [];
+    const cells = fishing && OFData.fishingHoursUnitSupported(fishing) && Array.isArray(fishing.cells) ? fishing.cells.filter(OFData.fishingCellValid) : [];
     if (cells.length) {
       const values = cells.map((c) => c.hours).sort((a, b) => a - b);
       const q = (f) => values[Math.min(values.length - 1, Math.max(0, Math.floor(values.length * f)))];
@@ -1059,13 +1059,15 @@ function renderLegend() {
       const status = OFData.loadState();
       const load = status[k === "ground" ? "fishing" : "day"];
       const fishing = k === "ground" ? OFData.fishingDay(state.date) : null;
-      const unavailable = ["loading", "error", "forbidden", "day-missing", "unprepared", "unknown-coverage"];
+      const usable = fishing?.cells?.some(OFData.fishingCellValid);
+      const unavailable = ["loading", "error", "forbidden", "day-missing", "unprepared", "unknown-coverage", "unit-conflict"];
       const readiness = k === "fishing" ? "example" : k === "ground" && !OFData.fishingAvailable() && !OFData.serverEnabled() ? "offline" :
         load && unavailable.includes(load.status) ? load.status :
-        k === "ground" && fishing && !fishing.cells?.length ? "unknown-coverage" :
-        (k === "ground" ? !!fishing?.cells?.length : k === "sst" ? OFData.hasSst(state.date) : OFData.hasDay(state.date)) ? "ready" : "not-ready";
+        k === "ground" && fishing && !OFData.fishingHoursUnitSupported(fishing) ? "unit-conflict" :
+        k === "ground" && fishing && !usable ? "unknown-coverage" :
+        (k === "ground" ? !!usable : k === "sst" ? OFData.hasSst(state.date) : OFData.hasDay(state.date)) ? "ready" : "not-ready";
       label.textContent = readiness === "ready" ? (on ? "已显示" : "已隐藏") :
-        ({ example: "示例，非实测", offline: "离线未接入", loading: "加载中", error: "请求失败", forbidden: "无权访问", "day-missing": "当日缺资料", unprepared: "未准备", "unknown-coverage": "覆盖未知", "not-ready": "当日未就绪" }[readiness]);
+        ({ example: "示例，非实测", offline: "离线未接入", loading: "加载中", error: "请求失败", forbidden: "无权访问", "day-missing": "当日缺资料", unprepared: "未准备", "unknown-coverage": "覆盖未知", "unit-conflict": "单位冲突", "not-ready": "当日未就绪" }[readiness]);
       row.dataset.visibility = on ? "on" : "off";
       row.dataset.readiness = readiness;
       if (on && ["sst", "front", "coldwarm", "ground"].includes(k)) {
@@ -1316,16 +1318,18 @@ function recentObservationDates(iso, count) {
   return AVAILABLE_DATES.slice(Math.max(0, idx - count + 1), idx + 1);
 }
 function recentObservationWindow(iso, count) {
-  const idx = dateIndex(iso);
-  if (idx < 0) return [];
-  const start = Math.max(0, idx - count + 1);
-  return AVAILABLE_DATES.slice(start, idx + 1);
+  return datesBetween(addDays(iso, 1 - count), iso);
+}
+function observationReadable(iso) {
+  const quality = OFData.quality(iso), cell = OFData.primaryCellInfo(iso, state.lon, state.lat);
+  return OFData.hasDay(iso) && Number.isFinite(quality?.valid_cells) && quality.valid_cells > 0 &&
+    !!cell?.inGrid && !cell.nodata && !cell.overview;
 }
 function daySignal(iso) {
   const snap = snapshotFor(iso, state.lon, state.lat, state.range);
   return {
     date: iso,
-    ok: snap.ok,
+    ok: snap.ok && observationReadable(iso),
     score: snap.score,
     present: snap.inRange.some((f) => f.isObject),
     objects: snap.inRange.filter((f) => f.isObject).length,
@@ -1355,7 +1359,7 @@ function climRateFor(md, range) {
 }
 function baselineSeries() {
   const snap = snapshot();
-  if (!snap.ok) return [];
+  if (!snap.ok || !observationReadable(state.date)) return [];
   const recent = recentObservationDates(state.date, 4).map(daySignal).filter((r) => r.ok);
   const first = recent[0], last = recent[recent.length - 1];
   const trend = first && last && recent.length > 1 ? last.score - first.score : 0;
@@ -1368,7 +1372,7 @@ function baselineSeries() {
     const date = addDays(state.date, offset);
     const score = clamp(Math.round(snap.score + trend * 0.35 + (persistence - 0.5) * 14 + historyBoost - offset * 3), 5, 85);
     const confidence = clamp(Math.round(76 - offset * 6 - missingPenalty * 5 + Math.max(0, persistence - 0.5) * 12), 25, 72);
-    return { offset, date, score, confidence, hasObservation: OFData.hasDay(date) };
+    return { offset, date, score, confidence, hasObservation: observationReadable(date) };
   });
 }
 function renderRecentClimWindow(days, label) {
@@ -1377,17 +1381,16 @@ function renderRecentClimWindow(days, label) {
   const bars = $("climBars"), heat = $("climHeat"), stat = $("climStat"), years = $("climYears"), hint = $("climHint");
   hint.textContent = label + " · 实况回放";
   hint.className = "tag ok";
-  bars.innerHTML = climBarsHTML(dates.map((d) => d.slice(5)), dates.map((d) => daySignal(d).score),
-    dates.map((d) => d === state.date), dates.map((d) => mdText(d) + " · 把握度 " + daySignal(d).score + "%"));
+  bars.innerHTML = observationBarsHTML(dates);
   heat.innerHTML = climHeatHTML(dates);
   stat.innerHTML = dates.length
     ? "<b>" + label + "</b> · 已导出 " + dates.length + " 天，" + state.range + " km 内有锋面的日期 " +
-      agg.present + "/" + agg.valid + " 天，平均把握度 <b>" + (agg.avgScore == null ? "—" : Math.round(agg.avgScore) + "%") + "</b>"
+      agg.present + "/" + agg.valid + " 个有观测样例日；缺日与缺测不视为未检出。"
     : "<b>" + label + "暂无实况</b><br/>需要先补导对应日期。";
   years.innerHTML =
     '<div class="line"><span class="k">当前窗口</span> → ' + (dates.length ? dates[0] + " ~ " + dates[dates.length - 1] : "—") + "</div>" +
-    '<div class="line"><span class="k">最佳日期</span> → <b>' + (agg.best ? mdText(agg.best.date) + " · " + agg.best.score + "%" : "—") + "</b></div>" +
-    '<div class="line"><span class="k">窗口性质</span> → 连续日实况回放；未导出的日期不进入分母</div>' +
+    '<div class="line"><span class="k">可读样例</span> → <b>' + agg.valid + " 日</b></div>" +
+    '<div class="line"><span class="k">窗口性质</span> → 连续日历窗口的实况样例；缺日不补齐，未导出或无有效观测的日期不进入分母</div>' +
     '<div class="line"><span class="k">多年对比</span> → 现有多年样本只有每年 8 月 5—7 日，暂不能代表任意连续 ' + days + " 日窗口</div>";
 }
 
@@ -1404,7 +1407,7 @@ function renderFuture(explicit = false) {
   document.querySelectorAll("#futureWindow button").forEach((b) => b.classList.toggle("active", Number(b.dataset.window) === windowDays));
   $("futureTag").textContent = windowDays + " 天 · 规则参考";
   $("futureBestTag").textContent = "实验 / 未独立验证";
-  if (!snap.ok) {
+  if (!snap.ok || !observationReadable(state.date)) {
     $("futureBars").innerHTML = "";
     $("futureList").innerHTML =
       '<div class="row"><span class="i">!</span><span class="grow"><b>当前日期无数据</b><small>先切换到有实况数据的出海日，再生成规则预测参考</small></span></div>';
@@ -1444,7 +1447,7 @@ function renderFuture(explicit = false) {
   $("futureDays").querySelectorAll(".clickable").forEach((node) =>
     node.addEventListener("click", () => {
       if (window.OceanEvidence && !window.OceanEvidence.isCurrent("future")) { showToast("条件已改变，请先更新规则参考"); return; }
-      if (OFData.hasDay(node.dataset.date)) setDate(node.dataset.date);
+      if (observationReadable(node.dataset.date)) setDate(node.dataset.date);
     }));
 }
 
@@ -1452,17 +1455,22 @@ function renderFuture(explicit = false) {
 function climBarsHTML(labels, heights, actives, titles) {
   return labels.map((label, i) =>
     '<i class="' + (actives[i] ? "active" : "") + '" title="' + titles[i] + '" style="height:' +
-    Math.max(5, Math.round(heights[i])) + '%"></i>').join("");
+    Math.max(0, Math.round(heights[i])) + '%"></i>').join("");
+}
+function observationBarsHTML(dates) {
+  const rows = dates.map(daySignal);
+  return climBarsHTML(dates.map(d => d.slice(5)), rows.map(r => r.ok && r.present ? 100 : 0),
+    dates.map(d => d === state.date), rows.map(r => r.date + " / " + (!r.ok ? "缺资料或支持未知" : r.present ? "范围内检出锋面区" : "已观测部分未检出锋面区")));
 }
 function climHeatHTML(dates) {
   return dates.map((d) => {
     const r = daySignal(d);
     const cls = ["heat-cell"];
     if (r.ok) cls.push("has");
-    if (r.present || r.score >= 60) cls.push("hot");
+    if (r.ok && r.present) cls.push("hot");
     if (d === state.date) cls.push("active");
-    const title = r.ok ? mdText(d) + " · 把握度 " + r.score + "% · " + (r.present ? "范围内有锋面" : "范围内无锋面")
-      : mdText(d) + " · 无实况";
+    const title = r.ok ? mdText(d) + " · " + (r.present ? "范围内检出锋面区" : "已观测部分未检出锋面区")
+      : mdText(d) + " · 缺资料或支持未知";
     return '<span class="' + cls.join(" ") + '" title="' + title + '"></span>';
   }).join("");
 }
@@ -1494,20 +1502,18 @@ function renderClim(explicit = false) {
     const agg = aggregateObservationDates(dates);
     hint.textContent = dates.length ? state.date.slice(0, 7) + " · 实况回放" : "样本不足";
     hint.className = dates.length ? "tag ok" : "tag warn";
-    bars.innerHTML = climBarsHTML(dates.map((d) => d.slice(8)), dates.map((d) => daySignal(d).score),
-      dates.map((d) => d === state.date), dates.map((d) => mdText(d) + " · 把握度 " + daySignal(d).score + "%"));
+    bars.innerHTML = observationBarsHTML(dates);
     heat.innerHTML = climHeatHTML(dates);
     stat.innerHTML = dates.length
       ? "<b>当月实况</b> · 已导出 " + dates.length + " 天，" + state.range + " km 内有锋面的日期 " +
-        agg.present + "/" + agg.valid + " 天，平均把握度 <b>" + (agg.avgScore == null ? "—" : Math.round(agg.avgScore) + "%") + "</b>"
+        agg.present + "/" + agg.valid + " 个有观测样例日；不是完整海域的无锋面判断。"
       : "<b>该月没有导出实况</b><br/>需要先补导对应月份数据。";
     years.innerHTML = dates.length
       ? '<div class="line"><span class="k">当前可算</span> → 使用 ' + dates[0] + " ~ " + dates[dates.length - 1] +
         " 的逐日实况回放</div>" +
         '<div class="line"><span class="k">多年整月</span> → 现有多年样本只有每年 8 月 5—7 日，不能代表完整月份</div>' +
-        '<div class="line"><span class="k">最佳日期</span> → <b>' + (agg.best ? mdText(agg.best.date) + " · " + agg.best.score + "%" : "—") +
-        "</b></div>" +
-        '<div class="line"><span class="k">统计方式</span> → 单日先按当前把握度评分，再按月份聚合；未导出的日期不进入分母</div>'
+        '<div class="line"><span class="k">有效样例</span> → <b>' + agg.valid + " 日</b></div>" +
+        '<div class="line"><span class="k">统计方式</span> → 按已有观测是否检出锋面区计数；未导出或无有效观测的日期不进入分母</div>'
       : '<div class="line"><span class="k">当前可算</span> → 暂无该月实况样例</div>' +
         '<div class="line"><span class="k">多年整月</span> → 需要补齐逐日历史样本后才能输出</div>' +
         '<div class="line"><span class="k">统计方式</span> → 未导出的日期不进入分母</div>';
@@ -1519,8 +1525,7 @@ function renderClim(explicit = false) {
     const agg = aggregateObservationDates(dates);
     hint.textContent = dates.length ? state.date.slice(0, 4) + " · 样例年" : "样本不足";
     hint.className = dates.length ? "tag ok" : "tag warn";
-    bars.innerHTML = climBarsHTML(dates.map((d) => d.slice(5)), dates.map((d) => daySignal(d).score),
-      dates.map((d) => d === state.date), dates.map((d) => mdText(d) + " · 把握度 " + daySignal(d).score + "%"));
+    bars.innerHTML = observationBarsHTML(dates);
     heat.innerHTML = climHeatHTML(dates);
     stat.innerHTML = dates.length
       ? "<b>整年视图</b> · 当前只导出 " + dates.length + " 天样例，" + state.range + " km 内有锋面的日期 " +
@@ -1530,8 +1535,7 @@ function renderClim(explicit = false) {
       '<div class="line"><span class="k">当前覆盖</span> → ' + (dates.length ? dates[0] + " ~ " + dates[dates.length - 1] : "—") + "</div>" +
       '<div class="line"><span class="k">全年缺口</span> → 需要补齐 1 月 1 日到 12 月 31 日逐日锋面，才能输出全年频率、最高月份和年际对比</div>' +
       '<div class="line"><span class="k">多年对比</span> → 现有多年样本仅覆盖 2015–2024 年 8 月 5—7 日，不能冒充 1982–2024 全年统计</div>' +
-      '<div class="line"><span class="k">最佳日期</span> → <b>' + (agg.best ? mdText(agg.best.date) + " · " + agg.best.score + "%" : "—") +
-      "</b></div>";
+      '<div class="line"><span class="k">有效样例</span> → <b>' + agg.valid + " 日</b></div>";
     return;
   }
 
@@ -1838,13 +1842,13 @@ async function advancePlayback(iso, generation) {
   if (loaded && state.layers.ground && playActive && generation === playGeneration) {
     failedLayer = "fishing";
     loaded = await OFData.ensureFishing(iso);
-    if (OFData.loadState().fishing?.status === "unknown-coverage") loaded = false;
+    if (["unknown-coverage", "unit-conflict"].includes(OFData.loadState().fishing?.status)) loaded = false;
   }
   if (!playActive || generation !== playGeneration || state.date !== iso) return;
   const quality = OFData.quality(iso);
   if (!loaded || !OFData.hasDay(iso) || quality?.valid_cells === 0) {
     const status = OFData.loadState()[failedLayer]?.status;
-    const reason = quality?.valid_cells === 0 ? "全天没有有效观测" : ({ unprepared: "资料未准备", forbidden: "无权访问", error: "读取失败", "day-missing": "整日缺资料", "unknown-coverage": "无活动记录／覆盖未知" }[status]) || (failedLayer === "fishing" ? "活动资料未就绪" : "当日缺资料或支持未知");
+    const reason = quality?.valid_cells === 0 ? "全天没有有效观测" : ({ unprepared: "资料未准备", forbidden: "无权访问", error: "读取失败", "day-missing": "整日缺资料", "unknown-coverage": "无活动记录／覆盖未知", "unit-conflict": "活动单位冲突" }[status]) || (failedLayer === "fishing" ? "活动资料未就绪" : "当日缺资料或支持未知");
     setPlaying(false); playbackPaused = true;
     playbackUi(iso + "：" + reason + "，已暂停。可继续下一可读日。");
     return;
@@ -2304,7 +2308,7 @@ function bind() {
   // ===== 地图：拖拽平移 / 滚轮以光标为中心缩放 =====
   // 指针事件统一鼠标 / 触摸 / 笔（并保留 mouse 回退：既有自动化检查用合成 MouseEvent 驱动）
   let drag = null, suppressClick = false, sawPointer = false;
-  const interactive = (t) => !!(t && t.closest && t.closest(".map-legend, .map-controls, .map-pick, .map-probe"));
+  const interactive = (t) => !!(t && t.closest && t.closest(".map-legend, .map-controls, .map-pick, .map-probe, .load-status"));
   const dragStart = (x, y) => { drag = { x: x, y: y, moved: 0 }; hoverPt = null; renderProbe(); };
   const dragMove = (x, y) => {
     if (!drag) return false;
@@ -2390,7 +2394,7 @@ function bind() {
   map.addEventListener("mouseleave", () => { hoverPt = null; renderProbe(); });
   map.addEventListener("click", (e) => {
     if (suppressClick) { suppressClick = false; return; }   // 拖动之后的那一下不算点击
-    if (e.target.closest && e.target.closest(".map-legend, .map-controls, .map-pick, .map-probe, .map-empty")) return;
+    if (e.target.closest && e.target.closest(".map-legend, .map-controls, .map-pick, .map-probe, .map-empty, .load-status")) return;
     window.dispatchEvent(new Event("ocean-map-activate"));
     const g = geoOfScreen(e.clientX, e.clientY);
     if (!g) { showToast("这一点在地球背面或球外，没有坐标"); return; }

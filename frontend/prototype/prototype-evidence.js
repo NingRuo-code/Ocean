@@ -30,7 +30,25 @@
     return c.date + " / " + fmtCoord(c.lon, c.lat) + " / " + c.range + " km / 产品 " + (c.product || "未声明") +
       (c.service === "server" ? " / 服务资料版本 " + (c.dataVersion || "未声明") : " / 归档导出 " + (c.exported || "未声明"));
   }
-  function stale(kind) { return records[kind] && JSON.stringify(records[kind].context) !== JSON.stringify(context(kind)); }
+  function stale(kind) {
+    const record = records[kind];
+    return record && (JSON.stringify(record.context) !== JSON.stringify(context(kind)) ||
+      record.inputs.some(([iso, day]) => OFData.day(iso) !== day));
+  }
+  function inputDates(kind, c) {
+    const dates = new Set();
+    // Pin missing days too: newly arriving data must invalidate an old sample.
+    if (kind === "clim") {
+      const month = c.date.slice(0, 7), n = new Date(Number(month.slice(0, 4)), Number(month.slice(5)), 0).getDate();
+      for (let d = 1; d <= n; d++) dates.add(month + "-" + String(d).padStart(2, "0"));
+      if (c.period === "year") for (let iso = c.date.slice(0, 4) + "-01-01"; iso.slice(0, 4) === c.date.slice(0, 4); iso = addDays(iso, 1)) dates.add(iso);
+      for (const iso of recentObservationWindow(c.date, c.period === "halfmonth" ? 15 : 7)) dates.add(iso);
+    } else {
+      for (const iso of recentObservationDates(c.date, 4)) dates.add(iso);
+      for (let d = 0; d <= 7; d++) dates.add(addDays(c.date, d));
+    }
+    return [...dates];
+  }
   function sync() {
     $("historyMonth").textContent = records.clim?.context.date.slice(0, 7) || state.date.slice(0, 7);
     if (!records.clim) $("historySummary").textContent = "可信整月汇总未接入；可主动读取当前月已就绪的归档样例，不能据此认定整月研究合格。";
@@ -82,7 +100,7 @@
         button.onclick = () => {
           // A frozen sample cannot authorize switching a now-unavailable date.
           if (stale("clim")) { showToast("条件已改变，请先更新归档样例"); return; }
-          if (!OFData.hasDay(iso)) return;
+          if (!observationReadable(iso)) return;
           state.currentTask = "front"; setDate(iso); switchTab("now"); back.hidden = false; close(false);
         };
         $("historyChart").append(button);
@@ -90,10 +108,11 @@
     } else {
       renderFuture(true);
       const snap = snapshot();
-      $("forecastSummary").textContent = snap.ok ? "基准 " + c.date + "；目标 " + addDays(c.date, 1) + " 至 " + addDays(c.date, c.period) + "。仅为规则演示，未独立验证，也不是表观活动概率。" : "基准日缺有效观测，不能生成规则参考。";
-      $("forecastMetrics").innerHTML = snap.ok ? metricCell("参考窗口", String(c.period), "天") + metricCell("当前最近锋面", snap.nearest ? snap.nearest.km.toFixed(1) : "—", "km") : "";
+      const readable = snap.ok && observationReadable(c.date);
+      $("forecastSummary").textContent = readable ? "基准 " + c.date + "；目标 " + addDays(c.date, 1) + " 至 " + addDays(c.date, c.period) + "。仅为规则演示，未独立验证，也不是表观活动概率。" : "基准日缺有效观测，不能生成规则参考。";
+      $("forecastMetrics").innerHTML = readable ? metricCell("参考窗口", String(c.period), "天") + metricCell("当前最近锋面", snap.nearest ? snap.nearest.km.toFixed(1) : "—", "km") : "";
     }
-    records[kind] = { context: c };
+    records[kind] = { context: c, inputs: inputDates(kind, c).map(iso => [iso, OFData.day(iso)]) };
     const prefix = kind === "clim" ? "history" : "forecast";
     $(prefix + "Identity").textContent = identity(c);
     $(prefix + "Details").disabled = false;
@@ -104,6 +123,9 @@
   $("historyDetails").onclick = e => show("clim", e.currentTarget); $("forecastDetails").onclick = e => show("future", e.currentTarget);
   $("evidenceClose").onclick = () => close();
   panel.addEventListener("keydown", e => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); } });
+  for (const button of [$("historyDetails"), $("forecastDetails")]) button.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !panel.hidden && opener === button) { e.preventDefault(); e.stopPropagation(); close(); }
+  });
   back.onclick = () => { switchTab("clim"); back.hidden = true; sync(); };
   window.addEventListener("ocean-applied-context", sync);
   window.addEventListener("ocean-load-state", sync);

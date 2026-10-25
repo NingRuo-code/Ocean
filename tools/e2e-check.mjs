@@ -534,7 +534,7 @@ const fut = await evalJS(`return {
   why: document.getElementById("futureWhyBody").textContent,
   observable: [1,2,3,4,5,6,7].filter(function (n) {
     var d = new Date(Date.parse(document.getElementById("timeDate").value + "T00:00:00Z") + n * 86400000).toISOString().slice(0, 10);
-    return OFData.hasDay(d);
+    return observationReadable(d);
   }).length,
   tag: document.getElementById("futureTag").textContent,
   list: document.getElementById("futureList").textContent,
@@ -623,14 +623,14 @@ const climWeek = await evalJS(`document.querySelector('#climPeriod button[data-p
     stat: document.getElementById("climStat").textContent, years: document.getElementById("climYears").textContent,
     hint: document.getElementById("climHint").textContent };`);
 check("「7 日」展示连续日实况窗口，并说明多年连续窗口缺口",
-  climWeek.bars > 0 && climWeek.heat === climWeek.bars && /近 7 日/.test(climWeek.stat) && /连续日实况回放/.test(climWeek.years), climWeek.hint);
+  climWeek.bars > 0 && climWeek.heat === climWeek.bars && /近 7 日/.test(climWeek.stat) && /连续日历窗口/.test(climWeek.years), climWeek.hint);
 const climHalf = await evalJS(`document.querySelector('#climPeriod button[data-period="halfmonth"]').click();
   return { bars: document.querySelectorAll("#climBars i").length,
     heat: document.querySelectorAll("#climHeat .heat-cell").length,
     stat: document.getElementById("climStat").textContent, years: document.getElementById("climYears").textContent,
     hint: document.getElementById("climHint").textContent };`);
 check("「15 日」展示连续日实况窗口，并说明样本边界",
-  climHalf.bars > 0 && climHalf.heat === climHalf.bars && /近 15 日/.test(climHalf.stat) && /未导出的日期不进入分母/.test(climHalf.years), climHalf.hint);
+  climHalf.bars > 0 && climHalf.heat === climHalf.bars && /近 15 日/.test(climHalf.stat) && /无有效观测的日期不进入分母/.test(climHalf.years), climHalf.hint);
 const climMonth = await evalJS(`document.querySelector('#climPeriod button[data-period="month"]').click();
   return { bars: document.querySelectorAll("#climBars i").length,
     heat: document.querySelectorAll("#climHeat .heat-cell").length,
