@@ -23,7 +23,7 @@
 
 ## Implementation status — 2026-10-25
 
-实现与本地验收完成，分支 `codex/ui-filter-layers`，PR 待合并；GitHub 票据在实际合并前保持开放。本批按 #26/#27 → #31、#26/#28 → #32 的次序落实前置，不将尚未合并的票据标为已关闭。
+已通过 [PR #282](https://github.com/NingRuo-code/Ocean/pull/282) 合并主分支（`476b7e5d4fbb57d93c6ed76341b73ed00565bc20`），对应 GitHub 票据已实际关闭。原批次按 #26/#27 → #31、#26/#28 → #32 顺序交付。未部署生产服务器。
 
 证据见[统一筛选、图层与条件恢复实施记录](../../reports/ocean-ui-filter-layer-implementation-2026-10-25.md)：完整工具测试 20 项、地图交互 128 项、数据 922 项、后端 23 项通过，1680/1440/1280/390 布局通过；含真实小屏触摸及独立 Standards / Spec 复核。
 

@@ -1,0 +1,114 @@
+{
+  "schema": "ocean-ui-evidence-layout/v1",
+  "scope": "existing redistributable archive demonstration, not monthly research or production qualification",
+  "checks": [
+    {
+      "width": 1440,
+      "input": "actual CDP pointer",
+      "view": "history-summary",
+      "overflow": false,
+      "evidenceOpen": false,
+      "left": 0,
+      "right": 0,
+      "top": 0,
+      "bottom": 0,
+      "screenshot": "docs/reports/screenshots/ocean-history-summary-1440.png"
+    },
+    {
+      "width": 1440,
+      "input": "actual CDP pointer",
+      "view": "history-evidence",
+      "overflow": false,
+      "evidenceOpen": true,
+      "left": 274,
+      "right": 1096,
+      "top": 506.65625,
+      "bottom": 886,
+      "screenshot": "docs/reports/screenshots/ocean-history-evidence-1440.png"
+    },
+    {
+      "width": 1440,
+      "input": "actual CDP pointer",
+      "view": "forecast-evidence",
+      "overflow": false,
+      "evidenceOpen": true,
+      "left": 274,
+      "right": 1096,
+      "top": 506.65625,
+      "bottom": 886,
+      "screenshot": "docs/reports/screenshots/ocean-forecast-evidence-1440.png"
+    },
+    {
+      "width": 1280,
+      "input": "actual CDP pointer",
+      "view": "history-summary",
+      "overflow": false,
+      "evidenceOpen": false,
+      "left": 0,
+      "right": 0,
+      "top": 0,
+      "bottom": 0,
+      "screenshot": "docs/reports/screenshots/ocean-history-summary-1280.png"
+    },
+    {
+      "width": 1280,
+      "input": "actual CDP pointer",
+      "view": "history-evidence",
+      "overflow": false,
+      "evidenceOpen": true,
+      "left": 274,
+      "right": 936,
+      "top": 506.65625,
+      "bottom": 886,
+      "screenshot": "docs/reports/screenshots/ocean-history-evidence-1280.png"
+    },
+    {
+      "width": 1280,
+      "input": "actual CDP pointer",
+      "view": "forecast-evidence",
+      "overflow": false,
+      "evidenceOpen": true,
+      "left": 274,
+      "right": 936,
+      "top": 506.65625,
+      "bottom": 886,
+      "screenshot": "docs/reports/screenshots/ocean-forecast-evidence-1280.png"
+    },
+    {
+      "width": 390,
+      "input": "actual CDP touch",
+      "view": "history-summary",
+      "overflow": false,
+      "evidenceOpen": false,
+      "left": 0,
+      "right": 0,
+      "top": 0,
+      "bottom": 0,
+      "screenshot": "docs/reports/screenshots/ocean-history-summary-390.png"
+    },
+    {
+      "width": 390,
+      "input": "actual CDP touch",
+      "view": "history-evidence",
+      "overflow": false,
+      "evidenceOpen": true,
+      "left": 14,
+      "right": 376,
+      "top": 525.234375,
+      "bottom": 886,
+      "screenshot": "docs/reports/screenshots/ocean-history-evidence-390.png"
+    },
+    {
+      "width": 390,
+      "input": "actual CDP touch",
+      "view": "forecast-evidence",
+      "overflow": false,
+      "evidenceOpen": true,
+      "left": 14,
+      "right": 376,
+      "top": 525.234375,
+      "bottom": 886,
+      "screenshot": "docs/reports/screenshots/ocean-forecast-evidence-390.png"
+    }
+  ]
+}
