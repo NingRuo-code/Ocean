@@ -1341,7 +1341,13 @@ function aggregateObservationDates(dates) {
   const avgCoverage = rows.length ? rows.reduce((s, r) => s + (r.coverage || 0), 0) / rows.length : null;
   return { dates, rows, valid: rows.length, present, best, avgScore, avgCoverage };
 }
+function climPointSupported() {
+  const anchor = OFData.meta?.region?.anchor;
+  return Array.isArray(anchor) && anchor.length === 2 && anchor.every(Number.isFinite) &&
+    Math.abs(anchor[0] - state.lon) < 1e-7 && Math.abs(anchor[1] - state.lat) < 1e-7;
+}
 function climRateFor(md, range) {
+  if (!climPointSupported()) return null;
   const clim = OFData.clim;
   const entry = clim && clim.by_day ? clim.by_day[md] : null;
   const bucket = entry && entry.by_range ? entry.by_range[String(range)] : null;
@@ -1468,6 +1474,13 @@ function renderClim(explicit = false) {
   const bars = $("climBars"), heat = $("climHeat"), stat = $("climStat"), years = $("climYears"), hint = $("climHint");
   const clim = OFData.clim;
   heat.innerHTML = "";
+
+  if (["day", "period"].includes(mode) && !climPointSupported()) {
+    hint.textContent = "取样点不匹配"; hint.className = "tag warn";
+    bars.innerHTML = ""; years.textContent = "多年同期统计来自导出元信息中的固定取样点；未对当前分析点重算。可使用逐日归档样例查看当前点，不能迁用固定点频率。";
+    stat.textContent = "固定取样点统计不支持当前分析点；不显示该点的同期频率。";
+    return;
+  }
 
   if (!clim) {
     hint.textContent = "统计未导出"; hint.className = "tag warn";

@@ -10,6 +10,8 @@
   const history = $("pane-clim"), future = $("pane-future");
   while (history.firstChild) $("historyEvidence").append(history.firstChild);
   while (future.firstChild) $("forecastEvidence").append(future.firstChild);
+  const sourceIdentity = document.createElement("p"); sourceIdentity.id = "historicalSourceIdentity"; sourceIdentity.className = "result-identity";
+  $("historyEvidence").prepend(sourceIdentity);
   history.innerHTML = '<section class="card"><h3>历史观测 <span id="historyMonth"></span></h3><p class="result-brief" id="historySummary"></p><p class="result-identity" id="historyIdentity"></p><p class="result-stale" id="historyStale" role="status"></p><button id="historyRead">读取当前月归档样例</button><div id="historyMetrics" class="metric"></div><div id="historyChart" class="history-calendar" aria-label="逐日锋面观测样例"></div><p class="result-note">日格：有锋面 / 未检出 / 缺资料。不是活动响应统计。</p><button id="historyDetails" aria-controls="evidencePanel" aria-expanded="false" disabled>详细证据</button></section>';
   future.innerHTML = '<section class="card"><h3>规则预测参考 <span class="tag plain">实验 / 未独立验证</span></h3><p class="result-brief" id="forecastSummary">尚无经过独立验证的活动预测；可显式读取已有本地规则参考。</p><p class="result-identity" id="forecastIdentity"></p><p class="result-stale" id="forecastStale" role="status"></p><button id="forecastRead">读取当前规则参考</button><div id="forecastMetrics" class="metric"></div><button id="forecastDetails" aria-controls="evidencePanel" aria-expanded="false" disabled>详细证据</button></section>';
   const back = document.createElement("button"); back.id = "historyReturn"; back.textContent = "返回历史月份"; back.hidden = true;
@@ -53,11 +55,17 @@
     $("historyDetails").setAttribute("aria-expanded", String(kind === "clim")); $("forecastDetails").setAttribute("aria-expanded", String(kind === "future"));
     sync();
     window.dispatchEvent(new Event("ocean-evidence-open"));
+    $("evidenceClose").focus({ preventScroll: true });
   }
   function read(kind) {
     const c = context(kind);
     if (kind === "clim") {
       renderClim(true); renderAisResponse(snapshot(), true);
+      const anchor = OFData.meta?.region?.anchor, response = OFData.frontResponseMeta();
+      sourceIdentity.textContent = "同期统计固定取样点：" + (Array.isArray(anchor) && anchor.length === 2 && anchor.every(Number.isFinite) ? fmtCoord(anchor[0], anchor[1]) : "未声明") +
+        "。以下既有 AIS 响应表按日期与缓冲半径索引，未按当前分析点筛选，不代表该分析圈的响应。" +
+        "响应表来源：" + (response?.source?.attribution || "未声明") + "；生成版本：" + (response?.generatedAt || "未声明") +
+        "；原支持海域：" + (response?.spatialWindow?.region || "未声明") + "。";
       const days = datesInMonth(c.date).filter(d => OFData.hasDay(d));
       const agg = aggregateObservationDates(days);
       const month = c.date.slice(0, 7), n = new Date(Number(month.slice(0, 4)), Number(month.slice(5)), 0).getDate();

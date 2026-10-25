@@ -39,7 +39,8 @@ function renderEffortSummary() {
     metricCell("最近锋面", near ? near.km.toFixed(1) : "—", "km") + metricCell("作业范围", String(state.range), "km");
   const source = day?.source || {};
   $("heroWhyBody").textContent = "日期 " + state.date + "；分析点 " + fmtCoord(state.lon, state.lat) + "；范围 " + state.range + " km。来源：" + (source.name || "未声明") +
-    "；许可：" + (source.license || "未声明") + "；资料版本：" + (day?.version || "未声明") + "；" + resolution +
+    "；来源声明许可：" + (source.license || "未声明") + "；使用条款：" + (source.terms || "未声明，需另行核验") +
+    "；署名：" + (source.citation || source.name || "未声明") + "；资料版本：" + (day?.version || "未声明") + "；" + resolution +
     "。按格心大圆距离筛入，累加完整返回数组中的有效唯一格点，不按绘制圆点反算；无完整覆盖合同，始终只报告已返回记录的部分累计。" +
     "现有地图仍按当日分位筛选且最多显示 700 点，不能代表活动全集；全量显示与聚合另行验收。" +
     (rejected ? "已排除 " + rejected + " 条非法或重复格点。" : "") +

@@ -136,3 +136,44 @@ test("sparse archive history exposes missing calendar days without presenting a 
     assert.equal(await c.evaluate("document.querySelectorAll('#historyChart button:disabled').length"), 30);
   } finally { await b.close(); }
 });
+
+test("fixed-point historical samples are not presented as statistics for a different analysis point", async () => {
+  const b = await launchBrowser(edge), c = b.cdp;
+  try {
+    await open(c); await click(c, "#headerFilter"); await click(c, "#locInput");
+    await c.evaluate("document.getElementById('locInput').select()");
+    await c.send("Input.insertText", { text: "125.5,31" }); await click(c, "#locateBtn"); await click(c, "#filterClose");
+    await click(c, "#tabs [data-pane=clim]"); await click(c, "#historyRead"); await click(c, "#historyDetails");
+    await click(c, "#climPeriod [data-period=day]");
+    assert.match(await c.evaluate("document.getElementById('climStat').textContent"), /固定取样点.*不支持当前分析点/);
+    assert.equal(await c.evaluate("document.querySelectorAll('#climBars i').length"), 0);
+    assert.match(await c.evaluate("document.getElementById('historicalSourceIdentity').textContent"), /未按当前分析点筛选/);
+  } finally { await b.close(); }
+});
+
+test("small-screen evidence is touch reachable, preserves map dragging and returns focus on Escape", async () => {
+  const b = await launchBrowser(edge), c = b.cdp;
+  async function tap(selector) {
+    const p = await c.evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});e.scrollIntoView({block:'nearest'});const r=e.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()`);
+    assert.equal(await c.evaluate(`document.querySelector(${JSON.stringify(selector)}).contains(document.elementFromPoint(${p.x},${p.y}))`), true);
+    await c.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p] });
+    await c.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  }
+  try {
+    await c.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 900, deviceScaleFactor: 1, mobile: true });
+    await c.send("Emulation.setTouchEmulationEnabled", { enabled: true });
+    await open(c); await tap("#workbenchToggle"); await tap("[data-open-pane=clim]");
+    await tap("#historyRead"); await tap("#historyDetails");
+    assert.equal(await c.evaluate("(()=>{const p=document.getElementById('evidencePanel').getBoundingClientRect(),r=document.getElementById('resultPanel').getBoundingClientRect();return p.left>=0&&p.right<=innerWidth&&p.bottom<=innerHeight&&r.bottom<=p.top&&document.documentElement.scrollWidth<=innerWidth;})()"), true);
+    const before = await c.evaluate("document.getElementById('mapSvg').getAttribute('viewBox')");
+    await c.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 25, y: 490 }] });
+    await c.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 45, y: 500 }] });
+    await c.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    assert.notEqual(await c.evaluate("document.getElementById('mapSvg').getAttribute('viewBox')"), before);
+    await tap("#evidenceClose"); await tap("#historyDetails");
+    await c.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape" });
+    await c.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape" });
+    assert.equal(await c.evaluate("document.getElementById('evidencePanel').hidden"), true);
+    assert.equal(await c.evaluate("document.activeElement.id"), "historyDetails");
+  } finally { await b.close(); }
+});
