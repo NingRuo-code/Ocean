@@ -1,0 +1,683 @@
+{
+  "parent": 72,
+  "work_package": 19,
+  "reused_experiment": 9,
+  "umbrella": 13,
+  "approval": "User confirmed all twelve tickets and their dependencies on 2026-10-24",
+  "acceptance_criteria": 82,
+  "user_stories_covered": 46,
+  "external_ancestor_edges_verified": {
+    "41": [
+      39
+    ],
+    "62": [
+      61,
+      39
+    ],
+    "65": [
+      62
+    ],
+    "66": [
+      65
+    ],
+    "70": [
+      64,
+      43
+    ],
+    "71": [
+      68,
+      69,
+      70
+    ],
+    "39": [
+      37,
+      38
+    ],
+    "43": [
+      42
+    ],
+    "61": [],
+    "64": [
+      61,
+      41
+    ],
+    "68": [
+      67,
+      44
+    ],
+    "69": [
+      63,
+      66
+    ],
+    "37": [
+      36
+    ],
+    "38": [
+      36
+    ],
+    "42": [
+      41
+    ],
+    "44": [
+      40,
+      41
+    ],
+    "63": [
+      62
+    ],
+    "67": [
+      63,
+      64,
+      66
+    ],
+    "36": [],
+    "40": [
+      36
+    ]
+  },
+  "dag_verified": true,
+  "tickets": [
+    {
+      "local_id": "B01",
+      "title": "[B B01] 运行固定海域事件响应的可手算样例",
+      "filename": "01-controlled-event-sample.md",
+      "number": 73,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/73",
+      "internal_blocker_numbers": [],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [],
+      "stories": [
+        1,
+        2,
+        13,
+        15,
+        18,
+        19,
+        21,
+        34,
+        39,
+        40,
+        42,
+        44
+      ],
+      "acceptance_criteria": 7,
+      "body_sha256": "33247e0d5fe28f48cf4c95c7d2006c4929507601b02f736fa2baa2c14da04f9f",
+      "database_id": 6010066429,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": []
+    },
+    {
+      "local_id": "B02",
+      "title": "[B B02] 从逐日锋面识别固定区域事件并保留断档边界",
+      "filename": "02-event-detection-continuity.md",
+      "number": 74,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/74",
+      "internal_blocker_numbers": [
+        73
+      ],
+      "external_blocker_numbers": [
+        62
+      ],
+      "blocker_numbers": [
+        73,
+        62
+      ],
+      "stories": [
+        1,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        34
+      ],
+      "acceptance_criteria": 8,
+      "body_sha256": "917c7b59c1c07e401f06f98bf52413633ef9780e2dec50305b35afd1c4a9566f",
+      "database_id": 6010066741,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        62,
+        73
+      ]
+    },
+    {
+      "local_id": "B03",
+      "title": "[B B03] 逐事件核实跨月前后窗口与研究准入",
+      "filename": "03-window-qualification.md",
+      "number": 75,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/75",
+      "internal_blocker_numbers": [
+        74
+      ],
+      "external_blocker_numbers": [
+        41
+      ],
+      "blocker_numbers": [
+        74,
+        41
+      ],
+      "stories": [
+        2,
+        8,
+        9,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        37,
+        45
+      ],
+      "acceptance_criteria": 7,
+      "body_sha256": "4fff733b04dc374aff7062e91630d5d2e7ddb0360173f68cb70541548bd9f69f",
+      "database_id": 6010067130,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        41,
+        74
+      ]
+    },
+    {
+      "local_id": "B04",
+      "title": "[B B04] 在前后可比支持上计算归一化活动变化",
+      "filename": "04-comparable-window-effects.md",
+      "number": 76,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/76",
+      "internal_blocker_numbers": [
+        75
+      ],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [
+        75
+      ],
+      "stories": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        29,
+        33
+      ],
+      "acceptance_criteria": 7,
+      "body_sha256": "572d5a80df213f6c824b6c0d752f0a8f086ebd46a92d20606a8b7f917c96271e",
+      "database_id": 6010067484,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        75
+      ]
+    },
+    {
+      "local_id": "B05",
+      "title": "[B B05] 匹配固定同日对照并解释无法匹配的事件",
+      "filename": "05-fixed-comparable-controls.md",
+      "number": 77,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/77",
+      "internal_blocker_numbers": [
+        76
+      ],
+      "external_blocker_numbers": [
+        65
+      ],
+      "blocker_numbers": [
+        76,
+        65
+      ],
+      "stories": [
+        23,
+        24,
+        25,
+        26,
+        28,
+        37
+      ],
+      "acceptance_criteria": 7,
+      "body_sha256": "9fdb9162ec49c1afd4db5b76041bddfd9b154abb95926746a2c085bed2723faf",
+      "database_id": 6010068478,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        65,
+        76
+      ]
+    },
+    {
+      "local_id": "B06",
+      "title": "[B B06] 按相关事件组估计效应区间并正确降级",
+      "filename": "06-dependent-event-inference.md",
+      "number": 78,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/78",
+      "internal_blocker_numbers": [
+        77
+      ],
+      "external_blocker_numbers": [
+        66
+      ],
+      "blocker_numbers": [
+        77,
+        66
+      ],
+      "stories": [
+        27,
+        28,
+        29,
+        30,
+        37
+      ],
+      "acceptance_criteria": 7,
+      "body_sha256": "56e52bccc41694532f51e019c9749d5a3576e2b0eb9520d131ac6dc6c8495e5a",
+      "database_id": 6010068742,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        66,
+        77
+      ]
+    },
+    {
+      "local_id": "B07",
+      "title": "[B B07] 提供逐日时滞与一致事件队列的比较",
+      "filename": "07-lag-and-common-cohort.md",
+      "number": 79,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/79",
+      "internal_blocker_numbers": [
+        77
+      ],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [
+        77
+      ],
+      "stories": [
+        13,
+        16,
+        17,
+        22,
+        29,
+        32
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "aeb6aa3dcfbe46730d47cb2200b7cd35e092638bbe5d06c895e4dee3eff75b1f",
+      "database_id": 6010069021,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        77
+      ]
+    },
+    {
+      "local_id": "B08",
+      "title": "[B B08] 冻结事件主方案并运行有界敏感性比较",
+      "filename": "08-frozen-event-sensitivity.md",
+      "number": 80,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/80",
+      "internal_blocker_numbers": [
+        78,
+        79
+      ],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [
+        78,
+        79
+      ],
+      "stories": [
+        4,
+        10,
+        27,
+        29,
+        31,
+        32,
+        33
+      ],
+      "acceptance_criteria": 7,
+      "body_sha256": "4f7b9392f5d48023cc1562029c0e81d00c8cefa439065e63717bf0557b85abcb",
+      "database_id": 6010069377,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        78,
+        79
+      ]
+    },
+    {
+      "local_id": "B09",
+      "title": "[B B09] 将事件结果呈现为主图、解释和同源证据包",
+      "filename": "09-event-result-reading-pack.md",
+      "number": 81,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/81",
+      "internal_blocker_numbers": [
+        78,
+        79
+      ],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [
+        78,
+        79
+      ],
+      "stories": [
+        22,
+        35,
+        36,
+        37,
+        38
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "52700822faebaa2b6deb7f3f224b49aa4762a94c329fb606e353ed2edaa6be79",
+      "database_id": 6010069722,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        78,
+        79
+      ]
+    },
+    {
+      "local_id": "B10",
+      "title": "[B B10] 复用正确事件结果并隔离规则和输入变化",
+      "filename": "10-event-result-reuse.md",
+      "number": 82,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/82",
+      "internal_blocker_numbers": [
+        75
+      ],
+      "external_blocker_numbers": [
+        70
+      ],
+      "blocker_numbers": [
+        75,
+        70
+      ],
+      "stories": [
+        38,
+        39,
+        40,
+        41,
+        44
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "73b40ae085efb5f67d48613d90c79fc6a2aae06495f924e4110317711f9e58a6",
+      "database_id": 6010070623,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        70,
+        75
+      ]
+    },
+    {
+      "local_id": "B11",
+      "title": "[B B11] 运行真实固定区域事件和完整前后窗口案例",
+      "filename": "11-real-fixed-region-events.md",
+      "number": 83,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/83",
+      "internal_blocker_numbers": [
+        80
+      ],
+      "external_blocker_numbers": [
+        71
+      ],
+      "blocker_numbers": [
+        80,
+        71
+      ],
+      "stories": [
+        3,
+        13,
+        14,
+        17,
+        23,
+        37,
+        42,
+        45,
+        46
+      ],
+      "acceptance_criteria": 8,
+      "body_sha256": "c9cdd201280f18b75b04c19fc1a9433a5a0782f7553eb723db34b8db29dd5c1e",
+      "database_id": 6010070949,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        71,
+        80
+      ]
+    },
+    {
+      "local_id": "B12",
+      "title": "[B B12] 复算真实事件成果并交接C与工作台合同",
+      "filename": "12-real-replay-handoff.md",
+      "number": 84,
+      "url": "https://github.com/NingRuo-code/Ocean/issues/84",
+      "internal_blocker_numbers": [
+        81,
+        82,
+        83
+      ],
+      "external_blocker_numbers": [],
+      "blocker_numbers": [
+        81,
+        82,
+        83
+      ],
+      "stories": [
+        34,
+        38,
+        41,
+        42,
+        43,
+        45,
+        46
+      ],
+      "acceptance_criteria": 6,
+      "body_sha256": "f1aaa494eab3cb8ceea2626dd46a8b0707a1d0d6a4b7c75ed270756e4b413027",
+      "database_id": 6010071331,
+      "body_and_label_verified": true,
+      "native_dependencies_verified": true,
+      "open_blocker_numbers": [
+        81,
+        82,
+        83
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "child": 74,
+      "blocked_by": 73,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 74,
+      "blocked_by": 62,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 75,
+      "blocked_by": 74,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 75,
+      "blocked_by": 41,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 76,
+      "blocked_by": 75,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 77,
+      "blocked_by": 76,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 77,
+      "blocked_by": 65,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 78,
+      "blocked_by": 77,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 78,
+      "blocked_by": 66,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 79,
+      "blocked_by": 77,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 80,
+      "blocked_by": 78,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 80,
+      "blocked_by": 79,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 81,
+      "blocked_by": 78,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 81,
+      "blocked_by": 79,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 82,
+      "blocked_by": 75,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 82,
+      "blocked_by": 70,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 83,
+      "blocked_by": 80,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 83,
+      "blocked_by": 71,
+      "native": true,
+      "text_reference_verified": true,
+      "external": true
+    },
+    {
+      "child": 84,
+      "blocked_by": 81,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 84,
+      "blocked_by": 82,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    },
+    {
+      "child": 84,
+      "blocked_by": 83,
+      "native": true,
+      "text_reference_verified": true,
+      "external": false
+    }
+  ],
+  "completed": true,
+  "real_event_analysis_executed": false,
+  "application_tests_executed": false,
+  "external_blockers": [
+    {
+      "number": 41,
+      "database_id": 6008468548,
+      "state": "open"
+    },
+    {
+      "number": 62,
+      "database_id": 6009419387,
+      "state": "open"
+    },
+    {
+      "number": 65,
+      "database_id": 6009420698,
+      "state": "open"
+    },
+    {
+      "number": 66,
+      "database_id": 6009420952,
+      "state": "open"
+    },
+    {
+      "number": 70,
+      "database_id": 6009421951,
+      "state": "open"
+    },
+    {
+      "number": 71,
+      "database_id": 6009422168,
+      "state": "open"
+    }
+  ],
+  "parent_unchanged_verified": true,
+  "work_package_unchanged_verified": true,
+  "umbrella_unchanged_verified": true,
+  "reused_experiment_unchanged_verified": true,
+  "native_dependencies_available": true,
+  "frontier": [
+    73
+  ]
+}

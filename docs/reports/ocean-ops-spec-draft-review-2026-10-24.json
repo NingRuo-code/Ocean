@@ -1,0 +1,384 @@
+{
+  "status": "approved-published",
+  "date": "2026-10-24",
+  "spec": "docs/specs/ocean-ops-release-observability-and-recovery-spec-2026-10-24.md",
+  "proposed_title": "[Spec] OPS 系统交付：版本化发布、运行监测与可验证备份恢复",
+  "user_stories": 64,
+  "implementation_checks": 72,
+  "testing_decisions": 9,
+  "source_specs_match_remote": [
+    24,
+    35,
+    45,
+    95,
+    109,
+    125,
+    141,
+    159,
+    176,
+    199
+  ],
+  "sources": [
+    {
+      "number": 10,
+      "title": "Existing Server Sync Runbook",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "d34e579a5ad7b35681f39057a38417a05098d5cfb7343ef8a3cfc71ee04a01d1"
+    },
+    {
+      "number": 103,
+      "title": "[W W08] 贯通真实整月A提交到可复核结果",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "bae46147435095472feb58054a69637ee95abe4ecede4f3edb4055f525c841b4"
+    },
+    {
+      "number": 108,
+      "title": "[W W13] 回放真实A/B/C工作台并交接后续公共模块",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "4bf64577c2563b63087d05969974702d8d2869c6165f41cccda8cbcd2459d061"
+    },
+    {
+      "number": 109,
+      "title": "[Spec] TASK 公共任务中心：安全恢复、归档准备与分层保存",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "ee01726c8ec92ff56b0fbe1868d35e3cbb44dc6be680523280ba7690f5a98954"
+    },
+    {
+      "number": 11,
+      "title": "Deployed Server Smoke Sync",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "af585ce6338ee5c83a4c8dbe71d04d2ce34f14bbc0b2fe9a234f2860afcad035"
+    },
+    {
+      "number": 113,
+      "title": "[TASK T04] 后台任务按资源排队并显示真实步骤进度",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "a03afa4b47098da291fac22c275d19acbca4c9431d4aaf85d079d0c6c9257f7c"
+    },
+    {
+      "number": 114,
+      "title": "[TASK T05] 重启后从可靠检查点继续原任务",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "914feb9a2696bf958ae920f2e71ae6ff763caefd9b7b984ec5930c120007afb0"
+    },
+    {
+      "number": 115,
+      "title": "[TASK T06] 恢复时识别已提交结果并拒绝旧进程写入",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "42f92594f5371e357b207c1109b838c2cad4295f2abba09c9fbe20e95843c2f8"
+    },
+    {
+      "number": 116,
+      "title": "[TASK T07] 不安全恢复明确中断并按原记录重试",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "e872d894a8f8b9860268aa79d035fd65ed82dfbb26d50f5ca72dfce9019ac618"
+    },
+    {
+      "number": 117,
+      "title": "[TASK T08] 取消意图跨重启保留且不与恢复竞争",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "6c44f1f07ca92bf8dfcb2da4ec498e2da50c0b0f75ee15b3f042253ee0e26941"
+    },
+    {
+      "number": 118,
+      "title": "[TASK T09] 多日多层准备保留缺口并正确发布就绪范围",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "e9163fe51531cd8edb852b6b94fba6f737695da0f88c80921854646e05c8f2bd"
+    },
+    {
+      "number": 119,
+      "title": "[TASK T10] 保留轻量证据并说明大产物与复算状态",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "0e8a8e64ee4b928bec0c572d84c88a64adce6cd1d9e5f1477a7e90ccb8b7370e"
+    },
+    {
+      "number": 12,
+      "title": "Basic Backend Completion Review",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "3fe0ac2339e4f8b5ed3e59d91dc9a09e98bce139a3cb80fb92c9b7e83985ab38"
+    },
+    {
+      "number": 120,
+      "title": "[TASK T11] 保护已保存成果及活动共享引用",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "e6c5b9604ea691c944b3d1b060a27297727beea58ffd1e9c2162df50ca7dbe34"
+    },
+    {
+      "number": 122,
+      "title": "[TASK T13] 按保护规则清理普通大产物并保留复算说明",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "b2756bb2745a16cb5584f919c3ad8d22a2606008116ff4920f2c12c3f78110a1"
+    },
+    {
+      "number": 123,
+      "title": "[TASK T14] 据混合负载实测冻结任务与保存限额",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "750897369759a3b0c804ca00e5b49cfed3f52ff87bada718b1bc844ea021cbee"
+    },
+    {
+      "number": 124,
+      "title": "[TASK T15] 回放真实恢复准备与保护保存并交接",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "414d030b206fc7af86d767e93417094cf15b9aad8336c3831d518d49d9e2c1ba"
+    },
+    {
+      "number": 125,
+      "title": "[Spec] REPORT 案例与研究成果：版本快照、统一报告与同源导出",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "599b7f3fa25e0e61d71a28f91f9e67fe00a20d704facb7ceba0f5cf43e392a22"
+    },
+    {
+      "number": 13,
+      "title": "执行总纲：可信历史分析 A→B→C 与界面、任务工作台改进",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "6d62cc98dc410af20b3b7ba0d550a6cbb20ec6206e0637422911dd77c639115b"
+    },
+    {
+      "number": 134,
+      "title": "[REPORT R09] 交付真实A案例及PDF图片表格成果包",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "21270808e2384b169b6b56ba41bc74caf6572ecb7d393074a42a5c7db1c04311"
+    },
+    {
+      "number": 138,
+      "title": "[REPORT R13] 按导出用途投影字段并核对文件元信息",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "93b89671a2d7dd83e928e239b20897d38411ead4f1a6f4c8266126047f545e8f"
+    },
+    {
+      "number": 139,
+      "title": "[REPORT R14] 案例及报告保存与真实清理保持一致",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "f2e57ae87ab21d02a2eb64ee27435e9b25262665a1293bf67e136eca7dec82b0"
+    },
+    {
+      "number": 140,
+      "title": "[REPORT R15] 回放真实成果导出并交接后续研究与AI",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "27b7bdbe457a809403c422b0676ffa5b4f4a5d333c36d657f274b55e70f85215"
+    },
+    {
+      "number": 141,
+      "title": "[Spec] G3 独立复核：跨年季节与海域的关系稳健性",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "531444fd3ee8dafeb89446e5337dd7d15980c1edae314782bbb822a0dc253c2d"
+    },
+    {
+      "number": 144,
+      "title": "[G3 V03] 登记资料接触并冻结可审查复核方案",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "0f363d6d9d798f15d71f3b4015de842633f9e38aac68b0e418b636681a89a23f"
+    },
+    {
+      "number": 145,
+      "title": "[G3 V04] 阻止重叠样本和相关事件跨入独立复核",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "4462c8abd65b220d491a5877481de17f6329aacc1b63c62923988a82d07019a6"
+    },
+    {
+      "number": 158,
+      "title": "[G3 V17] 复算东海A/B复核成果并交接适用范围",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "cf23a6519ae7d24b7b8f7b5e381e755c6612bf9c612c22efbf58ff3b3eb86292"
+    },
+    {
+      "number": 159,
+      "title": "[Spec] G3 相似案例与辅助匹配：可解释检索、响应对照与断档说明",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "f8c450dfabc95b52e86471864668b8a90f4837b14b837189edbd33a3467f2aac"
+    },
+    {
+      "number": 167,
+      "title": "[G3 S08] 隔离验证保留资料并登记实际检索接触",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "45c7ddf12f5948d9d868138676bf81dde396dbff6e0862063db9d225fa42a750"
+    },
+    {
+      "number": 175,
+      "title": "[G3 S16] 交接真实检索与辅助匹配成果合同",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "0821b5743ec89ab1f8f0fa086aa0e287b3c9308d172ba93986ac1a332803f7db"
+    },
+    {
+      "number": 176,
+      "title": "[Spec] PRED 活动预测：可知输入、简单基线与锋面增量独立回测",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "914eda9ca18040f6a48dc836ab743c0cbbe4f73c4c576f4754a27a2cb39d5655"
+    },
+    {
+      "number": 181,
+      "title": "[PRED P05] 登记预测分区并阻止窗口和目标泄漏",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "1005f5718e956bbccc2e136dcca105f1800ca3966aac6d2736ca65a2afd6f849"
+    },
+    {
+      "number": 193,
+      "title": "[PRED P17] 贯通真实局部回测阅读并交接核心成果",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "e1f555e2cc1a91655189ea4407a9d7c40a1fafb55d7f9c225a7bbab4acf2693e"
+    },
+    {
+      "number": 198,
+      "title": "[PRED P22] 汇合预测实证与空间扩展并交接完整范围",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "43f30b900531b6d029cda48031916c7d6f341809f6dc2e0d26060a4abbe34293"
+    },
+    {
+      "number": 199,
+      "title": "[Spec] AI 多轮分析：同条件任务执行、证据解释与有界在线模型",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "fcfa5883f195da08865e82865953db66a989729d7ef04b851a47e4a7499f4d77"
+    },
+    {
+      "number": 21,
+      "title": "[W] 工作台接入已验证的 A/B/C 分析任务",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "0a95219e31acef44ffb23f10e7659efb7501df70f7d3cd5390112b6c3e40fc90"
+    },
+    {
+      "number": 210,
+      "title": "[AI AI11] 交付真实整月A的在线多轮核心流程",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "35d51ad70f8055d3e8deae972b1cc43ff783ba47bdac7ad988f4598b3db89d4b"
+    },
+    {
+      "number": 223,
+      "title": "[AI AI24] 按预算清理会话且保护主动保存解释",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "7ed6cf971d0eaaf0876ab49b255387808a8ff211e8492904177111678cbee7c3"
+    },
+    {
+      "number": 224,
+      "title": "[AI AI25] 用冻结用例验证在线多步骤与降级",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "cd3ec6534dae45c6bc2f724e37656179e917eb01a7eeb0879b9e4edacf25a8ed"
+    },
+    {
+      "number": 225,
+      "title": "[AI AI26] 汇合各工具真实AI能力并交接完整范围",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "cef88c1657d4d76218a3d6b4a50b74225fcac1ee282d99b63018e668d1f5ea02"
+    },
+    {
+      "number": 24,
+      "title": "[Spec] U1/U2 首批界面迁移：工作台、统一筛选与可信结果展示",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "13de9e3f7bd33db0f5eb9d7101f271e876869f6783e9ccb354d2be3f50754215"
+    },
+    {
+      "number": 35,
+      "title": "[Spec] P0 数据审计与分析条件合同：覆盖、粒度、零值、版本与支持范围",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "113316d4a305dd617c006e24474770a6c088e155bc5e2a64efa31d062f5e7640"
+    },
+    {
+      "number": 43,
+      "title": "[P0 P08] 源数据变化后旧资格不被误用",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "000f5b1c68dd41cbf4a948205ed6c27ee6bc711bf0c2e47a77e217070422aff8"
+    },
+    {
+      "number": 45,
+      "title": "[Spec] P1 性能基线与瓶颈优化：地图加载、算法对照和服务器容量",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "a9a846280eb84d1d9585d672507fdd92ee79f37a5154dd2b00e2ce60d9c1b056"
+    },
+    {
+      "number": 47,
+      "title": "[P1 F02] 盘点实际服务链与分层资源工作集",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "a460ee7330015e64e59862de2ebbe37b7c314330112431d22265c8c86e2ba566"
+    },
+    {
+      "number": 50,
+      "title": "[P1 F05] 重复窗口读取的服务缓存与清理有界",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "25bb80c821609f6b9504950cd1a3d0ab838a4f5471effe01fce0777e59f2b01f"
+    },
+    {
+      "number": 53,
+      "title": "[P1 F08] 首轮同负载复测与服务器容量决策",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "4a8d6e8ad5516a58550bb8228070a04bf9fa8e271cfa874346f32052bbaf0cb2"
+    },
+    {
+      "number": 59,
+      "title": "[P1 F14] 剩余绘制瓶颈的单一替代方案对照",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "80a8ad1f61474efcbe69e106afbf43e8c31809d9786c42d7f97aca43b51e4159"
+    },
+    {
+      "number": 95,
+      "title": "[Spec] W 分析工作台：A/B/C 引导提交、任务状态与同源结果联动",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "854716edcf9ace8eb94f27567ebb4d1fe465c0d9c7d70ab2f7d30161db2fee8f"
+    },
+    {
+      "number": 99,
+      "title": "[W W04] 本人显式提交A任务并取得持久受理记录",
+      "state": "OPEN",
+      "comments_read": 0,
+      "body_sha256": "a86b5fae8a3bb33587465853ff476ae9309f4b4a2ee1f952ff146d81cd0174e6"
+    }
+  ],
+  "existing_issues_checked_through": 225,
+  "published": true,
+  "production_server_accessed": false,
+  "deployment_executed": false,
+  "backup_or_restore_executed": false,
+  "model_calls_executed": false,
+  "parents_modified": false,
+  "testing_boundary_user_confirmed": true,
+  "issue": 226,
+  "url": "https://github.com/NingRuo-code/Ocean/issues/226",
+  "publication_report": "docs/reports/ocean-ops-spec-publication-2026-10-24.json"
+}

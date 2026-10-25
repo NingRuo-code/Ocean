@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-23",
+  "scope": "Single read-only public API samples; no stress test, no p50/p95, no server hardware inventory, no browser render timing. Identity encoding requested; actual browser compressed transfers may differ. Server address omitted.",
+  "samples": [
+    {
+      "scenario": "health",
+      "repeats": 1,
+      "status": "ok",
+      "bytes_read": 66,
+      "elapsed_seconds": 0.36,
+      "content_type": "application/json",
+      "content_encoding": null,
+      "body_capped": false,
+      "top_level_keys": [
+        "status",
+        "service",
+        "offline"
+      ],
+      "array_lengths": {},
+      "http_status": 200
+    },
+    {
+      "scenario": "viewport",
+      "repeats": 1,
+      "elapsed_seconds": 0.254,
+      "http_status": 404
+    },
+    {
+      "scenario": "fishing_day",
+      "repeats": 1,
+      "bytes_read": 216834,
+      "elapsed_seconds": 0.498,
+      "content_type": "application/json",
+      "content_encoding": null,
+      "body_capped": false,
+      "top_level_keys": [
+        "date",
+        "cell_count",
+        "total_hours",
+        "vessel_count",
+        "flag_count",
+        "spatial_resolution_deg",
+        "bbox",
+        "cells",
+        "raster_url",
+        "raster_bounds",
+        "source"
+      ],
+      "date": "2024-08-05",
+      "array_lengths": {
+        "bbox": 4,
+        "cells": 2412,
+        "raster_bounds": 4
+      },
+      "http_status": 200
+    }
+  ]
+}
