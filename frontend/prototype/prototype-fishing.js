@@ -525,45 +525,53 @@ function drawGraticule(host) {
 }
 
 // 海温色带：按数据里的 0.5 °C 档位取色（不插值，只是给档位配颜色）
-const SST_RAMP = [[16, "#2b3f8f"], [20, "#2f7fc1"], [23, "#37b3b8"], [25, "#7ecb6a"],
-  [27, "#e8d75a"], [29, "#f0a341"], [31, "#e2694a"], [33, "#b52f3f"]];
-function mixHex(a, b, t) {
-  const pa = [1, 3, 5].map((i) => parseInt(a.substr(i, 2), 16));
-  const pb = [1, 3, 5].map((i) => parseInt(b.substr(i, 2), 16));
-  return "rgb(" + pa.map((v, i) => Math.round(v + (pb[i] - v) * t)).join(",") + ")";
+function sstColor(c) { return OFColors.sstStyle(c).color; }
+
+// Paint a single winning source at each location; preserve each source grid.
+function sstDisplaySources() {
+  return OFData.sstSources(state.date).filter(source => !globeMode() || source.sst.grid.dlon > 0.1);
 }
-function sstColor(c) {
-  if (c <= SST_RAMP[0][0]) return SST_RAMP[0][1];
-  for (let i = 1; i < SST_RAMP.length; i++) {
-    if (c <= SST_RAMP[i][0]) {
-      const t = (c - SST_RAMP[i - 1][0]) / (SST_RAMP[i][0] - SST_RAMP[i - 1][0]);
-      return mixHex(SST_RAMP[i - 1][1], SST_RAMP[i][1], t);
+function sstFootprint(day) {
+  return rlePath(Array.from({ length: day.grid.ny }, (_, row) => [row, 0, day.grid.nx]), day.grid);
+}
+function drawSstSources(svg) {
+  if (!state.layers.sst) return;
+  // The same finest-first source order is used by point readings. Mask the
+  // entire higher-priority grid, including holes, so coarse colours cannot
+  // leak into fine-grid missing values or blend underneath valid fine cells.
+  const sources = sstDisplaySources(), defs = $("mapSvg").querySelector("defs"), box = currentView();
+  for (let i = sources.length - 1; i >= 0; i--) {
+    const source = sources[i], group = el("g", { "data-sst-resolution": source.sst.grid.dlon }, svg);
+    if (i > 0) {
+      const id = "sst-cover-" + i, mask = el("mask", { id, maskUnits: "userSpaceOnUse", x: box.x, y: box.y, width: box.w, height: box.h }, defs);
+      el("rect", { x: box.x, y: box.y, width: box.w, height: box.h, fill: "white" }, mask);
+      for (let j = 0; j < i; j++) el("path", { d: sstFootprint(sources[j].sst), fill: "black" }, mask);
+      group.setAttribute("mask", "url(#" + id + ")");
+    }
+    drawSstLayer(group, source.sst);
+    const day = source.sst;
+    if ((day.runs || []).reduce((n, run) => n + run[2], 0) < day.grid.nx * day.grid.ny) {
+      const id = "sst-missing-" + i, mask = el("mask", { id, maskUnits: "userSpaceOnUse", x: box.x, y: box.y, width: box.w, height: box.h }, defs);
+      el("path", { d: sstFootprint(day), fill: "white" }, mask);
+      el("path", { d: rlePath(day.runs || [], day.grid), fill: "black" }, mask);
+      el("path", { d: sstFootprint(day), fill: "url(#sstMissingHatch)", mask: "url(#" + id + ")", "data-layer": "sst-missing" }, group);
     }
   }
-  return SST_RAMP[SST_RAMP.length - 1][1];
 }
 
-// 真实海表温度场（NOAA GHRSST）：按档位分组后画，档位内相邻行会合并，看起来是连续温度场
-// v1.9：按「数据片」画 —— 一天可能有多片（作业海域明细 + 按视野取的概览/明细），每片自带 grid 与分辨率
-function drawSstPatch(svg, patch, sel) {
-  if (!state.layers.sst) return;
-  // 全球粗格（1°，sstCoarse）先画、垫在下面；东海/窗口的 0.05° 明细后画压在上面 —— 两者并存
-  if (patch.sstCoarse) drawSstLayer(svg, patch.sstCoarse, sel, true);
-  if (patch.sst) drawSstLayer(svg, patch.sst, sel, patch.overview);
-}
-
-function drawSstLayer(svg, day, sel, coarse) {
+function drawSstLayer(svg, day) {
   const binC = day.bin_c || OFData.sstBinC();
   const byBin = new Map();
   (day.runs || []).forEach((run) => {
     if (!byBin.has(run[3])) byBin.set(run[3], []);
     byBin.get(run[3]).push(run);
   });
-  const base = coarse ? 0.30 : 0.52;           // 概览/粗格淡一点，避免和 0.05° 明细混淆
+  const base = OFColors.sstOpacity(); // All winning sources share opacity; no coarse/fine colour blending.
   byBin.forEach((runs, bin) => {
-    el("path", { d: rlePath(runs, day.grid), "data-layer": "sst", fill: sstColor(bin * binC),
-      stroke: "none", "shape-rendering": "crispEdges",
-      opacity: base * (sel && sel.type !== "sst" ? 0.35 : 1) }, svg);
+    const range = OFColors.sstStyle(bin * binC).range;
+    el("path", { d: rlePath(runs, day.grid), "data-layer": "sst", "data-value-c": bin * binC, "data-range": OFColors.sstStyle(bin * binC).range, fill: sstColor(bin * binC),
+      stroke: range === "below" ? "#86b6cf" : range === "above" ? "#fff9db" : "none", "stroke-width": 0.8,
+      "stroke-dasharray": range === "within" ? "none" : "2 2", "shape-rendering": "crispEdges", opacity: base }, svg);
   });
 }
 
@@ -683,7 +691,8 @@ function drawFrontPatch(svg, patch, sel) {
     });
     // 编号只给对象；放不下就跳过，不再互相压字
     const placed = [];
-    entries.filter((e) => e.isObject).forEach((entry) => {
+    const nearestId = snapshot().fronts.find(f => f.isObject)?.id;
+    entries.filter((e) => e.isObject && patch.primary && (e.id === nearestId || e.id === selected)).forEach((entry) => {
       const mid = entry.points[Math.floor(entry.points.length / 2)];
       const p = xy(mid[0], mid[1]);
       const isSel = !!(selected && entry.id === selected);
@@ -715,7 +724,7 @@ function patchEntries(patch) {
 // 与数据片无关的图层（渔场线索 / 推荐水域示例）
 function drawExtras(svg, snap, iso, sel) {
   const dim = (k) => (sel && sel.type !== k ? 0.16 : 1);
-  // 渔场线索（GFW 表观捕捞活动，fishing hours）：暖色圆点，半径与浓度随 hours 递增。
+  // 渔场线索（GFW 表观捕捞活动，fishing hours）：登记域内使用浅紫对数标尺；域未知时仅用统一标记。
   // 刻意与 SST 的连续色带在形态上区分（点阵 vs 色带）；低于当日中位数的格子不画，避免糊成一片。
   if (state.layers.ground) {
     const fishing = OFData.fishingDay(iso);
@@ -724,21 +733,20 @@ function drawExtras(svg, snap, iso, sel) {
       const values = cells.map((c) => c.hours).sort((a, b) => a - b);
       const q = (f) => values[Math.min(values.length - 1, Math.max(0, Math.floor(values.length * f)))];
       const t60 = q(0.6);
-      const t85 = q(0.85);
-      const t97 = q(0.97);
-      const maxHours = values[values.length - 1] || 1;
       const drawn = cells
         .filter((c) => Number.isFinite(c.hours) && c.hours >= t60)
         .sort((a, b) => b.hours - a.hours)
         .slice(0, 700);                                   // 上限兜底，防止极端日期卡顿
       drawn.forEach((cell) => {
         const p = xy(cell.lon, cell.lat);
-        const ratio = Math.min(1, cell.hours / maxHours);
-        const r = 2.2 + 6.4 * Math.sqrt(ratio);
-        const fill = cell.hours >= t97 ? "#ff7a3c" : cell.hours >= t85 ? "#ff9d4d" : "#ffc46b";
-        el("circle", { cx: p[0], cy: p[1], r, fill,
-          opacity: (0.26 + 0.44 * ratio) * dim("ground"),
-          "data-layer": "ground" }, svg);
+        const style = OFColors.effortStyle(fishing, cell.hours);
+        const point = el("circle", { cx: p[0], cy: p[1], r: style.radius, fill: cell.hours === 0 ? "none" : style.color,
+          stroke: style.range === "above" ? "#fff" : style.color, "stroke-width": 1,
+          "stroke-dasharray": style.range === "above" ? "2 2" : "none", opacity: 0.9 * dim("ground"),
+          "data-layer": "ground", "data-hours": cell.hours, "data-range": style.range,
+          "aria-label": "AIS 表观捕捞活动 " + cell.hours + " h" }, svg);
+        el("title", {}, point).textContent = cell.hours + " h / AIS 表观捕捞活动 / " +
+          (style.range === "above" ? "超过登记显示域，保留真实小时" : style.quantitative ? "限定统一标尺" : "标尺待确认，不编码强弱");
       });
     }
   }
@@ -845,6 +853,8 @@ function drawMap(opts) {
     patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)" }, defs);
   el("rect", { width: 6, height: 6, fill: "rgba(150,166,182,0.30)" }, hatch);
   el("line", { x1: 0, y1: 0, x2: 0, y2: 6, stroke: "rgba(206,222,238,0.5)", "stroke-width": 1.6 }, hatch);
+  const sstHatch = el("pattern", { id: "sstMissingHatch", width: 5, height: 5, patternUnits: "userSpaceOnUse", patternTransform: "rotate(-45)" }, defs);
+  el("line", { x1: 0, y1: 0, x2: 0, y2: 5, stroke: "#9daab7", "stroke-width": 1, opacity: 0.4 }, sstHatch);
 
   // 所有图层放进一档 stage：平面↔球面切换时整档淡出，遮住投影形变那一下
   const stage = el("g", { id: "mapStage", style: "transition:opacity " + GLOBE_FADE_MS + "ms ease" }, svg);
@@ -852,6 +862,7 @@ function drawMap(opts) {
   const gratHost = el("g", { id: "gratHost" }, stage);
   drawGraticule(gratHost);
   if (ok && !skipData) {
+    drawSstSources(stage);
     // 一天可能有多片（作业海域明细 + 按视野取的概览/明细）：概览先画，明细压在上面。
     // 球面档只画概览片：0.05° 在球面上≈0.3 像素、却要重投影上万条游程，
     // 而概览片本来就是按窗口取的全球粗格（服务器模式），离线则只留世界轮廓与作业海域框。
@@ -859,7 +870,6 @@ function drawMap(opts) {
       if (globe && patch.resolutionDeg <= 0.1) return;
       drawNodataPatch(stage, patch);
       drawFrontPatch(stage, patch, patch.primary ? state.select : null);
-      drawSstPatch(stage, patch, state.select);
     });
     drawExtras(stage, snap, iso, state.select);
   }
@@ -937,28 +947,34 @@ function frontTitle(entry) {
 
 // 浮层只留 4 项：经纬度（head）/ 水温 / 最近锋面距离 / 是否锋面区（是则给冷暖侧）
 function probeHTML(lon, lat) {
-  const head = '<div class="mp-coord">' + fmtCoord(lon, lat) + "</div>";
+  let head = '<div class="mp-coord">' + fmtCoord(lon, lat) + "</div>";
+  if (state.layers.ground) {
+    const hit = OFData.fishingCellAt(state.date, lon, lat);
+    const text = hit.status === "ready" ? hit.hours + " h" : ({ "unit-conflict": "单位冲突", "unknown-resolution": "粒度未声明，查看标记原值", ambiguous: "格点匹配有歧义", unavailable: "活动资料未就绪", "unknown-coverage": "无记录／覆盖未知" }[hit.status]);
+    head += '<div class="mp-row"><span class="mp-k">表观活动</span><span class="mp-v">' + text + "</span></div>";
+  }
   const foot = '<div class="mp-foot">点击钉住 / Esc 取消</div>';
   const st = dataStatus();
   if (!st.ok) return head + '<div class="mp-note">' + st.title + "，该日期无数据，不做估算</div>" + foot;
 
+  // SST and front masks are independent. A missing front observation must not
+  // hide an available temperature; globe probes use the displayed coarse source.
+  const sstHere = OFData.sstCell(state.date, lon, lat, state.layers.sst ? sstDisplaySources() : undefined);
+  const tempV = sstHere && sstHere.valueC !== null ? sstHere.valueC.toFixed(1) + " °C"
+    : sstHere && sstHere.inGrid ? "该格无水温数据" : "该位置无水温资料";
+  head += '<div class="mp-row"><span class="mp-k">水温' + (!state.layers.sst ? "（图层关闭）" : "") + '</span><span class="mp-v">' + tempV +
+    (sstHere?.resolutionDeg ? " / " + sstHere.resolutionDeg + "° 网格" : "") + "</span></div>";
   const cell = cellAt(lon, lat);
   const bbox = OFData.attribution() ? OFData.attribution().region.bbox : null;
   if (!cell || !cell.inGrid) {
-    return head + '<div class="mp-note">该位置不在数据范围内' +
+    return head + '<div class="mp-note">该位置不在锋面数据范围内' +
       (bbox ? "（已覆盖 " + bbox[0] + "~" + bbox[2] + "°E，" + bbox[1] + "~" + bbox[3] + "°N）" : "") + "</div>" + foot;
   }
   if (cell.nodata) {
-    return head + '<div class="mp-note">这里没有观测数据（陆地、云或未观测，数据里统一用 -128 表示）</div>' + foot;
+    return head + '<div class="mp-note">锋面缺测（陆地、云或未观测，锋面资料用 -128 表示）</div>' + foot;
   }
 
   let h = head;
-  // 水温：这一格的真实档位值（NOAA GHRSST，与锋面不同源），没有就直说，绝不插值
-  const sstHere = OFData.sstCell(state.date, lon, lat);
-  const tempV = sstHere && sstHere.valueC !== null ? sstHere.valueC.toFixed(1) + " °C"
-    : sstHere && sstHere.inGrid ? "该格无水温数据" : "该日期无数据";
-  h += '<div class="mp-row"><span class="mp-k">水温</span><span class="mp-v">' + tempV + "</span></div>";
-
   // 最近锋面：只给距离（往哪个方向开，看地图上的锋面线与范围环）
   const nf = nearestFrontFrom(lon, lat);
   h += '<div class="mp-row"><span class="mp-k">最近锋面</span><span class="mp-v">' +
@@ -1073,8 +1089,11 @@ function renderLegend() {
       if (on && ["sst", "front", "coldwarm", "ground"].includes(k)) {
         const ready = readiness === "ready";
         const swatches = [...row.querySelectorAll(".swatch")].map(n => n.outerHTML).join("");
-        legendRows.push('<div class="key-row">' + (ready ? swatches : "") +
-          ({ sst: "水温 / 现有分档", front: "锋面线", coldwarm: "冷侧 / 暖侧", ground: "表观活动 / 小时" }[k]) + (ready ? "" : "：" + label.textContent) + "</div>");
+        let key = ready ? swatches : "";
+        if (ready && k === "sst") key = '<button id="sstLegendOpen" type="button" aria-controls="layerDrawer" class="scale-key"><span class="scale-ramp" style="background:' + OFColors.sstGradient() + '"></span>' + OFColors.sstDomain().join("–") + " °C / " + OFColors.sstModeLabel() + "</button>";
+        if (ready && k === "ground") key = '<button id="effortLegendOpen" type="button" aria-controls="layerDrawer" class="scale-key">' + (OFColors.effortScale(fishing) ? '<span class="scale-ramp" style="background:' + OFColors.effortGradient() + '"></span>' : "") + OFColors.effortLabel(fishing) + " / ◯ 0h</button>";
+        legendRows.push('<div class="key-row">' + key +
+          ({ sst: "水温", front: "锋面线", coldwarm: "冷侧 / 暖侧", ground: "表观活动 / 小时" }[k]) + (ready ? "" : "：" + label.textContent) + "</div>");
       }
     }
   });

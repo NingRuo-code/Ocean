@@ -3,3 +3,7 @@ deploy/*.sh text eol=lf
 tools/ops/*.sh text eol=lf
 deploy/nginx/*.conf text eol=lf
 deploy/*.ps1 text eol=crlf
+
+# Preserve upstream numeric table bytes and reproducible display artifacts.
+frontend/prototype/palettes/* text eol=lf
+frontend/prototype/data/display-domains.js text eol=lf

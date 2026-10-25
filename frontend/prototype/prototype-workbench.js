@@ -107,11 +107,12 @@
     $("headerFilter").setAttribute("aria-expanded", String(open));
     if (!open && restore) (filterOpener.getClientRects().length ? filterOpener : $("headerFilter")).focus({ preventScroll: true });
   }
+  let layerOpenerId = "wbLayers";
   function showLayers(open, restoreFocus = true) {
     const restore = restoreFocus && layers.contains(document.activeElement);
     if (open) showFilters(false, null, false);
     setDrawer(open);
-    if (!open && restore) (workbench.open ? $("wbLayers") : $("workbenchToggle")).focus({ preventScroll: true });
+    if (!open && restore) ($(layerOpenerId)?.getClientRects().length ? $(layerOpenerId) : $("workbenchToggle")).focus({ preventScroll: true });
   }
   window.addEventListener("ocean-layer-panel", e => {
     $("wbLayers").setAttribute("aria-expanded", String(e.detail.open));
@@ -141,7 +142,8 @@
   $("filterClose").onclick = () => showFilters(false);
   window.addEventListener("ocean-map-activate", () => { showFilters(false, null, false); showLayers(false, false); });
   window.addEventListener("ocean-evidence-open", () => { showFilters(false, null, false); showLayers(false, false); });
-  $("wbLayers").onclick = () => showLayers(!state.drawerOpen);
+  $("wbLayers").onclick = () => { layerOpenerId = "wbLayers"; showLayers(!state.drawerOpen); };
+  window.addEventListener("ocean-colors-open", e => { layerOpenerId = e.detail.opener; showLayers(true); });
   $("layerClose").onclick = () => showLayers(false);
   layers.addEventListener("keydown", e => {
     if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); showLayers(false); }
