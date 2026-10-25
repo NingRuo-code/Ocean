@@ -111,6 +111,7 @@
   function activateTask(pane) {
     if (["now", "clim", "future"].includes(pane)) {
       Object.assign(state.layers, { sst: pane !== "clim", band: true, front: true, coldwarm: true, nodata: true, ground: false, fishing: false });
+      window.dispatchEvent(new Event("ocean-layer-preset"));
       $("layerPresetNote").textContent = pane === "future" ? "图层仍为所选日期观测，未绘制未来预报。" : "已应用图层搭配；可在图层中调整。";
       refresh();
     }

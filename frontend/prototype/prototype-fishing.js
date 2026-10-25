@@ -1830,6 +1830,7 @@ function refresh() {
   syncOriginPicker();
   requestViewportPatch(true);        // 换日期后这一片也要跟着换（窗口没变则命中缓存，不重复取）
   $("mapSvg").dataset.panelMs = String(Math.max(0, performance.now() - panelStarted - Number($("mapSvg").dataset.mapMs || 0)));
+  window.dispatchEvent(new Event("ocean-applied-context"));
 }
 
 // 服务器增强模式启用后刷新日期范围与视野（AVAILABLE_DATES / DATE_MIN / DATE_MAX 用 let 的原因）
@@ -2422,6 +2423,7 @@ function bind() {
       renderLegend(); drawMap(); syncSelect(); renderPick();
       const meta = LAYER_META.find((m) => m[0] === k) || [k, k];
       showToast("图层「" + meta[1] + "」已" + (state.layers[k] ? "打开" : "关掉"));
+      window.dispatchEvent(new CustomEvent("ocean-layer-choice", { detail: { key: k, value: state.layers[k] } }));
       if (k === "ground" && state.layers[k]) loadFishing(state.date, true);
     });
   });
@@ -2494,7 +2496,7 @@ if (viewRestored) showToast("已回到上次停留的视野（“◎”回到出
 
 // 服务器增强模式（可选）：成功则把日期范围扩到服务器上的全量日期并重渲染；
 // file:// 打开或 API 不可达时静默跳过，页面保持纯离线行为。
-OFData.initServerMode().then(function (enabled) {
+window.OceanMapReady = OFData.initServerMode().then(function (enabled) {
   syncServerModeUi();
   if (!enabled) return;
   applyServerRange();

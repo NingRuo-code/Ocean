@@ -95,3 +95,43 @@ test("layer controls are exclusive with filters, keyboard accessible and preserv
     assert.equal(await c.evaluate("document.getElementById('layerDrawer').getAttribute('aria-hidden')"), "true");
   } finally { await browser.close(); }
 });
+
+test("reopening restores only applied conditions and manual layers while retaining the independent map view", async () => {
+  const browser = await launchBrowser(process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe");
+  const c = browser.cdp;
+  try {
+    await c.send("Page.enable"); await c.send("Page.navigate", { url: page }); await sleep(650);
+    await click(c, "#headerFilter"); await fill(c, "#locInput", "125,31"); await click(c, "#locateBtn");
+    await click(c, "#rangeSeg [data-range='30']"); await click(c, "#dateNext");
+    await fill(c, "#locInput", "126,32"); await click(c, "#filterClose");
+    await click(c, "#workbenchToggle"); await click(c, "#wbLayers"); await click(c, "#layerDrawer [data-layer='sst']");
+    await click(c, "#layerClose"); await click(c, "#workbenchClose"); await sleep(650);
+    const before = await c.evaluate("document.getElementById('mapSvg').getAttribute('viewBox')");
+    await c.send("Page.reload"); await sleep(750);
+    assert.equal(await c.evaluate("document.getElementById('locInput').value"), "125.00°E, 31.00°N");
+    assert.equal(await c.evaluate("document.getElementById('timeDate').value"), "2024-08-06");
+    assert.equal(await c.evaluate("document.querySelector('#rangeSeg button.active').dataset.range"), "30");
+    assert.equal(await c.evaluate("document.querySelector('#layerDrawer [data-layer=sst]').getAttribute('aria-pressed')"), "false");
+    assert.equal(await c.evaluate("document.getElementById('mapSvg').getAttribute('viewBox')"), before);
+    assert.equal(await c.evaluate("document.getElementById('datePlay').classList.contains('on')"), false);
+    assert.match(await c.evaluate("document.getElementById('preferenceStatus').textContent"), /已恢复/);
+  } finally { await browser.close(); }
+});
+
+for (const scenario of ["expired", "corrupt", "blocked"]) test(`saved preferences degrade honestly when ${scenario}`, async () => {
+  const browser = await launchBrowser(process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe");
+  const c = browser.cdp;
+  try {
+    await c.send("Page.enable");
+    const source = scenario === "blocked" ? "Object.defineProperty(window,'localStorage',{get(){throw new DOMException('disabled','SecurityError')}})" :
+      `localStorage.setItem('ocean.applied.v1',${JSON.stringify(scenario === "corrupt" ? "{invalid" : JSON.stringify({ schema: "ocean-applied-preferences/v1", date: "2099-01-01", point: { lon: 300, lat: 95 }, radius_km: 999, layers: { sst: false, unknown: true } }))});`;
+    await c.send("Page.addScriptToEvaluateOnNewDocument", { source });
+    await c.send("Page.navigate", { url: page }); await sleep(650);
+    assert.equal(await c.evaluate("document.getElementById('timeDate').value"), "2024-08-05");
+    assert.equal(await c.evaluate("document.getElementById('locInput').value"), "124.50°E, 30.20°N");
+    assert.match(await c.evaluate("document.getElementById('preferenceStatus').textContent"), /无法|失效|损坏/);
+    await click(c, "#headerFilter"); await click(c, "#rangeSeg [data-range='30']");
+    assert.equal(await c.evaluate("document.querySelector('#rangeSeg button.active').dataset.range"), "30");
+    if (scenario !== "blocked") assert.equal(await c.evaluate("JSON.parse(localStorage.getItem('ocean.applied.v1')).radius_km"), 30, "corrupt data must not permanently disable future valid saving");
+  } finally { await browser.close(); }
+});
