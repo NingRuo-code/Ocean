@@ -1046,12 +1046,33 @@ function syncSelect() {
   });
 }
 function renderLegend() {
+  const legendRows = [];
   document.querySelectorAll(".legend-row[data-layer]").forEach((row) => {
     const on = !!state.layers[row.dataset.layer];
+    row.setAttribute("aria-pressed", String(on));
     row.style.opacity = on ? "1" : "0.45";
     row.style.filter = on ? "none" : "grayscale(1)";
     row.style.textDecoration = on ? "none" : "line-through";
+    const label = row.querySelector(".layer-status");
+    if (label) {
+      const k = row.dataset.layer;
+      const status = OFData.loadState();
+      const load = status[k === "ground" ? "fishing" : "day"];
+      label.textContent = k === "fishing" ? "示例，非实测" : k === "ground" && !OFData.fishingAvailable() && !OFData.serverEnabled() ? "离线未接入" :
+        load && ["loading", "error", "forbidden", "day-missing", "unprepared", "unknown-coverage"].includes(load.status) ? ({ loading: "加载中", error: "请求失败", forbidden: "无权访问", "day-missing": "当日缺资料", unprepared: "未准备", "unknown-coverage": "覆盖未知" }[load.status]) :
+        (k === "ground" ? !!OFData.fishingDay(state.date) : k === "sst" ? OFData.hasSst(state.date) : OFData.hasDay(state.date)) ? (on ? "已显示" : "已隐藏") : "当日未就绪";
+      row.dataset.visibility = on ? "on" : "off";
+      row.dataset.readiness = label.textContent;
+      if (on && ["sst", "front", "coldwarm", "ground"].includes(k)) {
+        const ready = label.textContent === "已显示";
+        const swatch = row.querySelector(".swatch");
+        legendRows.push('<div class="key-row">' + (ready && swatch ? swatch.outerHTML : "") +
+          ({ sst: "水温 / 现有分档", front: "锋面线", coldwarm: "冷侧 / 暖侧", ground: "表观活动 / 小时" }[k]) + (ready ? "" : "：" + label.textContent) + "</div>");
+      }
+    }
   });
+  const summary = $("mapLegendSummary");
+  if (summary) { summary.innerHTML = legendRows.join(""); summary.hidden = !legendRows.length; }
 }
 
 // ==================== 结论块（已并入「当前」页，随页签切换显示） ====================
@@ -1850,18 +1871,16 @@ function syncServerModeUi() {
   btn.title = mode.reason ? "服务器不可用：" + mode.reason + "；点击重新检测" : "当前使用本地离线数据；点击检测服务器";
 }
 
-// 图层抽屉：默认收起在左侧；鼠标靠近左边缘自动呼出，移开延时自动收起；点 ☰ 可固定展开
-let drawerTimer = null;
-let drawerPinned = false;
-
 function setDrawer(open) {
   const drawer = $("layerDrawer");
   const btn = $("layerToggle");
   if (!drawer || !btn) return;
   drawer.classList.toggle("open", open);
+  drawer.hidden = !open;
   drawer.setAttribute("aria-hidden", open ? "false" : "true");
   btn.setAttribute("aria-expanded", open ? "true" : "false");
   state.drawerOpen = open;
+  window.dispatchEvent(new CustomEvent("ocean-layer-panel", { detail: { open } }));
 }
 
 function switchTab(name) {
@@ -2391,6 +2410,11 @@ function bind() {
 
   // 图层开关（图例）
   document.querySelectorAll(".legend-row[data-layer]").forEach((row) => {
+    row.setAttribute("role", "button");
+    row.setAttribute("tabindex", "0");
+    row.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); row.click(); }
+    });
     row.addEventListener("click", () => {
       const k = row.dataset.layer;
       state.layers[k] = !state.layers[k];
@@ -2450,43 +2474,6 @@ function bind() {
     });
   });
 
-  // 图层抽屉：靠近左边缘自动呼出；固定展开后不随鼠标自动收起
-  const mapEl = $("map");
-  const drawerEl = $("layerDrawer");
-  const EDGE = 28;                                  // 距左边缘多少 px 触发展开
-  mapEl.addEventListener("mousemove", (event) => {
-    const r = mapEl.getBoundingClientRect();
-    if (event.clientX - r.left <= EDGE) {
-      clearTimeout(drawerTimer);
-      setDrawer(true);
-      return;
-    }
-    if (!state.drawerOpen || drawerPinned) return;
-    const dr = drawerEl.getBoundingClientRect();
-    const insideDrawer = event.clientX <= dr.right && event.clientY >= dr.top && event.clientY <= dr.bottom;
-    if (!insideDrawer) {
-      clearTimeout(drawerTimer);
-      drawerTimer = setTimeout(() => { if (!drawerPinned) setDrawer(false); }, 600);
-    }
-  });
-  drawerEl.addEventListener("mouseenter", () => clearTimeout(drawerTimer));
-  drawerEl.addEventListener("mouseleave", () => {
-    if (drawerPinned) return;
-    clearTimeout(drawerTimer);
-    drawerTimer = setTimeout(() => { if (!drawerPinned) setDrawer(false); }, 600);
-  });
-  // ☰ 三态：收起 → 固定展开 → 收起。悬停展开时点 ☰ 是「转为固定」而不是直接收掉，
-  // 这样「点 ☰ 可固定展开」在悬停入口下也成立（否则要「先收再点」才固定，很绕）。
-  $("layerToggle").addEventListener("click", () => {
-    if (!state.drawerOpen) { drawerPinned = true; setDrawer(true); return; }
-    if (!drawerPinned) { drawerPinned = true; return; }
-    drawerPinned = false;
-    setDrawer(false);
-  });
-  $("layerClose").addEventListener("click", () => {
-    drawerPinned = false;
-    setDrawer(false);
-  });
 }
 
 // ==================== 启动 ====================

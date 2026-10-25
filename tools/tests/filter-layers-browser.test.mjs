@@ -66,3 +66,32 @@ test("unified filters preserve drafts, apply only valid coordinates and distingu
     assert.equal(await c.evaluate("document.getElementById('filterPanel').hidden"), true);
   } finally { await browser.close(); }
 });
+
+test("layer controls are exclusive with filters, keyboard accessible and preserve manual choices across ordinary refresh", async () => {
+  const browser = await launchBrowser(process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe");
+  const c = browser.cdp;
+  try {
+    await c.send("Page.enable"); await c.send("Page.navigate", { url: page }); await sleep(650);
+    await click(c, "#workbenchToggle"); await click(c, "#filterToggle"); await click(c, "#wbLayers");
+    assert.equal(await c.evaluate("document.getElementById('filterPanel').hidden"), true);
+    assert.equal(await c.evaluate("document.getElementById('layerDrawer').getAttribute('aria-hidden')"), "false");
+    assert.equal(await c.evaluate("(()=>{const p=document.getElementById('layerDrawer').getBoundingClientRect(),w=document.getElementById('taskWorkbench').getBoundingClientRect();return p.left>=w.right;})()"), true, "floating controls leave both workbench modules accessible");
+    await click(c, "#layerDrawer [data-layer='sst']");
+    assert.equal(await c.evaluate("document.querySelector('#layerDrawer [data-layer=sst]').getAttribute('aria-pressed')"), "false");
+    assert.equal(await c.evaluate("document.querySelectorAll('#mapSvg [data-layer=sst]').length"), 0);
+    await click(c, "#layerClose"); await click(c, "#filterToggle"); await click(c, "#dateNext");
+    await click(c, "#wbLayers");
+    assert.equal(await c.evaluate("document.querySelector('#layerDrawer [data-layer=sst]').getAttribute('aria-pressed')"), "false");
+    await click(c, "#layerDrawer [data-layer='sst']"); await key(c, " ", "Space");
+    assert.equal(await c.evaluate("document.querySelector('#layerDrawer [data-layer=sst]').getAttribute('aria-pressed')"), "false");
+    await key(c, "Escape");
+    assert.equal(await c.evaluate("document.activeElement.id"), "wbLayers");
+    await click(c, "#nearbyFront"); await click(c, "#wbLayers");
+    assert.equal(await c.evaluate("document.querySelector('#layerDrawer [data-layer=sst]').getAttribute('aria-pressed')"), "true");
+    assert.match(await c.evaluate("document.querySelector('#layerDrawer [data-layer=ground]').innerText"), /离线|未接入/);
+    const point = await mapPoint(c); await pointer(c, point);
+    assert.equal(await c.evaluate("document.getElementById('layerDrawer').getAttribute('aria-hidden')"), "true");
+    await click(c, "#filterToggle");
+    assert.equal(await c.evaluate("document.getElementById('layerDrawer').getAttribute('aria-hidden')"), "true");
+  } finally { await browser.close(); }
+});

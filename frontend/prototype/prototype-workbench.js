@@ -7,7 +7,7 @@
   workbench.className = "workbench";
   workbench.setAttribute("aria-label", "工作台");
   workbench.innerHTML = `<div class="panel-head"><div><small>// WORKBENCH</small><h2>工作台</h2></div><button id="workbenchClose" aria-label="收起工作台">×</button></div>
-    <section class="wb-shortcuts"><h3>快捷功能</h3><button id="nearbyFront">⌖　附近锋面</button><button data-open-pane="clim">◷　历史观测</button><button data-open-pane="future">↗　预测参考</button><button id="filterToggle" aria-controls="filterPanel" aria-expanded="false">☷　筛选条件</button><button id="wbLayers">▧　图层开关</button><button data-open-pane="basis">ⓘ　数据说明</button></section>
+    <section class="wb-shortcuts"><h3>快捷功能</h3><button id="nearbyFront">⌖　附近锋面</button><button data-open-pane="clim">◷　历史观测</button><button data-open-pane="future">↗　预测参考</button><button id="filterToggle" aria-controls="filterPanel" aria-expanded="false">☷　筛选条件</button><button id="wbLayers" aria-controls="layerDrawer" aria-expanded="false">▧　图层开关</button><button data-open-pane="basis">ⓘ　数据说明</button><p id="layerPresetNote" role="status"></p></section>
     <section id="wbAI"><h3>AI 分析</h3></section>`;
   main.prepend(workbench);
   const filters = document.createElement("section");
@@ -21,6 +21,18 @@
   filters.querySelectorAll(".ctx-lab")[0].textContent = "分析点";
   filters.querySelectorAll(".ctx-lab")[2].textContent = "观测日";
   main.append(filters);
+  const layers = $("layerDrawer");
+  layers.classList.add("layer-panel");
+  main.append(layers);
+  $("layerToggle").hidden = true;
+  layers.querySelectorAll(".legend-row").forEach(row => {
+    const label = document.createElement("small"); label.className = "layer-status"; row.append(label);
+  });
+  const legend = document.createElement("aside");
+  legend.id = "mapLegendSummary"; legend.className = "map-legend compact-legend";
+  legend.setAttribute("aria-label", "当前图例");
+  $("map").append(legend);
+  renderLegend();
   const actions = document.createElement("nav");
   actions.className = "header-actions";
   actions.setAttribute("aria-label", "面板");
@@ -33,6 +45,7 @@
   const stateText = { loading: "加载中", ready: "就绪", "ready-zero-records": "返回记录均为零（不代表完整海域）",
     "unknown-coverage": "无记录／覆盖未知", "day-missing": "整日缺资料", unprepared: "资料未准备", forbidden: "无权访问", error: "请求失败" };
   window.addEventListener("ocean-load-state", () => {
+    renderLegend();
     const entries = Object.entries(OFData.loadState());
     $("loadStatusText").textContent = entries.map(([key, value]) => ({ day: "日资料", viewport: "视野", fishing: "活动" }[key]) + "：" + (stateText[value.status] || value.status)).join(" / ");
     $("retryData").hidden = !entries.some(([, value]) => ["error", "day-missing", "unprepared", "forbidden"].includes(value.status));
@@ -79,21 +92,45 @@
   function showFilters(open, opener, restoreFocus = true) {
     const restore = restoreFocus && filters.contains(document.activeElement);
     if (open && opener) filterOpener = opener;
+    if (open) setDrawer(false);
     filters.hidden = !open;
     $("filterToggle").setAttribute("aria-expanded", String(open));
     $("headerFilter").setAttribute("aria-expanded", String(open));
     if (!open && restore) filterOpener.focus({ preventScroll: true });
   }
+  function showLayers(open, restoreFocus = true) {
+    const restore = restoreFocus && layers.contains(document.activeElement);
+    if (open) showFilters(false, null, false);
+    setDrawer(open);
+    if (!open && restore) $("wbLayers").focus({ preventScroll: true });
+  }
+  window.addEventListener("ocean-layer-panel", e => {
+    $("wbLayers").setAttribute("aria-expanded", String(e.detail.open));
+    if (e.detail.open) showFilters(false, null, false);
+  });
+  function activateTask(pane) {
+    if (["now", "clim", "future"].includes(pane)) {
+      Object.assign(state.layers, { sst: pane !== "clim", band: true, front: true, coldwarm: true, nodata: true, ground: false, fishing: false });
+      $("layerPresetNote").textContent = pane === "future" ? "图层仍为所选日期观测，未绘制未来预报。" : "已应用图层搭配；可在图层中调整。";
+      refresh();
+    }
+    showResult(pane);
+  }
   $("workbenchToggle").onclick = toggleWorkbench;
   $("workbenchClose").onclick = closeWorkbench;
   $("resultClose").onclick = closeResult;
   $("resultToggle").onclick = () => side.hidden ? showResult(state.tab === "ai" ? "now" : state.tab) : closeResult();
-  $("nearbyFront").onclick = () => showResult("now");
-  workbench.querySelectorAll("[data-open-pane]").forEach(b => b.onclick = () => showResult(b.dataset.openPane));
+  $("nearbyFront").onclick = () => activateTask("now");
+  workbench.querySelectorAll("[data-open-pane]").forEach(b => b.onclick = () => activateTask(b.dataset.openPane));
   $("filterToggle").onclick = $("headerFilter").onclick = e => showFilters(filters.hidden, e.currentTarget);
   $("filterClose").onclick = () => showFilters(false);
-  window.addEventListener("ocean-map-activate", () => showFilters(false, null, false));
-  $("wbLayers").onclick = () => { drawerPinned = !state.drawerOpen; setDrawer(drawerPinned); };
+  window.addEventListener("ocean-map-activate", () => { showFilters(false, null, false); showLayers(false, false); });
+  $("wbLayers").onclick = () => showLayers(!state.drawerOpen);
+  $("layerClose").onclick = () => showLayers(false);
+  layers.addEventListener("keydown", e => {
+    if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); showLayers(false); }
+  });
+  setDrawer(false);
   workbench.addEventListener("keydown", e => {
     if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); closeWorkbench(); }
   });

@@ -308,7 +308,7 @@ const top = await evalJS(`return {
   fishingPaths: document.querySelectorAll('#mapSvg [data-layer="fishing"]').length,
   fishingLegend: (document.querySelector('.legend-row[data-layer="fishing"]') || {}).textContent || "" };`);
 check("筛选模块合并三组条件且去除装饰序号",
-  top.nums === 0 && top.labels.join("|") === "出发地|作业范围|出海日", top.labels.length + " 组 · " + top.labels.join("/"));
+  top.nums === 0 && top.labels.join("|") === "分析点|作业范围|观测日", top.labels.length + " 组 · " + top.labels.join("/"));
 check("顶栏没有第二套数据来源开关（观测/预报/气候 已删）",
   top.hasFamily === false && !/观测来源|预报|气候/.test(top.topText), "familySeg 不存在");
 check("顶栏只有 1 个日期控件，无 month/number",
@@ -787,46 +787,49 @@ check("锋面带 / 缺测图层开关都真实重绘",
   layer.bandOff === 0 && layer.bandOn === 1 && layer.nodOff === 0 && layer.nodOn === 1,
   JSON.stringify(layer));
 
-// ===== 11.1) 图层抽屉：默认收在左侧 · 靠近左边缘自动呼出 · 移开自动收起 · ☰ 三态 =====
-// 抽屉是从「地图左边缘」呼出的，所以鼠标坐标按 #map 的 rect 现算；收起判据是「左边界 < 0（滑出屏幕）」。
+// ===== 11.1) 图层：工作台按钮呼出，和统一筛选互斥；拖缩不打断 =====
 const drawerState = () => evalJS(`var d = document.getElementById("layerDrawer"); var r = d.getBoundingClientRect();
-  return { left: Math.round(r.left), open: d.classList.contains("open"), aria: d.getAttribute("aria-hidden") };`);
+  return { hidden:d.hidden, left: Math.round(r.left), open: d.classList.contains("open"), aria: d.getAttribute("aria-hidden") };`);
 const moveMouseAt = (dx) => evalJS(`var m = document.getElementById("map"), r = m.getBoundingClientRect();
   m.dispatchEvent(new MouseEvent("mousemove", { clientX: r.left + ${dx}, clientY: r.top + Math.round(r.height / 2), bubbles: true })); return 1;`);
 const drawerMapW = await evalJS(`return Math.round(document.getElementById("map").getBoundingClientRect().width);`);
 
 const dInit = await drawerState();
-check("图层抽屉默认收起且停在左侧（不占地图）",
-  dInit.open === false && dInit.left < 0 && dInit.aria === "true", JSON.stringify(dInit));
+check("图层浮层默认隐藏，不占工作台正文",
+  dInit.open === false && dInit.hidden && dInit.aria === "true", JSON.stringify(dInit));
 
 await moveMouseAt(4);
 await sleep(350);
 const dHover = await drawerState();
-check("鼠标靠近地图左边缘（4px）→ 抽屉自动呼出",
-  dHover.open === true && dHover.left >= 0 && dHover.aria === "false", JSON.stringify(dHover));
+check("鼠标经过地图边缘不会意外呼出图层",
+  dHover.open === false && dHover.hidden, JSON.stringify(dHover));
 
 await moveMouseAt(Math.round(drawerMapW * 0.7));
 await sleep(1000);
 const dAway = await drawerState();
-check("鼠标移开约 1s → 抽屉自动收起（滑回左侧屏幕外）",
-  dAway.open === false && dAway.left < 0, JSON.stringify(dAway));
+check("没有悬停计时器意外改变浮层状态",
+  dAway.open === false && dAway.hidden, JSON.stringify(dAway));
 
-await moveMouseAt(4);
-await sleep(350);
-await click("#layerToggle");                       // 悬停展开态点 ☰ → 应转为固定，而不是直接收掉
+const wasWorkbenchOpen = await evalJS(`return document.getElementById('taskWorkbench').open;`);
+if (!wasWorkbenchOpen) await click("#workbenchToggle");
+await click("#wbLayers");
 await sleep(300);
 const dPinned = await drawerState();
 await moveMouseAt(Math.round(drawerMapW * 0.7));
 await sleep(1000);
 const dPinnedAway = await drawerState();
-check("悬停展开后点 ☰ → 转为固定展开（移开鼠标也保持展开）",
+check("工作台呼出图层后，移开鼠标保持展开",
   dPinned.open === true && dPinnedAway.open === true,
   JSON.stringify({ pinned: dPinned, away: dPinnedAway }));
 
-await click("#layerToggle");                       // 固定态再点 ☰ → 收起
+await click("#filterToggle");
+check("筛选与图层只展开一个", (await drawerState()).hidden && await evalJS(`return !document.getElementById('filterPanel').hidden;`));
+await click("#wbLayers");
+await click("#layerClose");
 await sleep(300);
 const dClosed = await drawerState();
-check("固定展开时再点 ☰ → 收起", dClosed.open === false && dClosed.left < 0, JSON.stringify(dClosed));
+check("图层关闭按钮收起浮层", dClosed.open === false && dClosed.hidden, JSON.stringify(dClosed));
+if (!wasWorkbenchOpen) await click("#workbenchClose");
 
 // ===== 11.5) 地图交互：缩放 / 平移 / 比例尺 / 经纬网标注（纯几何，不改数据） =====
 const zoom = await evalJS(`var r = document.getElementById("map").getBoundingClientRect();
