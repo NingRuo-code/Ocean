@@ -719,7 +719,7 @@ function drawExtras(svg, snap, iso, sel) {
   // 刻意与 SST 的连续色带在形态上区分（点阵 vs 色带）；低于当日中位数的格子不画，避免糊成一片。
   if (state.layers.ground) {
     const fishing = OFData.fishingDay(iso);
-    const cells = fishing && Array.isArray(fishing.cells) ? fishing.cells : [];
+    const cells = fishing && Array.isArray(fishing.cells) ? fishing.cells.filter(c => c && [c.lon, c.lat, c.hours].every(Number.isFinite) && c.hours >= 0 && Math.abs(c.lon) <= 180 && Math.abs(c.lat) <= 90) : [];
     if (cells.length) {
       const values = cells.map((c) => c.hours).sort((a, b) => a - b);
       const q = (f) => values[Math.min(values.length - 1, Math.max(0, Math.floor(values.length * f)))];
@@ -1755,7 +1755,7 @@ function warmOverview(iso) {
 
 // 渔场线索（GFW 表观捕捞活动）：取当日 0.1° 格点，到位后只重画地图，不打乱其它面板。
 // 只在图层打开（或用户刚打开图层、notify=true）时发请求。
-// 取不到就什么都不画，界面按「无覆盖 / 当日无作业」处理，绝不把缺失当 0。
+// 取不到就什么都不画，保留不可用原因，绝不把缺失当 0。
 function loadFishing(iso, notify) {
   if (!OFData.serverEnabled()) return;                    // 离线（file://）没有渔场数据源
   if (!state.layers.ground && notify !== true) return;    // 图层关着就不打扰服务器
@@ -1765,10 +1765,11 @@ function loadFishing(iso, notify) {
     if (ok) {
       invalidate();
       drawMap();
+      if (typeof renderEffortSummary === "function") renderEffortSummary();
       return;
     }
     if (notify === true) {
-      showToast(mdText(iso) + " 没有渔场格点（GFW 覆盖 2017-01-01 起，当日无作业的格子不画）");
+      showToast(iso + " 活动资料未就绪或不可用，请查看加载状态；不代表零活动");
     }
   });
 }
@@ -1855,6 +1856,7 @@ function refresh() {
   drawMap();
   renderHero();
   renderNow();
+  if (typeof renderEffortSummary === "function") renderEffortSummary();
   renderFuture();
   renderClim();
   renderBasis();

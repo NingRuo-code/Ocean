@@ -655,7 +655,7 @@
   function ensureFishing(iso) {
     if (FISHING.days[iso]) {
       const cells = FISHING.days[iso].cells;
-      publishLoad("fishing", !cells?.length ? "unknown-coverage" : cells.every(c => c.hours === 0) ? "ready-zero-records" : "ready");
+      publishLoad("fishing", !cells?.length ? "unknown-coverage" : cells.every(c => c?.hours === 0) ? "ready-zero-records" : "ready");
       return Promise.resolve(true);
     }
     if (!serverEnabled()) return Promise.resolve(false);
@@ -667,7 +667,7 @@
         if (data?.date && data.date !== iso) throw new Error("response_date_mismatch");
         FISHING.days[iso] = data && Array.isArray(data.cells) ? data : null;
         const cells = FISHING.days[iso]?.cells;
-        publishLoad("fishing", !cells?.length ? "unknown-coverage" : cells.every(c => c.hours === 0) ? "ready-zero-records" : "ready");
+        publishLoad("fishing", !cells?.length ? "unknown-coverage" : cells.every(c => c?.hours === 0) ? "ready-zero-records" : "ready");
         return !!FISHING.days[iso];
       })
       .catch(function () { if (epoch === requestEpoch && loadStates.fishing?.status === "loading") publishLoad("fishing", "error"); return false; })
