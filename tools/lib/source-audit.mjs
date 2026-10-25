@@ -113,10 +113,7 @@ export async function runSourceAudit(args, defaultRoot) {
   };
   const frozen = option("--read-snapshot");
   if (frozen) {
-    const snapshot = JSON.parse(await readFile(resolve(frozen), "utf8"));
-    const identity = { contract: snapshot.contract, processing_version: snapshot.processing_version, sources: snapshot.sources };
-    if (snapshot.schema !== SCHEMA || snapshot.snapshot_id !== `sha256:${digest(identity)}` ||
-      snapshot.research_ready !== false || snapshot.public_release_approved !== false) throw new Error("Invalid audit snapshot");
+    const snapshot = await readSourceSnapshot(resolve(frozen));
     process.stdout.write(JSON.stringify(snapshot, null, 2) + "\n");
     return;
   }
@@ -169,4 +166,12 @@ export async function runSourceAudit(args, defaultRoot) {
   if (report) { await mkdir(dirname(resolve(report)), { recursive: true }); await writeFile(resolve(report), markdown(snapshot)); }
   if (internal) await atomicJson(resolve(internal), { schema: "ocean-source-locators/private-v1", snapshot_id: snapshot.snapshot_id, locations: privateLocations });
   if (output) process.stdout.write(`审计完成：${sources.length} 个已登记来源；研究资格 unknown，公开许可未批准。\n`);
+}
+
+export async function readSourceSnapshot(path) {
+  const snapshot = JSON.parse(await readFile(path, "utf8"));
+  const identity = { contract: snapshot.contract, processing_version: snapshot.processing_version, sources: snapshot.sources };
+  if (snapshot.schema !== SCHEMA || snapshot.snapshot_id !== `sha256:${digest(identity)}` ||
+    snapshot.research_ready !== false || snapshot.public_release_approved !== false) throw new Error("Invalid audit snapshot");
+  return snapshot;
 }

@@ -2,7 +2,7 @@
 
 最近整理：2026-10-25。
 
-当前主分支已包含PR #22（`44dd1cb`）。后续P0逐日审计的交付与真实资料缺口见[本批实施记录](../reports/ocean-p0-daily-audit-implementation-2026-10-25.md)；合入仓库与部署生产分别记证。
+当前主分支已包含PR #22（`44dd1cb`）与P0逐日审计PR #280（`77f323c`）。后续资料身份核对与真实环境缺口见[环境比较实施记录](../reports/ocean-environment-lineage-implementation-2026-10-25.md)；前批逐日审计见[实施记录](../reports/ocean-p0-daily-audit-implementation-2026-10-25.md)。合入仓库与部署生产分别记证。
 
 首批代码、实测和未完成边界见[首批实施记录](../reports/ocean-first-implementation-batch-2026-10-25.md)。本地更新不等于已合并或生产部署。
 

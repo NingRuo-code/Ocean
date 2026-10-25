@@ -1,0 +1,49 @@
+{
+  "schema": "ocean-display-transport-check/v1",
+  "evidence_kind": "real_captured_display_artifacts",
+  "rule": "replace CRLF bytes with LF only; diagnostic, original hashes unchanged",
+  "artifacts": [
+    {
+      "artifact": "data/day/2024-08-05.js",
+      "local_bytes": 19355,
+      "server_bytes": 19351,
+      "local_sha256": "b4a57b8060dcfad6323e1d694278c59f3184ff219f0a92b98e8af662311f3e8f",
+      "server_sha256": "c2937d76a35d6e82446c589c887fab18dc4a9cdd20a508b368a159a1c2ec81f9",
+      "local_lf_sha256": "c2937d76a35d6e82446c589c887fab18dc4a9cdd20a508b368a159a1c2ec81f9",
+      "server_lf_sha256": "c2937d76a35d6e82446c589c887fab18dc4a9cdd20a508b368a159a1c2ec81f9",
+      "lf_normalized_equal": true
+    },
+    {
+      "artifact": "data/front_response/events.js",
+      "local_bytes": 559218,
+      "server_bytes": 540905,
+      "local_sha256": "107e3096191e5c480866766f3164e33fc0acaf6fa70eed49fb65b7118bdbd388",
+      "server_sha256": "a00a6bd988f3a117e14124b619194e8dfba4facf1e656fb21c689fbd7bca1cbe",
+      "local_lf_sha256": "a00a6bd988f3a117e14124b619194e8dfba4facf1e656fb21c689fbd7bca1cbe",
+      "server_lf_sha256": "a00a6bd988f3a117e14124b619194e8dfba4facf1e656fb21c689fbd7bca1cbe",
+      "lf_normalized_equal": true
+    },
+    {
+      "artifact": "data/meta.js",
+      "local_bytes": 7508,
+      "server_bytes": 7229,
+      "local_sha256": "5a2a7ec2f712e8a66c01dad844380b8dc8fb435e1821d35cf2c2e23e45a446f3",
+      "server_sha256": "5b4e757820b6ffca0e6c54af3bf69a2e0bdb4bb512fa8d289366b68ac20d53a5",
+      "local_lf_sha256": "5b4e757820b6ffca0e6c54af3bf69a2e0bdb4bb512fa8d289366b68ac20d53a5",
+      "server_lf_sha256": "5b4e757820b6ffca0e6c54af3bf69a2e0bdb4bb512fa8d289366b68ac20d53a5",
+      "lf_normalized_equal": true
+    },
+    {
+      "artifact": "data/sst/2024-08-05.js",
+      "local_bytes": 30883,
+      "server_bytes": 30879,
+      "local_sha256": "287d590a031a84d0ecfa4828c5c3f89545fc2f31183aec26c1258704f533e4eb",
+      "server_sha256": "37543f450ec553c837830b33298878dfb1bdcf7499048e6085e001617e2727b9",
+      "local_lf_sha256": "37543f450ec553c837830b33298878dfb1bdcf7499048e6085e001617e2727b9",
+      "server_lf_sha256": "37543f450ec553c837830b33298878dfb1bdcf7499048e6085e001617e2727b9",
+      "lf_normalized_equal": true
+    }
+  ],
+  "research_ready": false,
+  "public_release_approved": false
+}
