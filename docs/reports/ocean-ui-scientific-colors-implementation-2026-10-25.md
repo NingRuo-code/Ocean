@@ -77,3 +77,7 @@ SST来源哈希明确采用`source_hash_encoding: utf8-lf`，避免Windows/Linux
 ![小屏局部增强与原图层浮层](screenshots/ocean-sst-local-settings-390.png)
 
 其余视图与尺寸见[六组布局记录](ocean-ui-scientific-color-layout-2026-10-25.json)。本批未同步生产，也未把旧PNG导出、统计报告或其他独立消费路径宣称为统一升级；它们按各自规格后续接入同源证据与显示合同。
+
+## 发布核验
+
+已推送并发布[PR #284](https://github.com/NingRuo-code/Ocean/pull/284)，目标为main；本批仅自动关联关闭#33，#34保持开放。发布时远端主分支仍为`8a3def01ccd4c7eba0bd2576b57eb2b7d8b0b1d1`，PR可合并，未做生产同步。GitHub #33/#34已分别回写完成证据与真实域缺口。
