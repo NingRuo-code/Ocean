@@ -2,6 +2,12 @@ import { readdirSync, readFileSync, existsSync, mkdirSync, writeFileSync } from 
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
+import { runSourceAudit } from "./lib/source-audit.mjs";
+
+if (process.argv.includes("--source-registry") || process.argv.includes("--read-snapshot")) {
+  try { await runSourceAudit(process.argv.slice(2), resolve(dirname(fileURLToPath(import.meta.url)), "..")); }
+  catch (error) { console.error(`Source audit failed (${error.code ?? "invalid_input"}).`); process.exitCode = 1; }
+} else {
 
 // Inspect local export metadata only. File coverage is not valid-observation coverage.
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -71,3 +77,4 @@ if (outIndex >= 0) {
   writeFileSync(out, json);
 } else process.stdout.write(json);
 if (Object.values(layers).some((layer) => layer.date_mismatches.length)) process.exitCode = 1;
+}
