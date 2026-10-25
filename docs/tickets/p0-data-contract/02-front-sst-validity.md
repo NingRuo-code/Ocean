@@ -24,3 +24,5 @@
 ## Implementation evidence — 2026-10-25
 
 前置#36已随PR #22合入main并关闭。本批在 `codex/p0-daily-semantics` 实现同一CLI的逐日审计、版本化报告与私有支持文件；软件小例及可获得的三日显示资料核查见[实施记录](../../reports/ocean-p0-daily-audit-implementation-2026-10-25.md)。原始锋面/SST尚缺，原档时间、编码、单位与有效海域的真实证据仍待补，不将本票据的研究前置视为全部满足。
+
+后续实际核验：2026-10-25通过既有CLI将显示资料范围扩展至2024年8月31天；锋面/SST显示均31天parsed，原始锋面/SST及活动输入在登记位置仍缺失。见[接续核验](../../reports/ocean-ui-to-p0-readiness-2026-10-25.md)。不以显示整月可读关闭本票据或批准研究支持。

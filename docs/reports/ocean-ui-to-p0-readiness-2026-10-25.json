@@ -1,0 +1,1466 @@
+{
+  "schema": "ocean-ui-to-p0-readiness-evidence/v1",
+  "range": [
+    "2024-08-01",
+    "2024-08-31"
+  ],
+  "evidence_kind": "actual existing display exports; not original observations, activity data or research qualification",
+  "source_snapshot_id": "sha256:653f86c7d75726ec9e5b3b677784d15b92ec765d54735197317bba077d5f1755",
+  "daily_snapshot_id": "sha256:8ca4b1929efaf73a28528e47599496c2807d70314f0a3bdafce786c00d1ceed8",
+  "registry_sha256": "0443eb4d06c1ab21858665834ddefeeec5780aa48a5818aed7d2d412c5bbd2c5",
+  "auditor_sha256": "736c474ecf64ab7f3b707fb5073b3c416a8a8cde8bbd8d88d7a075b90eb9fda0",
+  "research_ready": false,
+  "public_release_approved": false,
+  "sources": [
+    {
+      "id": "front-original",
+      "role": "analysis_source",
+      "source_access": "missing",
+      "source_gaps": [
+        "missing_location",
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ],
+      "states": {
+        "missing": 31
+      },
+      "file_errors": 0,
+      "days": [
+        {
+          "date": "2024-08-01",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-02",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-03",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-04",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-05",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-06",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-07",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-08",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-09",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-10",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-11",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-12",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-13",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-14",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-15",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-16",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-17",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-18",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-19",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-20",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-21",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-22",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-23",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-24",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-25",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-26",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-27",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-28",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-29",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-30",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-31",
+          "state": "missing",
+          "valid_samples": null
+        }
+      ]
+    },
+    {
+      "id": "front-display",
+      "role": "display",
+      "source_access": "readable",
+      "source_gaps": [
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ],
+      "states": {
+        "parsed": 31
+      },
+      "file_errors": 0,
+      "days": [
+        {
+          "date": "2024-08-01",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-02",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-03",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-04",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-05",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-06",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-07",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-08",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-09",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-10",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-11",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-12",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-13",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-14",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-15",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-16",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-17",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-18",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-19",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-20",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-21",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-22",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-23",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-24",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-25",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-26",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-27",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-28",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-29",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-30",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        },
+        {
+          "date": "2024-08-31",
+          "state": "parsed",
+          "valid_samples": 19102,
+          "missing_samples": 3298,
+          "unit": "classification_code; display_contract",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": null
+        }
+      ]
+    },
+    {
+      "id": "sst-original",
+      "role": "analysis_source",
+      "source_access": "missing",
+      "source_gaps": [
+        "product.id",
+        "product.version",
+        "product.unit",
+        "missing_location",
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ],
+      "states": {
+        "missing": 31
+      },
+      "file_errors": 0,
+      "days": [
+        {
+          "date": "2024-08-01",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-02",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-03",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-04",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-05",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-06",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-07",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-08",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-09",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-10",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-11",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-12",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-13",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-14",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-15",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-16",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-17",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-18",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-19",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-20",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-21",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-22",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-23",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-24",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-25",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-26",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-27",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-28",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-29",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-30",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-31",
+          "state": "missing",
+          "valid_samples": null
+        }
+      ]
+    },
+    {
+      "id": "sst-display",
+      "role": "display",
+      "source_access": "readable",
+      "source_gaps": [
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ],
+      "states": {
+        "parsed": 31
+      },
+      "file_errors": 0,
+      "days": [
+        {
+          "date": "2024-08-01",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 26.0,
+            "max": 32.0
+          }
+        },
+        {
+          "date": "2024-08-02",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 26.5,
+            "max": 33.0
+          }
+        },
+        {
+          "date": "2024-08-03",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 26.5,
+            "max": 33.0
+          }
+        },
+        {
+          "date": "2024-08-04",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 26.5,
+            "max": 32.0
+          }
+        },
+        {
+          "date": "2024-08-05",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 26.5,
+            "max": 32.5
+          }
+        },
+        {
+          "date": "2024-08-06",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 26.5,
+            "max": 32.5
+          }
+        },
+        {
+          "date": "2024-08-07",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 26.5,
+            "max": 32.5
+          }
+        },
+        {
+          "date": "2024-08-08",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 26.5,
+            "max": 32.5
+          }
+        },
+        {
+          "date": "2024-08-09",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 27.0,
+            "max": 32.5
+          }
+        },
+        {
+          "date": "2024-08-10",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 26.0,
+            "max": 32.5
+          }
+        },
+        {
+          "date": "2024-08-11",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 26.5,
+            "max": 32.5
+          }
+        },
+        {
+          "date": "2024-08-12",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 27.0,
+            "max": 32.5
+          }
+        },
+        {
+          "date": "2024-08-13",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 27.0,
+            "max": 32.5
+          }
+        },
+        {
+          "date": "2024-08-14",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 27.5,
+            "max": 33.0
+          }
+        },
+        {
+          "date": "2024-08-15",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 27.5,
+            "max": 32.5
+          }
+        },
+        {
+          "date": "2024-08-16",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 28.0,
+            "max": 32.0
+          }
+        },
+        {
+          "date": "2024-08-17",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 28.0,
+            "max": 32.5
+          }
+        },
+        {
+          "date": "2024-08-18",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 27.5,
+            "max": 32.5
+          }
+        },
+        {
+          "date": "2024-08-19",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 28.0,
+            "max": 32.5
+          }
+        },
+        {
+          "date": "2024-08-20",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 27.5,
+            "max": 32.0
+          }
+        },
+        {
+          "date": "2024-08-21",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 26.5,
+            "max": 32.0
+          }
+        },
+        {
+          "date": "2024-08-22",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 26.5,
+            "max": 31.5
+          }
+        },
+        {
+          "date": "2024-08-23",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 26.5,
+            "max": 32.0
+          }
+        },
+        {
+          "date": "2024-08-24",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 26.5,
+            "max": 31.5
+          }
+        },
+        {
+          "date": "2024-08-25",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 27.0,
+            "max": 32.0
+          }
+        },
+        {
+          "date": "2024-08-26",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 27.0,
+            "max": 32.0
+          }
+        },
+        {
+          "date": "2024-08-27",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 27.5,
+            "max": 31.5
+          }
+        },
+        {
+          "date": "2024-08-28",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 27.5,
+            "max": 31.5
+          }
+        },
+        {
+          "date": "2024-08-29",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 27.5,
+            "max": 31.5
+          }
+        },
+        {
+          "date": "2024-08-30",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 27.0,
+            "max": 31.5
+          }
+        },
+        {
+          "date": "2024-08-31",
+          "state": "parsed",
+          "valid_samples": 19193,
+          "missing_samples": 3207,
+          "unit": "degree_C",
+          "support_scope": "display_mask_only",
+          "time_verified": false,
+          "temperature_c": {
+            "min": 27.0,
+            "max": 31.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "effort-original",
+      "role": "analysis_source",
+      "source_access": "missing",
+      "source_gaps": [
+        "product.version",
+        "missing_location",
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ],
+      "states": {
+        "missing": 31
+      },
+      "file_errors": 0,
+      "days": [
+        {
+          "date": "2024-08-01",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-02",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-03",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-04",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-05",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-06",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-07",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-08",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-09",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-10",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-11",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-12",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-13",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-14",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-15",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-16",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-17",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-18",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-19",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-20",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-21",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-22",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-23",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-24",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-25",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-26",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-27",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-28",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-29",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-30",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-31",
+          "state": "missing",
+          "valid_samples": null
+        }
+      ]
+    },
+    {
+      "id": "effort-display",
+      "role": "display",
+      "source_access": "missing",
+      "source_gaps": [
+        "product.version",
+        "missing_location",
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ],
+      "states": {
+        "missing": 31
+      },
+      "file_errors": 0,
+      "days": [
+        {
+          "date": "2024-08-01",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-02",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-03",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-04",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-05",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-06",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-07",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-08",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-09",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-10",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-11",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-12",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-13",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-14",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-15",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-16",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-17",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-18",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-19",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-20",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-21",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-22",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-23",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-24",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-25",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-26",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-27",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-28",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-29",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-30",
+          "state": "missing",
+          "valid_samples": null
+        },
+        {
+          "date": "2024-08-31",
+          "state": "missing",
+          "valid_samples": null
+        }
+      ]
+    }
+  ],
+  "lineage": {
+    "activity_days_checked": 31,
+    "states": {
+      "not_verified": 31
+    },
+    "difference_hours": null
+  },
+  "notes": [
+    "Missing refers only to inputs at registered local locations inspected in this run; it does not prove the data does not exist elsewhere or on the server.",
+    "Parsed display dates, sample positions and half-degree bins are not original time, cell bounds, full precision, complete coverage or eligibility evidence.",
+    "Full masks, source locators and unprojected audit artifacts remain in ignored local output."
+  ]
+}
