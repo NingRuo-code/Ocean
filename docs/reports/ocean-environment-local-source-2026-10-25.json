@@ -1,0 +1,367 @@
+{
+  "schema": "ocean-source-audit/v1",
+  "snapshot_id": "sha256:b2a2ba86db457cf1df219a17fe54be2d29bb479bddea5a1ce7052913e07ec7f8",
+  "generated_at": "2026-10-25T06:47:34.263Z",
+  "contract": "source-registration/v1",
+  "processing_version": "registered-display-capture/v1; product_processing_unverified",
+  "sources": [
+    {
+      "id": "front-original",
+      "kind": "front",
+      "role": "analysis_source",
+      "product": {
+        "id": "zenodo-20356239-declared",
+        "channel": "Zenodo archive; local availability unverified",
+        "version": "V1.0-declared",
+        "unit": "classification_code"
+      },
+      "derived_from": [],
+      "inspection": {
+        "declaration": "complete",
+        "access": "missing",
+        "semantic_verification": "not_performed",
+        "effective_support": "unknown"
+      },
+      "license": {
+        "status": "unverified",
+        "claims": [
+          {
+            "value": "CC BY 4.0",
+            "evidence": "frontend/prototype/data/meta.js:product.license"
+          }
+        ],
+        "public_release_approved": false
+      },
+      "inventory": {
+        "files_read": 0,
+        "files_discovered": null,
+        "bytes_read": null
+      },
+      "files": [],
+      "gaps": [
+        "missing_location",
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ]
+    },
+    {
+      "id": "front-display",
+      "kind": "front",
+      "role": "display",
+      "product": {
+        "id": "zenodo-20356239-prototype-export",
+        "channel": "committed display export",
+        "version": "V1.0-declared",
+        "unit": "classification_code"
+      },
+      "derived_from": [
+        "front-original"
+      ],
+      "inspection": {
+        "declaration": "complete",
+        "access": "readable",
+        "semantic_verification": "not_performed",
+        "effective_support": "unknown"
+      },
+      "license": {
+        "status": "unverified",
+        "claims": [
+          {
+            "value": "CC BY 4.0",
+            "evidence": "frontend/prototype/data/meta.js:product.license"
+          }
+        ],
+        "public_release_approved": false
+      },
+      "inventory": {
+        "files_read": 2,
+        "files_discovered": 2,
+        "bytes_read": 26863
+      },
+      "files": [
+        {
+          "id": "front-display:0001",
+          "bytes": 7508,
+          "sha256": "5a2a7ec2f712e8a66c01dad844380b8dc8fb435e1821d35cf2c2e23e45a446f3"
+        },
+        {
+          "id": "front-display:0002",
+          "bytes": 19355,
+          "sha256": "b4a57b8060dcfad6323e1d694278c59f3184ff219f0a92b98e8af662311f3e8f"
+        }
+      ],
+      "gaps": [
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ]
+    },
+    {
+      "id": "sst-original",
+      "kind": "sst",
+      "role": "analysis_source",
+      "product": {
+        "id": null,
+        "channel": "local original; exact product pending audit",
+        "version": null,
+        "unit": null
+      },
+      "derived_from": [],
+      "inspection": {
+        "declaration": "incomplete",
+        "access": "missing",
+        "semantic_verification": "not_performed",
+        "effective_support": "unknown"
+      },
+      "license": {
+        "status": "unknown",
+        "claims": [],
+        "public_release_approved": false
+      },
+      "inventory": {
+        "files_read": 0,
+        "files_discovered": null,
+        "bytes_read": null
+      },
+      "files": [],
+      "gaps": [
+        "product.id",
+        "product.version",
+        "product.unit",
+        "missing_location",
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ]
+    },
+    {
+      "id": "sst-display",
+      "kind": "sst",
+      "role": "display",
+      "product": {
+        "id": "noaacwBLENDEDCsstDaily",
+        "channel": "NOAA ERDDAP, declared by display metadata",
+        "version": "v1.0-declared",
+        "unit": "degree_C"
+      },
+      "derived_from": [
+        "sst-original"
+      ],
+      "inspection": {
+        "declaration": "complete",
+        "access": "readable",
+        "semantic_verification": "not_performed",
+        "effective_support": "unknown"
+      },
+      "license": {
+        "status": "unverified",
+        "claims": [
+          {
+            "value": "GHRSST free and open declaration; product terms pending verification",
+            "evidence": "frontend/prototype/data/meta.js:availability.sst.product.license"
+          }
+        ],
+        "public_release_approved": false
+      },
+      "inventory": {
+        "files_read": 2,
+        "files_discovered": 2,
+        "bytes_read": 38391
+      },
+      "files": [
+        {
+          "id": "sst-display:0001",
+          "bytes": 7508,
+          "sha256": "5a2a7ec2f712e8a66c01dad844380b8dc8fb435e1821d35cf2c2e23e45a446f3"
+        },
+        {
+          "id": "sst-display:0002",
+          "bytes": 30883,
+          "sha256": "287d590a031a84d0ecfa4828c5c3f89545fc2f31183aec26c1258704f533e4eb"
+        }
+      ],
+      "gaps": [
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ]
+    },
+    {
+      "id": "effort-original",
+      "kind": "activity",
+      "role": "analysis_source",
+      "product": {
+        "id": "public-global-fishing-effort:latest",
+        "channel": "GFW 4Wings API, source registration only",
+        "version": null,
+        "unit": "fishing_hours"
+      },
+      "derived_from": [],
+      "inspection": {
+        "declaration": "incomplete",
+        "access": "missing",
+        "semantic_verification": "not_performed",
+        "effective_support": "unknown"
+      },
+      "license": {
+        "status": "conflict",
+        "claims": [
+          {
+            "value": "CC BY-SA 4.0; API non-commercial terms",
+            "evidence": "tools/pipeline/fetch_gfw_effort.py:8,426"
+          },
+          {
+            "value": "CC BY-NC 4.0",
+            "evidence": "docs/data-governance-gfw-ais.md:42"
+          }
+        ],
+        "public_release_approved": false
+      },
+      "inventory": {
+        "files_read": 0,
+        "files_discovered": null,
+        "bytes_read": null
+      },
+      "files": [],
+      "gaps": [
+        "product.version",
+        "missing_location",
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ]
+    },
+    {
+      "id": "effort-display",
+      "kind": "activity",
+      "role": "display",
+      "product": {
+        "id": "GFW-derived-display-declared",
+        "channel": "daily display export",
+        "version": null,
+        "unit": "fishing_hours"
+      },
+      "derived_from": [
+        "effort-original"
+      ],
+      "inspection": {
+        "declaration": "incomplete",
+        "access": "missing",
+        "semantic_verification": "not_performed",
+        "effective_support": "unknown"
+      },
+      "license": {
+        "status": "unknown",
+        "claims": [],
+        "public_release_approved": false
+      },
+      "inventory": {
+        "files_read": 0,
+        "files_discovered": null,
+        "bytes_read": null
+      },
+      "files": [],
+      "gaps": [
+        "product.version",
+        "missing_location",
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ]
+    },
+    {
+      "id": "response-input",
+      "kind": "response",
+      "role": "precomputed",
+      "product": {
+        "id": "legacy-buffer-aggregate",
+        "channel": "committed aggregate input",
+        "version": "front-response-input/v1-declared",
+        "unit": "fishing_hours"
+      },
+      "derived_from": [
+        "effort-original",
+        "front-display"
+      ],
+      "inspection": {
+        "declaration": "complete",
+        "access": "missing",
+        "semantic_verification": "not_performed",
+        "effective_support": "unknown"
+      },
+      "license": {
+        "status": "unverified",
+        "claims": [
+          {
+            "value": "CC BY-NC 4.0",
+            "evidence": "frontend/prototype/data/front_response/real-effort-input.json:source.license"
+          }
+        ],
+        "public_release_approved": false
+      },
+      "inventory": {
+        "files_read": 0,
+        "files_discovered": null,
+        "bytes_read": null
+      },
+      "files": [],
+      "gaps": [
+        "missing_location",
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ]
+    },
+    {
+      "id": "response-table",
+      "kind": "response",
+      "role": "precomputed",
+      "product": {
+        "id": "legacy-front-response-table",
+        "channel": "precomputed event table; not arbitrary fixed-region evidence",
+        "version": "front-response/v1-declared",
+        "unit": "fishing_hours"
+      },
+      "derived_from": [
+        "response-input"
+      ],
+      "inspection": {
+        "declaration": "complete",
+        "access": "readable",
+        "semantic_verification": "not_performed",
+        "effective_support": "unknown"
+      },
+      "license": {
+        "status": "unverified",
+        "claims": [
+          {
+            "value": "CC BY-NC 4.0",
+            "evidence": "frontend/prototype/data/front_response/events.js:source.license"
+          }
+        ],
+        "public_release_approved": false
+      },
+      "inventory": {
+        "files_read": 1,
+        "files_discovered": 1,
+        "bytes_read": 559218
+      },
+      "files": [
+        {
+          "id": "response-table:0001",
+          "bytes": 559218,
+          "sha256": "107e3096191e5c480866766f3164e33fc0acaf6fa70eed49fb65b7118bdbd388"
+        }
+      ],
+      "gaps": [
+        "semantic_verification_pending",
+        "effective_support_unknown",
+        "license_review_required"
+      ]
+    }
+  ],
+  "research_ready": false,
+  "public_release_approved": false,
+  "scope": "Registered local evidence only; no server access, semantic/coverage verification or research qualification."
+}

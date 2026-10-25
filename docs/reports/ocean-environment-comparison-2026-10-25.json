@@ -1,0 +1,3263 @@
+{
+  "schema": "ocean-environment-comparison/v1",
+  "contract": "environment-lineage/v1",
+  "implementation_fingerprint": "041683aa74ec2e53076c1ef611aebf8b93df78179b8aef9fcdc8328165215b90",
+  "environments": [
+    {
+      "id": "local",
+      "evidence_kind": "real_local_artifacts",
+      "snapshot_id": "sha256:b2a2ba86db457cf1df219a17fe54be2d29bb479bddea5a1ce7052913e07ec7f8",
+      "deployment_commit": "77f323c6f7e4e632efcb8f61a6e034913c934319",
+      "daily_snapshot_id": "sha256:1c67086fdf08adbb21f1d7e03608f4c2cab4232d3e6e955069f603067de687ba",
+      "daily_summary": [
+        {
+          "source_id": "front-original",
+          "requested_range": [
+            "2024-08-05",
+            "2024-08-05"
+          ],
+          "actual_dates": [],
+          "resolution_observed": [],
+          "resolution_declared": [],
+          "unit_evidence": [],
+          "time_verified_dates": [],
+          "missing_dates": [
+            "2024-08-05"
+          ],
+          "meaning": "audit_observations_and_declarations; not_research_qualification"
+        },
+        {
+          "source_id": "front-display",
+          "requested_range": [
+            "2024-08-05",
+            "2024-08-05"
+          ],
+          "actual_dates": [
+            "2024-08-05"
+          ],
+          "resolution_observed": [
+            0.04999999999999716,
+            0.05000000000000071
+          ],
+          "resolution_declared": [],
+          "unit_evidence": [
+            "d83e23ad9ab1dfd6b8ba3f0c8a97b7be8500ef16b99a33198e13d8ae85d9ea5a"
+          ],
+          "time_verified_dates": [],
+          "missing_dates": [],
+          "meaning": "audit_observations_and_declarations; not_research_qualification"
+        },
+        {
+          "source_id": "sst-original",
+          "requested_range": [
+            "2024-08-05",
+            "2024-08-05"
+          ],
+          "actual_dates": [],
+          "resolution_observed": [],
+          "resolution_declared": [],
+          "unit_evidence": [],
+          "time_verified_dates": [],
+          "missing_dates": [
+            "2024-08-05"
+          ],
+          "meaning": "audit_observations_and_declarations; not_research_qualification"
+        },
+        {
+          "source_id": "sst-display",
+          "requested_range": [
+            "2024-08-05",
+            "2024-08-05"
+          ],
+          "actual_dates": [
+            "2024-08-05"
+          ],
+          "resolution_observed": [
+            0.04999999999999716,
+            0.05000000000000071
+          ],
+          "resolution_declared": [],
+          "unit_evidence": [
+            "e8244a96b8ab4c2d6dd06e0cc1321c8675a9e2a71b4d995a2c8f070b4688690e"
+          ],
+          "time_verified_dates": [],
+          "missing_dates": [],
+          "meaning": "audit_observations_and_declarations; not_research_qualification"
+        },
+        {
+          "source_id": "effort-original",
+          "requested_range": [
+            "2024-08-05",
+            "2024-08-05"
+          ],
+          "actual_dates": [],
+          "resolution_observed": [],
+          "resolution_declared": [],
+          "unit_evidence": [],
+          "time_verified_dates": [],
+          "missing_dates": [
+            "2024-08-05"
+          ],
+          "meaning": "audit_observations_and_declarations; not_research_qualification"
+        },
+        {
+          "source_id": "effort-display",
+          "requested_range": [
+            "2024-08-05",
+            "2024-08-05"
+          ],
+          "actual_dates": [],
+          "resolution_observed": [],
+          "resolution_declared": [],
+          "unit_evidence": [],
+          "time_verified_dates": [],
+          "missing_dates": [
+            "2024-08-05"
+          ],
+          "meaning": "audit_observations_and_declarations; not_research_qualification"
+        }
+      ],
+      "acquired_at": "2026-10-25T06:47:34.105Z",
+      "acquisition_basis": "maintainer_declaration; not_snapshot_generation_time",
+      "deployment_basis": "maintainer_evidence_declaration",
+      "reasons": []
+    },
+    {
+      "id": "offline",
+      "evidence_kind": "real_local_artifacts",
+      "snapshot_id": "sha256:b2a2ba86db457cf1df219a17fe54be2d29bb479bddea5a1ce7052913e07ec7f8",
+      "deployment_commit": null,
+      "daily_snapshot_id": "sha256:1c67086fdf08adbb21f1d7e03608f4c2cab4232d3e6e955069f603067de687ba",
+      "daily_summary": [
+        {
+          "source_id": "front-original",
+          "requested_range": [
+            "2024-08-05",
+            "2024-08-05"
+          ],
+          "actual_dates": [],
+          "resolution_observed": [],
+          "resolution_declared": [],
+          "unit_evidence": [],
+          "time_verified_dates": [],
+          "missing_dates": [
+            "2024-08-05"
+          ],
+          "meaning": "audit_observations_and_declarations; not_research_qualification"
+        },
+        {
+          "source_id": "front-display",
+          "requested_range": [
+            "2024-08-05",
+            "2024-08-05"
+          ],
+          "actual_dates": [
+            "2024-08-05"
+          ],
+          "resolution_observed": [
+            0.04999999999999716,
+            0.05000000000000071
+          ],
+          "resolution_declared": [],
+          "unit_evidence": [
+            "d83e23ad9ab1dfd6b8ba3f0c8a97b7be8500ef16b99a33198e13d8ae85d9ea5a"
+          ],
+          "time_verified_dates": [],
+          "missing_dates": [],
+          "meaning": "audit_observations_and_declarations; not_research_qualification"
+        },
+        {
+          "source_id": "sst-original",
+          "requested_range": [
+            "2024-08-05",
+            "2024-08-05"
+          ],
+          "actual_dates": [],
+          "resolution_observed": [],
+          "resolution_declared": [],
+          "unit_evidence": [],
+          "time_verified_dates": [],
+          "missing_dates": [
+            "2024-08-05"
+          ],
+          "meaning": "audit_observations_and_declarations; not_research_qualification"
+        },
+        {
+          "source_id": "sst-display",
+          "requested_range": [
+            "2024-08-05",
+            "2024-08-05"
+          ],
+          "actual_dates": [
+            "2024-08-05"
+          ],
+          "resolution_observed": [
+            0.04999999999999716,
+            0.05000000000000071
+          ],
+          "resolution_declared": [],
+          "unit_evidence": [
+            "e8244a96b8ab4c2d6dd06e0cc1321c8675a9e2a71b4d995a2c8f070b4688690e"
+          ],
+          "time_verified_dates": [],
+          "missing_dates": [],
+          "meaning": "audit_observations_and_declarations; not_research_qualification"
+        },
+        {
+          "source_id": "effort-original",
+          "requested_range": [
+            "2024-08-05",
+            "2024-08-05"
+          ],
+          "actual_dates": [],
+          "resolution_observed": [],
+          "resolution_declared": [],
+          "unit_evidence": [],
+          "time_verified_dates": [],
+          "missing_dates": [
+            "2024-08-05"
+          ],
+          "meaning": "audit_observations_and_declarations; not_research_qualification"
+        },
+        {
+          "source_id": "effort-display",
+          "requested_range": [
+            "2024-08-05",
+            "2024-08-05"
+          ],
+          "actual_dates": [],
+          "resolution_observed": [],
+          "resolution_declared": [],
+          "unit_evidence": [],
+          "time_verified_dates": [],
+          "missing_dates": [
+            "2024-08-05"
+          ],
+          "meaning": "audit_observations_and_declarations; not_research_qualification"
+        }
+      ],
+      "acquired_at": "2026-10-25T06:47:35.944Z",
+      "acquisition_basis": "maintainer_declaration; not_snapshot_generation_time",
+      "deployment_basis": "unknown",
+      "reasons": [
+        "deployment_identity_unavailable; obtain_environment_commit_evidence"
+      ]
+    },
+    {
+      "id": "server",
+      "evidence_kind": "captured_remote_artifacts",
+      "snapshot_id": "sha256:6a752361c0598a879d8c2d404f4d7eb3011439e1344a078eee9c1b90e51172ca",
+      "deployment_commit": null,
+      "daily_snapshot_id": "sha256:ba5b8cfc9675f85511d0ec84711cc874c4400ef9f03056ea74b574bc7a09c66b",
+      "daily_summary": [
+        {
+          "source_id": "front-original",
+          "requested_range": [
+            "2024-08-05",
+            "2024-08-05"
+          ],
+          "actual_dates": [],
+          "resolution_observed": [],
+          "resolution_declared": [],
+          "unit_evidence": [],
+          "time_verified_dates": [],
+          "missing_dates": [
+            "2024-08-05"
+          ],
+          "meaning": "audit_observations_and_declarations; not_research_qualification"
+        },
+        {
+          "source_id": "front-display",
+          "requested_range": [
+            "2024-08-05",
+            "2024-08-05"
+          ],
+          "actual_dates": [
+            "2024-08-05"
+          ],
+          "resolution_observed": [
+            0.04999999999999716,
+            0.05000000000000071
+          ],
+          "resolution_declared": [],
+          "unit_evidence": [
+            "d83e23ad9ab1dfd6b8ba3f0c8a97b7be8500ef16b99a33198e13d8ae85d9ea5a"
+          ],
+          "time_verified_dates": [],
+          "missing_dates": [],
+          "meaning": "audit_observations_and_declarations; not_research_qualification"
+        },
+        {
+          "source_id": "sst-original",
+          "requested_range": [
+            "2024-08-05",
+            "2024-08-05"
+          ],
+          "actual_dates": [],
+          "resolution_observed": [],
+          "resolution_declared": [],
+          "unit_evidence": [],
+          "time_verified_dates": [],
+          "missing_dates": [
+            "2024-08-05"
+          ],
+          "meaning": "audit_observations_and_declarations; not_research_qualification"
+        },
+        {
+          "source_id": "sst-display",
+          "requested_range": [
+            "2024-08-05",
+            "2024-08-05"
+          ],
+          "actual_dates": [
+            "2024-08-05"
+          ],
+          "resolution_observed": [
+            0.04999999999999716,
+            0.05000000000000071
+          ],
+          "resolution_declared": [],
+          "unit_evidence": [
+            "e8244a96b8ab4c2d6dd06e0cc1321c8675a9e2a71b4d995a2c8f070b4688690e"
+          ],
+          "time_verified_dates": [],
+          "missing_dates": [],
+          "meaning": "audit_observations_and_declarations; not_research_qualification"
+        },
+        {
+          "source_id": "effort-original",
+          "requested_range": [
+            "2024-08-05",
+            "2024-08-05"
+          ],
+          "actual_dates": [],
+          "resolution_observed": [],
+          "resolution_declared": [],
+          "unit_evidence": [],
+          "time_verified_dates": [],
+          "missing_dates": [
+            "2024-08-05"
+          ],
+          "meaning": "audit_observations_and_declarations; not_research_qualification"
+        },
+        {
+          "source_id": "effort-display",
+          "requested_range": [
+            "2024-08-05",
+            "2024-08-05"
+          ],
+          "actual_dates": [],
+          "resolution_observed": [],
+          "resolution_declared": [],
+          "unit_evidence": [],
+          "time_verified_dates": [],
+          "missing_dates": [
+            "2024-08-05"
+          ],
+          "meaning": "audit_observations_and_declarations; not_research_qualification"
+        }
+      ],
+      "acquired_at": "2026-10-25T06:47:38.723Z",
+      "acquisition_basis": "maintainer_declaration; not_snapshot_generation_time",
+      "deployment_basis": "unknown",
+      "reasons": [
+        "deployment_identity_unavailable; obtain_environment_commit_evidence"
+      ]
+    }
+  ],
+  "comparisons": [
+    {
+      "left": "local",
+      "right": "offline",
+      "deployment": {
+        "field": "deployment_commit",
+        "status": "unknown",
+        "left_evidence": "sha256:b43d2afd3fded446ebd0bbf1774b20dd61501b3037c5cd77fab4c2e6afaf8d1b",
+        "right_evidence": null
+      },
+      "sources": [
+        {
+          "source_id": "effort-display",
+          "status": "unknown",
+          "content": {
+            "status": "unknown",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:00091aa568cb13873d1e8b761941b4ab506f6fc56867b6d5a6f4fc8c8539d810",
+              "right_evidence": "sha256:00091aa568cb13873d1e8b761941b4ab506f6fc56867b6d5a6f4fc8c8539d810"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:5c6ce4bacdf0fe56f9a3109bd38ceb634e03d111d3f798120971f5701d52055c",
+              "right_evidence": "sha256:5c6ce4bacdf0fe56f9a3109bd38ceb634e03d111d3f798120971f5701d52055c"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:b50b34e28b74a6cac015811624a300758cc557a384618d9120cb406d7b904e3f",
+              "right_evidence": "sha256:b50b34e28b74a6cac015811624a300758cc557a384618d9120cb406d7b904e3f"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:3d1f6f33a59a82cb49308c08481e7f0b62a86cec60e9f34e17ccbf723d407d33",
+              "right_evidence": "sha256:3d1f6f33a59a82cb49308c08481e7f0b62a86cec60e9f34e17ccbf723d407d33"
+            },
+            {
+              "field": "product.version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962",
+              "right_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:ae341ac3717e5fd7bc1052071b8ff98dbf9ca042d5e1c9dec3b60e701bd7b8f9",
+              "right_evidence": "sha256:ae341ac3717e5fd7bc1052071b8ff98dbf9ca042d5e1c9dec3b60e701bd7b8f9"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "matched",
+              "left_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e",
+              "right_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e"
+            },
+            {
+              "field": "daily.dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "matched",
+              "left_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe",
+              "right_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe"
+            },
+            {
+              "field": "lineage.effort-original.content",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            }
+          ],
+          "reasons": [
+            "complete_nonempty_content_evidence_required"
+          ]
+        },
+        {
+          "source_id": "effort-original",
+          "status": "unknown",
+          "content": {
+            "status": "unknown",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:00091aa568cb13873d1e8b761941b4ab506f6fc56867b6d5a6f4fc8c8539d810",
+              "right_evidence": "sha256:00091aa568cb13873d1e8b761941b4ab506f6fc56867b6d5a6f4fc8c8539d810"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:67d683997964161f4ebda1058e3480a97ec8b0efff842984071edf2056aad424",
+              "right_evidence": "sha256:67d683997964161f4ebda1058e3480a97ec8b0efff842984071edf2056aad424"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:b84c07784dd22562afee4897dcde2e2d89e56b18ff5954ac5d30abd482e52510",
+              "right_evidence": "sha256:b84c07784dd22562afee4897dcde2e2d89e56b18ff5954ac5d30abd482e52510"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:dbc439271aa80f6c2384744062a80f62a229e1df42289a60e69fc08cef038f57",
+              "right_evidence": "sha256:dbc439271aa80f6c2384744062a80f62a229e1df42289a60e69fc08cef038f57"
+            },
+            {
+              "field": "product.version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962",
+              "right_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:8b4240956d7cd787440d8a39e8a8ddb95aa7dd5b8a0bcc1e4adfbe593426895a",
+              "right_evidence": "sha256:8b4240956d7cd787440d8a39e8a8ddb95aa7dd5b8a0bcc1e4adfbe593426895a"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "matched",
+              "left_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e",
+              "right_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e"
+            },
+            {
+              "field": "daily.dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "matched",
+              "left_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe",
+              "right_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe"
+            }
+          ],
+          "reasons": [
+            "license_claim_conflict",
+            "complete_nonempty_content_evidence_required"
+          ]
+        },
+        {
+          "source_id": "front-display",
+          "status": "unknown",
+          "content": {
+            "status": "matched",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:0f26fb408480e3f4a8f3c085ccf4ea5f87922cec3aafc3a674dcf2f49fed50ed",
+              "right_evidence": "sha256:0f26fb408480e3f4a8f3c085ccf4ea5f87922cec3aafc3a674dcf2f49fed50ed"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:5c6ce4bacdf0fe56f9a3109bd38ceb634e03d111d3f798120971f5701d52055c",
+              "right_evidence": "sha256:5c6ce4bacdf0fe56f9a3109bd38ceb634e03d111d3f798120971f5701d52055c"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:04fabbb83ef3d35428c6a086314adbefc3b2d761e44c092a6da02d511fd036b3",
+              "right_evidence": "sha256:04fabbb83ef3d35428c6a086314adbefc3b2d761e44c092a6da02d511fd036b3"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:a02f9cffe152ace65d887637d92500f6d78f90be3fd291e65a9502be78b95a1a",
+              "right_evidence": "sha256:a02f9cffe152ace65d887637d92500f6d78f90be3fd291e65a9502be78b95a1a"
+            },
+            {
+              "field": "product.version",
+              "status": "matched",
+              "left_evidence": "sha256:0e8c774ad72e09b57e0c297dcf79b3638f5761cc9152aee84fc3d59eee394b41",
+              "right_evidence": "sha256:0e8c774ad72e09b57e0c297dcf79b3638f5761cc9152aee84fc3d59eee394b41"
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:00a7b1a7ad45988addbce0cbadf994e13ba86cf1465a136f16c3db7ae59111ff",
+              "right_evidence": "sha256:00a7b1a7ad45988addbce0cbadf994e13ba86cf1465a136f16c3db7ae59111ff"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:cb2585b0803f8703f1fbb74f5f068339b5a089f024248514bd2e6c346ec816a3",
+              "right_evidence": "sha256:cb2585b0803f8703f1fbb74f5f068339b5a089f024248514bd2e6c346ec816a3"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:fd754a2ef127288402570f2bf73203eed3b95113530e98e49a2e1f8bc29d4b3b",
+              "right_evidence": "sha256:fd754a2ef127288402570f2bf73203eed3b95113530e98e49a2e1f8bc29d4b3b"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "matched",
+              "left_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e",
+              "right_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e"
+            },
+            {
+              "field": "daily.dates",
+              "status": "matched",
+              "left_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe",
+              "right_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe"
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "matched",
+              "left_evidence": "sha256:5ff5e4f259620ad14cc88ea4d43ffde7e1fa1b0d3f5e451a0c059e8429d47139",
+              "right_evidence": "sha256:5ff5e4f259620ad14cc88ea4d43ffde7e1fa1b0d3f5e451a0c059e8429d47139"
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "matched",
+              "left_evidence": "sha256:44ef1ec621ea492fe7d24e218177c46c377b58222b5da207c6039559527b337f",
+              "right_evidence": "sha256:44ef1ec621ea492fe7d24e218177c46c377b58222b5da207c6039559527b337f"
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "lineage.front-original.content",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            }
+          ],
+          "reasons": []
+        },
+        {
+          "source_id": "front-original",
+          "status": "unknown",
+          "content": {
+            "status": "unknown",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:0f26fb408480e3f4a8f3c085ccf4ea5f87922cec3aafc3a674dcf2f49fed50ed",
+              "right_evidence": "sha256:0f26fb408480e3f4a8f3c085ccf4ea5f87922cec3aafc3a674dcf2f49fed50ed"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:67d683997964161f4ebda1058e3480a97ec8b0efff842984071edf2056aad424",
+              "right_evidence": "sha256:67d683997964161f4ebda1058e3480a97ec8b0efff842984071edf2056aad424"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:00a37ff7dd0ad3eac00c6cf2e83cc83075018f32a0238780b1ceec8a046e52d9",
+              "right_evidence": "sha256:00a37ff7dd0ad3eac00c6cf2e83cc83075018f32a0238780b1ceec8a046e52d9"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:5896293fa1eee9566c20d401fd048be227a039d162a103bb3f9384bb3005f885",
+              "right_evidence": "sha256:5896293fa1eee9566c20d401fd048be227a039d162a103bb3f9384bb3005f885"
+            },
+            {
+              "field": "product.version",
+              "status": "matched",
+              "left_evidence": "sha256:0e8c774ad72e09b57e0c297dcf79b3638f5761cc9152aee84fc3d59eee394b41",
+              "right_evidence": "sha256:0e8c774ad72e09b57e0c297dcf79b3638f5761cc9152aee84fc3d59eee394b41"
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:00a7b1a7ad45988addbce0cbadf994e13ba86cf1465a136f16c3db7ae59111ff",
+              "right_evidence": "sha256:00a7b1a7ad45988addbce0cbadf994e13ba86cf1465a136f16c3db7ae59111ff"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:fd754a2ef127288402570f2bf73203eed3b95113530e98e49a2e1f8bc29d4b3b",
+              "right_evidence": "sha256:fd754a2ef127288402570f2bf73203eed3b95113530e98e49a2e1f8bc29d4b3b"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "matched",
+              "left_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e",
+              "right_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e"
+            },
+            {
+              "field": "daily.dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "matched",
+              "left_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe",
+              "right_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe"
+            }
+          ],
+          "reasons": [
+            "complete_nonempty_content_evidence_required"
+          ]
+        },
+        {
+          "source_id": "response-input",
+          "status": "unknown",
+          "content": {
+            "status": "unknown",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:9e2600195d657991fb57288e7458a0cc17a0c0fea215c849b16df7ca65ee9a7c",
+              "right_evidence": "sha256:9e2600195d657991fb57288e7458a0cc17a0c0fea215c849b16df7ca65ee9a7c"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:3ec53a7d26beb36a7f9b174690d4bb0cd562e9bf280a28c6a5a0a4b6be07d945",
+              "right_evidence": "sha256:3ec53a7d26beb36a7f9b174690d4bb0cd562e9bf280a28c6a5a0a4b6be07d945"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:1b88d2afaae7f126c9ba17783a97eed68af3cfcbdbcd432209a1035973334c57",
+              "right_evidence": "sha256:1b88d2afaae7f126c9ba17783a97eed68af3cfcbdbcd432209a1035973334c57"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:c0b0679c29322ddc7adaed91c5e1208ba5c61a2b7be60be7d3c7be28d048606e",
+              "right_evidence": "sha256:c0b0679c29322ddc7adaed91c5e1208ba5c61a2b7be60be7d3c7be28d048606e"
+            },
+            {
+              "field": "product.version",
+              "status": "matched",
+              "left_evidence": "sha256:aca893469769096921160ecdf6b00fce6483bd6b6d72bc76cd1800b18320276b",
+              "right_evidence": "sha256:aca893469769096921160ecdf6b00fce6483bd6b6d72bc76cd1800b18320276b"
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962",
+              "right_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:af9b530369d276d7a422f76f8a01867ab725f83224cba24f250d30517ed3ca32",
+              "right_evidence": "sha256:af9b530369d276d7a422f76f8a01867ab725f83224cba24f250d30517ed3ca32"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:5b3d20ea380faaa7d3af512bd3ba96f2b1879c14fe0edfb961996aa4a2ab5f40",
+              "right_evidence": "sha256:5b3d20ea380faaa7d3af512bd3ba96f2b1879c14fe0edfb961996aa4a2ab5f40"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "lineage.effort-original.content",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "lineage.front-display.content",
+              "status": "matched",
+              "left_evidence": "sha256:8162c782e249e90896afa8767b38efe4db424bd0be01556d6007e19a3d80189b",
+              "right_evidence": "sha256:8162c782e249e90896afa8767b38efe4db424bd0be01556d6007e19a3d80189b"
+            }
+          ],
+          "reasons": [
+            "complete_nonempty_content_evidence_required"
+          ]
+        },
+        {
+          "source_id": "response-table",
+          "status": "unknown",
+          "content": {
+            "status": "matched",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:9e2600195d657991fb57288e7458a0cc17a0c0fea215c849b16df7ca65ee9a7c",
+              "right_evidence": "sha256:9e2600195d657991fb57288e7458a0cc17a0c0fea215c849b16df7ca65ee9a7c"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:3ec53a7d26beb36a7f9b174690d4bb0cd562e9bf280a28c6a5a0a4b6be07d945",
+              "right_evidence": "sha256:3ec53a7d26beb36a7f9b174690d4bb0cd562e9bf280a28c6a5a0a4b6be07d945"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:3533cceca048e08b8a0aa5803cf50bffce579af7b1b8558a2a75e2e2c29f4a7b",
+              "right_evidence": "sha256:3533cceca048e08b8a0aa5803cf50bffce579af7b1b8558a2a75e2e2c29f4a7b"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:eb2b191a6f1055bbc54e72be5c6073f8ec0a24049982b5e671baaf642df6cbcf",
+              "right_evidence": "sha256:eb2b191a6f1055bbc54e72be5c6073f8ec0a24049982b5e671baaf642df6cbcf"
+            },
+            {
+              "field": "product.version",
+              "status": "matched",
+              "left_evidence": "sha256:4d19bd959b6ca231407a5078f16075795fcb1d21789422d8dced0a506c16554a",
+              "right_evidence": "sha256:4d19bd959b6ca231407a5078f16075795fcb1d21789422d8dced0a506c16554a"
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962",
+              "right_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:e56defc86aa4712f4392de8c98b63fdacbd24ef34c1c092bfc2f51a10ce4b50a",
+              "right_evidence": "sha256:e56defc86aa4712f4392de8c98b63fdacbd24ef34c1c092bfc2f51a10ce4b50a"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:260c04bc87d40f80783cecc6105f4885788c191fedc1345b1a61dd2f452f0ee7",
+              "right_evidence": "sha256:260c04bc87d40f80783cecc6105f4885788c191fedc1345b1a61dd2f452f0ee7"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "lineage.response-input.content",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            }
+          ],
+          "reasons": []
+        },
+        {
+          "source_id": "sst-display",
+          "status": "unknown",
+          "content": {
+            "status": "matched",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:d9d6d19ddb9b0534cf2fcdbed0b5e5803602e1a5707d2559d9a86ee433e2c6ab",
+              "right_evidence": "sha256:d9d6d19ddb9b0534cf2fcdbed0b5e5803602e1a5707d2559d9a86ee433e2c6ab"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:5c6ce4bacdf0fe56f9a3109bd38ceb634e03d111d3f798120971f5701d52055c",
+              "right_evidence": "sha256:5c6ce4bacdf0fe56f9a3109bd38ceb634e03d111d3f798120971f5701d52055c"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:44776563c82f3a0dd4fc202da44f40c08b5c8648c165e62fc7991e3abb90d469",
+              "right_evidence": "sha256:44776563c82f3a0dd4fc202da44f40c08b5c8648c165e62fc7991e3abb90d469"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:26a64942bd27f5a76ef9215ac5c517d0cdfba49cede8d1018f0616a44d32c01f",
+              "right_evidence": "sha256:26a64942bd27f5a76ef9215ac5c517d0cdfba49cede8d1018f0616a44d32c01f"
+            },
+            {
+              "field": "product.version",
+              "status": "matched",
+              "left_evidence": "sha256:0c3c5b58e13f8c89cf823f2c683df48a53b31bd55ee5904709dc83f4eb795970",
+              "right_evidence": "sha256:0c3c5b58e13f8c89cf823f2c683df48a53b31bd55ee5904709dc83f4eb795970"
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:af35ea4634186180f6bc13bec5766ce4729ac4617690ece3693df3841d40c76c",
+              "right_evidence": "sha256:af35ea4634186180f6bc13bec5766ce4729ac4617690ece3693df3841d40c76c"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:663b44a4a4487aa293b9c7223d3221b71b2e340a0a09152eef92529787d0878b",
+              "right_evidence": "sha256:663b44a4a4487aa293b9c7223d3221b71b2e340a0a09152eef92529787d0878b"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:b794d1d0e0a321009890ba8519eb51fcdd514dad62d01f60bb5a46e18e33acdc",
+              "right_evidence": "sha256:b794d1d0e0a321009890ba8519eb51fcdd514dad62d01f60bb5a46e18e33acdc"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "matched",
+              "left_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e",
+              "right_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e"
+            },
+            {
+              "field": "daily.dates",
+              "status": "matched",
+              "left_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe",
+              "right_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe"
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "matched",
+              "left_evidence": "sha256:5ff5e4f259620ad14cc88ea4d43ffde7e1fa1b0d3f5e451a0c059e8429d47139",
+              "right_evidence": "sha256:5ff5e4f259620ad14cc88ea4d43ffde7e1fa1b0d3f5e451a0c059e8429d47139"
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "matched",
+              "left_evidence": "sha256:122ef380ac1b2b8137416caddda3c66c557d511cb5f76ea5991ebf3356a07910",
+              "right_evidence": "sha256:122ef380ac1b2b8137416caddda3c66c557d511cb5f76ea5991ebf3356a07910"
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "lineage.sst-original.content",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            }
+          ],
+          "reasons": []
+        },
+        {
+          "source_id": "sst-original",
+          "status": "unknown",
+          "content": {
+            "status": "unknown",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:d9d6d19ddb9b0534cf2fcdbed0b5e5803602e1a5707d2559d9a86ee433e2c6ab",
+              "right_evidence": "sha256:d9d6d19ddb9b0534cf2fcdbed0b5e5803602e1a5707d2559d9a86ee433e2c6ab"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:67d683997964161f4ebda1058e3480a97ec8b0efff842984071edf2056aad424",
+              "right_evidence": "sha256:67d683997964161f4ebda1058e3480a97ec8b0efff842984071edf2056aad424"
+            },
+            {
+              "field": "product.id",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:f45c6950b3e67aa7acb1516eef004f6f6c666dc945cc3f31371e596db34345bb",
+              "right_evidence": "sha256:f45c6950b3e67aa7acb1516eef004f6f6c666dc945cc3f31371e596db34345bb"
+            },
+            {
+              "field": "product.version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "product.unit",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "matched",
+              "left_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e",
+              "right_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e"
+            },
+            {
+              "field": "daily.dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "matched",
+              "left_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe",
+              "right_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe"
+            }
+          ],
+          "reasons": [
+            "complete_nonempty_content_evidence_required"
+          ]
+        }
+      ]
+    },
+    {
+      "left": "local",
+      "right": "server",
+      "deployment": {
+        "field": "deployment_commit",
+        "status": "unknown",
+        "left_evidence": "sha256:b43d2afd3fded446ebd0bbf1774b20dd61501b3037c5cd77fab4c2e6afaf8d1b",
+        "right_evidence": null
+      },
+      "sources": [
+        {
+          "source_id": "effort-display",
+          "status": "unknown",
+          "content": {
+            "status": "unknown",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:00091aa568cb13873d1e8b761941b4ab506f6fc56867b6d5a6f4fc8c8539d810",
+              "right_evidence": "sha256:00091aa568cb13873d1e8b761941b4ab506f6fc56867b6d5a6f4fc8c8539d810"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:5c6ce4bacdf0fe56f9a3109bd38ceb634e03d111d3f798120971f5701d52055c",
+              "right_evidence": "sha256:5c6ce4bacdf0fe56f9a3109bd38ceb634e03d111d3f798120971f5701d52055c"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:b50b34e28b74a6cac015811624a300758cc557a384618d9120cb406d7b904e3f",
+              "right_evidence": "sha256:b50b34e28b74a6cac015811624a300758cc557a384618d9120cb406d7b904e3f"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:3d1f6f33a59a82cb49308c08481e7f0b62a86cec60e9f34e17ccbf723d407d33",
+              "right_evidence": "sha256:3d1f6f33a59a82cb49308c08481e7f0b62a86cec60e9f34e17ccbf723d407d33"
+            },
+            {
+              "field": "product.version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962",
+              "right_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:ae341ac3717e5fd7bc1052071b8ff98dbf9ca042d5e1c9dec3b60e701bd7b8f9",
+              "right_evidence": "sha256:ae341ac3717e5fd7bc1052071b8ff98dbf9ca042d5e1c9dec3b60e701bd7b8f9"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "matched",
+              "left_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e",
+              "right_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e"
+            },
+            {
+              "field": "daily.dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "matched",
+              "left_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe",
+              "right_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe"
+            },
+            {
+              "field": "lineage.effort-original.content",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            }
+          ],
+          "reasons": [
+            "complete_nonempty_content_evidence_required"
+          ]
+        },
+        {
+          "source_id": "effort-original",
+          "status": "unknown",
+          "content": {
+            "status": "unknown",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:00091aa568cb13873d1e8b761941b4ab506f6fc56867b6d5a6f4fc8c8539d810",
+              "right_evidence": "sha256:00091aa568cb13873d1e8b761941b4ab506f6fc56867b6d5a6f4fc8c8539d810"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:67d683997964161f4ebda1058e3480a97ec8b0efff842984071edf2056aad424",
+              "right_evidence": "sha256:67d683997964161f4ebda1058e3480a97ec8b0efff842984071edf2056aad424"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:b84c07784dd22562afee4897dcde2e2d89e56b18ff5954ac5d30abd482e52510",
+              "right_evidence": "sha256:b84c07784dd22562afee4897dcde2e2d89e56b18ff5954ac5d30abd482e52510"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:dbc439271aa80f6c2384744062a80f62a229e1df42289a60e69fc08cef038f57",
+              "right_evidence": "sha256:dbc439271aa80f6c2384744062a80f62a229e1df42289a60e69fc08cef038f57"
+            },
+            {
+              "field": "product.version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962",
+              "right_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:8b4240956d7cd787440d8a39e8a8ddb95aa7dd5b8a0bcc1e4adfbe593426895a",
+              "right_evidence": "sha256:8b4240956d7cd787440d8a39e8a8ddb95aa7dd5b8a0bcc1e4adfbe593426895a"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "matched",
+              "left_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e",
+              "right_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e"
+            },
+            {
+              "field": "daily.dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "matched",
+              "left_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe",
+              "right_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe"
+            }
+          ],
+          "reasons": [
+            "license_claim_conflict",
+            "complete_nonempty_content_evidence_required"
+          ]
+        },
+        {
+          "source_id": "front-display",
+          "status": "different",
+          "content": {
+            "status": "different",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:0f26fb408480e3f4a8f3c085ccf4ea5f87922cec3aafc3a674dcf2f49fed50ed",
+              "right_evidence": "sha256:0f26fb408480e3f4a8f3c085ccf4ea5f87922cec3aafc3a674dcf2f49fed50ed"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:5c6ce4bacdf0fe56f9a3109bd38ceb634e03d111d3f798120971f5701d52055c",
+              "right_evidence": "sha256:5c6ce4bacdf0fe56f9a3109bd38ceb634e03d111d3f798120971f5701d52055c"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:04fabbb83ef3d35428c6a086314adbefc3b2d761e44c092a6da02d511fd036b3",
+              "right_evidence": "sha256:04fabbb83ef3d35428c6a086314adbefc3b2d761e44c092a6da02d511fd036b3"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:a02f9cffe152ace65d887637d92500f6d78f90be3fd291e65a9502be78b95a1a",
+              "right_evidence": "sha256:a02f9cffe152ace65d887637d92500f6d78f90be3fd291e65a9502be78b95a1a"
+            },
+            {
+              "field": "product.version",
+              "status": "matched",
+              "left_evidence": "sha256:0e8c774ad72e09b57e0c297dcf79b3638f5761cc9152aee84fc3d59eee394b41",
+              "right_evidence": "sha256:0e8c774ad72e09b57e0c297dcf79b3638f5761cc9152aee84fc3d59eee394b41"
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:00a7b1a7ad45988addbce0cbadf994e13ba86cf1465a136f16c3db7ae59111ff",
+              "right_evidence": "sha256:00a7b1a7ad45988addbce0cbadf994e13ba86cf1465a136f16c3db7ae59111ff"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:cb2585b0803f8703f1fbb74f5f068339b5a089f024248514bd2e6c346ec816a3",
+              "right_evidence": "sha256:cb2585b0803f8703f1fbb74f5f068339b5a089f024248514bd2e6c346ec816a3"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:fd754a2ef127288402570f2bf73203eed3b95113530e98e49a2e1f8bc29d4b3b",
+              "right_evidence": "sha256:fd754a2ef127288402570f2bf73203eed3b95113530e98e49a2e1f8bc29d4b3b"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "matched",
+              "left_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e",
+              "right_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e"
+            },
+            {
+              "field": "daily.dates",
+              "status": "matched",
+              "left_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe",
+              "right_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe"
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "matched",
+              "left_evidence": "sha256:5ff5e4f259620ad14cc88ea4d43ffde7e1fa1b0d3f5e451a0c059e8429d47139",
+              "right_evidence": "sha256:5ff5e4f259620ad14cc88ea4d43ffde7e1fa1b0d3f5e451a0c059e8429d47139"
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "matched",
+              "left_evidence": "sha256:44ef1ec621ea492fe7d24e218177c46c377b58222b5da207c6039559527b337f",
+              "right_evidence": "sha256:44ef1ec621ea492fe7d24e218177c46c377b58222b5da207c6039559527b337f"
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "lineage.front-original.content",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            }
+          ],
+          "reasons": []
+        },
+        {
+          "source_id": "front-original",
+          "status": "unknown",
+          "content": {
+            "status": "unknown",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:0f26fb408480e3f4a8f3c085ccf4ea5f87922cec3aafc3a674dcf2f49fed50ed",
+              "right_evidence": "sha256:0f26fb408480e3f4a8f3c085ccf4ea5f87922cec3aafc3a674dcf2f49fed50ed"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:67d683997964161f4ebda1058e3480a97ec8b0efff842984071edf2056aad424",
+              "right_evidence": "sha256:67d683997964161f4ebda1058e3480a97ec8b0efff842984071edf2056aad424"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:00a37ff7dd0ad3eac00c6cf2e83cc83075018f32a0238780b1ceec8a046e52d9",
+              "right_evidence": "sha256:00a37ff7dd0ad3eac00c6cf2e83cc83075018f32a0238780b1ceec8a046e52d9"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:5896293fa1eee9566c20d401fd048be227a039d162a103bb3f9384bb3005f885",
+              "right_evidence": "sha256:5896293fa1eee9566c20d401fd048be227a039d162a103bb3f9384bb3005f885"
+            },
+            {
+              "field": "product.version",
+              "status": "matched",
+              "left_evidence": "sha256:0e8c774ad72e09b57e0c297dcf79b3638f5761cc9152aee84fc3d59eee394b41",
+              "right_evidence": "sha256:0e8c774ad72e09b57e0c297dcf79b3638f5761cc9152aee84fc3d59eee394b41"
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:00a7b1a7ad45988addbce0cbadf994e13ba86cf1465a136f16c3db7ae59111ff",
+              "right_evidence": "sha256:00a7b1a7ad45988addbce0cbadf994e13ba86cf1465a136f16c3db7ae59111ff"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:fd754a2ef127288402570f2bf73203eed3b95113530e98e49a2e1f8bc29d4b3b",
+              "right_evidence": "sha256:fd754a2ef127288402570f2bf73203eed3b95113530e98e49a2e1f8bc29d4b3b"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "matched",
+              "left_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e",
+              "right_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e"
+            },
+            {
+              "field": "daily.dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "matched",
+              "left_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe",
+              "right_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe"
+            }
+          ],
+          "reasons": [
+            "complete_nonempty_content_evidence_required"
+          ]
+        },
+        {
+          "source_id": "response-input",
+          "status": "different",
+          "content": {
+            "status": "unknown",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:9e2600195d657991fb57288e7458a0cc17a0c0fea215c849b16df7ca65ee9a7c",
+              "right_evidence": "sha256:9e2600195d657991fb57288e7458a0cc17a0c0fea215c849b16df7ca65ee9a7c"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:3ec53a7d26beb36a7f9b174690d4bb0cd562e9bf280a28c6a5a0a4b6be07d945",
+              "right_evidence": "sha256:3ec53a7d26beb36a7f9b174690d4bb0cd562e9bf280a28c6a5a0a4b6be07d945"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:1b88d2afaae7f126c9ba17783a97eed68af3cfcbdbcd432209a1035973334c57",
+              "right_evidence": "sha256:1b88d2afaae7f126c9ba17783a97eed68af3cfcbdbcd432209a1035973334c57"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:c0b0679c29322ddc7adaed91c5e1208ba5c61a2b7be60be7d3c7be28d048606e",
+              "right_evidence": "sha256:c0b0679c29322ddc7adaed91c5e1208ba5c61a2b7be60be7d3c7be28d048606e"
+            },
+            {
+              "field": "product.version",
+              "status": "matched",
+              "left_evidence": "sha256:aca893469769096921160ecdf6b00fce6483bd6b6d72bc76cd1800b18320276b",
+              "right_evidence": "sha256:aca893469769096921160ecdf6b00fce6483bd6b6d72bc76cd1800b18320276b"
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962",
+              "right_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:af9b530369d276d7a422f76f8a01867ab725f83224cba24f250d30517ed3ca32",
+              "right_evidence": "sha256:af9b530369d276d7a422f76f8a01867ab725f83224cba24f250d30517ed3ca32"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:5b3d20ea380faaa7d3af512bd3ba96f2b1879c14fe0edfb961996aa4a2ab5f40",
+              "right_evidence": "sha256:5b3d20ea380faaa7d3af512bd3ba96f2b1879c14fe0edfb961996aa4a2ab5f40"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "lineage.effort-original.content",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "lineage.front-display.content",
+              "status": "different",
+              "left_evidence": "sha256:8162c782e249e90896afa8767b38efe4db424bd0be01556d6007e19a3d80189b",
+              "right_evidence": "sha256:8ad3b9848991903e97cb94d87b6eecab8d71448d330a17bca3549d882e7b5da5"
+            }
+          ],
+          "reasons": [
+            "complete_nonempty_content_evidence_required"
+          ]
+        },
+        {
+          "source_id": "response-table",
+          "status": "different",
+          "content": {
+            "status": "different",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:9e2600195d657991fb57288e7458a0cc17a0c0fea215c849b16df7ca65ee9a7c",
+              "right_evidence": "sha256:9e2600195d657991fb57288e7458a0cc17a0c0fea215c849b16df7ca65ee9a7c"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:3ec53a7d26beb36a7f9b174690d4bb0cd562e9bf280a28c6a5a0a4b6be07d945",
+              "right_evidence": "sha256:3ec53a7d26beb36a7f9b174690d4bb0cd562e9bf280a28c6a5a0a4b6be07d945"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:3533cceca048e08b8a0aa5803cf50bffce579af7b1b8558a2a75e2e2c29f4a7b",
+              "right_evidence": "sha256:3533cceca048e08b8a0aa5803cf50bffce579af7b1b8558a2a75e2e2c29f4a7b"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:eb2b191a6f1055bbc54e72be5c6073f8ec0a24049982b5e671baaf642df6cbcf",
+              "right_evidence": "sha256:eb2b191a6f1055bbc54e72be5c6073f8ec0a24049982b5e671baaf642df6cbcf"
+            },
+            {
+              "field": "product.version",
+              "status": "matched",
+              "left_evidence": "sha256:4d19bd959b6ca231407a5078f16075795fcb1d21789422d8dced0a506c16554a",
+              "right_evidence": "sha256:4d19bd959b6ca231407a5078f16075795fcb1d21789422d8dced0a506c16554a"
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962",
+              "right_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:e56defc86aa4712f4392de8c98b63fdacbd24ef34c1c092bfc2f51a10ce4b50a",
+              "right_evidence": "sha256:e56defc86aa4712f4392de8c98b63fdacbd24ef34c1c092bfc2f51a10ce4b50a"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:260c04bc87d40f80783cecc6105f4885788c191fedc1345b1a61dd2f452f0ee7",
+              "right_evidence": "sha256:260c04bc87d40f80783cecc6105f4885788c191fedc1345b1a61dd2f452f0ee7"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "lineage.response-input.content",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            }
+          ],
+          "reasons": []
+        },
+        {
+          "source_id": "sst-display",
+          "status": "different",
+          "content": {
+            "status": "different",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:d9d6d19ddb9b0534cf2fcdbed0b5e5803602e1a5707d2559d9a86ee433e2c6ab",
+              "right_evidence": "sha256:d9d6d19ddb9b0534cf2fcdbed0b5e5803602e1a5707d2559d9a86ee433e2c6ab"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:5c6ce4bacdf0fe56f9a3109bd38ceb634e03d111d3f798120971f5701d52055c",
+              "right_evidence": "sha256:5c6ce4bacdf0fe56f9a3109bd38ceb634e03d111d3f798120971f5701d52055c"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:44776563c82f3a0dd4fc202da44f40c08b5c8648c165e62fc7991e3abb90d469",
+              "right_evidence": "sha256:44776563c82f3a0dd4fc202da44f40c08b5c8648c165e62fc7991e3abb90d469"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:26a64942bd27f5a76ef9215ac5c517d0cdfba49cede8d1018f0616a44d32c01f",
+              "right_evidence": "sha256:26a64942bd27f5a76ef9215ac5c517d0cdfba49cede8d1018f0616a44d32c01f"
+            },
+            {
+              "field": "product.version",
+              "status": "matched",
+              "left_evidence": "sha256:0c3c5b58e13f8c89cf823f2c683df48a53b31bd55ee5904709dc83f4eb795970",
+              "right_evidence": "sha256:0c3c5b58e13f8c89cf823f2c683df48a53b31bd55ee5904709dc83f4eb795970"
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:af35ea4634186180f6bc13bec5766ce4729ac4617690ece3693df3841d40c76c",
+              "right_evidence": "sha256:af35ea4634186180f6bc13bec5766ce4729ac4617690ece3693df3841d40c76c"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:663b44a4a4487aa293b9c7223d3221b71b2e340a0a09152eef92529787d0878b",
+              "right_evidence": "sha256:663b44a4a4487aa293b9c7223d3221b71b2e340a0a09152eef92529787d0878b"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:b794d1d0e0a321009890ba8519eb51fcdd514dad62d01f60bb5a46e18e33acdc",
+              "right_evidence": "sha256:b794d1d0e0a321009890ba8519eb51fcdd514dad62d01f60bb5a46e18e33acdc"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "matched",
+              "left_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e",
+              "right_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e"
+            },
+            {
+              "field": "daily.dates",
+              "status": "matched",
+              "left_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe",
+              "right_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe"
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "matched",
+              "left_evidence": "sha256:5ff5e4f259620ad14cc88ea4d43ffde7e1fa1b0d3f5e451a0c059e8429d47139",
+              "right_evidence": "sha256:5ff5e4f259620ad14cc88ea4d43ffde7e1fa1b0d3f5e451a0c059e8429d47139"
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "matched",
+              "left_evidence": "sha256:122ef380ac1b2b8137416caddda3c66c557d511cb5f76ea5991ebf3356a07910",
+              "right_evidence": "sha256:122ef380ac1b2b8137416caddda3c66c557d511cb5f76ea5991ebf3356a07910"
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "lineage.sst-original.content",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            }
+          ],
+          "reasons": []
+        },
+        {
+          "source_id": "sst-original",
+          "status": "unknown",
+          "content": {
+            "status": "unknown",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:d9d6d19ddb9b0534cf2fcdbed0b5e5803602e1a5707d2559d9a86ee433e2c6ab",
+              "right_evidence": "sha256:d9d6d19ddb9b0534cf2fcdbed0b5e5803602e1a5707d2559d9a86ee433e2c6ab"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:67d683997964161f4ebda1058e3480a97ec8b0efff842984071edf2056aad424",
+              "right_evidence": "sha256:67d683997964161f4ebda1058e3480a97ec8b0efff842984071edf2056aad424"
+            },
+            {
+              "field": "product.id",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:f45c6950b3e67aa7acb1516eef004f6f6c666dc945cc3f31371e596db34345bb",
+              "right_evidence": "sha256:f45c6950b3e67aa7acb1516eef004f6f6c666dc945cc3f31371e596db34345bb"
+            },
+            {
+              "field": "product.version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "product.unit",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "matched",
+              "left_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e",
+              "right_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e"
+            },
+            {
+              "field": "daily.dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "matched",
+              "left_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe",
+              "right_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe"
+            }
+          ],
+          "reasons": [
+            "complete_nonempty_content_evidence_required"
+          ]
+        }
+      ]
+    },
+    {
+      "left": "offline",
+      "right": "server",
+      "deployment": {
+        "field": "deployment_commit",
+        "status": "unknown",
+        "left_evidence": null,
+        "right_evidence": null
+      },
+      "sources": [
+        {
+          "source_id": "effort-display",
+          "status": "unknown",
+          "content": {
+            "status": "unknown",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:00091aa568cb13873d1e8b761941b4ab506f6fc56867b6d5a6f4fc8c8539d810",
+              "right_evidence": "sha256:00091aa568cb13873d1e8b761941b4ab506f6fc56867b6d5a6f4fc8c8539d810"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:5c6ce4bacdf0fe56f9a3109bd38ceb634e03d111d3f798120971f5701d52055c",
+              "right_evidence": "sha256:5c6ce4bacdf0fe56f9a3109bd38ceb634e03d111d3f798120971f5701d52055c"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:b50b34e28b74a6cac015811624a300758cc557a384618d9120cb406d7b904e3f",
+              "right_evidence": "sha256:b50b34e28b74a6cac015811624a300758cc557a384618d9120cb406d7b904e3f"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:3d1f6f33a59a82cb49308c08481e7f0b62a86cec60e9f34e17ccbf723d407d33",
+              "right_evidence": "sha256:3d1f6f33a59a82cb49308c08481e7f0b62a86cec60e9f34e17ccbf723d407d33"
+            },
+            {
+              "field": "product.version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962",
+              "right_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:ae341ac3717e5fd7bc1052071b8ff98dbf9ca042d5e1c9dec3b60e701bd7b8f9",
+              "right_evidence": "sha256:ae341ac3717e5fd7bc1052071b8ff98dbf9ca042d5e1c9dec3b60e701bd7b8f9"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "matched",
+              "left_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e",
+              "right_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e"
+            },
+            {
+              "field": "daily.dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "matched",
+              "left_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe",
+              "right_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe"
+            },
+            {
+              "field": "lineage.effort-original.content",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            }
+          ],
+          "reasons": [
+            "complete_nonempty_content_evidence_required"
+          ]
+        },
+        {
+          "source_id": "effort-original",
+          "status": "unknown",
+          "content": {
+            "status": "unknown",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:00091aa568cb13873d1e8b761941b4ab506f6fc56867b6d5a6f4fc8c8539d810",
+              "right_evidence": "sha256:00091aa568cb13873d1e8b761941b4ab506f6fc56867b6d5a6f4fc8c8539d810"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:67d683997964161f4ebda1058e3480a97ec8b0efff842984071edf2056aad424",
+              "right_evidence": "sha256:67d683997964161f4ebda1058e3480a97ec8b0efff842984071edf2056aad424"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:b84c07784dd22562afee4897dcde2e2d89e56b18ff5954ac5d30abd482e52510",
+              "right_evidence": "sha256:b84c07784dd22562afee4897dcde2e2d89e56b18ff5954ac5d30abd482e52510"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:dbc439271aa80f6c2384744062a80f62a229e1df42289a60e69fc08cef038f57",
+              "right_evidence": "sha256:dbc439271aa80f6c2384744062a80f62a229e1df42289a60e69fc08cef038f57"
+            },
+            {
+              "field": "product.version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962",
+              "right_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:8b4240956d7cd787440d8a39e8a8ddb95aa7dd5b8a0bcc1e4adfbe593426895a",
+              "right_evidence": "sha256:8b4240956d7cd787440d8a39e8a8ddb95aa7dd5b8a0bcc1e4adfbe593426895a"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "matched",
+              "left_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e",
+              "right_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e"
+            },
+            {
+              "field": "daily.dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "matched",
+              "left_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe",
+              "right_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe"
+            }
+          ],
+          "reasons": [
+            "license_claim_conflict",
+            "complete_nonempty_content_evidence_required"
+          ]
+        },
+        {
+          "source_id": "front-display",
+          "status": "different",
+          "content": {
+            "status": "different",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:0f26fb408480e3f4a8f3c085ccf4ea5f87922cec3aafc3a674dcf2f49fed50ed",
+              "right_evidence": "sha256:0f26fb408480e3f4a8f3c085ccf4ea5f87922cec3aafc3a674dcf2f49fed50ed"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:5c6ce4bacdf0fe56f9a3109bd38ceb634e03d111d3f798120971f5701d52055c",
+              "right_evidence": "sha256:5c6ce4bacdf0fe56f9a3109bd38ceb634e03d111d3f798120971f5701d52055c"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:04fabbb83ef3d35428c6a086314adbefc3b2d761e44c092a6da02d511fd036b3",
+              "right_evidence": "sha256:04fabbb83ef3d35428c6a086314adbefc3b2d761e44c092a6da02d511fd036b3"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:a02f9cffe152ace65d887637d92500f6d78f90be3fd291e65a9502be78b95a1a",
+              "right_evidence": "sha256:a02f9cffe152ace65d887637d92500f6d78f90be3fd291e65a9502be78b95a1a"
+            },
+            {
+              "field": "product.version",
+              "status": "matched",
+              "left_evidence": "sha256:0e8c774ad72e09b57e0c297dcf79b3638f5761cc9152aee84fc3d59eee394b41",
+              "right_evidence": "sha256:0e8c774ad72e09b57e0c297dcf79b3638f5761cc9152aee84fc3d59eee394b41"
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:00a7b1a7ad45988addbce0cbadf994e13ba86cf1465a136f16c3db7ae59111ff",
+              "right_evidence": "sha256:00a7b1a7ad45988addbce0cbadf994e13ba86cf1465a136f16c3db7ae59111ff"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:cb2585b0803f8703f1fbb74f5f068339b5a089f024248514bd2e6c346ec816a3",
+              "right_evidence": "sha256:cb2585b0803f8703f1fbb74f5f068339b5a089f024248514bd2e6c346ec816a3"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:fd754a2ef127288402570f2bf73203eed3b95113530e98e49a2e1f8bc29d4b3b",
+              "right_evidence": "sha256:fd754a2ef127288402570f2bf73203eed3b95113530e98e49a2e1f8bc29d4b3b"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "matched",
+              "left_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e",
+              "right_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e"
+            },
+            {
+              "field": "daily.dates",
+              "status": "matched",
+              "left_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe",
+              "right_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe"
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "matched",
+              "left_evidence": "sha256:5ff5e4f259620ad14cc88ea4d43ffde7e1fa1b0d3f5e451a0c059e8429d47139",
+              "right_evidence": "sha256:5ff5e4f259620ad14cc88ea4d43ffde7e1fa1b0d3f5e451a0c059e8429d47139"
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "matched",
+              "left_evidence": "sha256:44ef1ec621ea492fe7d24e218177c46c377b58222b5da207c6039559527b337f",
+              "right_evidence": "sha256:44ef1ec621ea492fe7d24e218177c46c377b58222b5da207c6039559527b337f"
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "lineage.front-original.content",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            }
+          ],
+          "reasons": []
+        },
+        {
+          "source_id": "front-original",
+          "status": "unknown",
+          "content": {
+            "status": "unknown",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:0f26fb408480e3f4a8f3c085ccf4ea5f87922cec3aafc3a674dcf2f49fed50ed",
+              "right_evidence": "sha256:0f26fb408480e3f4a8f3c085ccf4ea5f87922cec3aafc3a674dcf2f49fed50ed"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:67d683997964161f4ebda1058e3480a97ec8b0efff842984071edf2056aad424",
+              "right_evidence": "sha256:67d683997964161f4ebda1058e3480a97ec8b0efff842984071edf2056aad424"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:00a37ff7dd0ad3eac00c6cf2e83cc83075018f32a0238780b1ceec8a046e52d9",
+              "right_evidence": "sha256:00a37ff7dd0ad3eac00c6cf2e83cc83075018f32a0238780b1ceec8a046e52d9"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:5896293fa1eee9566c20d401fd048be227a039d162a103bb3f9384bb3005f885",
+              "right_evidence": "sha256:5896293fa1eee9566c20d401fd048be227a039d162a103bb3f9384bb3005f885"
+            },
+            {
+              "field": "product.version",
+              "status": "matched",
+              "left_evidence": "sha256:0e8c774ad72e09b57e0c297dcf79b3638f5761cc9152aee84fc3d59eee394b41",
+              "right_evidence": "sha256:0e8c774ad72e09b57e0c297dcf79b3638f5761cc9152aee84fc3d59eee394b41"
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:00a7b1a7ad45988addbce0cbadf994e13ba86cf1465a136f16c3db7ae59111ff",
+              "right_evidence": "sha256:00a7b1a7ad45988addbce0cbadf994e13ba86cf1465a136f16c3db7ae59111ff"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:fd754a2ef127288402570f2bf73203eed3b95113530e98e49a2e1f8bc29d4b3b",
+              "right_evidence": "sha256:fd754a2ef127288402570f2bf73203eed3b95113530e98e49a2e1f8bc29d4b3b"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "matched",
+              "left_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e",
+              "right_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e"
+            },
+            {
+              "field": "daily.dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "matched",
+              "left_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe",
+              "right_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe"
+            }
+          ],
+          "reasons": [
+            "complete_nonempty_content_evidence_required"
+          ]
+        },
+        {
+          "source_id": "response-input",
+          "status": "different",
+          "content": {
+            "status": "unknown",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:9e2600195d657991fb57288e7458a0cc17a0c0fea215c849b16df7ca65ee9a7c",
+              "right_evidence": "sha256:9e2600195d657991fb57288e7458a0cc17a0c0fea215c849b16df7ca65ee9a7c"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:3ec53a7d26beb36a7f9b174690d4bb0cd562e9bf280a28c6a5a0a4b6be07d945",
+              "right_evidence": "sha256:3ec53a7d26beb36a7f9b174690d4bb0cd562e9bf280a28c6a5a0a4b6be07d945"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:1b88d2afaae7f126c9ba17783a97eed68af3cfcbdbcd432209a1035973334c57",
+              "right_evidence": "sha256:1b88d2afaae7f126c9ba17783a97eed68af3cfcbdbcd432209a1035973334c57"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:c0b0679c29322ddc7adaed91c5e1208ba5c61a2b7be60be7d3c7be28d048606e",
+              "right_evidence": "sha256:c0b0679c29322ddc7adaed91c5e1208ba5c61a2b7be60be7d3c7be28d048606e"
+            },
+            {
+              "field": "product.version",
+              "status": "matched",
+              "left_evidence": "sha256:aca893469769096921160ecdf6b00fce6483bd6b6d72bc76cd1800b18320276b",
+              "right_evidence": "sha256:aca893469769096921160ecdf6b00fce6483bd6b6d72bc76cd1800b18320276b"
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962",
+              "right_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:af9b530369d276d7a422f76f8a01867ab725f83224cba24f250d30517ed3ca32",
+              "right_evidence": "sha256:af9b530369d276d7a422f76f8a01867ab725f83224cba24f250d30517ed3ca32"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:5b3d20ea380faaa7d3af512bd3ba96f2b1879c14fe0edfb961996aa4a2ab5f40",
+              "right_evidence": "sha256:5b3d20ea380faaa7d3af512bd3ba96f2b1879c14fe0edfb961996aa4a2ab5f40"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "lineage.effort-original.content",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "lineage.front-display.content",
+              "status": "different",
+              "left_evidence": "sha256:8162c782e249e90896afa8767b38efe4db424bd0be01556d6007e19a3d80189b",
+              "right_evidence": "sha256:8ad3b9848991903e97cb94d87b6eecab8d71448d330a17bca3549d882e7b5da5"
+            }
+          ],
+          "reasons": [
+            "complete_nonempty_content_evidence_required"
+          ]
+        },
+        {
+          "source_id": "response-table",
+          "status": "different",
+          "content": {
+            "status": "different",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:9e2600195d657991fb57288e7458a0cc17a0c0fea215c849b16df7ca65ee9a7c",
+              "right_evidence": "sha256:9e2600195d657991fb57288e7458a0cc17a0c0fea215c849b16df7ca65ee9a7c"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:3ec53a7d26beb36a7f9b174690d4bb0cd562e9bf280a28c6a5a0a4b6be07d945",
+              "right_evidence": "sha256:3ec53a7d26beb36a7f9b174690d4bb0cd562e9bf280a28c6a5a0a4b6be07d945"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:3533cceca048e08b8a0aa5803cf50bffce579af7b1b8558a2a75e2e2c29f4a7b",
+              "right_evidence": "sha256:3533cceca048e08b8a0aa5803cf50bffce579af7b1b8558a2a75e2e2c29f4a7b"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:eb2b191a6f1055bbc54e72be5c6073f8ec0a24049982b5e671baaf642df6cbcf",
+              "right_evidence": "sha256:eb2b191a6f1055bbc54e72be5c6073f8ec0a24049982b5e671baaf642df6cbcf"
+            },
+            {
+              "field": "product.version",
+              "status": "matched",
+              "left_evidence": "sha256:4d19bd959b6ca231407a5078f16075795fcb1d21789422d8dced0a506c16554a",
+              "right_evidence": "sha256:4d19bd959b6ca231407a5078f16075795fcb1d21789422d8dced0a506c16554a"
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962",
+              "right_evidence": "sha256:803213d8ae24ffaffc79c20a14f33bb8bbdb131c5596c8ae9cb870dcbd837962"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:e56defc86aa4712f4392de8c98b63fdacbd24ef34c1c092bfc2f51a10ce4b50a",
+              "right_evidence": "sha256:e56defc86aa4712f4392de8c98b63fdacbd24ef34c1c092bfc2f51a10ce4b50a"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:260c04bc87d40f80783cecc6105f4885788c191fedc1345b1a61dd2f452f0ee7",
+              "right_evidence": "sha256:260c04bc87d40f80783cecc6105f4885788c191fedc1345b1a61dd2f452f0ee7"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "lineage.response-input.content",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            }
+          ],
+          "reasons": []
+        },
+        {
+          "source_id": "sst-display",
+          "status": "different",
+          "content": {
+            "status": "different",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:d9d6d19ddb9b0534cf2fcdbed0b5e5803602e1a5707d2559d9a86ee433e2c6ab",
+              "right_evidence": "sha256:d9d6d19ddb9b0534cf2fcdbed0b5e5803602e1a5707d2559d9a86ee433e2c6ab"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:5c6ce4bacdf0fe56f9a3109bd38ceb634e03d111d3f798120971f5701d52055c",
+              "right_evidence": "sha256:5c6ce4bacdf0fe56f9a3109bd38ceb634e03d111d3f798120971f5701d52055c"
+            },
+            {
+              "field": "product.id",
+              "status": "matched",
+              "left_evidence": "sha256:44776563c82f3a0dd4fc202da44f40c08b5c8648c165e62fc7991e3abb90d469",
+              "right_evidence": "sha256:44776563c82f3a0dd4fc202da44f40c08b5c8648c165e62fc7991e3abb90d469"
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:26a64942bd27f5a76ef9215ac5c517d0cdfba49cede8d1018f0616a44d32c01f",
+              "right_evidence": "sha256:26a64942bd27f5a76ef9215ac5c517d0cdfba49cede8d1018f0616a44d32c01f"
+            },
+            {
+              "field": "product.version",
+              "status": "matched",
+              "left_evidence": "sha256:0c3c5b58e13f8c89cf823f2c683df48a53b31bd55ee5904709dc83f4eb795970",
+              "right_evidence": "sha256:0c3c5b58e13f8c89cf823f2c683df48a53b31bd55ee5904709dc83f4eb795970"
+            },
+            {
+              "field": "product.unit",
+              "status": "matched",
+              "left_evidence": "sha256:af35ea4634186180f6bc13bec5766ce4729ac4617690ece3693df3841d40c76c",
+              "right_evidence": "sha256:af35ea4634186180f6bc13bec5766ce4729ac4617690ece3693df3841d40c76c"
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:663b44a4a4487aa293b9c7223d3221b71b2e340a0a09152eef92529787d0878b",
+              "right_evidence": "sha256:663b44a4a4487aa293b9c7223d3221b71b2e340a0a09152eef92529787d0878b"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:b794d1d0e0a321009890ba8519eb51fcdd514dad62d01f60bb5a46e18e33acdc",
+              "right_evidence": "sha256:b794d1d0e0a321009890ba8519eb51fcdd514dad62d01f60bb5a46e18e33acdc"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "matched",
+              "left_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e",
+              "right_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e"
+            },
+            {
+              "field": "daily.dates",
+              "status": "matched",
+              "left_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe",
+              "right_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe"
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "matched",
+              "left_evidence": "sha256:5ff5e4f259620ad14cc88ea4d43ffde7e1fa1b0d3f5e451a0c059e8429d47139",
+              "right_evidence": "sha256:5ff5e4f259620ad14cc88ea4d43ffde7e1fa1b0d3f5e451a0c059e8429d47139"
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "matched",
+              "left_evidence": "sha256:122ef380ac1b2b8137416caddda3c66c557d511cb5f76ea5991ebf3356a07910",
+              "right_evidence": "sha256:122ef380ac1b2b8137416caddda3c66c557d511cb5f76ea5991ebf3356a07910"
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "lineage.sst-original.content",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            }
+          ],
+          "reasons": []
+        },
+        {
+          "source_id": "sst-original",
+          "status": "unknown",
+          "content": {
+            "status": "unknown",
+            "basis": "sha256_multiset; names_sizes_or_health_alone_are_insufficient"
+          },
+          "fields": [
+            {
+              "field": "processing_version",
+              "status": "matched",
+              "left_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf",
+              "right_evidence": "sha256:1f36961f45ad0afb43b171051f35d2f73f6f07d7b7da1d41940711989d46f2cf"
+            },
+            {
+              "field": "aggregation_version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "kind",
+              "status": "matched",
+              "left_evidence": "sha256:d9d6d19ddb9b0534cf2fcdbed0b5e5803602e1a5707d2559d9a86ee433e2c6ab",
+              "right_evidence": "sha256:d9d6d19ddb9b0534cf2fcdbed0b5e5803602e1a5707d2559d9a86ee433e2c6ab"
+            },
+            {
+              "field": "role",
+              "status": "matched",
+              "left_evidence": "sha256:67d683997964161f4ebda1058e3480a97ec8b0efff842984071edf2056aad424",
+              "right_evidence": "sha256:67d683997964161f4ebda1058e3480a97ec8b0efff842984071edf2056aad424"
+            },
+            {
+              "field": "product.id",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "product.channel",
+              "status": "matched",
+              "left_evidence": "sha256:f45c6950b3e67aa7acb1516eef004f6f6c666dc945cc3f31371e596db34345bb",
+              "right_evidence": "sha256:f45c6950b3e67aa7acb1516eef004f6f6c666dc945cc3f31371e596db34345bb"
+            },
+            {
+              "field": "product.version",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "product.unit",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "derived_from",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "license_claims",
+              "status": "matched",
+              "left_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "right_evidence": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            },
+            {
+              "field": "daily.requested_range",
+              "status": "matched",
+              "left_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e",
+              "right_evidence": "sha256:b9d298fa7d3d54e2b2a4a86fd394211c6d8a6b99e5dfcf4c1fab77de99cf191e"
+            },
+            {
+              "field": "daily.dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_observed",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.resolution_declared",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.units",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.time_verified_dates",
+              "status": "unknown",
+              "left_evidence": null,
+              "right_evidence": null
+            },
+            {
+              "field": "daily.missing_dates",
+              "status": "matched",
+              "left_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe",
+              "right_evidence": "sha256:381a70d0426c1e842a585765fa9607c6f0c2f06f094f16ab17a51ef36e2f50fe"
+            }
+          ],
+          "reasons": [
+            "complete_nonempty_content_evidence_required"
+          ]
+        }
+      ]
+    }
+  ],
+  "research_ready": false,
+  "public_release_approved": false,
+  "comparison_id": "sha256:559988dcf45728d319c637bee2865a60cccd6ffe90b9dba39301de773e73babd",
+  "generated_at": "2026-10-25T06:50:54.958Z"
+}

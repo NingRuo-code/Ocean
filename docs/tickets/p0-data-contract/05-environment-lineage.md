@@ -1,5 +1,7 @@
 ## Parent
 
+实施进度（2026-10-25）：已实现同一CLI的跨环境冻结比较，并取得单日公开展示资料证据；详情见[本批实施记录](../../reports/ocean-environment-lineage-implementation-2026-10-25.md)。服务器部署、实际聚合与原档血缘仍未核实；软件交付不代表所有环境或研究资格一致，实时状态以GitHub为准。
+
 [规格 #35](https://github.com/NingRuo-code/Ocean/issues/35)。归属既有 [P0 #14](https://github.com/NingRuo-code/Ocean/issues/14) 与执行总纲 #13；本票据不替代或关闭原工作包。
 
 ## What to build
