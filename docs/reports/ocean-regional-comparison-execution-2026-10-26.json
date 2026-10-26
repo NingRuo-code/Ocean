@@ -1,0 +1,771 @@
+{
+  "recorded_at": "2026-10-26T01:31:19.540324+00:00",
+  "software_commit": "4a2c3102b71981d15efff6754a4acbabf3af11b6",
+  "evidence_kind": "synthetic_example",
+  "research_ready": false,
+  "scope": "C01 actual original CLI reading previously executed A HTTP / B CLI authored synthetic snapshots",
+  "artifact_role": "Public projection, not a portable original frozen directory; original artifact hashes apply to local original bytes.",
+  "source_preparation": "Explicit prior isolated A HTTP submissions and B original CLI executions; comparison never prepares or recomputes A/B.",
+  "working_file_sha256": {
+    "backend/app/comparison_models.py": "sha256:b49520f16e163ea72db38a8cc9724d097ca3537cc6af65295b9e640bd8ac46c7",
+    "backend/app/regional_comparison.py": "sha256:cdbd4ca08b87f78b29735b6bb286e3782377f7950eecc5735690ab3fe34f4b93",
+    "backend/app/examples/regional-known-snapshots.json": "sha256:b202ffac99ac0e3cd6d03109aba72bf02b53a3ac4a9c865c9f9bf16e66e10c54",
+    "tools/lib/fixed-region-example.mjs": "sha256:f3738815e00b1ae06c8b28868ab55cb7d6800b2e263b013d009456b4bc8b6356",
+    "tools/lib/regional-comparison-example.mjs": "sha256:0ef326904212bb7fa9fb8fcd6e85d4f90af0f5ed83ba3fa14b26f96d09f79eb2",
+    "tools/run-front-response-experiment.mjs": "sha256:5606285ea33c92737fea83d2530a76a33fba321513388219fa63afa2396961a9"
+  },
+  "executions": [
+    {
+      "board": "month",
+      "run": {
+        "state": "completed",
+        "run_id": "f243c7a7-5300-48a1-a87b-c52e8a51ba80",
+        "result_id": "sha256:ad186603a839ab2fcd52cd5620980ecfbe750361ea83ff0af2d432eda28a4b52",
+        "error": null
+      },
+      "manifest": {
+        "schema_version": "front-response-experiment-manifest/v2",
+        "purpose": "regional_comparison_example",
+        "run_id": "f243c7a7-5300-48a1-a87b-c52e8a51ba80",
+        "state": "completed",
+        "created_at": "2026-10-26T01:31:18.508Z",
+        "evidence_kind": "synthetic_example",
+        "research_ready": false,
+        "transport_identity": {
+          "request_sha256": "sha256:c49ba18d69b412b4058a3b1af68b3f397e7e317e42c973f76e30d21e1a546a21",
+          "input_sha256": "sha256:b202ffac99ac0e3cd6d03109aba72bf02b53a3ac4a9c865c9f9bf16e66e10c54"
+        },
+        "error": null,
+        "artifacts": {
+          "summary.json": "sha256:2f45f42d7486b87e121d50b9ae73410731b7e85a076054f952c2029a3ad284e2",
+          "report.md": "sha256:a3e89a5a18b805c947dee887cfb9b78f4bd8a93a8f2ec36ae00b257d337c5f53"
+        },
+        "result_id": "sha256:ad186603a839ab2fcd52cd5620980ecfbe750361ea83ff0af2d432eda28a4b52",
+        "parameters": {
+          "purpose": "regional_comparison_example",
+          "analysis_kind": "monthly_spatial_example",
+          "radius_km": 20,
+          "month": "2024-02",
+          "evidence_use": "descriptive_side_by_side",
+          "support_policy": "read_existing_support",
+          "method_version": "known-snapshots/v1",
+          "candidates": [
+            {
+              "id": "region-a",
+              "name": "区域甲",
+              "longitude": 124.5,
+              "latitude": 30.2,
+              "result_id": "sha256:d90e75c6573eeccea442e0bded57b5faffb7401bb1ca9b4bef05b2f197b736ea",
+              "snapshot_sha256": "sha256:86b57258a5765904d19eb2a453f47cdace12286033fee524587acee41c462652",
+              "source": {
+                "id": "c01-authored-two-region-month",
+                "version": "synthetic-comparison-month/v1",
+                "input_sha256": "sha256:4a16b143c1df8fae266c71d0b35fe3f7acbd8f85ced343d235d618e27f31734c",
+                "license": "CC0-1.0; authored synthetic fixture, no observations",
+                "support_evidence": "synthetic-known-units/v1; not original observations or P0 research eligibility"
+              }
+            },
+            {
+              "id": "region-b",
+              "name": "区域乙",
+              "longitude": 125.5,
+              "latitude": 30.2,
+              "result_id": "sha256:5971a63f4874b6f775d723132f0e922b5d7959efb9258afba7b0632949db2e9c",
+              "snapshot_sha256": "sha256:730b83daf0a04e59c8a18574bad8394d7c5e4a3a445dd6e1a1ef68c6f7cf58ec",
+              "source": {
+                "id": "c01-authored-two-region-month",
+                "version": "synthetic-comparison-month/v1",
+                "input_sha256": "sha256:4a16b143c1df8fae266c71d0b35fe3f7acbd8f85ced343d235d618e27f31734c",
+                "license": "CC0-1.0; authored synthetic fixture, no observations",
+                "support_evidence": "synthetic-known-units/v1; not original observations or P0 research eligibility"
+              }
+            }
+          ]
+        },
+        "inputs": [
+          {
+            "id": "explicit-existing-snapshots",
+            "version": "known-snapshots/v1",
+            "input_sha256": "sha256:2706f5469a0db7d8c319bae84761194829a01433a336b3bcdfe95deb407bfae9"
+          }
+        ]
+      },
+      "result": {
+        "kind": "regional_comparison_example",
+        "analysis_kind": "monthly_spatial_example",
+        "status": "limited_side_by_side",
+        "parameters": {
+          "purpose": "regional_comparison_example",
+          "analysis_kind": "monthly_spatial_example",
+          "radius_km": 20,
+          "month": "2024-02",
+          "evidence_use": "descriptive_side_by_side",
+          "support_policy": "read_existing_support",
+          "method_version": "known-snapshots/v1",
+          "candidates": [
+            {
+              "id": "region-a",
+              "name": "区域甲",
+              "longitude": 124.5,
+              "latitude": 30.2,
+              "result_id": "sha256:d90e75c6573eeccea442e0bded57b5faffb7401bb1ca9b4bef05b2f197b736ea",
+              "snapshot_sha256": "sha256:86b57258a5765904d19eb2a453f47cdace12286033fee524587acee41c462652",
+              "source": {
+                "id": "c01-authored-two-region-month",
+                "version": "synthetic-comparison-month/v1",
+                "input_sha256": "sha256:4a16b143c1df8fae266c71d0b35fe3f7acbd8f85ced343d235d618e27f31734c",
+                "license": "CC0-1.0; authored synthetic fixture, no observations",
+                "support_evidence": "synthetic-known-units/v1; not original observations or P0 research eligibility"
+              }
+            },
+            {
+              "id": "region-b",
+              "name": "区域乙",
+              "longitude": 125.5,
+              "latitude": 30.2,
+              "result_id": "sha256:5971a63f4874b6f775d723132f0e922b5d7959efb9258afba7b0632949db2e9c",
+              "snapshot_sha256": "sha256:730b83daf0a04e59c8a18574bad8394d7c5e4a3a445dd6e1a1ef68c6f7cf58ec",
+              "source": {
+                "id": "c01-authored-two-region-month",
+                "version": "synthetic-comparison-month/v1",
+                "input_sha256": "sha256:4a16b143c1df8fae266c71d0b35fe3f7acbd8f85ced343d235d618e27f31734c",
+                "license": "CC0-1.0; authored synthetic fixture, no observations",
+                "support_evidence": "synthetic-known-units/v1; not original observations or P0 research eligibility"
+              }
+            }
+          ]
+        },
+        "evidence_kind": "synthetic_example",
+        "research_ready": false,
+        "source": {
+          "id": "explicit-existing-snapshots",
+          "version": "known-snapshots/v1",
+          "input_sha256": "sha256:2706f5469a0db7d8c319bae84761194829a01433a336b3bcdfe95deb407bfae9"
+        },
+        "rows": [
+          {
+            "candidate": {
+              "id": "region-a",
+              "name": "区域甲",
+              "longitude": 124.5,
+              "latitude": 30.2,
+              "result_id": "sha256:d90e75c6573eeccea442e0bded57b5faffb7401bb1ca9b4bef05b2f197b736ea",
+              "snapshot_sha256": "sha256:86b57258a5765904d19eb2a453f47cdace12286033fee524587acee41c462652",
+              "source": {
+                "id": "c01-authored-two-region-month",
+                "version": "synthetic-comparison-month/v1",
+                "input_sha256": "sha256:4a16b143c1df8fae266c71d0b35fe3f7acbd8f85ced343d235d618e27f31734c",
+                "license": "CC0-1.0; authored synthetic fixture, no observations",
+                "support_evidence": "synthetic-known-units/v1; not original observations or P0 research eligibility"
+              }
+            },
+            "status": "limited_side_by_side",
+            "reason": "support_not_aligned",
+            "metrics": {
+              "total_hours": 40,
+              "supported_days": 2,
+              "calendar_days": 29,
+              "area_time_km2_days": 7,
+              "mean_hours_per_supported_day": 20,
+              "density_hours_per_km2_day": 5.714285714285714
+            },
+            "units": {
+              "total_hours": "fishing_hours",
+              "area_time_km2_days": "km2*d",
+              "mean_hours_per_supported_day": "fishing_hours/d",
+              "density_hours_per_km2_day": "fishing_hours/(km2*d)"
+            },
+            "source_status": "partial",
+            "support_scope": "known_synthetic_units_for_declared_circle",
+            "original_parameters": {
+              "purpose": "monthly_spatial_example",
+              "longitude": 124.5,
+              "latitude": 30.2,
+              "radius_km": 20,
+              "month": "2024-02",
+              "input_version": "synthetic-comparison-month/v1",
+              "method_version": "monthly-known-support/v1",
+              "parameter_version": "known-unit-membership/v1"
+            },
+            "source": {
+              "id": "c01-authored-two-region-month",
+              "version": "synthetic-comparison-month/v1",
+              "input_sha256": "sha256:4a16b143c1df8fae266c71d0b35fe3f7acbd8f85ced343d235d618e27f31734c",
+              "license": "CC0-1.0; authored synthetic fixture, no observations",
+              "support_evidence": "synthetic-known-units/v1; not original observations or P0 research eligibility"
+            },
+            "source_result_id": "sha256:d90e75c6573eeccea442e0bded57b5faffb7401bb1ca9b4bef05b2f197b736ea",
+            "snapshot_sha256": "sha256:86b57258a5765904d19eb2a453f47cdace12286033fee524587acee41c462652",
+            "source_caveats": [
+              "Synthetic example only; not qualified real monthly research or fishery advice.",
+              "Known unit membership/areas are declared for this circle, not computed GIS geometry.",
+              "Known-support partial totals are not whole-circle totals; missing days are not filled.",
+              "Apparent fishing effort is not catch, biomass, revenue or guaranteed fishing success."
+            ],
+            "access": {
+              "access": "public_aggregate",
+              "public_aggregate_allowed": true
+            }
+          },
+          {
+            "candidate": {
+              "id": "region-b",
+              "name": "区域乙",
+              "longitude": 125.5,
+              "latitude": 30.2,
+              "result_id": "sha256:5971a63f4874b6f775d723132f0e922b5d7959efb9258afba7b0632949db2e9c",
+              "snapshot_sha256": "sha256:730b83daf0a04e59c8a18574bad8394d7c5e4a3a445dd6e1a1ef68c6f7cf58ec",
+              "source": {
+                "id": "c01-authored-two-region-month",
+                "version": "synthetic-comparison-month/v1",
+                "input_sha256": "sha256:4a16b143c1df8fae266c71d0b35fe3f7acbd8f85ced343d235d618e27f31734c",
+                "license": "CC0-1.0; authored synthetic fixture, no observations",
+                "support_evidence": "synthetic-known-units/v1; not original observations or P0 research eligibility"
+              }
+            },
+            "status": "limited_side_by_side",
+            "reason": "support_not_aligned",
+            "metrics": {
+              "total_hours": 0,
+              "supported_days": 1,
+              "calendar_days": 29,
+              "area_time_km2_days": 4,
+              "mean_hours_per_supported_day": 0,
+              "density_hours_per_km2_day": 0
+            },
+            "units": {
+              "total_hours": "fishing_hours",
+              "area_time_km2_days": "km2*d",
+              "mean_hours_per_supported_day": "fishing_hours/d",
+              "density_hours_per_km2_day": "fishing_hours/(km2*d)"
+            },
+            "source_status": "partial",
+            "support_scope": "known_synthetic_units_for_declared_circle",
+            "original_parameters": {
+              "purpose": "monthly_spatial_example",
+              "longitude": 125.5,
+              "latitude": 30.2,
+              "radius_km": 20,
+              "month": "2024-02",
+              "input_version": "synthetic-comparison-month/v1",
+              "method_version": "monthly-known-support/v1",
+              "parameter_version": "known-unit-membership/v1"
+            },
+            "source": {
+              "id": "c01-authored-two-region-month",
+              "version": "synthetic-comparison-month/v1",
+              "input_sha256": "sha256:4a16b143c1df8fae266c71d0b35fe3f7acbd8f85ced343d235d618e27f31734c",
+              "license": "CC0-1.0; authored synthetic fixture, no observations",
+              "support_evidence": "synthetic-known-units/v1; not original observations or P0 research eligibility"
+            },
+            "source_result_id": "sha256:5971a63f4874b6f775d723132f0e922b5d7959efb9258afba7b0632949db2e9c",
+            "snapshot_sha256": "sha256:730b83daf0a04e59c8a18574bad8394d7c5e4a3a445dd6e1a1ef68c6f7cf58ec",
+            "source_caveats": [
+              "Synthetic example only; not qualified real monthly research or fishery advice.",
+              "Known unit membership/areas are declared for this circle, not computed GIS geometry.",
+              "Known-support partial totals are not whole-circle totals; missing days are not filled.",
+              "Apparent fishing effort is not catch, biomass, revenue or guaranteed fishing success."
+            ],
+            "access": {
+              "access": "public_aggregate",
+              "public_aggregate_allowed": true
+            }
+          }
+        ],
+        "caveats": [
+          "Only explicitly public synthetic snapshots; not qualified real regional research.",
+          "Each value retains its own original support; equal radius/month does not align support.",
+          "No ranking, difference, joint inference or fishery recommendation is produced.",
+          "Reading does not run A/B, prepare archives, download data or invoke a model.",
+          "Content identities detect accidental changes; they are not issuer signatures.",
+          "Native A/B result IDs remain opaque; imported content is bound separately."
+        ],
+        "result_id": "sha256:ad186603a839ab2fcd52cd5620980ecfbe750361ea83ff0af2d432eda28a4b52"
+      },
+      "checks": {
+        "artifact_bytes_match": true,
+        "frozen_read_without_python_matches": true,
+        "independent_known_values_match": true
+      }
+    },
+    {
+      "board": "event",
+      "run": {
+        "state": "completed",
+        "run_id": "0b883e43-00e9-474a-a387-7d931243b9dd",
+        "result_id": "sha256:2809be7894c94f4bb4b6dabd13d2ba310ce66d810851f42e98ffd5fd6e4c7625",
+        "error": null
+      },
+      "manifest": {
+        "schema_version": "front-response-experiment-manifest/v2",
+        "purpose": "regional_comparison_example",
+        "run_id": "0b883e43-00e9-474a-a387-7d931243b9dd",
+        "state": "completed",
+        "created_at": "2026-10-26T01:31:19.379Z",
+        "evidence_kind": "synthetic_example",
+        "research_ready": false,
+        "transport_identity": {
+          "request_sha256": "sha256:373602b874cad3909ab35c849c58bcaa1b743d3d4f5c571a079b9528313be41c",
+          "input_sha256": "sha256:b202ffac99ac0e3cd6d03109aba72bf02b53a3ac4a9c865c9f9bf16e66e10c54"
+        },
+        "error": null,
+        "artifacts": {
+          "summary.json": "sha256:e372b425f5b337f9adb2a1d886588cd70e4b46ecdb78957c353e23a429d8ccc3",
+          "report.md": "sha256:195cebac9df53368e06f3dc504399a28f956b7e1975e3b8d7a07b380ec5975d8"
+        },
+        "result_id": "sha256:2809be7894c94f4bb4b6dabd13d2ba310ce66d810851f42e98ffd5fd6e4c7625",
+        "parameters": {
+          "purpose": "regional_comparison_example",
+          "analysis_kind": "fixed_region_event_example",
+          "radius_km": 20,
+          "search_start": "2024-08-05",
+          "search_end": "2024-08-08",
+          "evidence_use": "descriptive_side_by_side",
+          "support_policy": "read_existing_support",
+          "method_version": "known-snapshots/v1",
+          "candidates": [
+            {
+              "id": "region-a",
+              "name": "区域甲",
+              "longitude": 124.5,
+              "latitude": 30.2,
+              "result_id": "sha256:165250767af9f9d72d11b8fcaeb00f7fe3c3ffcdcb2f19fdec5594de5a170ffc",
+              "snapshot_sha256": "sha256:6b893662cec9a1cd081d6cc5bee41ec16afe95e56c6f37c24be7a5c3c3f495b8",
+              "source": {
+                "id": "c01-authored-two-region-event",
+                "version": "synthetic-comparison-event/v1",
+                "input_sha256": "sha256:4224b92df223cae05430cd2469f537cedb5e7321e1fc2aac38d371f7c8fa5140",
+                "license": "CC0-1.0; authored synthetic fixture, no observations",
+                "support_evidence": "synthetic-fixed-unit/v1; fixed declared circle, not GIS or real qualification"
+              }
+            },
+            {
+              "id": "region-b",
+              "name": "区域乙",
+              "longitude": 125.5,
+              "latitude": 30.2,
+              "result_id": "sha256:a23fd72a2ea9ab457a4d4826f9498a4101a80b3b6940542d225bdd223d4f8a0d",
+              "snapshot_sha256": "sha256:35cfb9a7d6c06987637a985b1549eae0539ebb1d66261a3969124859ad1ef28f",
+              "source": {
+                "id": "c01-authored-two-region-event",
+                "version": "synthetic-comparison-event/v1",
+                "input_sha256": "sha256:4224b92df223cae05430cd2469f537cedb5e7321e1fc2aac38d371f7c8fa5140",
+                "license": "CC0-1.0; authored synthetic fixture, no observations",
+                "support_evidence": "synthetic-fixed-unit/v1; fixed declared circle, not GIS or real qualification"
+              }
+            }
+          ]
+        },
+        "inputs": [
+          {
+            "id": "explicit-existing-snapshots",
+            "version": "known-snapshots/v1",
+            "input_sha256": "sha256:2706f5469a0db7d8c319bae84761194829a01433a336b3bcdfe95deb407bfae9"
+          }
+        ]
+      },
+      "result": {
+        "kind": "regional_comparison_example",
+        "analysis_kind": "fixed_region_event_example",
+        "status": "limited_side_by_side",
+        "parameters": {
+          "purpose": "regional_comparison_example",
+          "analysis_kind": "fixed_region_event_example",
+          "radius_km": 20,
+          "search_start": "2024-08-05",
+          "search_end": "2024-08-08",
+          "evidence_use": "descriptive_side_by_side",
+          "support_policy": "read_existing_support",
+          "method_version": "known-snapshots/v1",
+          "candidates": [
+            {
+              "id": "region-a",
+              "name": "区域甲",
+              "longitude": 124.5,
+              "latitude": 30.2,
+              "result_id": "sha256:165250767af9f9d72d11b8fcaeb00f7fe3c3ffcdcb2f19fdec5594de5a170ffc",
+              "snapshot_sha256": "sha256:6b893662cec9a1cd081d6cc5bee41ec16afe95e56c6f37c24be7a5c3c3f495b8",
+              "source": {
+                "id": "c01-authored-two-region-event",
+                "version": "synthetic-comparison-event/v1",
+                "input_sha256": "sha256:4224b92df223cae05430cd2469f537cedb5e7321e1fc2aac38d371f7c8fa5140",
+                "license": "CC0-1.0; authored synthetic fixture, no observations",
+                "support_evidence": "synthetic-fixed-unit/v1; fixed declared circle, not GIS or real qualification"
+              }
+            },
+            {
+              "id": "region-b",
+              "name": "区域乙",
+              "longitude": 125.5,
+              "latitude": 30.2,
+              "result_id": "sha256:a23fd72a2ea9ab457a4d4826f9498a4101a80b3b6940542d225bdd223d4f8a0d",
+              "snapshot_sha256": "sha256:35cfb9a7d6c06987637a985b1549eae0539ebb1d66261a3969124859ad1ef28f",
+              "source": {
+                "id": "c01-authored-two-region-event",
+                "version": "synthetic-comparison-event/v1",
+                "input_sha256": "sha256:4224b92df223cae05430cd2469f537cedb5e7321e1fc2aac38d371f7c8fa5140",
+                "license": "CC0-1.0; authored synthetic fixture, no observations",
+                "support_evidence": "synthetic-fixed-unit/v1; fixed declared circle, not GIS or real qualification"
+              }
+            }
+          ]
+        },
+        "evidence_kind": "synthetic_example",
+        "research_ready": false,
+        "source": {
+          "id": "explicit-existing-snapshots",
+          "version": "known-snapshots/v1",
+          "input_sha256": "sha256:2706f5469a0db7d8c319bae84761194829a01433a336b3bcdfe95deb407bfae9"
+        },
+        "rows": [
+          {
+            "candidate": {
+              "id": "region-a",
+              "name": "区域甲",
+              "longitude": 124.5,
+              "latitude": 30.2,
+              "result_id": "sha256:165250767af9f9d72d11b8fcaeb00f7fe3c3ffcdcb2f19fdec5594de5a170ffc",
+              "snapshot_sha256": "sha256:6b893662cec9a1cd081d6cc5bee41ec16afe95e56c6f37c24be7a5c3c3f495b8",
+              "source": {
+                "id": "c01-authored-two-region-event",
+                "version": "synthetic-comparison-event/v1",
+                "input_sha256": "sha256:4224b92df223cae05430cd2469f537cedb5e7321e1fc2aac38d371f7c8fa5140",
+                "license": "CC0-1.0; authored synthetic fixture, no observations",
+                "support_evidence": "synthetic-fixed-unit/v1; fixed declared circle, not GIS or real qualification"
+              }
+            },
+            "status": "limited_side_by_side",
+            "reason": "support_not_aligned",
+            "windows": {
+              "pre7": {
+                "total_hours": 28,
+                "supported_days": 7,
+                "calendar_days": 7,
+                "area_time_km2_days": 28,
+                "mean_hours_per_supported_day": 4,
+                "density_hours_per_km2_day": 1,
+                "status": "complete",
+                "start_date": "2024-07-29",
+                "end_date": "2024-08-04",
+                "relative_days": [
+                  -7,
+                  -1
+                ],
+                "dates": [
+                  "2024-07-29",
+                  "2024-07-30",
+                  "2024-07-31",
+                  "2024-08-01",
+                  "2024-08-02",
+                  "2024-08-03",
+                  "2024-08-04"
+                ],
+                "excluded_day_states": {}
+              },
+              "event_day": {
+                "total_hours": 40,
+                "supported_days": 1,
+                "calendar_days": 1,
+                "area_time_km2_days": 4,
+                "mean_hours_per_supported_day": 40,
+                "density_hours_per_km2_day": 10,
+                "status": "complete",
+                "start_date": "2024-08-05",
+                "end_date": "2024-08-05",
+                "relative_days": [
+                  0,
+                  0
+                ],
+                "dates": [
+                  "2024-08-05"
+                ],
+                "excluded_day_states": {}
+              },
+              "post1_3": {
+                "total_hours": 36,
+                "supported_days": 3,
+                "calendar_days": 3,
+                "area_time_km2_days": 12,
+                "mean_hours_per_supported_day": 12,
+                "density_hours_per_km2_day": 3,
+                "status": "complete",
+                "start_date": "2024-08-06",
+                "end_date": "2024-08-08",
+                "relative_days": [
+                  1,
+                  3
+                ],
+                "dates": [
+                  "2024-08-06",
+                  "2024-08-07",
+                  "2024-08-08"
+                ],
+                "excluded_day_states": {}
+              },
+              "post1_7": {
+                "total_hours": 56,
+                "supported_days": 7,
+                "calendar_days": 7,
+                "area_time_km2_days": 28,
+                "mean_hours_per_supported_day": 8,
+                "density_hours_per_km2_day": 2,
+                "status": "complete",
+                "start_date": "2024-08-06",
+                "end_date": "2024-08-12",
+                "relative_days": [
+                  1,
+                  7
+                ],
+                "dates": [
+                  "2024-08-06",
+                  "2024-08-07",
+                  "2024-08-08",
+                  "2024-08-09",
+                  "2024-08-10",
+                  "2024-08-11",
+                  "2024-08-12"
+                ],
+                "excluded_day_states": {}
+              }
+            },
+            "changes": {
+              "post1_3": {
+                "absolute_density_change": 2,
+                "relative_density_change_percent": 200,
+                "reason": null
+              },
+              "post1_7": {
+                "absolute_density_change": 1,
+                "relative_density_change_percent": 100,
+                "reason": null
+              }
+            },
+            "event": {
+              "anchor_date": "2024-08-05",
+              "meaning": "first confirmed observed entry"
+            },
+            "units": {
+              "total_hours": "fishing_hours",
+              "area_time_km2_days": "km2*d",
+              "mean_hours_per_supported_day": "fishing_hours/d",
+              "density_hours_per_km2_day": "fishing_hours/(km2*d)"
+            },
+            "source_status": "available",
+            "support_scope": "known_synthetic_units_for_declared_circle",
+            "original_parameters": {
+              "purpose": "fixed_region_event_example",
+              "longitude": 124.5,
+              "latitude": 30.2,
+              "radius_km": 20,
+              "search_start": "2024-08-05",
+              "search_end": "2024-08-08",
+              "input_version": "synthetic-comparison-event/v1",
+              "method_version": "observed-entry-example/v1",
+              "parameter_version": "fixed-support-windows/v1"
+            },
+            "source": {
+              "id": "c01-authored-two-region-event",
+              "version": "synthetic-comparison-event/v1",
+              "input_sha256": "sha256:4224b92df223cae05430cd2469f537cedb5e7321e1fc2aac38d371f7c8fa5140",
+              "license": "CC0-1.0; authored synthetic fixture, no observations",
+              "support_evidence": "synthetic-fixed-unit/v1; fixed declared circle, not GIS or real qualification"
+            },
+            "source_result_id": "sha256:165250767af9f9d72d11b8fcaeb00f7fe3c3ffcdcb2f19fdec5594de5a170ffc",
+            "snapshot_sha256": "sha256:6b893662cec9a1cd081d6cc5bee41ec16afe95e56c6f37c24be7a5c3c3f495b8",
+            "source_caveats": [
+              "Authored synthetic example only; not real event evidence or research qualification.",
+              "Known fixed unit membership/areas are declared, not computed GIS circle geometry.",
+              "Normalized descriptive changes are not causal effects, catch or success probability.",
+              "No control, enhancement threshold, bootstrap or row-level significance is applied.",
+              "Full event recognition, missing-day continuity and P0 admission belong to B02/B03."
+            ],
+            "access": {
+              "access": "public_aggregate",
+              "public_aggregate_allowed": true
+            }
+          },
+          {
+            "candidate": {
+              "id": "region-b",
+              "name": "区域乙",
+              "longitude": 125.5,
+              "latitude": 30.2,
+              "result_id": "sha256:a23fd72a2ea9ab457a4d4826f9498a4101a80b3b6940542d225bdd223d4f8a0d",
+              "snapshot_sha256": "sha256:35cfb9a7d6c06987637a985b1549eae0539ebb1d66261a3969124859ad1ef28f",
+              "source": {
+                "id": "c01-authored-two-region-event",
+                "version": "synthetic-comparison-event/v1",
+                "input_sha256": "sha256:4224b92df223cae05430cd2469f537cedb5e7321e1fc2aac38d371f7c8fa5140",
+                "license": "CC0-1.0; authored synthetic fixture, no observations",
+                "support_evidence": "synthetic-fixed-unit/v1; fixed declared circle, not GIS or real qualification"
+              }
+            },
+            "status": "limited_side_by_side",
+            "reason": "support_not_aligned",
+            "windows": {
+              "pre7": {
+                "total_hours": 0,
+                "supported_days": 7,
+                "calendar_days": 7,
+                "area_time_km2_days": 28,
+                "mean_hours_per_supported_day": 0,
+                "density_hours_per_km2_day": 0,
+                "status": "complete",
+                "start_date": "2024-07-29",
+                "end_date": "2024-08-04",
+                "relative_days": [
+                  -7,
+                  -1
+                ],
+                "dates": [
+                  "2024-07-29",
+                  "2024-07-30",
+                  "2024-07-31",
+                  "2024-08-01",
+                  "2024-08-02",
+                  "2024-08-03",
+                  "2024-08-04"
+                ],
+                "excluded_day_states": {}
+              },
+              "event_day": {
+                "total_hours": 0,
+                "supported_days": 1,
+                "calendar_days": 1,
+                "area_time_km2_days": 4,
+                "mean_hours_per_supported_day": 0,
+                "density_hours_per_km2_day": 0,
+                "status": "complete",
+                "start_date": "2024-08-05",
+                "end_date": "2024-08-05",
+                "relative_days": [
+                  0,
+                  0
+                ],
+                "dates": [
+                  "2024-08-05"
+                ],
+                "excluded_day_states": {}
+              },
+              "post1_3": {
+                "total_hours": 0,
+                "supported_days": 3,
+                "calendar_days": 3,
+                "area_time_km2_days": 12,
+                "mean_hours_per_supported_day": 0,
+                "density_hours_per_km2_day": 0,
+                "status": "complete",
+                "start_date": "2024-08-06",
+                "end_date": "2024-08-08",
+                "relative_days": [
+                  1,
+                  3
+                ],
+                "dates": [
+                  "2024-08-06",
+                  "2024-08-07",
+                  "2024-08-08"
+                ],
+                "excluded_day_states": {}
+              },
+              "post1_7": {
+                "total_hours": 0,
+                "supported_days": 7,
+                "calendar_days": 7,
+                "area_time_km2_days": 28,
+                "mean_hours_per_supported_day": 0,
+                "density_hours_per_km2_day": 0,
+                "status": "complete",
+                "start_date": "2024-08-06",
+                "end_date": "2024-08-12",
+                "relative_days": [
+                  1,
+                  7
+                ],
+                "dates": [
+                  "2024-08-06",
+                  "2024-08-07",
+                  "2024-08-08",
+                  "2024-08-09",
+                  "2024-08-10",
+                  "2024-08-11",
+                  "2024-08-12"
+                ],
+                "excluded_day_states": {}
+              }
+            },
+            "changes": {
+              "post1_3": {
+                "absolute_density_change": 0,
+                "relative_density_change_percent": null,
+                "reason": "zero_baseline"
+              },
+              "post1_7": {
+                "absolute_density_change": 0,
+                "relative_density_change_percent": null,
+                "reason": "zero_baseline"
+              }
+            },
+            "event": {
+              "anchor_date": "2024-08-05",
+              "meaning": "first confirmed observed entry"
+            },
+            "units": {
+              "total_hours": "fishing_hours",
+              "area_time_km2_days": "km2*d",
+              "mean_hours_per_supported_day": "fishing_hours/d",
+              "density_hours_per_km2_day": "fishing_hours/(km2*d)"
+            },
+            "source_status": "available",
+            "support_scope": "known_synthetic_units_for_declared_circle",
+            "original_parameters": {
+              "purpose": "fixed_region_event_example",
+              "longitude": 125.5,
+              "latitude": 30.2,
+              "radius_km": 20,
+              "search_start": "2024-08-05",
+              "search_end": "2024-08-08",
+              "input_version": "synthetic-comparison-event/v1",
+              "method_version": "observed-entry-example/v1",
+              "parameter_version": "fixed-support-windows/v1"
+            },
+            "source": {
+              "id": "c01-authored-two-region-event",
+              "version": "synthetic-comparison-event/v1",
+              "input_sha256": "sha256:4224b92df223cae05430cd2469f537cedb5e7321e1fc2aac38d371f7c8fa5140",
+              "license": "CC0-1.0; authored synthetic fixture, no observations",
+              "support_evidence": "synthetic-fixed-unit/v1; fixed declared circle, not GIS or real qualification"
+            },
+            "source_result_id": "sha256:a23fd72a2ea9ab457a4d4826f9498a4101a80b3b6940542d225bdd223d4f8a0d",
+            "snapshot_sha256": "sha256:35cfb9a7d6c06987637a985b1549eae0539ebb1d66261a3969124859ad1ef28f",
+            "source_caveats": [
+              "Authored synthetic example only; not real event evidence or research qualification.",
+              "Known fixed unit membership/areas are declared, not computed GIS circle geometry.",
+              "Normalized descriptive changes are not causal effects, catch or success probability.",
+              "No control, enhancement threshold, bootstrap or row-level significance is applied.",
+              "Full event recognition, missing-day continuity and P0 admission belong to B02/B03."
+            ],
+            "access": {
+              "access": "public_aggregate",
+              "public_aggregate_allowed": true
+            }
+          }
+        ],
+        "caveats": [
+          "Only explicitly public synthetic snapshots; not qualified real regional research.",
+          "Each value retains its own original support; equal radius/month does not align support.",
+          "No ranking, difference, joint inference or fishery recommendation is produced.",
+          "Reading does not run A/B, prepare archives, download data or invoke a model.",
+          "Content identities detect accidental changes; they are not issuer signatures.",
+          "Native A/B result IDs remain opaque; imported content is bound separately."
+        ],
+        "result_id": "sha256:2809be7894c94f4bb4b6dabd13d2ba310ce66d810851f42e98ffd5fd6e4c7625"
+      },
+      "checks": {
+        "artifact_bytes_match": true,
+        "frozen_read_without_python_matches": true,
+        "independent_known_values_match": true
+      }
+    }
+  ]
+}
