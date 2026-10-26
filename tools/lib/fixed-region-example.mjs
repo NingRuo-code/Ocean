@@ -5,6 +5,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
 const hash = value => "sha256:" + createHash("sha256").update(value).digest("hex");
+const ARTIFACT_BYTES = 1_048_576;
 function options(args, profile) {
   const allowed = new Set([profile.requestFlag, profile.readFlag, "--input", "--output"]);
   const result = {};
@@ -16,7 +17,7 @@ function options(args, profile) {
   if (result[profile.readFlag] && Object.keys(result).length !== 1) throw Error("read_is_not_execution");
   return result;
 }
-function boundedText(path, bytes=1_048_576) {
+function boundedText(path, bytes=ARTIFACT_BYTES) {
   if (!lstatSync(path).isFile() || lstatSync(path).isSymbolicLink()) throw Error("invalid_artifact");
   const fd=openSync(path,"r");
   try {
@@ -80,14 +81,27 @@ export function runControlledExample(args, root, profile) {
         state="completed";result=value.result;error=null;
       }
     } catch { /* Failed inputs never expose private locations or partial output. */ }
+    let summary, markdown;
+    if (result) {
+      try {
+        summary=JSON.stringify(result,null,2)+"\n";markdown=profile.report(result);
+        if ([summary,markdown].some(value=>Buffer.byteLength(value,"utf8")>ARTIFACT_BYTES)) throw Error("output_budget");
+      } catch { state="failed";result=null;error={code:profile.errorCode}; }
+    }
     const manifest={schema_version:"front-response-experiment-manifest/v2",purpose:profile.purpose,
       run_id:randomUUID(),state,created_at:new Date().toISOString(),evidence_kind:"synthetic_example",research_ready:false,
       transport_identity:{request_sha256:requestHash,input_sha256:inputHash},error,artifacts:{}};
     if (result) {
-      const summary=JSON.stringify(result,null,2)+"\n",markdown=profile.report(result);
-      writeFileSync(join(stage,"summary.json"),summary);writeFileSync(join(stage,"report.md"),markdown);
       manifest.result_id=result.result_id;manifest.parameters=result.parameters;manifest.inputs=[result.source];
       manifest.artifacts={"summary.json":hash(summary),"report.md":hash(markdown)};
+    }
+    if (Buffer.byteLength(JSON.stringify(manifest,null,2)+"\n","utf8")>ARTIFACT_BYTES) {
+      state="failed";result=null;error={code:profile.errorCode};
+      Object.assign(manifest,{state,error,artifacts:{}});
+      delete manifest.result_id;delete manifest.parameters;delete manifest.inputs;
+    }
+    if (result) {
+      writeFileSync(join(stage,"summary.json"),summary);writeFileSync(join(stage,"report.md"),markdown);
     }
     writeFileSync(join(stage,"manifest.json"),JSON.stringify(manifest,null,2)+"\n");
     renameSync(stage,output);stage=null;

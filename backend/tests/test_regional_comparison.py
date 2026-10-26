@@ -329,3 +329,33 @@ def test_existing_fixed_region_windows_are_read_separately_without_new_event_cal
     assert west["windows"]["post1_3"]["total_hours"] == 0
     assert east["event"]["anchor_date"] == "2024-08-05"
     assert "metrics" not in east
+
+
+@pytest.mark.parametrize("change", ["oversized_state", "false_exclusion_count"])
+def test_invalid_exclusion_metadata_cannot_publish_an_unreadable_or_inconsistent_snapshot(change):
+    pack = json.loads(
+        (Path(__file__).parents[1] / "app/examples/regional-known-snapshots.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    pack["snapshots"] = pack["snapshots"][2:]
+    request = json.loads(
+        (Path(__file__).parents[2] / "docs/data/regional-comparison-event.example.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    for entry in pack["snapshots"]:
+        for key in ["daily", "selection", "readiness"]:
+            entry["result"].pop(key, None)
+    first = pack["snapshots"][0]
+    first["result"]["windows"]["pre7"]["excluded_day_states"] = {
+        "x" * 1_030_000 if change == "oversized_state" else "missing": 1,
+    }
+    for candidate, entry in zip(request["candidates"], pack["snapshots"], strict=True):
+        entry["snapshot_sha256"] = content_id(entry["result"])
+        candidate["snapshot_sha256"] = entry["snapshot_sha256"]
+    assert len(json.dumps(pack, separators=(",", ":")).encode()) < 1_048_576
+    result = compare_known_snapshots(request, pack)
+    assert result["rows"][0]["reason"] == "source_identity_or_contract_invalid"
+    assert "windows" not in result["rows"][0]
+    assert len(json.dumps(result, indent=2).encode()) < 1_048_576

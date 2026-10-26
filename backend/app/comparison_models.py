@@ -117,9 +117,23 @@ class ExistingWindow(KnownMetrics):
     status: Literal["complete", "incomplete", "unavailable"]
     start_date: str
     end_date: str
-    relative_days: Annotated[list[int], Field(min_length=2, max_length=2)]
+    relative_days: Annotated[
+        list[Annotated[int, Field(strict=True)]], Field(min_length=2, max_length=2)
+    ]
     dates: Annotated[list[str], Field(min_length=1, max_length=7)]
-    excluded_day_states: dict[str, Annotated[int, Field(strict=True, ge=1, le=7)]]
+    excluded_day_states: dict[
+        Literal[
+            "missing",
+            "unprepared",
+            "read_failed",
+            "no_records",
+            "unknown_support",
+            "partial_support",
+            "front_observation_unknown",
+            "fixed_support_unverified_or_changed",
+        ],
+        Annotated[int, Field(strict=True, ge=1, le=7)],
+    ]
 
     @model_validator(mode="after")
     def canonical_dates(self):
@@ -135,6 +149,10 @@ class ExistingWindow(KnownMetrics):
             raise ValueError("Inconsistent existing window dates")
         if self.status == "complete" and self.supported_days != self.calendar_days:
             raise ValueError("Incomplete support cannot be complete")
+        if sum(self.excluded_day_states.values()) != self.calendar_days - self.supported_days:
+            raise ValueError("Exclusion counts must match supported days")
+        if (self.status == "unavailable") != (self.supported_days == 0):
+            raise ValueError("Unavailable window cannot supply supported days")
         return self
 
 
