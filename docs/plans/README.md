@@ -61,3 +61,6 @@
 
 
 2026-10-26接续：B01/#73已由[PR #287](https://github.com/NingRuo-code/Ocean/pull/287)合并，主分支基线`20816bb`。C01/#86已完成既有A/B合成快照读取的最小并列闭环，独立复核及合并状态以Issue/PR为准；[执行证据](../reports/ocean-regional-comparison-execution-2026-10-26.json)。这些是软件交付，不关闭P0真实资料缺口、A/B真实研究或C完整比较关口。
+
+
+2026-10-26：C02/#87受控软件实施完成，含逐指标/区域对兼容、实际支持检查和局部缺口解释；[交付记录](../reports/ocean-regional-comparability-implementation-2026-10-26.md)。软件/真实研究分账，正式A/B交接及P0依赖继续保留，合并状态以GitHub为准。
