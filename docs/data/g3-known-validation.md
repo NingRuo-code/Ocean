@@ -9,3 +9,20 @@
 仅在同一已登记几何/方法/单位且月份不重复时，按明确的已知H总和/同支持E总和给描述密度；不平均月密度，不把不合格或未知补零，不把A/B混池。所有结果标合成、非研究就绪、非确认性、独立性未评估；协议/分区只引用，不冒称已完成真实冻结。无区间、显著性、稳定性或渔获保证。
 
 小例采用请求预先绑定的源/支持元信息身份，只组合这个严格已知源合同；版本/支持证据不同仍保留候选并拒绝混入。真实跨产品/跨版本的等价性判断留给后续冻结与复用切片，不能只凭单位同名放行。
+
+
+## 使用
+
+```powershell
+node tools/run-front-response-experiment.mjs --g3-validation-request docs/data/g3-known-validation.example.json --input backend/app/examples/g3-known-snapshots.json --output outputs/experiments/g3-known-validation
+node tools/run-front-response-experiment.mjs --read-g3-validation-result docs/reports/g3-known-validation-2026-10-26
+python tools/build-g3-known-snapshots.py --check
+```
+
+执行要求输出目录尚不存在，不覆盖原输入/成功成果；只读命令只接受阅读目录，不能同时加输入/输出选项，不调用Python或读取源文件。失败有真实failed清单且不发布半成品；修改摘要/报告/条件会被现有字节及条件核对拒绝。内容身份用于完整性，不是授权签名。
+
+生成器只在显式调用时，把仓内自建CC0单元输入送进已有A API并生成快照/请求示例，需后端开发依赖；G3读取无此生成步骤。声明公共聚合在逐项许可检查之后投影，未获准项只保留请求身份和原因，不含源值。支持全日历但有空间排除仍为partial，载入日历与计划日历分开。
+
+[实际交付与剩余关口](../reports/ocean-g3-known-validation-implementation-2026-10-26.md)。
+
+本批原字节证据目录在`.gitattributes`单独固定LF，保证Windows Git检出后仍可校验原哈希；实际检出/回放已列入CLI回归，不将其他文件改成相同换行规则。
