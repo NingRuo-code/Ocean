@@ -23,7 +23,9 @@ function boundedText(path, bytes=1_048_576) {
     const buffer=Buffer.alloc(bytes+1);let n=0,count;
     while(n<buffer.length && (count=readSync(fd,buffer,n,buffer.length-n,null))>0)n+=count;
     if (n>bytes) throw Error("input_budget");
-    return buffer.subarray(0,n).toString("utf8");
+    const bytesRead=buffer.subarray(0,n),text=bytesRead.toString("utf8");
+    if(!Buffer.from(text,"utf8").equals(bytesRead))throw Error("invalid_utf8");
+    return text;
   } finally { closeSync(fd); }
 }
 function report(result) {

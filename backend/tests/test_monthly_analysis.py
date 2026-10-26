@@ -263,3 +263,12 @@ def test_excessively_nested_corrupt_source_is_a_frozen_failure_not_a_server_erro
     assert run["state"] == "failed" and run["result"] is None
     assert client.get("/api/query/monthly-analysis/" + run["id"]).json() == run
     assert client.get("/api/query/monthly-analysis/examples").status_code == 503
+
+
+def test_shared_support_keeps_the_previously_published_monthly_result_identity(tmp_path):
+    evidence = Path(__file__).parents[2] / "docs/reports/ocean-controlled-month-api-smoke-2026-10-26.json"
+    expected = json.loads(evidence.read_text(encoding="utf-8"))["run"]["result"]["result_id"]
+    client, _ = controlled_client(tmp_path)
+    run = client.post("/api/query/monthly-analysis", json=REQUEST, headers=AUTH).json()
+    assert run["state"] == "completed"
+    assert run["result"]["result_id"] == expected

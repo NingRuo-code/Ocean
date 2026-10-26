@@ -95,3 +95,11 @@ test("frozen reader rejects a manifest whose conditions or evidence role disagre
     assert.equal(call(["--read-fixed-region-result",out]).status,2);
   });
 });
+
+test("invalid UTF-8 source bytes are rejected rather than replaced in public metadata",()=>scenario(({out,source,execute})=>{
+  const bytes=readFileSync(source),position=bytes.indexOf(Buffer.from("CC0-1.0"));
+  assert.ok(position>0);bytes[position]=255;writeFileSync(source,bytes);
+  assert.equal(execute().status,2);
+  const manifest=JSON.parse(readFileSync(join(out,"manifest.json"),"utf8"));
+  assert.equal(manifest.state,"failed");assert.equal(existsSync(join(out,"summary.json")),false);
+}));
