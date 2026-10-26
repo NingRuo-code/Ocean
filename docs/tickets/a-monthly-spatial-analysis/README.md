@@ -37,3 +37,7 @@
 发布核验：11项正文、ready-for-agent标签及19条原生阻塞已逐项回读一致；#60/#18/#13的正文、评论、状态和标签保持不变。当前可开始：[#61：显式运行并读取可手算的月分析样例](https://github.com/NingRuo-code/Ocean/issues/61)。
 
 发布证据：[任务与原生阻塞核验记录](../../reports/ocean-a-ticket-publication-2026-10-24.json)。
+
+## 实施进度 — 2026-10-26
+
+A01/#61最小受控闭环实现及本地验收通过，随本批PR合并后结项；29项新API检查、完整后端52项与实际HTTP证据见[实施记录](../../reports/ocean-controlled-month-implementation-2026-10-26.md)。它不解除A02/#62的P0 #39几何前置，也不解除A04/#64的#41资格前置；真实月、统计关系与后续模块仍按原规格验收。
