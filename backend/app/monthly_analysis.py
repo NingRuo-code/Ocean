@@ -20,6 +20,7 @@ from .analysis_support import (
     read_controlled_input,
 )
 from .config import Settings
+from .monthly_capability import create_capability_router
 from .monthly_models import KnownCircle, MonthlyExample, MonthlyRequest
 from .published_months import PUBLISHED_PATH, create_published_router
 from .schemas import BasicQueryEvidence
@@ -106,6 +107,7 @@ def create_monthly_router(
         raise ValueError("Invalid controlled record budget")
     router = APIRouter(prefix=f"{settings.api_prefix}/query/monthly-analysis")
     router.include_router(create_published_router(published_path), prefix="/published")
+    router.include_router(create_capability_router(published_path))
     records, lock = {}, RLock()
     bearer = HTTPBearer(auto_error=False)
 

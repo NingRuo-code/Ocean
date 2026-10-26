@@ -17,14 +17,13 @@
   const idPattern = /^sha256:[0-9a-f]{64}$/;
   const units = {total_hours:"fishing_hours",area_time_km2_days:"km2*d",mean_hours_per_supported_day:"fishing_hours/d",density_hours_per_km2_day:"fishing_hours/(km2*d)"};
   const states = {ready:"有效",partial_support:"部分单元有效",unprepared:"未准备",missing:"缺测",read_failed:"读取失败",no_records:"无记录／覆盖未知",unknown_support:"支持未知"};
-  function origin() {
-    const mode = OFData.serverMode();
-    return mode.userMode === "offline" || !mode.base ? {kind:"offline",base:null} : {kind:"server",base:mode.base};
-  }
-  function sameOrigin(a,b) { return a.kind === b.kind && a.base === b.base; }
+  const {source:origin,sameSource:sameOrigin,json} = OceanPublicRead;
+  let draftContext = null;
   function stale() {
     if (!record) return "";
     const p = record.result.parameters;
+    if(draftContext && ["month","longitude","latitude","radius_km"].some(key=>p[key]!==draftContext[key]))
+      return "任务条件已改变，以下保留原成果，待更新。";
     return p.month !== state.date.slice(0,7) || p.longitude !== state.lon || p.latitude !== state.lat || p.radius_km !== state.range
       ? "以下保留成果原条件，与当前地图筛选不同。" : "";
   }
@@ -51,15 +50,6 @@
       if (["ready","partial_support"].includes(d.state) ? d.hours === null || !(d.effective_area_km2>0) : d.hours !== null) throw Error("contract");
     });
     return value;
-  }
-  async function json(url, signal) {
-    const response = await fetch(url,{cache:"no-store",credentials:"omit",signal});
-    if (!response.ok) throw Error("http_"+response.status);
-    const reader = response.body.getReader(), decoder = new TextDecoder("utf-8",{fatal:true});
-    let size=0, text="";
-    try { while (true) { const chunk=await reader.read();if(chunk.done)break;size+=chunk.value.byteLength;if(size>1048576)throw Error("budget");text+=decoder.decode(chunk.value,{stream:true}); } text+=decoder.decode(); }
-    finally { await reader.cancel().catch(()=>{}); }
-    return JSON.parse(text);
   }
   function begin() { controller?.abort();controller=new AbortController();return ++generation; }
   function freeze(value) { if(value && typeof value === "object") { Object.values(value).forEach(freeze);Object.freeze(value); } return value; }
@@ -90,7 +80,7 @@
       record={result:freeze(result),from};render();
     } catch(error) {if(token===generation)fail(error);} finally {clearTimeout(timer);}
   }
-  async function load() {
+  async function load(preferredId = null) {
     const token=begin(), from=origin(), activeController=controller, timer=setTimeout(()=>activeController.abort(),10000);
     section.dataset.state="reading";$("monthlyStatus").textContent="正在读取已有成果目录…";
     try {
@@ -106,7 +96,10 @@
       for(const item of catalog) {const option=document.createElement("option");option.value=item.result_id;option.textContent=describe(item.parameters);$("monthlySavedResult").append(option);}
       $("monthlySavedResult").disabled=!catalog.length;
       if(!catalog.length) {clear();section.dataset.state="empty";$("monthlyStatus").textContent="没有允许公开的已就绪月结果，需先完成对应 A 成果交接。";return;}
-      clearTimeout(timer);await selectResult(catalog[0]);
+      const selected = preferredId ? catalog.find(item=>item.result_id===preferredId) : catalog[0];
+      if(!selected)throw Error("http_404");
+      $("monthlySavedResult").value=selected.result_id;
+      clearTimeout(timer);await selectResult(selected);
     } catch(error) {if(token===generation)fail(error);} finally {clearTimeout(timer);}
   }
   function csv(value) {
@@ -141,12 +134,17 @@
   }
   OceanEvidence.register("monthly",{content:evidence,button:$("monthlyDetails"),view:()=>record ? {title:"月度空间关系证据",identity:describe(record.result.parameters)+" / "+record.result.result_id.slice(0,22)+"… / "+record.result.projection_id.slice(0,22)+"…",stale:stale()} : null});
   $("monthlySavedResult").onchange=()=>{const item=catalog.find(i=>i.result_id===$("monthlySavedResult").value);if(item)selectResult(item);};
-  $("monthlyRefresh").onclick=load;
+  $("monthlyRefresh").onclick=()=>load();
   $("monthlyOpen").onclick=()=>{OceanWorkbench.showResult("clim");view(true);OceanEvidence.close(false);if(!record)load();};
   $("monthlyView").onclick=()=>{view(true);OceanEvidence.close(false);if(!record)load();};
   $("observationView").onclick=()=>{view(false);OceanEvidence.close(false);};
   window.addEventListener("ocean-workbench-task",e=>{if(e.detail.pane==="clim")view(false);});
   window.addEventListener("ocean-applied-context",sync);
   window.addEventListener("ocean-load-state",sync);
+  window.addEventListener("ocean-month-draft",e=>{draftContext=e.detail;sync();OceanEvidence.sync();});
+  window.OceanMonthlyReader = Object.freeze({openSavedResult(id){
+    if(!idPattern.test(id))return;
+    OceanWorkbench.showResult("clim");view(true);OceanEvidence.close(false);load(id);
+  }});
   view(false);
 })();

@@ -1,38 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolve, dirname, basename, join } from "node:path";
-import { spawn } from "node:child_process";
-import { mkdtemp, mkdir, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import { launchBrowser, waitFor } from "../lib/browser-driver.mjs";
 
+import {withService} from "../lib/monthly-test-service.mjs";
+
 const edge=process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
-async function withService(work) {
-  const root=await mkdtemp(join(tmpdir(),"ocean-month-service-"));
-  await mkdir(join(root,"raw"));await mkdir(join(root,"cache"));
-  const code=`import json,socket,os,uvicorn
-from fastapi.staticfiles import StaticFiles
-from app.main import app
-app.mount('/',StaticFiles(directory=os.environ['OCEAN_TEST_FRONTEND']))
-s=socket.socket();s.bind(('127.0.0.1',0));s.listen(128)
-print(json.dumps({'port':s.getsockname()[1]}),flush=True)
-uvicorn.Server(uvicorn.Config(app,log_level='error')).run(sockets=[s])`;
-  const child=spawn(process.env.OCEAN_EXPERIMENT_PYTHON || "python",["-c",code],{cwd:resolve("backend"),windowsHide:true,
-    env:{...process.env,OCEAN_TEST_FRONTEND:resolve("frontend/prototype"),OCEAN_AI_PROVIDER:"rules",OCEAN_MONTHLY_EXECUTION_TOKEN:"",OCEAN_RAW_DATA_DIR:join(root,"raw"),OCEAN_CACHE_DIR:join(root,"cache")},stdio:["ignore","pipe","pipe"]});
-  let output="",errors="",port;
-  child.stdout.on("data",b=>{output+=b.toString();try{port=JSON.parse(output.split("\n")[0]).port;}catch{}});
-  child.stderr.on("data",b=>{errors+=b.toString().slice(0,1000);});
-  try {
-    for(let n=0;n<150&&!port;n++){if(child.exitCode!==null)throw Error("Actual API did not start: "+errors);await delay(50);}
-    assert.ok(port,"Actual API listening port");const base=`http://127.0.0.1:${port}`;
-    for(let n=0;n<100;n++){try{if((await fetch(base+"/api/health")).ok)break;}catch{}await delay(50);}
-    await work(base);
-  }finally{child.kill();await Promise.race([new Promise(r=>child.once("exit",r)),delay(2000)]);
-    if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith("ocean-month-service-"))await rm(root,{recursive:true,force:true}).catch(()=>{});
-  }
-}
 async function click(c, selector) {
   const p=await c.evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)throw Error('Missing control');e.scrollIntoView({block:'nearest'});const r=e.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()`);
   await c.send("Input.dispatchMouseEvent",{type:"mousePressed",button:"left",clickCount:1,...p});
