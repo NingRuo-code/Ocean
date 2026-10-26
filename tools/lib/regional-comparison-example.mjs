@@ -18,8 +18,9 @@ function compatibilityReport(result) {
   lines.push("", "## 区域对 × 指标", "", "| 区域对 | 指标/窗口 | 状态 | 原因与实际差异 |", "|---|---|---|---|");
   for (const pair of result.pairs) {
     for (const [key,c] of Object.entries(pair.metrics)) lines.push(`| ${pair.candidates.join(" / ")} | ${key} | ${statusLabel(c.status)} | ${reasons(c.reasons)} |`);
-    lines.push("",`相关性提示 ${pair.candidates.join(" / ")}：${reasons(pair.warnings)}`,"");
   }
+  lines.push("", "## 相关性提示", "");
+  for (const pair of result.pairs) lines.push(`- ${pair.candidates.join(" / ")}：${reasons(pair.warnings)}`);
   lines.push("", "## 原支持与逐源证据", "");
   for (const row of result.rows) {
     const c=row.candidate;
