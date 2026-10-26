@@ -41,14 +41,16 @@ def _monthly_projection(snapshot, *, compatibility=False):
     ):
         raise ValueError("Unsupported source semantics")
     KnownMetrics.model_validate(snapshot["metrics"])
-    if not isinstance(snapshot["units"], dict) or any(
-        not isinstance(unit, str) or not 1 <= len(unit) <= 100
-        for unit in snapshot["units"].values()
-    ):
-        raise TypeError("Invalid source units")
+    units = snapshot["units"]
+    if compatibility:
+        units = {
+            key: unit if isinstance(unit, str) and 1 <= len(unit) <= 100 else None
+            for key in MONTHLY_UNITS
+            for unit in [units.get(key) if isinstance(units, dict) else None]
+        }
     result = {
         "metrics": copy.deepcopy(snapshot["metrics"]),
-        "units": copy.deepcopy(snapshot["units"]),
+        "units": copy.deepcopy(units),
         "source_status": snapshot["status"],
         "support_scope": snapshot["coverage"]["support_scope"],
     }
@@ -158,15 +160,34 @@ def _read_candidate(candidate, request, snapshots):
         source = SnapshotSource.model_validate(snapshot["source"])
         if request.method_version == "known-snapshots/v2":
             if not source.license.startswith("CC0-1.0"):
-                return {**row, "reason": "source_license_unverified", "required": "source_use_clearance"}
+                return {
+                    **row,
+                    "reason": "source_license_unverified",
+                    "required": "source_use_clearance",
+                }
             if snapshot.get("kind") != request.analysis_kind:
-                return {**row, "reason": "source_purpose_mismatch", "required": f"existing_{kind}_result"}
+                return {
+                    **row,
+                    "reason": "source_purpose_mismatch",
+                    "required": f"existing_{kind}_result",
+                }
             if kind == "A":
                 native = MonthlyRequest.model_validate(snapshot["parameters"])
-                if native.method_version not in MONTHLY_METHODS or native.parameter_version != "known-unit-membership/v1":
-                    return {**row, "reason": "native_method_equivalence_unverified",
-                            "differences": [{"field": "native_method", "actual": [native.method_version, native.parameter_version]}],
-                            "required": "registered_AB_method_equivalence"}
+                if (
+                    native.method_version not in MONTHLY_METHODS
+                    or native.parameter_version != "known-unit-membership/v1"
+                ):
+                    return {
+                        **row,
+                        "reason": "native_method_equivalence_unverified",
+                        "differences": [
+                            {
+                                "field": "native_method",
+                                "actual": [native.method_version, native.parameter_version],
+                            }
+                        ],
+                        "required": "registered_AB_method_equivalence",
+                    }
         if (
             source != candidate.source
             or snapshot.get("kind") != request.analysis_kind

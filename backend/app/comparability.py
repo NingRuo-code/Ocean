@@ -5,7 +5,7 @@ import math
 from datetime import date
 from itertools import combinations
 
-from .comparability_models import ComparisonFacts
+from .comparability_models import ComparisonFacts, MetricDefinition
 
 DEFINITIONS = {
     "total_hours": ("apparent_fishing_effort", "same-support-H/v1", "additive-hours/v1"),
@@ -53,10 +53,17 @@ def assessment(status, reasons, **values):
     return {"status": status, "reasons": reasons, **values}
 
 
+def _canonical(value, unit, key):
+    if value is None or unit not in UNITS[key]:
+        return None
+    return value / 60 if unit != UNITS[key][0] else value
+
+
 def _support(row):
     daily = row.get("comparison_daily")
     result = {
-        "verified": False,
+        "geometry_dates_verified": False,
+        "metric_checks": dict.fromkeys(DEFINITIONS),
         "dates": [],
         "effective_area_by_date_km2": {},
         "reported": copy.deepcopy(row.get("metrics", {})),
@@ -67,7 +74,7 @@ def _support(row):
     try:
         if not isinstance(daily, list) or not 1 <= len(daily) <= 31:
             return result
-        seen, areas, excluded = set(), {}, {}
+        seen, areas, excluded, hours_by_date = set(), {}, {}, {}
         excluded_units, partial_dates = 0, []
         for day in daily:
             iso = day["date"]
@@ -102,6 +109,7 @@ def _support(row):
                 ):
                     return result
                 areas[iso] = area
+                hours_by_date[iso] = hours
             else:
                 state = day["state"]
                 if state not in {
@@ -119,12 +127,22 @@ def _support(row):
         m = row["metrics"]
         if len(areas) != m["supported_days"] or len(seen) != m["calendar_days"]:
             return result
-        if areas and not math.isclose(
-            math.fsum(areas.values()), m["area_time_km2_days"], rel_tol=1e-12
-        ):
-            return result
+        checks = dict.fromkeys(DEFINITIONS)
+        if areas:
+            exposure, hours = math.fsum(areas.values()), math.fsum(hours_by_date.values())
+            expected = {
+                "total_hours": hours,
+                "area_time_km2_days": exposure,
+                "mean_hours_per_supported_day": hours / len(areas),
+                "density_hours_per_km2_day": hours / exposure,
+            }
+            for key, value in expected.items():
+                original = _canonical(m[key], row.get("units", {}).get(key), key)
+                if original is not None:
+                    checks[key] = math.isclose(original, value, rel_tol=1e-12, abs_tol=1e-12)
         result.update(
-            verified=bool(areas),
+            geometry_dates_verified=bool(areas),
+            metric_checks=checks,
             dates=sorted(areas),
             effective_area_by_date_km2=dict(sorted(areas.items())),
             excluded_day_states=excluded,
@@ -215,9 +233,22 @@ def _cell(row, key, f, support, request):
                 required="verified_processing_equivalence",
             )
         )
-    definition = f.definitions.get(key)
-    if definition is None:
+    raw_definition = f.definitions.get(key)
+    if raw_definition is None:
         return assessment("not_ready", [reason("metric_definition_missing", field=key)], **values)
+    try:
+        definition = MetricDefinition.model_validate(raw_definition)
+    except (ValueError, TypeError):
+        return assessment(
+            "not_ready",
+            [
+                reason(
+                    "metric_definition_unverified", field=key, required="verified_metric_definition"
+                )
+            ],
+            **values,
+        )
+    values["definition"] = definition.model_dump()
     actual = (definition.quantity, definition.estimand, definition.weighting)
     if actual != DEFINITIONS[key]:
         return assessment(
@@ -230,6 +261,12 @@ def _cell(row, key, f, support, request):
                     expected=list(DEFINITIONS[key]),
                 )
             ],
+            **values,
+        )
+    if unit is None:
+        return assessment(
+            "not_ready",
+            [reason("metric_unit_unknown", field=key, required="verified_metric_unit")],
             **values,
         )
     if unit not in UNITS[key]:
@@ -250,7 +287,7 @@ def _cell(row, key, f, support, request):
         )
     if issues:
         return assessment("not_ready", issues, **values)
-    values["value"] = value / 60 if unit != UNITS[key][0] else value
+    values["value"] = _canonical(value, unit, key)
     if unit != UNITS[key][0]:
         values["conversion"] = {
             "id": "fishing-minutes-to-hours/v1",
@@ -259,8 +296,27 @@ def _cell(row, key, f, support, request):
             "inverse": "multiply_by_60",
         }
     limitations = []
-    if not support["verified"]:
+    if not support["geometry_dates_verified"]:
         limitations.append(reason("effective_support_unverified", required="source_daily_support"))
+    checks = support["metric_checks"]
+    if checks[key] is not True:
+        limitations.append(
+            reason(
+                "source_metric_consistency_unverified", field=key, required="corrected_AB_snapshot"
+            )
+        )
+    if key != "area_time_km2_days" and checks["total_hours"] is False:
+        limitations.append(
+            reason(
+                "source_numerator_conflicts_with_daily_evidence", required="corrected_AB_snapshot"
+            )
+        )
+    if key == "density_hours_per_km2_day" and checks["area_time_km2_days"] is False:
+        limitations.append(
+            reason(
+                "source_denominator_conflicts_with_daily_evidence", required="corrected_AB_snapshot"
+            )
+        )
     if f.sea_area_km2 is None:
         limitations.append(reason("sea_area_unknown", required="source_water_area_evidence"))
     elif (
@@ -306,12 +362,10 @@ def _pair_metric(a, b, key, facts_by_id):
             )
     if PROCESSING[fa.processing] != PROCESSING[fb.processing]:
         conflicts.append(reason("processing_mismatch"))
-    groups = lambda f: sorted(
-        (g.model_dump() for g in f.definitions[base].groups), key=lambda g: g["id"]
-    )
-    if groups(fa) != groups(fb):
+    groups = lambda c: sorted(c["definition"]["groups"], key=lambda g: g["id"])
+    if groups(ca) != groups(cb):
         conflicts.append(
-            reason("group_definition_mismatch", field=key, actual=[groups(fa), groups(fb)])
+            reason("group_definition_mismatch", field=key, actual=[groups(ca), groups(cb)])
         )
     if conflicts:
         return assessment("incomparable", conflicts)
@@ -409,7 +463,12 @@ def add_compatibility(result, request, snapshots):
                 row["metric_assessments"][name] = _cell(view, key, f, support, request)
         row["effective_support"] = supports.get(None, supports)
         if f:
-            row["comparison_facts"] = f.model_dump(by_alias=True)
+            row["comparison_facts"] = f.model_dump(by_alias=True, exclude={"definitions"})
+            row["comparison_facts"]["definitions"] = {
+                name.rsplit(".", 1)[-1]: cell["definition"]
+                for name, cell in row["metric_assessments"].items()
+                if "definition" in cell
+            }
         statuses = [c["status"] for c in row["metric_assessments"].values()]
         if row.get("source_result_id"):
             row["status"] = (

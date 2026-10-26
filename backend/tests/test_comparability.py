@@ -420,3 +420,48 @@ def test_read_existing_policy_alone_never_certifies_strict_support_alignment():
     result = compare_known_snapshots(request, pack)
     assert result["pairs"][0]["metrics"]["total_hours"]["status"] == "limited_side_by_side"
     assert result["status"] == "no_comparable_pairs"
+
+
+def test_daily_hour_disagreement_restricts_effort_metrics_but_keeps_area_exposure():
+    request, pack = three_regions()
+    pack["snapshots"][1]["result"]["daily"][0]["hours"] = 999
+    bind(pack["snapshots"][1], request["candidates"][1])
+    result = compare_known_snapshots(request, pack)
+    pair = result["pairs"][0]["metrics"]
+    for key in ["total_hours", "mean_hours_per_supported_day", "density_hours_per_km2_day"]:
+        assert pair[key]["status"] == "limited_side_by_side"
+    assert pair["area_time_km2_days"]["status"] == "comparable"
+    assert result["rows"][1]["metrics"]["total_hours"] == 0
+
+
+def test_null_unit_is_local_and_does_not_discard_independently_verifiable_density():
+    request, pack = three_regions()
+    pack["snapshots"][1]["result"]["units"]["total_hours"] = None
+    bind(pack["snapshots"][1], request["candidates"][1])
+    result = compare_known_snapshots(request, pack)
+    pair = result["pairs"][0]["metrics"]
+    assert pair["total_hours"]["status"] == "not_ready"
+    assert pair["density_hours_per_km2_day"]["status"] == "comparable"
+    assert pair["area_time_km2_days"]["status"] == "comparable"
+
+
+def test_bad_group_structure_is_local_to_its_metric_definition():
+    request, pack = three_regions()
+    pack["snapshots"][1]["comparison_facts"]["definitions"]["total_hours"]["groups"] = [
+        {"id": "invalid", "lower": 10, "upper": 10, "unit": "km", "side": "cold"}
+    ]
+    result = compare_known_snapshots(request, pack)
+    assert result["pairs"][0]["metrics"]["total_hours"]["status"] == "not_ready"
+    assert result["pairs"][0]["metrics"]["density_hours_per_km2_day"]["status"] == "comparable"
+
+
+def test_changed_reported_numerator_limits_its_ratios_without_replacing_any_source_value():
+    request, pack = three_regions()
+    pack["snapshots"][0]["result"]["metrics"]["total_hours"] = 999
+    bind(pack["snapshots"][0], request["candidates"][0])
+    result = compare_known_snapshots(request, pack)
+    pair = result["pairs"][0]["metrics"]
+    assert pair["total_hours"]["status"] == "limited_side_by_side"
+    assert pair["density_hours_per_km2_day"]["status"] == "limited_side_by_side"
+    assert pair["area_time_km2_days"]["status"] == "comparable"
+    assert result["rows"][0]["metrics"]["total_hours"] == 999

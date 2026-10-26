@@ -53,4 +53,4 @@ class ComparisonFacts(ClosedModel):
     sea_area_km2: NonNegative | None
     support_policy: Term
     control_ids: Annotated[list[Term], Field(max_length=32)]
-    definitions: Annotated[dict[Term, MetricDefinition], Field(max_length=16)]
+    definitions: Annotated[dict[Term, object], Field(max_length=16)]
