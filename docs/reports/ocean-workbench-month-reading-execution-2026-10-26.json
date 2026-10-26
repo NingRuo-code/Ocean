@@ -1,0 +1,142 @@
+{
+  "schema_version": "ocean-w01-public-execution/v1",
+  "date": "2026-10-26",
+  "ticket": 96,
+  "spec": 95,
+  "code_commit": "fca0f38edce4b6aadc77a4c3fce5cb50d969a6bf",
+  "environment": "isolated loopback production FastAPI app with existing static frontend; browser Edge; no production deployment",
+  "evidence_kind": "synthetic_example",
+  "research_ready": false,
+  "source_license": "CC0-1.0",
+  "independent_expected": {
+    "H": 40,
+    "E": 7,
+    "D": 2,
+    "calendar": 29,
+    "day2_hours": 0,
+    "day3_hours": null
+  },
+  "browser": {
+    "native_id": "sha256:d90e75c6573eeccea442e0bded57b5faffb7401bb1ca9b4bef05b2f197b736ea",
+    "projection_id": "sha256:a6159144c60a11f3a929f2a9372149c344fc1cf08bec458f1938e0b4847bb5d1",
+    "status": "服务公开成果 · 仅为合成样例，真实研究结果未接入。",
+    "original_conditions": "2024-02 · 124.50°E, 30.20°N · 20 km",
+    "hours": "40",
+    "density": "5.71",
+    "supported_calendar_days": "2 / 29",
+    "table_rows": 29,
+    "zero": "0",
+    "unknown": "未知",
+    "chart_unknown_days": 27,
+    "intervals": "统计区间：此样例未估计。面积时间 E=7 km²·d；日值表保留缺测状态。",
+    "global_date": "2024-08-05",
+    "csv_sha256": "7f496d2b0c17c4b0dd37dbb82db14a9984f6653417b59d8700e10cf611eb8267"
+  },
+  "service_metrics": {
+    "total_hours": 40,
+    "area_time_km2_days": 7,
+    "supported_days": 2,
+    "calendar_days": 29,
+    "mean_hours_per_supported_day": 20,
+    "density_hours_per_km2_day": 5.714285714285714
+  },
+  "network": [
+    {
+      "method": "GET",
+      "path": "/api/query/monthly-analysis/published"
+    },
+    {
+      "method": "GET",
+      "path": "/api/query/monthly-analysis/published/sha256%3Ad90e75c6573eeccea442e0bded57b5faffb7401bb1ca9b4bef05b2f197b736ea"
+    }
+  ],
+  "no_post_requests": true,
+  "screenshots_mode": "shipped allowed offline aggregates; 1440 and 390 width inspected separately",
+  "hashes": {
+    "backend/app/published_months.py": "fecdab1e937b18797ef5d4dcd24c671253de12190f3bbec2f068274c02408dfe",
+    "frontend/prototype/prototype-month-reading.js": "bc76b111cacbbe817de4f44121f7e336f9d516e3c78d8fbe9eb76c752e766642",
+    "frontend/prototype/data/published-months.js": "ce459fb226982a88cc8684208c23b7f9e782e47b16385d2c07132e94ac5d7cff",
+    "docs/reports/screenshots/ocean-month-reading-1440.png": "5994dd6bdcb4adb246356b7fbacf827b0ade88399e17a3ad3e50d85a2dbfedc6",
+    "docs/reports/screenshots/ocean-month-reading-390.png": "2cbd9789d9de706401f32ff9aa4b35d5b07a467e656cd5fe18a44e12154e95d1"
+  },
+  "boundaries": [
+    "Read-only projection of existing A snapshots, no new analysis or task execution",
+    "Actual normal service evidence distinct from controlled browser403,invalid-contract and late-response tests",
+    "No raw sources, fine grids, paid model calls or production deployment",
+    "P0 real data qualification and W03 real A consumption remain open"
+  ],
+  "checks": {
+    "backend": {
+      "passed": 153,
+      "failed": 0
+    },
+    "tools_final_solo": {
+      "passed": 79,
+      "failed": 0
+    },
+    "monthly_browser": {
+      "passed": 7,
+      "failed": 0
+    },
+    "legacy_e2e": {
+      "passed": 129,
+      "failed": 0
+    },
+    "data": {
+      "passed": 922,
+      "failed": 0
+    },
+    "layout_widths": [
+      1680,
+      1440,
+      1280,
+      390
+    ],
+    "wheel_module_fixture_byte_identity": true,
+    "static_and_diff": true
+  },
+  "review": {
+    "standards": {
+      "initial": "P3 exporter internal exception boundary",
+      "fixed_in": "fca0f38",
+      "unresolved": 0
+    },
+    "spec": {
+      "initial": "P2 reopened old evidence identity mixed with incoming snapshot",
+      "regression": "actual browser interleaving failed before fix and passed after",
+      "fixed_in": "fca0f38",
+      "unresolved": 0
+    }
+  },
+  "test_run_note": {
+    "first_tools": {
+      "passed": 78,
+      "failed": 0
+    },
+    "new_interleaving_regression_red": true,
+    "repeat_during_other_browser_evidence": {
+      "passed": 78,
+      "failed": 1,
+      "failure": "legacy small-screen touch center hit check"
+    },
+    "isolated_touch_retry": {
+      "passed": 1,
+      "failed": 0
+    },
+    "final_solo": {
+      "passed": 79,
+      "failed": 0
+    },
+    "concurrent_touch_stability_verified": false
+  },
+  "log_fingerprints": {
+    "backend": "414e3757838055eaaf8ae04db8b0b741e0986ca217b1327ff5503155826d7b6f",
+    "tools_final": "13f8ac670449311aeec21b72840e1d3a27d69e367239d7837314d2c4925ce67a",
+    "touch_attempt_failure": "b7e39aa222c316a0558c43cad45b068c722746e1759dfda1754278a9cf928687",
+    "e2e": "56be59bbb72426860283fd5c0ef2245312d62f1ded22a0c94962cfab321aa94e",
+    "layout": "029b6cb057a5831081da6edbd9b4ead544eaacf4ab55574a0d360417eacd51f5",
+    "data": "f3cdace6a1bdba27962689a4819d7a2046f37906ac6928f5404cdc97d61ffa79",
+    "identity_red": "cfc6f2d8ea0abf1ba570883c8ddd8f8f3a55b69f56176e749ede5beedb718426",
+    "monthly_final": "e4a1241491468bb66836ab7378030aa9c82786aad80b4fb6bff5640cf1317ddc"
+  }
+}
