@@ -147,6 +147,22 @@ def published_month_results(path=PUBLISHED_PATH):
     ]
 
 
+def published_month_reference(result):
+    """Only the public identity/conditions needed for deliberate saved-result selection."""
+    return {
+        key: result[key]
+        for key in [
+            "result_id",
+            "projection_id",
+            "parameters",
+            "evidence_kind",
+            "research_ready",
+            "public_aggregate_allowed",
+            "source",
+        ]
+    }
+
+
 def create_published_router(path=PUBLISHED_PATH):
     router = APIRouter()
 
@@ -180,21 +196,7 @@ def create_published_router(path=PUBLISHED_PATH):
         ]
         return {
             "schema_version": "ocean-published-month-catalog/v1",
-            "results": [
-                {
-                    key: result[key]
-                    for key in [
-                        "result_id",
-                        "projection_id",
-                        "parameters",
-                        "evidence_kind",
-                        "research_ready",
-                        "public_aggregate_allowed",
-                        "source",
-                    ]
-                }
-                for result in results
-            ],
+            "results": [published_month_reference(result) for result in results],
         }
 
     @router.get("/{result_id}")

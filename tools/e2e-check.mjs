@@ -1,35 +1,63 @@
 import { spawn } from "node:child_process";
-import { writeFileSync, rmSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { writeFileSync } from "node:fs";
+import {mkdtemp,readFile,rm} from "node:fs/promises";
+import {tmpdir} from "node:os";
+import {connectCdp} from "./lib/browser-driver.mjs";
+import { dirname, join, resolve, basename } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 // 用法：node tools/e2e-check.mjs   （可用环境变量 EDGE / PAGE 覆盖）
 const EDGE = process.env.EDGE || "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const PAGE = process.env.PAGE || pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), "..", "frontend", "prototype", "prototype-fishing.html")).href;
 const EXPECT_SERVER = process.env.EXPECT_SERVER === "1";
-const PORT = 9337;
-const PROFILE = join(process.env.TEMP || "C:\\temp", "_edge_profile_e2e");
+let PORT;
+const temporaryRoot = resolve(tmpdir());
+const PROFILE = await mkdtemp(join(temporaryRoot, "ocean-e2e-"));
 const OUT = process.env.TEMP || "C:\\temp";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const addIsoDays = (iso, n) => new Date(Date.parse(iso + "T00:00:00Z") + n * 86400000).toISOString().slice(0, 10);
-try { rmSync(PROFILE, { recursive: true, force: true }); } catch (e) {}
 
-const child = spawn(EDGE, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
-  "--remote-allow-origins=*", `--remote-debugging-port=${PORT}`, `--user-data-dir=${PROFILE}`,
-  "--window-size=1680,900", PAGE], { stdio: "ignore" });
+let child=null,ws=null,launchError=null;
+async function cleanup() {
+  // Resolve only this run's endpoint; cleanup also runs after startup/CDP failures.
+  try {
+    PORT ||= Number((await readFile(join(PROFILE,"DevToolsActivePort"),"utf8")).split("\n")[0]);
+    const version=await(await fetch(`http://127.0.0.1:${PORT}/json/version`,{signal:AbortSignal.timeout(2000)})).json();
+    const browser=await connectCdp(version.webSocketDebuggerUrl);
+    try { await browser.send("Browser.close"); } catch { /* closing may beat its reply */ }
+    browser.close();
+  } catch { /* our launcher is still stopped below */ }
+  try { ws?.close(); } catch { /* already closed */ }
+  try { child?.kill(); } catch { /* already exited */ }
+  if(dirname(resolve(PROFILE))===temporaryRoot && basename(PROFILE).startsWith("ocean-e2e-")) {
+    // Windows may hold profile files briefly after Browser.close acknowledges.
+    for(let attempt=0;attempt<10;attempt++) {
+      try { await rm(PROFILE,{recursive:true,force:true});break; }
+      catch { await sleep(100); }
+    }
+  }
+}
+
+try {
+child = spawn(EDGE, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
+  "--remote-allow-origins=*", "--remote-debugging-port=0", `--user-data-dir=${PROFILE}`,
+  "--window-size=1680,900", PAGE], { stdio: "ignore", windowsHide: true });
+child.on("error",error=>{launchError=error;});
 
 let wsUrl = null;
 for (let i = 0; i < 50 && !wsUrl; i++) {
   await sleep(300);
+  if(launchError)throw Error("Browser could not start");
   try {
+    PORT = Number((await readFile(join(PROFILE,"DevToolsActivePort"),"utf8")).split("\n")[0]);
     const list = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json();
     const t = list.find((x) => x.type === "page" && /prototype-fishing/.test(x.url));
     if (t) wsUrl = t.webSocketDebuggerUrl;
   } catch (e) {}
 }
-if (!wsUrl) { console.log("FAIL: 未能连接 Edge 调试端口"); child.kill(); process.exit(1); }
+if (!wsUrl) throw Error("未能连接本轮 Edge 调试端口");
 
-const ws = new WebSocket(wsUrl);
+ws = new WebSocket(wsUrl);
 await new Promise((res, rej) => { ws.addEventListener("open", res); ws.addEventListener("error", rej); });
 
 let msgId = 0;
@@ -69,10 +97,7 @@ try {
   await send("Page.enable");
   await send("Network.enable");
 } catch (e) {
-  console.log("FAIL: Edge 调试连接未响应（" + e.message + "）");
-  ws.close();
-  child.kill();
-  process.exit(1);
+  throw Error("Edge 调试连接未响应（" + e.message + "）");
 }
 
 const evalJS = async (expr) => {
@@ -1123,6 +1148,9 @@ check("无运行期 JS 异常（含资源加载失败）", errors.length === 0, 
 
 console.log(results.join("\n"));
 console.log("\nFAIL 总数 = " + results.filter((r) => r.startsWith("FAIL")).length + " / " + results.length);
-ws.close();
-child.kill();
-process.exit(0);
+process.exitCode=results.some(r=>r.startsWith("FAIL"))?1:0;
+} catch(error) {
+  console.error("FAIL: "+error.message);process.exitCode=1;
+} finally {
+  await cleanup();
+}

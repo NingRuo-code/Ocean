@@ -1,0 +1,224 @@
+{
+  "schema_version": "ocean-w02-public-execution/v1",
+  "date": "2026-10-26",
+  "ticket": 97,
+  "spec": 95,
+  "code_commit": "4a5ba75746a04167f00469f4ae9b1562fc1940a8",
+  "environment": "isolated actual FastAPI app and existing static frontend, real Edge browser; no production deployment",
+  "evidence_kind": "synthetic_example",
+  "research_ready": false,
+  "initial": {
+    "applied": {
+      "date": "2024-08-05",
+      "longitude": 124.5,
+      "latitude": 30.2,
+      "radius_km": 20
+    },
+    "draft": {
+      "month": "2024-08",
+      "longitude": "124.5",
+      "latitude": "30.2",
+      "radius_km": "20"
+    }
+  },
+  "capability": {
+    "schema_version": "ocean-month-capability/v1",
+    "request": {
+      "month": "2024-02",
+      "longitude": 124.5,
+      "latitude": 30.2,
+      "radius_km": 20,
+      "scheme": "monthly-main"
+    },
+    "request_id": "sha256:52edc3382f185838911a6755c4b3bd02f860e49d624406b794fa4953b4478592",
+    "checked_at": "2026-10-26T08:02:52.643540+00:00",
+    "saved_results": [
+      {
+        "result_id": "sha256:d90e75c6573eeccea442e0bded57b5faffb7401bb1ca9b4bef05b2f197b736ea",
+        "projection_id": "sha256:a6159144c60a11f3a929f2a9372149c344fc1cf08bec458f1938e0b4847bb5d1",
+        "parameters": {
+          "purpose": "monthly_spatial_example",
+          "longitude": 124.5,
+          "latitude": 30.2,
+          "radius_km": 20,
+          "month": "2024-02",
+          "input_version": "synthetic-comparison-month/v1",
+          "method_version": "monthly-known-support/v1",
+          "parameter_version": "known-unit-membership/v1"
+        },
+        "evidence_kind": "synthetic_example",
+        "research_ready": false,
+        "public_aggregate_allowed": true,
+        "source": {
+          "id": "c01-authored-two-region-month",
+          "version": "synthetic-comparison-month/v1",
+          "input_sha256": "sha256:4a16b143c1df8fae266c71d0b35fe3f7acbd8f85ced343d235d618e27f31734c",
+          "license": "CC0-1.0; authored synthetic fixture, no observations",
+          "support_evidence": "synthetic-known-units/v1; not original observations or P0 research eligibility"
+        }
+      }
+    ],
+    "qualification": {
+      "status": "not_handed_off",
+      "reason": "real_P0_month_qualification_not_integrated"
+    },
+    "execution": {
+      "status": "not_implemented",
+      "can_submit": false,
+      "permission": "not_checked"
+    },
+    "versions": {
+      "input": null,
+      "method": null,
+      "parameter": null,
+      "qualification": null
+    },
+    "capability_id": "sha256:139e32faebec909e81938f052fcef83989002e9b0ab1a3d8d73b223532fa7451"
+  },
+  "old_result_after_edit": {
+    "id": "sha256:d90e75c6573eeccea442e0bded57b5faffb7401bb1ca9b4bef05b2f197b736ea",
+    "note": "任务条件已改变，以下保留原成果，待更新。"
+  },
+  "after_explicit_select": {
+    "id": "sha256:5971a63f4874b6f775d723132f0e922b5d7959efb9258afba7b0632949db2e9c",
+    "hours": "0",
+    "conditions": "2024-02 · 125.50°E, 30.20°N · 20 km",
+    "applied": {
+      "date": "2024-08-05",
+      "longitude": 124.5,
+      "latitude": 30.2,
+      "radius_km": 20
+    }
+  },
+  "no_post_requests": true,
+  "network": [
+    {
+      "method": "GET",
+      "path": "/api/query/monthly-analysis/capability",
+      "query": "?scheme=monthly-main&month=2024-02&longitude=124.5&latitude=30.2&radius_km=20"
+    },
+    {
+      "method": "GET",
+      "path": "/api/query/monthly-analysis/published",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/query/monthly-analysis/published/sha256%3Ad90e75c6573eeccea442e0bded57b5faffb7401bb1ca9b4bef05b2f197b736ea",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/query/monthly-analysis/capability",
+      "query": "?scheme=monthly-main&month=2024-02&longitude=125.5&latitude=30.2&radius_km=20"
+    },
+    {
+      "method": "GET",
+      "path": "/api/query/monthly-analysis/published",
+      "query": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/query/monthly-analysis/published/sha256%3A5971a63f4874b6f775d723132f0e922b5d7959efb9258afba7b0632949db2e9c",
+      "query": ""
+    }
+  ],
+  "screenshots_mode": "allowed shipped offline aggregates, both widths inspected separately",
+  "hashes": {
+    "backend/app/monthly_capability.py": "4f000a43b2e29bcb1c3ec7071ef08f445d82e471635f1f0bff66e584658d44d0",
+    "frontend/prototype/prototype-month-draft.js": "c8109427cd4d0c13bf6df98b52937aed2a85c6c8380b4c4f49f58d8cd4f7df8a",
+    "frontend/prototype/prototype-public-read.js": "8edc5ec76936ca2cccc55d1cede7eabf7000765639d88ff661c675e5f5cdb865",
+    "tools/e2e-check.mjs": "b0524264a8065b65b8730ee7c1a82797a6c1eddce774faaf91df5ade58a2686e",
+    "docs/reports/screenshots/ocean-month-draft-1440.png": "89c1bdb1b58e821bee596df475d8f7aeca94559497b73051c0f05d3f6c210d77",
+    "docs/reports/screenshots/ocean-month-draft-390.png": "285c82f642b38b4683622e3eb7b6c2df99b2a3d4b96752dbe6d4e67cc73888bb"
+  },
+  "boundaries": [
+    "Draft never changes applied map context, existing result or any accepted task",
+    "Lightweight registry check never audits, downloads source archives, calls models or executes analysis",
+    "Real P0 qualification and input/method/parameter versions are not integrated; submit disabled",
+    "Actual service evidence distinct from controlled browser errors, late reads and e2e lifecycle failures",
+    "W03 real A consumption and W04 durable owner execution remain separate"
+  ],
+  "checks": {
+    "backend": {
+      "passed": 158,
+      "failed": 0
+    },
+    "tools_final": {
+      "passed": 85,
+      "failed": 0
+    },
+    "monthly_browser": {
+      "draft": 6,
+      "reader": 7,
+      "hidden_parent_focus_regression": "red then green; included in final full suite"
+    },
+    "legacy_e2e": {
+      "passed": 129,
+      "failed": 0,
+      "runner_exit": 0
+    },
+    "data": {
+      "passed": 922,
+      "failed": 0
+    },
+    "layout_widths": [
+      1680,
+      1440,
+      1280,
+      390
+    ],
+    "wheel_module_fixture_byte_identity": true,
+    "static_and_diff": true
+  },
+  "review": {
+    "standards": {
+      "initial": "no hard standards violations",
+      "followup": "P2 startup/CDP exceptions bypassed owned browser cleanup",
+      "fixed_in": "4a5ba75",
+      "unresolved": 0
+    },
+    "spec": {
+      "initial": "no findings",
+      "followups": "focus fallback and lifecycle cleanup accepted",
+      "unresolved": 0
+    },
+    "reviewers_browser_runs": false
+  },
+  "tool_lifecycle": {
+    "previous_fixed_port_reused_old_browser": true,
+    "initial_failures": {
+      "failed": 2,
+      "total": 129,
+      "runner_wrongly_exited_successfully": true
+    },
+    "isolated_normal": {
+      "failed": 0,
+      "total": 129,
+      "exit": 0
+    },
+    "startup_failure": {
+      "exit": 1,
+      "own_profiles_remaining": 0
+    },
+    "page_initialization_exception": {
+      "exit": 1,
+      "own_profiles_remaining": 0
+    },
+    "windows_close_handling": "natural exitCode plus bounded own-profile cleanup retries",
+    "product_assertions_relaxed": false,
+    "concurrent_browser_touch_stability_verified": false
+  },
+  "log_fingerprints": {
+    "backend": "2d0eeacd4c9a9e3bbfe28fafe1fb3c6defa6ea25b6f2e823c1786ca46f5e12b3",
+    "tools_final": "f38fe14182f82e2ce963c45ea8be01e174b26814146cb4aab212e6a674933777",
+    "e2e_fixed_port_attempt": "538b2049809edabadc598a0be3b74b13552864c2c351e0039b74409cc9654bca",
+    "e2e_final": "56be59bbb72426860283fd5c0ef2245312d62f1ded22a0c94962cfab321aa94e",
+    "startup_failure": "47062f7f193a0d800bf7b1a6809a2415ddb6e635e86034c44a3780d82b9a7b9d",
+    "initialization_failure": "bd19be48d48e33779ce807550db748b90170a07e34397f172168678c5d528ef9",
+    "focus_red": "9ff4da831339ace3c9df3d453bd1979b685c15132fb8510b8df687a93a4b5f75",
+    "focus_green": "0353272bcf581f941150b2ebf438c4903bd5c9b24a53a3a7a1fefd8e575ee71b",
+    "layout": "029b6cb057a5831081da6edbd9b4ead544eaacf4ab55574a0d360417eacd51f5",
+    "data": "f3cdace6a1bdba27962689a4819d7a2046f37906ac6928f5404cdc97d61ffa79"
+  }
+}
