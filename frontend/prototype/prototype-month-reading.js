@@ -28,11 +28,24 @@
       ? "以下保留成果原条件，与当前地图筛选不同。" : "";
   }
   function sync() { $("monthlyContext").textContent = stale(); }
-  function view(monthly) {
-    history.hidden = monthly; section.hidden = !monthly;
-    $("observationView").classList.toggle("active", !monthly); $("monthlyView").classList.toggle("active", monthly);
-    $("observationView").setAttribute("aria-pressed",String(!monthly));$("monthlyView").setAttribute("aria-pressed",String(monthly));
+  const extraViews = new Map();
+  function view(monthly, other = null) {
+    history.hidden = monthly || !!other; section.hidden = !monthly;
+    $("observationView").classList.toggle("active", !monthly && !other); $("monthlyView").classList.toggle("active", monthly);
+    $("observationView").setAttribute("aria-pressed",String(!monthly && !other));$("monthlyView").setAttribute("aria-pressed",String(monthly));
+    for(const [key,item] of extraViews){item.element.hidden=key!==other;item.button.classList.toggle("active",key===other);item.button.setAttribute("aria-pressed",String(key===other));}
+    window.dispatchEvent(new CustomEvent("ocean-history-view",{detail:monthly?"monthly":other||"observation"}));
   }
+  function openExtra(name) {
+    const item=extraViews.get(name);if(!item)return;
+    OceanWorkbench.showResult("clim");OceanEvidence.close(false);view(false,name);item.onOpen();
+  }
+  window.OceanHistoryViews = Object.freeze({open:openExtra,register(name,{label,element,onOpen}){
+    if(extraViews.has(name))throw Error("Duplicate history view");
+    const button=document.createElement("button");button.textContent=label;button.setAttribute("aria-pressed","false");
+    button.onclick=()=>openExtra(name);element.hidden=true;tabs.append(button);pane.append(element);
+    extraViews.set(name,{button,element,onOpen});
+  }});
   function verify(item) {
     const p = item?.parameters;
     if (!item || !idPattern.test(item.result_id) || !idPattern.test(item.projection_id) || item.public_aggregate_allowed !== true || item.evidence_kind !== "synthetic_example" || item.research_ready !== false || !p || p.purpose !== "monthly_spatial_example" || p.method_version !== "monthly-known-support/v1" || p.parameter_version !== "known-unit-membership/v1" || !/^[12]\d{3}-(0[1-9]|1[0-2])$/.test(p.month) || ![10,20,30].includes(p.radius_km) || !Number.isFinite(p.longitude) || Math.abs(p.longitude)>180 || !Number.isFinite(p.latitude) || Math.abs(p.latitude)>90 || typeof item.source?.license !== "string" || !item.source.license.startsWith("CC0-1.0")) throw Error("contract");
@@ -52,6 +65,12 @@
     return value;
   }
   function begin() { controller?.abort();controller=new AbortController();return ++generation; }
+  function cancelRead() {
+    if(section.dataset.state!=="reading")return;
+    generation++;controller?.abort();section.dataset.state=record?"ready":"empty";
+    $("monthlyStatus").textContent="读取已停止。"+(record?"以下保留上次读取的原成果。":"可明确重新读取目录。");
+    if(record)$("monthlySavedResult").value=record.result.result_id;
+  }
   function freeze(value) { if(value && typeof value === "object") { Object.values(value).forEach(freeze);Object.freeze(value); } return value; }
   function describe(p) { return p.month+" · "+fmtCoord(p.longitude,p.latitude)+" · "+p.radius_km+" km"; }
   function clear() {
@@ -142,6 +161,9 @@
   window.addEventListener("ocean-applied-context",sync);
   window.addEventListener("ocean-load-state",sync);
   window.addEventListener("ocean-month-draft",e=>{draftContext=e.detail;sync();OceanEvidence.sync();});
+  window.addEventListener("ocean-history-view",e=>{if(e.detail!=="monthly")cancelRead();});
+  window.addEventListener("ocean-workbench-task",e=>{if(e.detail.pane!=="clim")cancelRead();});
+  $("tabs").addEventListener("click",e=>{if(e.target.closest("[data-pane]")?.dataset.pane!=="clim")cancelRead();});
   window.OceanMonthlyReader = Object.freeze({openSavedResult(id){
     if(!idPattern.test(id))return;
     OceanWorkbench.showResult("clim");view(true);OceanEvidence.close(false);load(id);

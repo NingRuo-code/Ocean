@@ -1,0 +1,1017 @@
+{
+  "schema_version": "ocean-known-case-browser-execution/v1",
+  "date": "2026-10-26",
+  "code_commit": "07e6e91ca6db2ba2d6f4830e68f1efc31722a7d1",
+  "environment": "isolated actual app and actual Edge; authored CC0 exploration only",
+  "evidence_kind": "synthetic_example",
+  "research_ready": false,
+  "production_deployed": false,
+  "fingerprints": {
+    "backend/app/examples/known-case-catalog.json": "sha256:0f459a8a4f19e7fb314aef3bc6a8716a3a139be3f09ad3181c2dd761ae554ab6",
+    "backend/app/examples/g3-known-snapshots.json": "sha256:1587f9ad7e3be0aca988c572ba16870892cfed04f3290b86aa1bb330742a76e6",
+    "backend/app/known_cases.py": "sha256:8bef4cde367f68b7481d929eeb212874ea493e3fc482eb6d03178a40d2475b9d",
+    "frontend/prototype/prototype-known-cases.js": "sha256:6cc2c9a140d7c9f91262d40dbf9b8a3bb0284c23927bf84301d2105aefb62221",
+    "frontend/prototype/prototype-month-reading.js": "sha256:fc5b1963bda345733d78c67ea2f0696716e73701e8e07668e5abf0dab144212d",
+    "frontend/prototype/prototype-workbench.css": "sha256:74b344c02eed20bdc23415e504105b65e6b921070b2dafd4f4cd80db5f62cd8a"
+  },
+  "checks": {
+    "backend": 197,
+    "new_api": 16,
+    "new_browser": 10,
+    "tools_final": 102,
+    "original_e2e": 129,
+    "data": 922,
+    "layout_widths": [
+      1680,
+      1440,
+      1280,
+      390
+    ],
+    "reviews": {
+      "standards_open_findings": 0,
+      "spec_open_findings": 0
+    }
+  },
+  "captures": [
+    {
+      "width": 1440,
+      "query": {
+        "reference_date": "2024-08-05",
+        "longitude": 124.5,
+        "latitude": 30.2,
+        "radius_km": 20,
+        "library_id": "authored-exploration/v1",
+        "case_type": "monthly_background"
+      },
+      "before": {
+        "date": "2024-08-05",
+        "lon": 124.5,
+        "lat": 30.2,
+        "range": 20,
+        "view": {
+          "lon0": 124.5,
+          "lat0": 30.2
+        },
+        "zoom": 0.35
+      },
+      "after": {
+        "date": "2024-08-05",
+        "lon": 124.5,
+        "lat": 30.2,
+        "range": 20,
+        "view": {
+          "lon0": 124.5,
+          "lat0": 30.2
+        },
+        "zoom": 0.35
+      },
+      "display": {
+        "H": "10",
+        "E": "2",
+        "density": "5",
+        "dayRows": 30,
+        "overflow": false
+      },
+      "listFile": "screenshots/ocean-known-cases-1440.png",
+      "detailFile": "screenshots/ocean-known-case-evidence-1440.png",
+      "page": {
+        "schema_version": "ocean-known-case-search/v1",
+        "library_id": "authored-exploration/v1",
+        "library_version": "sha256:afcb49288855c713c5946bff3a7f2ec66dcbbb90d5c978c68e5f604b02f893c0",
+        "method_version": "exact-known-circle-month-order/v1",
+        "request": {
+          "reference_date": "2024-08-05",
+          "longitude": 124.5,
+          "latitude": 30.2,
+          "radius_km": 20,
+          "library_id": "authored-exploration/v1",
+          "case_type": "monthly_background"
+        },
+        "search_id": "sha256:95b3be5d454b66e934a80d2bcdf72dc9c211161b079b7bdf3c81e3d12a0ecc4c",
+        "evidence_kind": "synthetic_example",
+        "research_ready": false,
+        "exploration_only": true,
+        "status": "available",
+        "offset": 0,
+        "limit": 3,
+        "total": 4,
+        "next_offset": 3,
+        "candidates": [
+          {
+            "case_id": "case-2024-06",
+            "case_type": "monthly_background",
+            "month": "2024-06",
+            "period_start": "2024-06-01",
+            "period_end": "2024-06-30",
+            "longitude": 124.5,
+            "latitude": 30.2,
+            "radius_km": 20,
+            "source_result_id": "sha256:f1bb8741196d24c74942c3b8629a92a3c2d8f0ed239c452424d8b3032bea8aa2",
+            "source_projection_id": "sha256:1efd2ae23b82ae31979dd3e2961317039acb80a3d1e0a3726640d14d77075507",
+            "snapshot_sha256": "sha256:a11ca236f57fae00cbf141de31cd0fbf9f9bbac76fc9ebef0079441ff6edcba7",
+            "evidence_kind": "synthetic_example",
+            "research_ready": false,
+            "public_aggregate_allowed": true,
+            "response_status": "not_event_response",
+            "similarities": [
+              "同一登记固定点",
+              "相同公里范围"
+            ],
+            "differences": [
+              "A完整月背景，不是B事件响应",
+              "季节窗口与温度/形态特征尚未接入"
+            ]
+          },
+          {
+            "case_id": "case-2024-02",
+            "case_type": "monthly_background",
+            "month": "2024-02",
+            "period_start": "2024-02-01",
+            "period_end": "2024-02-29",
+            "longitude": 124.5,
+            "latitude": 30.2,
+            "radius_km": 20,
+            "source_result_id": "sha256:0cf81002c0d55486d4994a70b96a24662a41979dee10d1bfeb2e06cbcc1d6080",
+            "source_projection_id": "sha256:8ab8c9fca5961f01c821986fb2f97e113c07015878405b4bfeec6b3555cf4b68",
+            "snapshot_sha256": "sha256:4567e2e90b42c056e55b4e0dacb778662b0ad5c5a907201cdbc7290a81f74bb9",
+            "evidence_kind": "synthetic_example",
+            "research_ready": false,
+            "public_aggregate_allowed": true,
+            "response_status": "not_event_response",
+            "similarities": [
+              "同一登记固定点",
+              "相同公里范围"
+            ],
+            "differences": [
+              "A完整月背景，不是B事件响应",
+              "季节窗口与温度/形态特征尚未接入"
+            ]
+          },
+          {
+            "case_id": "case-2023-08",
+            "case_type": "monthly_background",
+            "month": "2023-08",
+            "period_start": "2023-08-01",
+            "period_end": "2023-08-31",
+            "longitude": 124.5,
+            "latitude": 30.2,
+            "radius_km": 20,
+            "source_result_id": "sha256:972c33a1c1d72ccf5c109934e31cce2eb592cf055d1e5741d521aabe6db4481f",
+            "source_projection_id": "sha256:e110e83dd95505972dfa5a155120f2a44be2172743724075d00299f5d1fbdeec",
+            "snapshot_sha256": "sha256:b9dc257e3bfbc3e123634b20b168d110a970634f6b17fac35f405cfd7a703c7d",
+            "evidence_kind": "synthetic_example",
+            "research_ready": false,
+            "public_aggregate_allowed": true,
+            "response_status": "not_event_response",
+            "similarities": [
+              "同一登记固定点",
+              "相同公里范围"
+            ],
+            "differences": [
+              "A完整月背景，不是B事件响应",
+              "季节窗口与温度/形态特征尚未接入"
+            ]
+          }
+        ],
+        "unready_public_count": 0,
+        "scope": {
+          "kind": "registered_fixed_circles",
+          "public_case_count": 5,
+          "first_month": "2023-02",
+          "last_month": "2024-12"
+        },
+        "limitations": [
+          "仅自建合成探索库，不是真实相似性或独立验证。",
+          "当前严格匹配登记点/半径，按月份与ID排序；季节与环境特征未启用。",
+          "A月背景不代表B事件或活动响应；私人保存案例与真实目录未接入。",
+          "查询无匹配仅指当前允许且已就绪库；定位与短窗匹配待接入。"
+        ],
+        "page_id": "sha256:8229510caf1767fb712201b634d720e1a85033bb533b54c2e6e821f7986a6c5e"
+      },
+      "original": {
+        "schema_version": "ocean-known-case-detail/v1",
+        "library_id": "authored-exploration/v1",
+        "library_version": "sha256:afcb49288855c713c5946bff3a7f2ec66dcbbb90d5c978c68e5f604b02f893c0",
+        "request": {
+          "reference_date": "2024-08-05",
+          "longitude": 124.5,
+          "latitude": 30.2,
+          "radius_km": 20,
+          "library_id": "authored-exploration/v1",
+          "case_type": "monthly_background"
+        },
+        "search_id": "sha256:95b3be5d454b66e934a80d2bcdf72dc9c211161b079b7bdf3c81e3d12a0ecc4c",
+        "case": {
+          "case_id": "case-2024-06",
+          "case_type": "monthly_background",
+          "month": "2024-06",
+          "period_start": "2024-06-01",
+          "period_end": "2024-06-30",
+          "longitude": 124.5,
+          "latitude": 30.2,
+          "radius_km": 20,
+          "source_result_id": "sha256:f1bb8741196d24c74942c3b8629a92a3c2d8f0ed239c452424d8b3032bea8aa2",
+          "source_projection_id": "sha256:1efd2ae23b82ae31979dd3e2961317039acb80a3d1e0a3726640d14d77075507",
+          "snapshot_sha256": "sha256:a11ca236f57fae00cbf141de31cd0fbf9f9bbac76fc9ebef0079441ff6edcba7",
+          "evidence_kind": "synthetic_example",
+          "research_ready": false,
+          "public_aggregate_allowed": true,
+          "response_status": "not_event_response",
+          "similarities": [
+            "同一登记固定点",
+            "相同公里范围"
+          ],
+          "differences": [
+            "A完整月背景，不是B事件响应",
+            "季节窗口与温度/形态特征尚未接入"
+          ]
+        },
+        "original": {
+          "schema_version": "ocean-published-month/v1",
+          "result_id": "sha256:f1bb8741196d24c74942c3b8629a92a3c2d8f0ed239c452424d8b3032bea8aa2",
+          "kind": "monthly_spatial_example",
+          "status": "partial",
+          "parameters": {
+            "purpose": "monthly_spatial_example",
+            "longitude": 124.5,
+            "latitude": 30.2,
+            "radius_km": 20,
+            "month": "2024-06",
+            "input_version": "g3-synthetic-months/v1",
+            "method_version": "monthly-known-support/v1",
+            "parameter_version": "known-unit-membership/v1"
+          },
+          "evidence_kind": "synthetic_example",
+          "research_ready": false,
+          "public_aggregate_allowed": true,
+          "source": {
+            "id": "g3-known-unit-months",
+            "version": "g3-synthetic-months/v1",
+            "input_sha256": "sha256:7bee9a95f615c60a27af18a525be1be432b1e16220e2a5b12662141d6a296a03",
+            "license": "CC0-1.0; authored synthetic fixture, no observations",
+            "support_evidence": "g3-authored-support/v1; not P0 qualification or GIS"
+          },
+          "metrics": {
+            "total_hours": 10,
+            "area_time_km2_days": 2,
+            "supported_days": 1,
+            "calendar_days": 30,
+            "mean_hours_per_supported_day": 10,
+            "density_hours_per_km2_day": 5
+          },
+          "units": {
+            "total_hours": "fishing_hours",
+            "area_time_km2_days": "km2*d",
+            "mean_hours_per_supported_day": "fishing_hours/d",
+            "density_hours_per_km2_day": "fishing_hours/(km2*d)"
+          },
+          "daily": [
+            {
+              "date": "2024-06-01",
+              "state": "ready",
+              "hours": 10,
+              "effective_area_km2": 2,
+              "area_time_km2_days": 2,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-02",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-03",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-04",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-05",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-06",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-07",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-08",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-09",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-10",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-11",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-12",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-13",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-14",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-15",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-16",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-17",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-18",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-19",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-20",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-21",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-22",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-23",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-24",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-25",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-26",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-27",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-28",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-29",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-30",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            }
+          ],
+          "intervals": null,
+          "caveats": [
+            "Synthetic example only; not qualified real monthly research or fishery advice.",
+            "Known unit membership/areas are declared for this circle, not computed GIS geometry.",
+            "Known-support partial totals are not whole-circle totals; missing days are not filled.",
+            "Apparent fishing effort is not catch, biomass, revenue or guaranteed fishing success."
+          ],
+          "projection_id": "sha256:1efd2ae23b82ae31979dd3e2961317039acb80a3d1e0a3726640d14d77075507"
+        },
+        "evidence_kind": "synthetic_example",
+        "research_ready": false,
+        "read_only": true,
+        "detail_id": "sha256:395817c94373dfe8dd8674bdf070abf91ac2abcdc8ac677a1858bf8f5e5f9ecb"
+      }
+    },
+    {
+      "width": 390,
+      "query": {
+        "reference_date": "2024-08-05",
+        "longitude": 124.5,
+        "latitude": 30.2,
+        "radius_km": 20,
+        "library_id": "authored-exploration/v1",
+        "case_type": "monthly_background"
+      },
+      "before": {
+        "date": "2024-08-05",
+        "lon": 124.5,
+        "lat": 30.2,
+        "range": 20,
+        "view": {
+          "lon0": 124.5,
+          "lat0": 30.2
+        },
+        "zoom": 0.35
+      },
+      "after": {
+        "date": "2024-08-05",
+        "lon": 124.5,
+        "lat": 30.2,
+        "range": 20,
+        "view": {
+          "lon0": 124.5,
+          "lat0": 30.2
+        },
+        "zoom": 0.35
+      },
+      "display": {
+        "H": "10",
+        "E": "2",
+        "density": "5",
+        "dayRows": 30,
+        "overflow": false
+      },
+      "listFile": "screenshots/ocean-known-cases-390.png",
+      "detailFile": "screenshots/ocean-known-case-evidence-390.png",
+      "page": {
+        "schema_version": "ocean-known-case-search/v1",
+        "library_id": "authored-exploration/v1",
+        "library_version": "sha256:afcb49288855c713c5946bff3a7f2ec66dcbbb90d5c978c68e5f604b02f893c0",
+        "method_version": "exact-known-circle-month-order/v1",
+        "request": {
+          "reference_date": "2024-08-05",
+          "longitude": 124.5,
+          "latitude": 30.2,
+          "radius_km": 20,
+          "library_id": "authored-exploration/v1",
+          "case_type": "monthly_background"
+        },
+        "search_id": "sha256:95b3be5d454b66e934a80d2bcdf72dc9c211161b079b7bdf3c81e3d12a0ecc4c",
+        "evidence_kind": "synthetic_example",
+        "research_ready": false,
+        "exploration_only": true,
+        "status": "available",
+        "offset": 0,
+        "limit": 3,
+        "total": 4,
+        "next_offset": 3,
+        "candidates": [
+          {
+            "case_id": "case-2024-06",
+            "case_type": "monthly_background",
+            "month": "2024-06",
+            "period_start": "2024-06-01",
+            "period_end": "2024-06-30",
+            "longitude": 124.5,
+            "latitude": 30.2,
+            "radius_km": 20,
+            "source_result_id": "sha256:f1bb8741196d24c74942c3b8629a92a3c2d8f0ed239c452424d8b3032bea8aa2",
+            "source_projection_id": "sha256:1efd2ae23b82ae31979dd3e2961317039acb80a3d1e0a3726640d14d77075507",
+            "snapshot_sha256": "sha256:a11ca236f57fae00cbf141de31cd0fbf9f9bbac76fc9ebef0079441ff6edcba7",
+            "evidence_kind": "synthetic_example",
+            "research_ready": false,
+            "public_aggregate_allowed": true,
+            "response_status": "not_event_response",
+            "similarities": [
+              "同一登记固定点",
+              "相同公里范围"
+            ],
+            "differences": [
+              "A完整月背景，不是B事件响应",
+              "季节窗口与温度/形态特征尚未接入"
+            ]
+          },
+          {
+            "case_id": "case-2024-02",
+            "case_type": "monthly_background",
+            "month": "2024-02",
+            "period_start": "2024-02-01",
+            "period_end": "2024-02-29",
+            "longitude": 124.5,
+            "latitude": 30.2,
+            "radius_km": 20,
+            "source_result_id": "sha256:0cf81002c0d55486d4994a70b96a24662a41979dee10d1bfeb2e06cbcc1d6080",
+            "source_projection_id": "sha256:8ab8c9fca5961f01c821986fb2f97e113c07015878405b4bfeec6b3555cf4b68",
+            "snapshot_sha256": "sha256:4567e2e90b42c056e55b4e0dacb778662b0ad5c5a907201cdbc7290a81f74bb9",
+            "evidence_kind": "synthetic_example",
+            "research_ready": false,
+            "public_aggregate_allowed": true,
+            "response_status": "not_event_response",
+            "similarities": [
+              "同一登记固定点",
+              "相同公里范围"
+            ],
+            "differences": [
+              "A完整月背景，不是B事件响应",
+              "季节窗口与温度/形态特征尚未接入"
+            ]
+          },
+          {
+            "case_id": "case-2023-08",
+            "case_type": "monthly_background",
+            "month": "2023-08",
+            "period_start": "2023-08-01",
+            "period_end": "2023-08-31",
+            "longitude": 124.5,
+            "latitude": 30.2,
+            "radius_km": 20,
+            "source_result_id": "sha256:972c33a1c1d72ccf5c109934e31cce2eb592cf055d1e5741d521aabe6db4481f",
+            "source_projection_id": "sha256:e110e83dd95505972dfa5a155120f2a44be2172743724075d00299f5d1fbdeec",
+            "snapshot_sha256": "sha256:b9dc257e3bfbc3e123634b20b168d110a970634f6b17fac35f405cfd7a703c7d",
+            "evidence_kind": "synthetic_example",
+            "research_ready": false,
+            "public_aggregate_allowed": true,
+            "response_status": "not_event_response",
+            "similarities": [
+              "同一登记固定点",
+              "相同公里范围"
+            ],
+            "differences": [
+              "A完整月背景，不是B事件响应",
+              "季节窗口与温度/形态特征尚未接入"
+            ]
+          }
+        ],
+        "unready_public_count": 0,
+        "scope": {
+          "kind": "registered_fixed_circles",
+          "public_case_count": 5,
+          "first_month": "2023-02",
+          "last_month": "2024-12"
+        },
+        "limitations": [
+          "仅自建合成探索库，不是真实相似性或独立验证。",
+          "当前严格匹配登记点/半径，按月份与ID排序；季节与环境特征未启用。",
+          "A月背景不代表B事件或活动响应；私人保存案例与真实目录未接入。",
+          "查询无匹配仅指当前允许且已就绪库；定位与短窗匹配待接入。"
+        ],
+        "page_id": "sha256:8229510caf1767fb712201b634d720e1a85033bb533b54c2e6e821f7986a6c5e"
+      },
+      "original": {
+        "schema_version": "ocean-known-case-detail/v1",
+        "library_id": "authored-exploration/v1",
+        "library_version": "sha256:afcb49288855c713c5946bff3a7f2ec66dcbbb90d5c978c68e5f604b02f893c0",
+        "request": {
+          "reference_date": "2024-08-05",
+          "longitude": 124.5,
+          "latitude": 30.2,
+          "radius_km": 20,
+          "library_id": "authored-exploration/v1",
+          "case_type": "monthly_background"
+        },
+        "search_id": "sha256:95b3be5d454b66e934a80d2bcdf72dc9c211161b079b7bdf3c81e3d12a0ecc4c",
+        "case": {
+          "case_id": "case-2024-06",
+          "case_type": "monthly_background",
+          "month": "2024-06",
+          "period_start": "2024-06-01",
+          "period_end": "2024-06-30",
+          "longitude": 124.5,
+          "latitude": 30.2,
+          "radius_km": 20,
+          "source_result_id": "sha256:f1bb8741196d24c74942c3b8629a92a3c2d8f0ed239c452424d8b3032bea8aa2",
+          "source_projection_id": "sha256:1efd2ae23b82ae31979dd3e2961317039acb80a3d1e0a3726640d14d77075507",
+          "snapshot_sha256": "sha256:a11ca236f57fae00cbf141de31cd0fbf9f9bbac76fc9ebef0079441ff6edcba7",
+          "evidence_kind": "synthetic_example",
+          "research_ready": false,
+          "public_aggregate_allowed": true,
+          "response_status": "not_event_response",
+          "similarities": [
+            "同一登记固定点",
+            "相同公里范围"
+          ],
+          "differences": [
+            "A完整月背景，不是B事件响应",
+            "季节窗口与温度/形态特征尚未接入"
+          ]
+        },
+        "original": {
+          "schema_version": "ocean-published-month/v1",
+          "result_id": "sha256:f1bb8741196d24c74942c3b8629a92a3c2d8f0ed239c452424d8b3032bea8aa2",
+          "kind": "monthly_spatial_example",
+          "status": "partial",
+          "parameters": {
+            "purpose": "monthly_spatial_example",
+            "longitude": 124.5,
+            "latitude": 30.2,
+            "radius_km": 20,
+            "month": "2024-06",
+            "input_version": "g3-synthetic-months/v1",
+            "method_version": "monthly-known-support/v1",
+            "parameter_version": "known-unit-membership/v1"
+          },
+          "evidence_kind": "synthetic_example",
+          "research_ready": false,
+          "public_aggregate_allowed": true,
+          "source": {
+            "id": "g3-known-unit-months",
+            "version": "g3-synthetic-months/v1",
+            "input_sha256": "sha256:7bee9a95f615c60a27af18a525be1be432b1e16220e2a5b12662141d6a296a03",
+            "license": "CC0-1.0; authored synthetic fixture, no observations",
+            "support_evidence": "g3-authored-support/v1; not P0 qualification or GIS"
+          },
+          "metrics": {
+            "total_hours": 10,
+            "area_time_km2_days": 2,
+            "supported_days": 1,
+            "calendar_days": 30,
+            "mean_hours_per_supported_day": 10,
+            "density_hours_per_km2_day": 5
+          },
+          "units": {
+            "total_hours": "fishing_hours",
+            "area_time_km2_days": "km2*d",
+            "mean_hours_per_supported_day": "fishing_hours/d",
+            "density_hours_per_km2_day": "fishing_hours/(km2*d)"
+          },
+          "daily": [
+            {
+              "date": "2024-06-01",
+              "state": "ready",
+              "hours": 10,
+              "effective_area_km2": 2,
+              "area_time_km2_days": 2,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-02",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-03",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-04",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-05",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-06",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-07",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-08",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-09",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-10",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-11",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-12",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-13",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-14",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-15",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-16",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-17",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-18",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-19",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-20",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-21",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-22",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-23",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-24",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-25",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-26",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-27",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-28",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-29",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            },
+            {
+              "date": "2024-06-30",
+              "state": "unprepared",
+              "hours": null,
+              "effective_area_km2": null,
+              "area_time_km2_days": null,
+              "excluded_units": 0
+            }
+          ],
+          "intervals": null,
+          "caveats": [
+            "Synthetic example only; not qualified real monthly research or fishery advice.",
+            "Known unit membership/areas are declared for this circle, not computed GIS geometry.",
+            "Known-support partial totals are not whole-circle totals; missing days are not filled.",
+            "Apparent fishing effort is not catch, biomass, revenue or guaranteed fishing success."
+          ],
+          "projection_id": "sha256:1efd2ae23b82ae31979dd3e2961317039acb80a3d1e0a3726640d14d77075507"
+        },
+        "evidence_kind": "synthetic_example",
+        "research_ready": false,
+        "read_only": true,
+        "detail_id": "sha256:395817c94373dfe8dd8674bdf070abf91ac2abcdc8ac677a1858bf8f5e5f9ecb"
+      }
+    }
+  ],
+  "post_count": 0,
+  "case_request_count": 4
+}

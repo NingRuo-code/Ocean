@@ -1,0 +1,77 @@
+{
+  "schema": "ocean-known-case-catalog/v1",
+  "library_id": "authored-exploration/v1",
+  "version": "known-month-cases/v1",
+  "entries": [
+    {
+      "case_id": "case-2023-02",
+      "case_type": "monthly_background",
+      "collection": "exploration",
+      "access": "public_aggregate",
+      "public_aggregate_allowed": true,
+      "evidence_kind": "synthetic_example",
+      "source_result_id": "sha256:8016fe8a8ddea03297b9cfc35d0116e780be8bb3949de677c64ffb440d4912aa",
+      "snapshot_sha256": "sha256:7dc6cedc47f0ea66a14f0dde23134810867af31f84c957ac26dcbd0bc76ce88f"
+    },
+    {
+      "case_id": "case-2023-08",
+      "case_type": "monthly_background",
+      "collection": "exploration",
+      "access": "public_aggregate",
+      "public_aggregate_allowed": true,
+      "evidence_kind": "synthetic_example",
+      "source_result_id": "sha256:972c33a1c1d72ccf5c109934e31cce2eb592cf055d1e5741d521aabe6db4481f",
+      "snapshot_sha256": "sha256:b9dc257e3bfbc3e123634b20b168d110a970634f6b17fac35f405cfd7a703c7d"
+    },
+    {
+      "case_id": "case-2024-02",
+      "case_type": "monthly_background",
+      "collection": "exploration",
+      "access": "public_aggregate",
+      "public_aggregate_allowed": true,
+      "evidence_kind": "synthetic_example",
+      "source_result_id": "sha256:0cf81002c0d55486d4994a70b96a24662a41979dee10d1bfeb2e06cbcc1d6080",
+      "snapshot_sha256": "sha256:4567e2e90b42c056e55b4e0dacb778662b0ad5c5a907201cdbc7290a81f74bb9"
+    },
+    {
+      "case_id": "case-2024-06",
+      "case_type": "monthly_background",
+      "collection": "exploration",
+      "access": "public_aggregate",
+      "public_aggregate_allowed": true,
+      "evidence_kind": "synthetic_example",
+      "source_result_id": "sha256:f1bb8741196d24c74942c3b8629a92a3c2d8f0ed239c452424d8b3032bea8aa2",
+      "snapshot_sha256": "sha256:a11ca236f57fae00cbf141de31cd0fbf9f9bbac76fc9ebef0079441ff6edcba7"
+    },
+    {
+      "case_id": "case-2024-08",
+      "case_type": "monthly_background",
+      "collection": "validation_holdout",
+      "access": "public_aggregate",
+      "public_aggregate_allowed": true,
+      "evidence_kind": "synthetic_example",
+      "source_result_id": "sha256:9b925a1c3202f90404f66920d815c4aa6db005ac7b2570ecbb911f338186c7d2",
+      "snapshot_sha256": "sha256:61a6b8625505b9d4e06ae60051e6889ab24c7bd8dea1abf660857ab2b31d4cba"
+    },
+    {
+      "case_id": "case-2024-07",
+      "case_type": "monthly_background",
+      "collection": "exploration",
+      "access": "owner_only",
+      "public_aggregate_allowed": false,
+      "evidence_kind": "synthetic_example",
+      "source_result_id": "sha256:708709c7b333bd54c91ed52e055f36d96c21518870216876f082eebdd7746880",
+      "snapshot_sha256": "sha256:f106ce577c9e2a1d59aef1563b8e39db352d2cf0f4db11488709323bd61f3e3f"
+    },
+    {
+      "case_id": "case-2024-12",
+      "case_type": "monthly_background",
+      "collection": "exploration",
+      "access": "public_aggregate",
+      "public_aggregate_allowed": true,
+      "evidence_kind": "synthetic_example",
+      "source_result_id": "sha256:5868ff0b5ea8daf4d093d40d25e6838d87313732f509179a809399308a8cd5c9",
+      "snapshot_sha256": "sha256:0f075b89a6d124de234534418ceaf5745ea43b5494848f377fc3edd90ded24d8"
+    }
+  ]
+}
