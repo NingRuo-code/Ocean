@@ -1,0 +1,142 @@
+{
+  "schema": "ocean-controlled-month-input/v1",
+  "id": "known-unit-month-example",
+  "version": "synthetic-month/v1",
+  "evidence_kind": "synthetic_example",
+  "license": "CC0-1.0; authored synthetic fixture, no observations",
+  "public_aggregate_allowed": true,
+  "research_ready": false,
+  "unit": "fishing_hours",
+  "support_evidence": "synthetic-known-units/v1; not original observations or P0 research eligibility",
+  "conditions": [
+    {
+      "id": "leap-month",
+      "longitude": 124.5,
+      "latitude": 30.2,
+      "radius_km": 20,
+      "month": "2024-02",
+      "support_scope": "known_synthetic_units_for_declared_circle",
+      "days": [
+        {
+          "date": "2024-02-01",
+          "state": "ready",
+          "units": [
+            {
+              "id": "a",
+              "hours": 30,
+              "area_km2": 2,
+              "front_support": "valid",
+              "effort_support": "valid"
+            },
+            {
+              "id": "b",
+              "hours": 10,
+              "area_km2": 3,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-02-02",
+          "state": "ready",
+          "units": [
+            {
+              "id": "a",
+              "hours": 0,
+              "area_km2": 2,
+              "front_support": "valid",
+              "effort_support": "valid"
+            },
+            {
+              "id": "b",
+              "hours": null,
+              "area_km2": 3,
+              "front_support": "valid",
+              "effort_support": "unknown"
+            }
+          ]
+        },
+        {
+          "date": "2024-02-03",
+          "state": "ready",
+          "units": []
+        },
+        {
+          "date": "2024-02-04",
+          "state": "missing",
+          "units": []
+        },
+        {
+          "date": "2024-02-05",
+          "state": "unprepared",
+          "units": []
+        },
+        {
+          "date": "2024-02-06",
+          "state": "read_failed",
+          "units": []
+        }
+      ]
+    },
+    {
+      "id": "next-month",
+      "longitude": 124.5,
+      "latitude": 30.2,
+      "radius_km": 20,
+      "month": "2024-03",
+      "support_scope": "known_synthetic_units_for_declared_circle",
+      "days": [
+        {
+          "date": "2024-03-01",
+          "state": "ready",
+          "units": [
+            {
+              "id": "c",
+              "hours": 6,
+              "area_km2": 3,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-03-02",
+          "state": "ready",
+          "units": [
+            {
+              "id": "c",
+              "hours": 0,
+              "area_km2": 3,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "second-point",
+      "longitude": 125.5,
+      "latitude": 31.2,
+      "radius_km": 10,
+      "month": "2024-03",
+      "support_scope": "known_synthetic_units_for_declared_circle",
+      "days": [
+        {
+          "date": "2024-03-01",
+          "state": "ready",
+          "units": [
+            {
+              "id": "d",
+              "hours": 12,
+              "area_km2": 4,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
