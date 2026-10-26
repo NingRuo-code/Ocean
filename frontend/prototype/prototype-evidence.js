@@ -18,6 +18,7 @@
   $("pane-now").prepend(back);
   state.climMode = "month";
   let shown = null, opener = null;
+  const views = new Map();
 
   function context(kind) {
     const mode = OFData.serverMode();
@@ -56,19 +57,23 @@
       $(prefix + "Stale").textContent = stale(kind) ? "条件已改变，以下保留原结果，待更新。" : "";
     }
     if (shown && records[shown]) $("evidenceStale").textContent = stale(shown) ? "条件已改变，证据仍属于原结果，待更新。" : "";
+    if (views.has(shown)) $("evidenceStale").textContent = views.get(shown).view()?.stale || "";
   }
   function close(restore = true) {
     panel.hidden = true;
     $("historyDetails").setAttribute("aria-expanded", "false"); $("forecastDetails").setAttribute("aria-expanded", "false");
+    for (const v of views.values()) v.button.setAttribute("aria-expanded", "false");
     if (restore && opener?.getClientRects().length) opener.focus({ preventScroll: true });
   }
   function show(kind, button) {
-    if (!records[kind]) return;
+    const extension = views.get(kind), view = extension?.view();
+    if (extension ? !view : !records[kind]) return;
     if (shown === kind && !panel.hidden) { close(); return; }
     shown = kind; opener = button;
     $("historyEvidence").hidden = kind !== "clim"; $("forecastEvidence").hidden = kind !== "future";
-    $("evidenceTitle").textContent = kind === "clim" ? "历史样例证据" : "实验规则证据";
-    $("evidenceIdentity").textContent = identity(records[kind].context);
+    for (const [name,v] of views) { v.content.hidden = name !== kind; v.button.setAttribute("aria-expanded", String(name === kind)); }
+    $("evidenceTitle").textContent = view?.title || (kind === "clim" ? "历史样例证据" : "实验规则证据");
+    $("evidenceIdentity").textContent = view?.identity || identity(records[kind].context);
     panel.hidden = false;
     $("historyDetails").setAttribute("aria-expanded", String(kind === "clim")); $("forecastDetails").setAttribute("aria-expanded", String(kind === "future"));
     sync();
@@ -137,6 +142,14 @@
   window.addEventListener("ocean-applied-context", sync);
   window.addEventListener("ocean-load-state", sync);
   window.addEventListener("ocean-control-open", () => close(false));
-  window.OceanEvidence = { sync, read, isCurrent: kind => !!records[kind] && !stale(kind) };
+  function register(kind, adapter) {
+    if (kind in records || views.has(kind)) throw Error("Duplicate evidence reader");
+    views.set(kind, adapter); adapter.content.hidden = true; panel.append(adapter.content);
+    adapter.button.onclick = e => show(kind, e.currentTarget);
+    adapter.button.addEventListener("keydown", e => {
+      if (e.key === "Escape" && !panel.hidden && opener === adapter.button) { e.preventDefault(); e.stopPropagation(); close(); }
+    });
+  }
+  window.OceanEvidence = { sync, read, register, close, isCurrent: kind => !!records[kind] && !stale(kind) };
   sync();
 })();

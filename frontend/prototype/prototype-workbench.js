@@ -7,7 +7,7 @@
   workbench.className = "workbench";
   workbench.setAttribute("aria-label", "工作台");
   workbench.innerHTML = `<div class="panel-head"><div><small>// WORKBENCH</small><h2>工作台</h2></div><button id="workbenchClose" aria-label="收起工作台">×</button></div>
-    <section class="wb-shortcuts"><h3>快捷功能</h3><button id="nearbyFront">⌖　附近锋面</button><button id="fishingActivity">◉　捕捞活动</button><button data-open-pane="clim">◷　历史观测</button><button data-open-pane="future">↗　预测参考</button><button id="filterToggle" aria-controls="filterPanel" aria-expanded="false">☷　筛选条件</button><button id="wbLayers" aria-controls="layerDrawer" aria-expanded="false">▧　图层开关</button><button data-open-pane="basis">ⓘ　数据说明</button><p id="layerPresetNote" role="status"></p></section>
+    <section class="wb-shortcuts"><h3>快捷功能</h3><button id="nearbyFront">⌖　附近锋面</button><button id="fishingActivity">◉　捕捞活动</button><button id="monthlyOpen">▦　月度空间关系</button><button data-open-pane="clim">◷　历史观测</button><button data-open-pane="future">↗　预测参考</button><button id="filterToggle" aria-controls="filterPanel" aria-expanded="false">☷　筛选条件</button><button id="wbLayers" aria-controls="layerDrawer" aria-expanded="false">▧　图层开关</button><button data-open-pane="basis">ⓘ　数据说明</button><details class="analysis-pending"><summary>其他分析</summary><p>事件响应：待事件及对照证据接入。<br>区域比较：待多区域研究成果接入。</p></details><p id="layerPresetNote" role="status"></p></section>
     <section id="wbAI"><h3>AI 分析</h3></section>`;
   main.prepend(workbench);
   const filters = document.createElement("section");
@@ -130,6 +130,7 @@
     }
     showResult(pane === "effort" ? "now" : pane);
     if (pane === "effort") loadFishing(state.date, true);
+    window.dispatchEvent(new CustomEvent("ocean-workbench-task", {detail:{pane}}));
   }
   $("workbenchToggle").onclick = toggleWorkbench;
   $("workbenchClose").onclick = closeWorkbench;
@@ -156,5 +157,6 @@
     if (e.key === "Escape") { e.stopPropagation(); e.preventDefault(); panel === side ? closeResult() : showFilters(false); }
   });
   if (matchMedia("(max-width:760px)").matches) closeResult();
+  window.OceanWorkbench = { showResult };
   resizeMap();
 })();
