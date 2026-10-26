@@ -256,7 +256,7 @@ def test_concurrent_submissions_keep_their_original_conditions_and_results(tmp_p
 
 def test_excessively_nested_corrupt_source_is_a_frozen_failure_not_a_server_error(tmp_path):
     client, source = controlled_client(tmp_path)
-    source.write_text("[" * 1200 + "0" + "]" * 1200, encoding="utf-8")
+    source.write_text("[" * 100_000 + "0" + "]" * 100_000, encoding="utf-8")
     response = client.post("/api/query/monthly-analysis", json=REQUEST, headers=AUTH)
     assert response.status_code == 200
     run = response.json()

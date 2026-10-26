@@ -44,7 +44,10 @@ def _read_example(path):
         raw = source.read(1_048_577)
     if len(raw) > 1_048_576:
         raise ValueError("Example input exceeds budget")
-    value = json.loads(raw, object_pairs_hook=_unique_object)
+    try:
+        value = json.loads(raw, object_pairs_hook=_unique_object)
+    except RecursionError:
+        raise ValueError("Example input exceeds nesting budget") from None
     return MonthlyExample.model_validate(value), _digest(value)
 
 
