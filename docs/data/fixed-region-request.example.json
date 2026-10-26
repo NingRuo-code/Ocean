@@ -1,0 +1,11 @@
+{
+  "purpose": "fixed_region_event_example",
+  "longitude": 124.5,
+  "latitude": 30.2,
+  "radius_km": 20,
+  "search_start": "2024-08-05",
+  "search_end": "2024-08-08",
+  "input_version": "synthetic-event/v1",
+  "method_version": "observed-entry-example/v1",
+  "parameter_version": "fixed-support-windows/v1"
+}

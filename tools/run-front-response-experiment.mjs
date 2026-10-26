@@ -363,6 +363,10 @@ function buildManifest(summary, artifacts) {
   };
 }
 
+if (process.argv.includes("--fixed-region-request") || process.argv.includes("--read-fixed-region-result")) {
+  const { runFixedRegionExample } = await import("./lib/fixed-region-example.mjs");
+  process.exitCode = runFixedRegionExample(process.argv.slice(2), ROOT);
+} else {
 const payload = loadFrontResponse(inputPath);
 const summary = buildSummary(payload);
 mkdirSync(outputDir, { recursive: true });
@@ -377,3 +381,5 @@ writeFileSync(
   "utf8",
 );
 console.log("front-response experiment written to " + repoRelative(outputDir));
+
+}

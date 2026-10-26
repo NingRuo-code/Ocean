@@ -2,9 +2,6 @@
 
 import calendar
 import copy
-import hashlib
-import json
-import math
 import secrets
 from collections import Counter
 from datetime import UTC, datetime
@@ -16,6 +13,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import ValidationError
 
+from .analysis_support import (
+    content_id,
+    known_day_summary,
+    known_period_summary,
+    read_controlled_input,
+)
 from .config import Settings
 from .monthly_models import KnownCircle, MonthlyExample, MonthlyRequest
 from .schemas import BasicQueryEvidence
@@ -25,32 +28,6 @@ METHOD_VERSION = "monthly-known-support/v1"
 PARAMETER_VERSION = "known-unit-membership/v1"
 
 
-def _digest(value):
-    raw = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
-    return "sha256:" + hashlib.sha256(raw.encode("utf-8")).hexdigest()
-
-
-def _unique_object(pairs):
-    value = {}
-    for key, item in pairs:
-        if key in value:
-            raise ValueError("Duplicate JSON key")
-        value[key] = item
-    return value
-
-
-def _read_example(path):
-    with path.open("rb") as source:
-        raw = source.read(1_048_577)
-    if len(raw) > 1_048_576:
-        raise ValueError("Example input exceeds budget")
-    try:
-        value = json.loads(raw, object_pairs_hook=_unique_object)
-    except RecursionError:
-        raise ValueError("Example input exceeds nesting budget") from None
-    return MonthlyExample.model_validate(value), _digest(value)
-
-
 def _calculate(request: MonthlyRequest, circle: KnownCircle, data, fingerprint):
     year, month = map(int, request.month.split("-"))
     count = calendar.monthrange(year, month)[1]
@@ -58,51 +35,10 @@ def _calculate(request: MonthlyRequest, circle: KnownCircle, data, fingerprint):
     daily = []
     for number in range(1, count + 1):
         iso = f"{request.month}-{number:02d}"
-        day = by_date.get(iso)
-        row = {
-            "date": iso,
-            "state": day.state if day else "unprepared",
-            "hours": None,
-            "effective_area_km2": None,
-            "area_time_km2_days": None,
-            "excluded_units": 0,
-        }
-        if day and day.state == "ready":
-            valid = [
-                u
-                for u in day.units
-                if u.front_support == "valid"
-                and u.effort_support == "valid"
-                and u.hours is not None
-                and u.area_km2 is not None
-                and u.area_km2 > 0
-            ]
-            row["excluded_units"] = len(day.units) - len(valid)
-            if valid:
-                hours, area = (
-                    math.fsum(u.hours for u in valid),
-                    math.fsum(u.area_km2 for u in valid),
-                )
-                row.update(
-                    state="partial_support" if row["excluded_units"] else "ready",
-                    hours=hours,
-                    effective_area_km2=area,
-                    area_time_km2_days=area,
-                )
-            else:
-                row["state"] = "unknown_support" if day.units else "no_records"
-        daily.append(row)
+        daily.append(known_day_summary(iso, by_date.get(iso)))
+    metrics = known_period_summary(daily)
     supported = [row for row in daily if row["hours"] is not None]
-    hours = math.fsum(row["hours"] for row in supported) if supported else None
-    area_time = math.fsum(row["area_time_km2_days"] for row in supported) if supported else None
-    metrics = {
-        "total_hours": hours,
-        "supported_days": len(supported),
-        "calendar_days": count,
-        "area_time_km2_days": area_time,
-        "mean_hours_per_supported_day": hours / len(supported) if supported else None,
-        "density_hours_per_km2_day": hours / area_time if supported else None,
-    }
+    hours, area_time = metrics["total_hours"], metrics["area_time_km2_days"]
     excluded = Counter(row["state"] for row in daily if row["hours"] is None)
     status = (
         "unavailable"
@@ -158,7 +94,7 @@ def _calculate(request: MonthlyRequest, circle: KnownCircle, data, fingerprint):
             "Apparent fishing effort is not catch, biomass, revenue or guaranteed fishing success.",
         ],
     }
-    result["result_id"] = _digest(result)
+    result["result_id"] = content_id(result)
     return result
 
 
@@ -213,7 +149,7 @@ def create_monthly_router(settings: Settings, *, example_path=EXAMPLE_PATH, reco
     @router.get("/examples")
     def examples():
         try:
-            data, fingerprint = _read_example(example_path)
+            data, fingerprint = read_controlled_input(example_path, MonthlyExample)
         except (OSError, ValueError, ValidationError):
             raise HTTPException(503, "Registered synthetic example is unavailable") from None
         return {
@@ -231,7 +167,7 @@ def create_monthly_router(settings: Settings, *, example_path=EXAMPLE_PATH, reco
     @router.post("", dependencies=[Depends(require_owner)])
     def submit(request: MonthlyRequest):
         try:
-            data, fingerprint = _read_example(example_path)
+            data, fingerprint = read_controlled_input(example_path, MonthlyExample)
         except (OSError, ValueError, ValidationError):
             return finish(reserve(request), error={"code": "input_unavailable_or_invalid"})
         if (
