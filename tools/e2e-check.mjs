@@ -17,13 +17,37 @@ const OUT = process.env.TEMP || "C:\\temp";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const addIsoDays = (iso, n) => new Date(Date.parse(iso + "T00:00:00Z") + n * 86400000).toISOString().slice(0, 10);
 
-const child = spawn(EDGE, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
+let child=null,ws=null,launchError=null;
+async function cleanup() {
+  // Resolve only this run's endpoint; cleanup also runs after startup/CDP failures.
+  try {
+    PORT ||= Number((await readFile(join(PROFILE,"DevToolsActivePort"),"utf8")).split("\n")[0]);
+    const version=await(await fetch(`http://127.0.0.1:${PORT}/json/version`,{signal:AbortSignal.timeout(2000)})).json();
+    const browser=await connectCdp(version.webSocketDebuggerUrl);
+    try { await browser.send("Browser.close"); } catch { /* closing may beat its reply */ }
+    browser.close();
+  } catch { /* our launcher is still stopped below */ }
+  try { ws?.close(); } catch { /* already closed */ }
+  try { child?.kill(); } catch { /* already exited */ }
+  if(dirname(resolve(PROFILE))===temporaryRoot && basename(PROFILE).startsWith("ocean-e2e-")) {
+    // Windows may hold profile files briefly after Browser.close acknowledges.
+    for(let attempt=0;attempt<10;attempt++) {
+      try { await rm(PROFILE,{recursive:true,force:true});break; }
+      catch { await sleep(100); }
+    }
+  }
+}
+
+try {
+child = spawn(EDGE, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
   "--remote-allow-origins=*", "--remote-debugging-port=0", `--user-data-dir=${PROFILE}`,
   "--window-size=1680,900", PAGE], { stdio: "ignore", windowsHide: true });
+child.on("error",error=>{launchError=error;});
 
 let wsUrl = null;
 for (let i = 0; i < 50 && !wsUrl; i++) {
   await sleep(300);
+  if(launchError)throw Error("Browser could not start");
   try {
     PORT = Number((await readFile(join(PROFILE,"DevToolsActivePort"),"utf8")).split("\n")[0]);
     const list = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json();
@@ -31,9 +55,9 @@ for (let i = 0; i < 50 && !wsUrl; i++) {
     if (t) wsUrl = t.webSocketDebuggerUrl;
   } catch (e) {}
 }
-if (!wsUrl) { console.log("FAIL: 未能连接 Edge 调试端口"); child.kill(); process.exit(1); }
+if (!wsUrl) throw Error("未能连接本轮 Edge 调试端口");
 
-const ws = new WebSocket(wsUrl);
+ws = new WebSocket(wsUrl);
 await new Promise((res, rej) => { ws.addEventListener("open", res); ws.addEventListener("error", rej); });
 
 let msgId = 0;
@@ -73,10 +97,7 @@ try {
   await send("Page.enable");
   await send("Network.enable");
 } catch (e) {
-  console.log("FAIL: Edge 调试连接未响应（" + e.message + "）");
-  ws.close();
-  child.kill();
-  process.exit(1);
+  throw Error("Edge 调试连接未响应（" + e.message + "）");
 }
 
 const evalJS = async (expr) => {
@@ -1127,14 +1148,9 @@ check("无运行期 JS 异常（含资源加载失败）", errors.length === 0, 
 
 console.log(results.join("\n"));
 console.log("\nFAIL 总数 = " + results.filter((r) => r.startsWith("FAIL")).length + " / " + results.length);
-// Close the browser we launched, including Windows child processes; never reuse another port/profile.
-try {
-  const version=await(await fetch(`http://127.0.0.1:${PORT}/json/version`)).json();
-  const browser=await connectCdp(version.webSocketDebuggerUrl);
-  try { await browser.send("Browser.close"); } catch { /* closing may beat its reply */ }
-  browser.close();
-} catch { /* still close our launcher below */ }
-ws.close();child.kill();
-if(dirname(resolve(PROFILE))===temporaryRoot && basename(PROFILE).startsWith("ocean-e2e-"))
-  await rm(PROFILE,{recursive:true,force:true}).catch(()=>{});
 process.exitCode=results.some(r=>r.startsWith("FAIL"))?1:0;
+} catch(error) {
+  console.error("FAIL: "+error.message);process.exitCode=1;
+} finally {
+  await cleanup();
+}
