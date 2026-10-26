@@ -63,7 +63,7 @@
     panel.hidden = true;
     $("historyDetails").setAttribute("aria-expanded", "false"); $("forecastDetails").setAttribute("aria-expanded", "false");
     for (const v of views.values()) v.button.setAttribute("aria-expanded", "false");
-    if (restore && opener?.getClientRects().length) opener.focus({ preventScroll: true });
+    if (restore && opener) (opener.getClientRects().length ? opener : $("workbenchToggle")).focus({ preventScroll: true });
   }
   function show(kind, button) {
     const extension = views.get(kind), view = extension?.view();
@@ -150,6 +150,6 @@
       if (e.key === "Escape" && !panel.hidden && opener === adapter.button) { e.preventDefault(); e.stopPropagation(); close(); }
     });
   }
-  window.OceanEvidence = { sync, read, register, close, isCurrent: kind => !!records[kind] && !stale(kind) };
+  window.OceanEvidence = { sync, read, register, open:show, close, isCurrent: kind => !!records[kind] && !stale(kind) };
   sync();
 })();

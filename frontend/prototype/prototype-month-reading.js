@@ -28,11 +28,24 @@
       ? "以下保留成果原条件，与当前地图筛选不同。" : "";
   }
   function sync() { $("monthlyContext").textContent = stale(); }
-  function view(monthly) {
-    history.hidden = monthly; section.hidden = !monthly;
-    $("observationView").classList.toggle("active", !monthly); $("monthlyView").classList.toggle("active", monthly);
-    $("observationView").setAttribute("aria-pressed",String(!monthly));$("monthlyView").setAttribute("aria-pressed",String(monthly));
+  const extraViews = new Map();
+  function view(monthly, other = null) {
+    history.hidden = monthly || !!other; section.hidden = !monthly;
+    $("observationView").classList.toggle("active", !monthly && !other); $("monthlyView").classList.toggle("active", monthly);
+    $("observationView").setAttribute("aria-pressed",String(!monthly && !other));$("monthlyView").setAttribute("aria-pressed",String(monthly));
+    for(const [key,item] of extraViews){item.element.hidden=key!==other;item.button.classList.toggle("active",key===other);item.button.setAttribute("aria-pressed",String(key===other));}
+    window.dispatchEvent(new CustomEvent("ocean-history-view",{detail:monthly?"monthly":other||"observation"}));
   }
+  function openExtra(name) {
+    const item=extraViews.get(name);if(!item)return;
+    OceanWorkbench.showResult("clim");OceanEvidence.close(false);view(false,name);item.onOpen();
+  }
+  window.OceanHistoryViews = Object.freeze({open:openExtra,register(name,{label,element,onOpen}){
+    if(extraViews.has(name))throw Error("Duplicate history view");
+    const button=document.createElement("button");button.textContent=label;button.setAttribute("aria-pressed","false");
+    button.onclick=()=>openExtra(name);element.hidden=true;tabs.append(button);pane.append(element);
+    extraViews.set(name,{button,element,onOpen});
+  }});
   function verify(item) {
     const p = item?.parameters;
     if (!item || !idPattern.test(item.result_id) || !idPattern.test(item.projection_id) || item.public_aggregate_allowed !== true || item.evidence_kind !== "synthetic_example" || item.research_ready !== false || !p || p.purpose !== "monthly_spatial_example" || p.method_version !== "monthly-known-support/v1" || p.parameter_version !== "known-unit-membership/v1" || !/^[12]\d{3}-(0[1-9]|1[0-2])$/.test(p.month) || ![10,20,30].includes(p.radius_km) || !Number.isFinite(p.longitude) || Math.abs(p.longitude)>180 || !Number.isFinite(p.latitude) || Math.abs(p.latitude)>90 || typeof item.source?.license !== "string" || !item.source.license.startsWith("CC0-1.0")) throw Error("contract");
