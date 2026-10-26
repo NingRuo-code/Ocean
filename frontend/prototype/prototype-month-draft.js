@@ -63,7 +63,7 @@
   function close(restore=true) {
     const focus=restore&&panel.contains(document.activeElement);panel.hidden=true;
     $("monthlyDraftOpen").setAttribute("aria-expanded","false");
-    if(focus)$("monthlyDraftOpen").focus({preventScroll:true});
+    if(focus)($("monthlyDraftOpen").getClientRects().length?$("monthlyDraftOpen"):$("workbenchToggle")).focus({preventScroll:true});
   }
   function open() {
     if(!panel.hidden){close();return;}

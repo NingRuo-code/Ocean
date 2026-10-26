@@ -168,5 +168,10 @@ test("small-screen draft remains separate from both workbench modules and Escape
   await c.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape'});
   assert.equal(await c.evaluate("document.getElementById('monthDraftPanel').hidden"),true);
   assert.equal(await c.evaluate("document.activeElement.id"),'monthlyDraftOpen');
+  await click(c,'#monthlyDraftOpen');await click(c,'#workbenchClose');
+  await c.evaluate("document.getElementById('monthDraftMonth').focus()");
+  await c.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape'});
+  assert.equal(await c.evaluate("document.getElementById('monthDraftPanel').hidden"),true);
+  assert.equal(await c.evaluate("document.activeElement.id"),'workbenchToggle');
  }finally{await b.close();}
 });

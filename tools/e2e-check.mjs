@@ -1,27 +1,31 @@
 import { spawn } from "node:child_process";
-import { writeFileSync, rmSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { writeFileSync } from "node:fs";
+import {mkdtemp,readFile,rm} from "node:fs/promises";
+import {tmpdir} from "node:os";
+import {connectCdp} from "./lib/browser-driver.mjs";
+import { dirname, join, resolve, basename } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 // 用法：node tools/e2e-check.mjs   （可用环境变量 EDGE / PAGE 覆盖）
 const EDGE = process.env.EDGE || "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const PAGE = process.env.PAGE || pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), "..", "frontend", "prototype", "prototype-fishing.html")).href;
 const EXPECT_SERVER = process.env.EXPECT_SERVER === "1";
-const PORT = 9337;
-const PROFILE = join(process.env.TEMP || "C:\\temp", "_edge_profile_e2e");
+let PORT;
+const temporaryRoot = resolve(tmpdir());
+const PROFILE = await mkdtemp(join(temporaryRoot, "ocean-e2e-"));
 const OUT = process.env.TEMP || "C:\\temp";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const addIsoDays = (iso, n) => new Date(Date.parse(iso + "T00:00:00Z") + n * 86400000).toISOString().slice(0, 10);
-try { rmSync(PROFILE, { recursive: true, force: true }); } catch (e) {}
 
 const child = spawn(EDGE, ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
-  "--remote-allow-origins=*", `--remote-debugging-port=${PORT}`, `--user-data-dir=${PROFILE}`,
-  "--window-size=1680,900", PAGE], { stdio: "ignore" });
+  "--remote-allow-origins=*", "--remote-debugging-port=0", `--user-data-dir=${PROFILE}`,
+  "--window-size=1680,900", PAGE], { stdio: "ignore", windowsHide: true });
 
 let wsUrl = null;
 for (let i = 0; i < 50 && !wsUrl; i++) {
   await sleep(300);
   try {
+    PORT = Number((await readFile(join(PROFILE,"DevToolsActivePort"),"utf8")).split("\n")[0]);
     const list = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json();
     const t = list.find((x) => x.type === "page" && /prototype-fishing/.test(x.url));
     if (t) wsUrl = t.webSocketDebuggerUrl;
@@ -1123,6 +1127,14 @@ check("无运行期 JS 异常（含资源加载失败）", errors.length === 0, 
 
 console.log(results.join("\n"));
 console.log("\nFAIL 总数 = " + results.filter((r) => r.startsWith("FAIL")).length + " / " + results.length);
-ws.close();
-child.kill();
-process.exit(0);
+// Close the browser we launched, including Windows child processes; never reuse another port/profile.
+try {
+  const version=await(await fetch(`http://127.0.0.1:${PORT}/json/version`)).json();
+  const browser=await connectCdp(version.webSocketDebuggerUrl);
+  try { await browser.send("Browser.close"); } catch { /* closing may beat its reply */ }
+  browser.close();
+} catch { /* still close our launcher below */ }
+ws.close();child.kill();
+if(dirname(resolve(PROFILE))===temporaryRoot && basename(PROFILE).startsWith("ocean-e2e-"))
+  await rm(PROFILE,{recursive:true,force:true}).catch(()=>{});
+process.exitCode=results.some(r=>r.startsWith("FAIL"))?1:0;
