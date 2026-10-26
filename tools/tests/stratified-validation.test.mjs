@@ -95,3 +95,14 @@ test("G3 reader cannot consume C/B results or accept a modified evidence report"
  writeFileSync(join(out,'report.md'),'modified evidence');
  assert.equal(call(['--read-g3-validation-result',out]).status,2);
 }));
+
+
+test("the committed known G3 bundle still reopens after a Windows-style Git checkout",()=>scenario(({root,call})=>{
+ const prefix=join(root,'checkout').replaceAll('\\','/')+'/';
+ const folder='docs/reports/g3-known-validation-2026-10-26';
+ const checkout=spawnSync('git',['-c','safe.directory='+resolve('.'),'-c','core.autocrlf=true','checkout-index','--prefix='+prefix,'--',...['manifest.json','summary.json','report.md'].map(name=>folder+'/'+name)],{encoding:'utf8',windowsHide:true});
+ assert.equal(checkout.status,0,checkout.stderr);
+ const read=call(['--read-g3-validation-result',join(prefix,folder)],{OCEAN_EXPERIMENT_PYTHON:'not-available'});
+ assert.equal(read.status,0,read.stderr);
+ const result=JSON.parse(read.stdout);assert.equal(result.kind,'stratified_validation_example');assert.equal(result.rows.length,8);
+}));
