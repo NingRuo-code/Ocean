@@ -194,3 +194,39 @@ def test_different_source_support_is_retained_but_not_pooled_into_a_stratum():
     assert row["reason"] == "source_support_mismatch"
     assert "metrics" not in row
     assert len(result["rows"]) == 8
+
+
+def test_full_calendar_with_excluded_units_remains_partial_spatial_support():
+    request, pack = inputs()
+    request["candidates"] = [request["candidates"][0]]
+    raw = pack["snapshots"][0]["result"]
+    raw["daily"] = [
+        {
+            "date": f"2023-02-{n:02d}",
+            "state": "partial_support",
+            "hours": 1,
+            "effective_area_km2": 1,
+            "area_time_km2_days": 1,
+            "excluded_units": 1,
+        }
+        for n in range(1, 29)
+    ]
+    raw["metrics"] = {
+        "total_hours": 28,
+        "area_time_km2_days": 28,
+        "supported_days": 28,
+        "calendar_days": 28,
+        "mean_hours_per_supported_day": 1,
+        "density_hours_per_km2_day": 1,
+    }
+    raw["status"] = raw["coverage"]["status"] = "partial"
+    raw["coverage"]["excluded_units"] = 28
+    raw["coverage"]["excluded_day_states"] = {}
+    raw["evidence"][0]["value"] = "H=28; E=28; D=28"
+    rebind(request, pack["snapshots"][0])
+    result = validate_known_months(request, pack)
+    winter = next(s for s in result["strata"] if s["season"] == "winter")
+    assert result["rows"][0]["source_status"] == "partial"
+    assert winter["metrics"]["total_hours"] == winter["metrics"]["area_time_km2_days"] == 28
+    assert winter["metrics"]["supported_days"] == winter["planned_calendar_days"] == 28
+    assert winter["status"] == "partial_known_support"

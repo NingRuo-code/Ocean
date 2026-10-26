@@ -131,7 +131,10 @@ def _strata(request, rows):
                 else "unknown_support"
                 if metrics["total_hours"] is None
                 else "known_support"
-                if metrics["supported_days"] == planned and len(loaded) == len(selected)
+                if metrics["supported_days"] == planned
+                and len(loaded) == len(selected)
+                and all(row["source_status"] == "available" for row in loaded)
+                and all(day["excluded_units"] == 0 for row in loaded for day in row["daily"])
                 else "partial_known_support"
             )
             strata.append(
