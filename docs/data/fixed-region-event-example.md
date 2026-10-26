@@ -17,3 +17,18 @@
 复用原实验的summary/report/manifest产物形式。新输出原子发布、禁止覆盖既有结果；失败只保留failed清单，不发布完成结果。单独读取模式只验证并读取冻结产物，不访问源文件或运行Python计算。公开产物不含逐单元源记录、私人输入路径或凭据。
 
 本批使用用户已确认的#72受控请求/核心适配接缝：实际原CLI贯通到产物与回读；独立手算核窗口端点、H/E与零/缺日。合成软件验证与真实资料、真实事件和生产分别记证，不安排下载、生产变更或模型调用。
+
+## 运行与读取
+
+```powershell
+node tools/run-front-response-experiment.mjs --fixed-region-request docs/data/fixed-region-request.example.json --output data/processed/my-fixed-region-run
+node tools/run-front-response-experiment.mjs --read-fixed-region-result data/processed/my-fixed-region-run
+```
+
+默认读取随包的自建合成夹具；本地另一个明确合成夹具可用`--input <文件>`指定，真实来源/未知公开资格不能借此放行。若Python不在默认命令路径，可设置`OCEAN_EXPERIMENT_PYTHON`为已有项目解释器。本模式不增加公网写接口；执行是本地用户显式操作，读取不会启动计算。
+
+每次执行使用新的输出目录，既有目录禁止覆盖。完成目录含`summary.json/report.md/manifest.json`；失败目录只有failed清单及安全错误码，读取操作仍可读取失败状态，但不将它当完成分析。进程中断留下的staging目录不是有效完成产物。本模式不是队列、自动恢复或完整任务中心。
+
+读取会验证产物哈希、结果身份、原条件、来源和合成资格的一致性；损坏或不同身份的组合会拒绝。传输字节哈希与规范JSON内容身份分别记录，不能仅凭换行字节不同就断言科学值不同；内容哈希不是授权签名或真实资料审批。
+
+当前4窗固定为[-7,-1]、[0,0]、[1,3]、[1,7]，后1–3日包含在后1–7日内，不能相加。窗口不完整时只显示已知部分量，不给完整前后变化；零前期只给可算绝对差。正常旧模式不带新标志时仍生成原移动缓冲实验v1产物，不复用其增强阈值或行级推断解释本样例。
