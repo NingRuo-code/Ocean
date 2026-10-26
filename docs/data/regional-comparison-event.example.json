@@ -1,0 +1,42 @@
+{
+  "purpose": "regional_comparison_example",
+  "analysis_kind": "fixed_region_event_example",
+  "radius_km": 20,
+  "evidence_use": "descriptive_side_by_side",
+  "support_policy": "read_existing_support",
+  "method_version": "known-snapshots/v1",
+  "search_start": "2024-08-05",
+  "search_end": "2024-08-08",
+  "candidates": [
+    {
+      "id": "region-a",
+      "name": "区域甲",
+      "longitude": 124.5,
+      "latitude": 30.2,
+      "result_id": "sha256:165250767af9f9d72d11b8fcaeb00f7fe3c3ffcdcb2f19fdec5594de5a170ffc",
+      "source": {
+        "id": "c01-authored-two-region-event",
+        "version": "synthetic-comparison-event/v1",
+        "input_sha256": "sha256:4224b92df223cae05430cd2469f537cedb5e7321e1fc2aac38d371f7c8fa5140",
+        "license": "CC0-1.0; authored synthetic fixture, no observations",
+        "support_evidence": "synthetic-fixed-unit/v1; fixed declared circle, not GIS or real qualification"
+      },
+      "snapshot_sha256": "sha256:6b893662cec9a1cd081d6cc5bee41ec16afe95e56c6f37c24be7a5c3c3f495b8"
+    },
+    {
+      "id": "region-b",
+      "name": "区域乙",
+      "longitude": 125.5,
+      "latitude": 30.2,
+      "result_id": "sha256:a23fd72a2ea9ab457a4d4826f9498a4101a80b3b6940542d225bdd223d4f8a0d",
+      "source": {
+        "id": "c01-authored-two-region-event",
+        "version": "synthetic-comparison-event/v1",
+        "input_sha256": "sha256:4224b92df223cae05430cd2469f537cedb5e7321e1fc2aac38d371f7c8fa5140",
+        "license": "CC0-1.0; authored synthetic fixture, no observations",
+        "support_evidence": "synthetic-fixed-unit/v1; fixed declared circle, not GIS or real qualification"
+      },
+      "snapshot_sha256": "sha256:35cfb9a7d6c06987637a985b1549eae0539ebb1d66261a3969124859ad1ef28f"
+    }
+  ]
+}
