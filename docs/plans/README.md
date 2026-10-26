@@ -64,3 +64,6 @@
 
 
 2026-10-26：C02/#87受控软件实施完成，含逐指标/区域对兼容、实际支持检查和局部缺口解释；[交付记录](../reports/ocean-regional-comparability-implementation-2026-10-26.md)。软件/真实研究分账，正式A/B交接及P0依赖继续保留，合并状态以GitHub为准。
+
+
+2026-10-26：W01/#96完成既有合成月成果进入工作台的只读闭环，复用实际服务、历史和底部证据，原地图/筛选保留；[交付及不足](../reports/ocean-workbench-month-reading-implementation-2026-10-26.md)。W02条件草稿接续，真实A/B/C、持久任务和生产各按原关口推进；合并状态以GitHub为准。

@@ -21,6 +21,7 @@ from .analysis_support import (
 )
 from .config import Settings
 from .monthly_models import KnownCircle, MonthlyExample, MonthlyRequest
+from .published_months import PUBLISHED_PATH, create_published_router
 from .schemas import BasicQueryEvidence
 
 EXAMPLE_PATH = Path(__file__).parent / "examples" / "monthly-known-units.json"
@@ -98,10 +99,13 @@ def _calculate(request: MonthlyRequest, circle: KnownCircle, data, fingerprint):
     return result
 
 
-def create_monthly_router(settings: Settings, *, example_path=EXAMPLE_PATH, record_limit=64):
+def create_monthly_router(
+    settings: Settings, *, example_path=EXAMPLE_PATH, record_limit=64, published_path=PUBLISHED_PATH
+):
     if not isinstance(record_limit, int) or not 1 <= record_limit <= 256:
         raise ValueError("Invalid controlled record budget")
     router = APIRouter(prefix=f"{settings.api_prefix}/query/monthly-analysis")
+    router.include_router(create_published_router(published_path), prefix="/published")
     records, lock = {}, RLock()
     bearer = HTTPBearer(auto_error=False)
 
