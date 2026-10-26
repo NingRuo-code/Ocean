@@ -1,0 +1,56 @@
+{
+  "purpose": "regional_comparison_example",
+  "analysis_kind": "monthly_spatial_example",
+  "radius_km": 20,
+  "month": "2024-02",
+  "evidence_use": "descriptive_side_by_side",
+  "support_policy": "verify_existing_support",
+  "method_version": "known-snapshots/v2",
+  "candidates": [
+    {
+      "id": "a",
+      "name": "A",
+      "longitude": 124.5,
+      "latitude": 30.2,
+      "result_id": "sha256:d90e75c6573eeccea442e0bded57b5faffb7401bb1ca9b4bef05b2f197b736ea",
+      "snapshot_sha256": "sha256:86b57258a5765904d19eb2a453f47cdace12286033fee524587acee41c462652",
+      "source": {
+        "id": "c01-authored-two-region-month",
+        "version": "synthetic-comparison-month/v1",
+        "input_sha256": "sha256:4a16b143c1df8fae266c71d0b35fe3f7acbd8f85ced343d235d618e27f31734c",
+        "license": "CC0-1.0; authored synthetic fixture, no observations",
+        "support_evidence": "synthetic-known-units/v1; not original observations or P0 research eligibility"
+      }
+    },
+    {
+      "id": "b",
+      "name": "B",
+      "longitude": 125.5,
+      "latitude": 30.2,
+      "result_id": "sha256:65526b7dda19182526d6451e8f32f09378025f894c553eb70b9c03d0f838716a",
+      "snapshot_sha256": "sha256:4e2776fb56239c48733932718c943612e7bc88cb16f477c8954c674f649e8230",
+      "source": {
+        "id": "authored-other-region",
+        "version": "authored-month/v2",
+        "input_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "license": "CC0-1.0; authored synthetic fixture, no observations",
+        "support_evidence": "synthetic-known-units/v1; not original observations or P0 research eligibility"
+      }
+    },
+    {
+      "id": "c",
+      "name": "C missing",
+      "longitude": 126.5,
+      "latitude": 30.2,
+      "result_id": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "snapshot_sha256": "sha256:4e2776fb56239c48733932718c943612e7bc88cb16f477c8954c674f649e8230",
+      "source": {
+        "id": "authored-other-region",
+        "version": "authored-month/v2",
+        "input_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "license": "CC0-1.0; authored synthetic fixture, no observations",
+        "support_evidence": "synthetic-known-units/v1; not original observations or P0 research eligibility"
+      }
+    }
+  ]
+}

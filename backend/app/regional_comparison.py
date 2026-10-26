@@ -3,8 +3,10 @@
 import copy
 import json
 import sys
+from datetime import date, timedelta
 
 from .analysis_support import content_id, decode_controlled_json
+from .comparability import add_compatibility, source_lifecycle
 from .comparison_models import (
     ComparisonRequest,
     ExistingChange,
@@ -23,29 +25,46 @@ MONTHLY_UNITS = {
     "mean_hours_per_supported_day": "fishing_hours/d",
     "density_hours_per_km2_day": "fishing_hours/(km2*d)",
 }
+MONTHLY_METHODS = {"monthly-known-support/v1", "monthly-known-support/v1.0-label"}
 
 
-def _monthly_projection(snapshot):
+def _monthly_projection(snapshot, *, compatibility=False):
     parameters = MonthlyRequest.model_validate(snapshot["parameters"])
     if (
-        parameters.method_version != "monthly-known-support/v1"
+        parameters.method_version
+        not in (MONTHLY_METHODS if compatibility else {"monthly-known-support/v1"})
         or parameters.parameter_version != "known-unit-membership/v1"
-        or snapshot["units"] != MONTHLY_UNITS
+        or (not compatibility and snapshot["units"] != MONTHLY_UNITS)
         or snapshot["status"] not in {"available", "partial", "unavailable"}
         or not isinstance(snapshot.get("coverage"), dict)
         or snapshot["coverage"].get("support_scope") != "known_synthetic_units_for_declared_circle"
     ):
         raise ValueError("Unsupported source semantics")
     KnownMetrics.model_validate(snapshot["metrics"])
-    return {
+    units = snapshot["units"]
+    if compatibility:
+        units = {
+            key: unit if isinstance(unit, str) and 1 <= len(unit) <= 100 else None
+            for key in MONTHLY_UNITS
+            for unit in [units.get(key) if isinstance(units, dict) else None]
+        }
+    result = {
         "metrics": copy.deepcopy(snapshot["metrics"]),
-        "units": copy.deepcopy(snapshot["units"]),
+        "units": copy.deepcopy(units),
         "source_status": snapshot["status"],
         "support_scope": snapshot["coverage"]["support_scope"],
     }
+    if compatibility:
+        result["comparison_daily"] = copy.deepcopy(snapshot.get("daily"))
+        result["method_equivalence"] = {
+            "semantic_id": "known-support-H-E/v1",
+            "evidence": "known-fixture-label-equivalence/v1; frozen H/E contract, not an algorithm upgrade",
+            "original_method": parameters.method_version,
+        }
+    return result
 
 
-def _event_projection(snapshot):
+def _event_projection(snapshot, *, compatibility=False):
     FixedRegionRequest.model_validate(snapshot["parameters"])
     if (
         snapshot["schema_version"] != "fixed-region-event-example/v1"
@@ -63,33 +82,50 @@ def _event_projection(snapshot):
         raise ValueError("Unsupported event semantics")
     windows, changes = snapshot["windows"], snapshot["changes"]
     expected = {"pre7": [-7, -1], "event_day": [0, 0], "post1_3": [1, 3], "post1_7": [1, 7]}
-    if windows and set(windows) != set(expected):
+    if not isinstance(windows, dict) or not isinstance(changes, dict):
+        raise TypeError("Invalid window container")
+    if windows and not compatibility and set(windows) != set(expected):
         raise ValueError("Incomplete event window contract")
     event = ExistingEvent.model_validate(snapshot["event"]) if snapshot["event"] else None
     if bool(windows) != bool(event):
         raise ValueError("Event and windows must identify the same result")
-    projected = {}
+    projected, issues = {}, {}
     for name, window in windows.items():
-        ExistingWindow.model_validate(window)
-        if window["relative_days"] != expected[name] or window["status"] not in {
-            "complete",
-            "incomplete",
-            "unavailable",
-        }:
-            raise ValueError("Changed event window definition")
-        projected[name] = copy.deepcopy(window)
-    if set(changes) != ({"post1_3", "post1_7"} if windows else set()):
+        try:
+            if name not in expected:
+                raise ValueError("Unknown window")
+            ExistingWindow.model_validate(window)
+            if window["relative_days"] != expected[name]:
+                raise ValueError("Changed event window definition")
+            if compatibility:
+                anchor = date.fromisoformat(event.anchor_date)
+                a, b = expected[name]
+                if window["dates"] != [
+                    (anchor + timedelta(days=n)).isoformat() for n in range(a, b + 1)
+                ]:
+                    raise ValueError("Window dates differ from anchor")
+            projected[name] = copy.deepcopy(window)
+        except (ValueError, KeyError, TypeError):
+            if not compatibility:
+                raise
+            if name in expected:
+                issues[name] = "window_contract_unverified"
+    if not compatibility and set(changes) != ({"post1_3", "post1_7"} if windows else set()):
         raise ValueError("Changed event change contract")
-    for change in changes.values():
-        ExistingChange.model_validate(change)
-    return {
+    if not compatibility:
+        for change in changes.values():
+            ExistingChange.model_validate(change)
+    result = {
         "windows": projected,
-        "changes": copy.deepcopy(changes),
+        "changes": {} if compatibility else copy.deepcopy(changes),
         "event": copy.deepcopy(snapshot["event"]),
         "units": copy.deepcopy(MONTHLY_UNITS),
         "source_status": snapshot["status"],
         "support_scope": "known_synthetic_units_for_declared_circle",
     }
+    if compatibility:
+        result.update(comparison_daily=copy.deepcopy(snapshot.get("daily")), window_issues=issues)
+    return result
 
 
 def _read_candidate(candidate, request, snapshots):
@@ -117,7 +153,41 @@ def _read_candidate(candidate, request, snapshots):
             or entry.snapshot_sha256 != candidate.snapshot_sha256
         ):
             raise ValueError("Snapshot content changed")
+        if request.method_version == "known-snapshots/v2":
+            state = source_lifecycle(entry, candidate)
+            if state and state != "completed":
+                return {**row, "reason": "source_" + state, "required": "completed_source_result"}
         source = SnapshotSource.model_validate(snapshot["source"])
+        if request.method_version == "known-snapshots/v2":
+            if not source.license.startswith("CC0-1.0"):
+                return {
+                    **row,
+                    "reason": "source_license_unverified",
+                    "required": "source_use_clearance",
+                }
+            if snapshot.get("kind") != request.analysis_kind:
+                return {
+                    **row,
+                    "reason": "source_purpose_mismatch",
+                    "required": f"existing_{kind}_result",
+                }
+            if kind == "A":
+                native = MonthlyRequest.model_validate(snapshot["parameters"])
+                if (
+                    native.method_version not in MONTHLY_METHODS
+                    or native.parameter_version != "known-unit-membership/v1"
+                ):
+                    return {
+                        **row,
+                        "reason": "native_method_equivalence_unverified",
+                        "differences": [
+                            {
+                                "field": "native_method",
+                                "actual": [native.method_version, native.parameter_version],
+                            }
+                        ],
+                        "required": "registered_AB_method_equivalence",
+                    }
         if (
             source != candidate.source
             or snapshot.get("kind") != request.analysis_kind
@@ -125,7 +195,15 @@ def _read_candidate(candidate, request, snapshots):
             or source.version != snapshot["parameters"]["input_version"]
         ):
             raise ValueError("Snapshot source identity or purpose changed")
-        projection = (_monthly_projection if kind == "A" else _event_projection)(snapshot)
+        projection = (
+            _monthly_projection(
+                snapshot, compatibility=request.method_version == "known-snapshots/v2"
+            )
+            if kind == "A"
+            else _event_projection(
+                snapshot, compatibility=request.method_version == "known-snapshots/v2"
+            )
+        )
         caveats = snapshot.get("caveats")
         if (
             not isinstance(caveats, list)
@@ -149,12 +227,18 @@ def _read_candidate(candidate, request, snapshots):
         )
         conflicts = [key for key, value in expected.items() if actual.get(key) != value]
         if conflicts:
-            return {
+            mismatch = {
                 **row,
                 "reason": "source_condition_mismatch",
                 "conflicts": conflicts,
                 "required": f"existing_{kind}_result_for_requested_conditions",
             }
+            if request.method_version == "known-snapshots/v2":
+                mismatch["differences"] = [
+                    {"field": key, "actual": actual[key], "expected": expected[key]}
+                    for key in conflicts
+                ]
+            return mismatch
         return {
             **row,
             **projection,
@@ -205,6 +289,9 @@ def compare_known_snapshots(request_payload, pack_payload):
             "Native A/B result IDs remain opaque; imported content is bound separately.",
         ],
     }
+    if request.method_version == "known-snapshots/v2":
+        result["source"]["version"] = request.method_version
+        add_compatibility(result, request, snapshots)
     result["result_id"] = content_id(result)
     return result
 
