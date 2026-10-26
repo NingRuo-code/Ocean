@@ -363,7 +363,10 @@ function buildManifest(summary, artifacts) {
   };
 }
 
-if (process.argv.includes("--regional-comparison-request") || process.argv.includes("--read-regional-comparison-result")) {
+if (process.argv.includes("--g3-validation-request") || process.argv.includes("--read-g3-validation-result")) {
+  const { runStratifiedValidation } = await import("./lib/stratified-validation-example.mjs");
+  process.exitCode = runStratifiedValidation(process.argv.slice(2), ROOT);
+} else if (process.argv.includes("--regional-comparison-request") || process.argv.includes("--read-regional-comparison-result")) {
   const { runRegionalComparison } = await import("./lib/regional-comparison-example.mjs");
   process.exitCode = runRegionalComparison(process.argv.slice(2), ROOT);
 } else if (process.argv.includes("--fixed-region-request") || process.argv.includes("--read-fixed-region-result")) {

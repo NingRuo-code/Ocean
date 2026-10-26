@@ -1,0 +1,2056 @@
+{
+  "kind": "stratified_validation_example",
+  "analysis_kind": "monthly_spatial_example",
+  "parameters": {
+    "purpose": "stratified_validation_example",
+    "analysis_kind": "monthly_spatial_example",
+    "method_version": "known-strata/v1",
+    "protocol_ref": "synthetic-descriptive/v1",
+    "partition_ref": "synthetic-exploration/v1",
+    "source_ref": "sha256:da686ee9cd5946b3751e4389ad6a783780eec9d9101e19317321133c21856a6a",
+    "region": {
+      "id": "authored-circle",
+      "name": "合成固定区",
+      "longitude": 124.5,
+      "latitude": 30.2
+    },
+    "radius_km": 20,
+    "season_year_rule": "calendar_year",
+    "seasons": {
+      "winter": [
+        1,
+        2,
+        12
+      ],
+      "summer": [
+        6,
+        7,
+        8
+      ]
+    },
+    "aggregation": "sum_known_nonoverlapping_H_over_E",
+    "candidates": [
+      {
+        "id": "month-2023-02",
+        "month": "2023-02",
+        "season": "winter",
+        "result_id": "sha256:8016fe8a8ddea03297b9cfc35d0116e780be8bb3949de677c64ffb440d4912aa",
+        "snapshot_sha256": "sha256:7dc6cedc47f0ea66a14f0dde23134810867af31f84c957ac26dcbd0bc76ce88f"
+      },
+      {
+        "id": "month-2023-08",
+        "month": "2023-08",
+        "season": "summer",
+        "result_id": "sha256:972c33a1c1d72ccf5c109934e31cce2eb592cf055d1e5741d521aabe6db4481f",
+        "snapshot_sha256": "sha256:b9dc257e3bfbc3e123634b20b168d110a970634f6b17fac35f405cfd7a703c7d"
+      },
+      {
+        "id": "month-2024-02",
+        "month": "2024-02",
+        "season": "winter",
+        "result_id": "sha256:0cf81002c0d55486d4994a70b96a24662a41979dee10d1bfeb2e06cbcc1d6080",
+        "snapshot_sha256": "sha256:4567e2e90b42c056e55b4e0dacb778662b0ad5c5a907201cdbc7290a81f74bb9"
+      },
+      {
+        "id": "month-2024-06",
+        "month": "2024-06",
+        "season": "summer",
+        "result_id": "sha256:f1bb8741196d24c74942c3b8629a92a3c2d8f0ed239c452424d8b3032bea8aa2",
+        "snapshot_sha256": "sha256:a11ca236f57fae00cbf141de31cd0fbf9f9bbac76fc9ebef0079441ff6edcba7"
+      },
+      {
+        "id": "month-2024-08",
+        "month": "2024-08",
+        "season": "summer",
+        "result_id": "sha256:9b925a1c3202f90404f66920d815c4aa6db005ac7b2570ecbb911f338186c7d2",
+        "snapshot_sha256": "sha256:61a6b8625505b9d4e06ae60051e6889ab24c7bd8dea1abf660857ab2b31d4cba"
+      },
+      {
+        "id": "month-2024-07",
+        "month": "2024-07",
+        "season": "summer",
+        "result_id": "sha256:708709c7b333bd54c91ed52e055f36d96c21518870216876f082eebdd7746880",
+        "snapshot_sha256": "sha256:f106ce577c9e2a1d59aef1563b8e39db352d2cf0f4db11488709323bd61f3e3f"
+      },
+      {
+        "id": "month-2024-12",
+        "month": "2024-12",
+        "season": "winter",
+        "result_id": "sha256:5868ff0b5ea8daf4d093d40d25e6838d87313732f509179a809399308a8cd5c9",
+        "snapshot_sha256": "sha256:0f075b89a6d124de234534418ceaf5745ea43b5494848f377fc3edd90ded24d8"
+      },
+      {
+        "id": "missing-2023-01",
+        "month": "2023-01",
+        "season": "winter",
+        "result_id": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "snapshot_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    ]
+  },
+  "evidence_kind": "synthetic_example",
+  "research_ready": false,
+  "confirmatory": false,
+  "independence": "not_assessed",
+  "protocol_status": "reference_only",
+  "partition_status": "reference_only",
+  "random_seed": null,
+  "randomness": "not_used",
+  "intervals": null,
+  "status": "partial",
+  "source": {
+    "id": "explicit-known-month-snapshots",
+    "version": "known-strata/v1",
+    "input_sha256": "sha256:41399772cee078b9f410cfd7b832c8ffabdc8ad4e3e11fe42426f86547c0dba5"
+  },
+  "rows": [
+    {
+      "candidate": {
+        "id": "month-2023-02",
+        "month": "2023-02",
+        "season": "winter",
+        "result_id": "sha256:8016fe8a8ddea03297b9cfc35d0116e780be8bb3949de677c64ffb440d4912aa",
+        "snapshot_sha256": "sha256:7dc6cedc47f0ea66a14f0dde23134810867af31f84c957ac26dcbd0bc76ce88f"
+      },
+      "status": "known_support",
+      "reason": "known_partial_support",
+      "source_result_id": "sha256:8016fe8a8ddea03297b9cfc35d0116e780be8bb3949de677c64ffb440d4912aa",
+      "source_projection_id": "sha256:1ab3db9bde2b019685cae55f5ac902c0f9baf8df95949e2b90fa57fee4f0690b",
+      "snapshot_sha256": "sha256:7dc6cedc47f0ea66a14f0dde23134810867af31f84c957ac26dcbd0bc76ce88f",
+      "original_parameters": {
+        "purpose": "monthly_spatial_example",
+        "longitude": 124.5,
+        "latitude": 30.2,
+        "radius_km": 20,
+        "month": "2023-02",
+        "input_version": "g3-synthetic-months/v1",
+        "method_version": "monthly-known-support/v1",
+        "parameter_version": "known-unit-membership/v1"
+      },
+      "source": {
+        "id": "g3-known-unit-months",
+        "version": "g3-synthetic-months/v1",
+        "input_sha256": "sha256:7bee9a95f615c60a27af18a525be1be432b1e16220e2a5b12662141d6a296a03",
+        "license": "CC0-1.0; authored synthetic fixture, no observations",
+        "support_evidence": "g3-authored-support/v1; not P0 qualification or GIS"
+      },
+      "source_status": "partial",
+      "metrics": {
+        "total_hours": 40,
+        "area_time_km2_days": 7,
+        "supported_days": 2,
+        "calendar_days": 28,
+        "mean_hours_per_supported_day": 20,
+        "density_hours_per_km2_day": 5.714285714285714
+      },
+      "units": {
+        "total_hours": "fishing_hours",
+        "area_time_km2_days": "km2*d",
+        "mean_hours_per_supported_day": "fishing_hours/d",
+        "density_hours_per_km2_day": "fishing_hours/(km2*d)"
+      },
+      "daily": [
+        {
+          "date": "2023-02-01",
+          "state": "ready",
+          "hours": 40,
+          "effective_area_km2": 5,
+          "area_time_km2_days": 5,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-02",
+          "state": "ready",
+          "hours": 0,
+          "effective_area_km2": 2,
+          "area_time_km2_days": 2,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-03",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-04",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-05",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-06",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-07",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-08",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-09",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-10",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-11",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-12",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-13",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-14",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-15",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-16",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-17",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-18",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-19",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-20",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-21",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-22",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-23",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-24",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-25",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-26",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-27",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-02-28",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        }
+      ],
+      "source_caveats": [
+        "Synthetic example only; not qualified real monthly research or fishery advice.",
+        "Known unit membership/areas are declared for this circle, not computed GIS geometry.",
+        "Known-support partial totals are not whole-circle totals; missing days are not filled.",
+        "Apparent fishing effort is not catch, biomass, revenue or guaranteed fishing success."
+      ]
+    },
+    {
+      "candidate": {
+        "id": "month-2023-08",
+        "month": "2023-08",
+        "season": "summer",
+        "result_id": "sha256:972c33a1c1d72ccf5c109934e31cce2eb592cf055d1e5741d521aabe6db4481f",
+        "snapshot_sha256": "sha256:b9dc257e3bfbc3e123634b20b168d110a970634f6b17fac35f405cfd7a703c7d"
+      },
+      "status": "known_support",
+      "reason": "known_partial_support",
+      "source_result_id": "sha256:972c33a1c1d72ccf5c109934e31cce2eb592cf055d1e5741d521aabe6db4481f",
+      "source_projection_id": "sha256:e110e83dd95505972dfa5a155120f2a44be2172743724075d00299f5d1fbdeec",
+      "snapshot_sha256": "sha256:b9dc257e3bfbc3e123634b20b168d110a970634f6b17fac35f405cfd7a703c7d",
+      "original_parameters": {
+        "purpose": "monthly_spatial_example",
+        "longitude": 124.5,
+        "latitude": 30.2,
+        "radius_km": 20,
+        "month": "2023-08",
+        "input_version": "g3-synthetic-months/v1",
+        "method_version": "monthly-known-support/v1",
+        "parameter_version": "known-unit-membership/v1"
+      },
+      "source": {
+        "id": "g3-known-unit-months",
+        "version": "g3-synthetic-months/v1",
+        "input_sha256": "sha256:7bee9a95f615c60a27af18a525be1be432b1e16220e2a5b12662141d6a296a03",
+        "license": "CC0-1.0; authored synthetic fixture, no observations",
+        "support_evidence": "g3-authored-support/v1; not P0 qualification or GIS"
+      },
+      "source_status": "partial",
+      "metrics": {
+        "total_hours": 0,
+        "area_time_km2_days": 4,
+        "supported_days": 1,
+        "calendar_days": 31,
+        "mean_hours_per_supported_day": 0,
+        "density_hours_per_km2_day": 0
+      },
+      "units": {
+        "total_hours": "fishing_hours",
+        "area_time_km2_days": "km2*d",
+        "mean_hours_per_supported_day": "fishing_hours/d",
+        "density_hours_per_km2_day": "fishing_hours/(km2*d)"
+      },
+      "daily": [
+        {
+          "date": "2023-08-01",
+          "state": "ready",
+          "hours": 0,
+          "effective_area_km2": 4,
+          "area_time_km2_days": 4,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-02",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-03",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-04",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-05",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-06",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-07",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-08",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-09",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-10",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-11",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-12",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-13",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-14",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-15",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-16",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-17",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-18",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-19",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-20",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-21",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-22",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-23",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-24",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-25",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-26",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-27",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-28",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-29",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-30",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2023-08-31",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        }
+      ],
+      "source_caveats": [
+        "Synthetic example only; not qualified real monthly research or fishery advice.",
+        "Known unit membership/areas are declared for this circle, not computed GIS geometry.",
+        "Known-support partial totals are not whole-circle totals; missing days are not filled.",
+        "Apparent fishing effort is not catch, biomass, revenue or guaranteed fishing success."
+      ]
+    },
+    {
+      "candidate": {
+        "id": "month-2024-02",
+        "month": "2024-02",
+        "season": "winter",
+        "result_id": "sha256:0cf81002c0d55486d4994a70b96a24662a41979dee10d1bfeb2e06cbcc1d6080",
+        "snapshot_sha256": "sha256:4567e2e90b42c056e55b4e0dacb778662b0ad5c5a907201cdbc7290a81f74bb9"
+      },
+      "status": "known_support",
+      "reason": "known_partial_support",
+      "source_result_id": "sha256:0cf81002c0d55486d4994a70b96a24662a41979dee10d1bfeb2e06cbcc1d6080",
+      "source_projection_id": "sha256:8ab8c9fca5961f01c821986fb2f97e113c07015878405b4bfeec6b3555cf4b68",
+      "snapshot_sha256": "sha256:4567e2e90b42c056e55b4e0dacb778662b0ad5c5a907201cdbc7290a81f74bb9",
+      "original_parameters": {
+        "purpose": "monthly_spatial_example",
+        "longitude": 124.5,
+        "latitude": 30.2,
+        "radius_km": 20,
+        "month": "2024-02",
+        "input_version": "g3-synthetic-months/v1",
+        "method_version": "monthly-known-support/v1",
+        "parameter_version": "known-unit-membership/v1"
+      },
+      "source": {
+        "id": "g3-known-unit-months",
+        "version": "g3-synthetic-months/v1",
+        "input_sha256": "sha256:7bee9a95f615c60a27af18a525be1be432b1e16220e2a5b12662141d6a296a03",
+        "license": "CC0-1.0; authored synthetic fixture, no observations",
+        "support_evidence": "g3-authored-support/v1; not P0 qualification or GIS"
+      },
+      "source_status": "partial",
+      "metrics": {
+        "total_hours": 20,
+        "area_time_km2_days": 2,
+        "supported_days": 1,
+        "calendar_days": 29,
+        "mean_hours_per_supported_day": 20,
+        "density_hours_per_km2_day": 10
+      },
+      "units": {
+        "total_hours": "fishing_hours",
+        "area_time_km2_days": "km2*d",
+        "mean_hours_per_supported_day": "fishing_hours/d",
+        "density_hours_per_km2_day": "fishing_hours/(km2*d)"
+      },
+      "daily": [
+        {
+          "date": "2024-02-01",
+          "state": "ready",
+          "hours": 20,
+          "effective_area_km2": 2,
+          "area_time_km2_days": 2,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-02",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-03",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-04",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-05",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-06",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-07",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-08",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-09",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-10",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-11",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-12",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-13",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-14",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-15",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-16",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-17",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-18",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-19",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-20",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-21",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-22",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-23",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-24",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-25",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-26",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-27",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-28",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-02-29",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        }
+      ],
+      "source_caveats": [
+        "Synthetic example only; not qualified real monthly research or fishery advice.",
+        "Known unit membership/areas are declared for this circle, not computed GIS geometry.",
+        "Known-support partial totals are not whole-circle totals; missing days are not filled.",
+        "Apparent fishing effort is not catch, biomass, revenue or guaranteed fishing success."
+      ]
+    },
+    {
+      "candidate": {
+        "id": "month-2024-06",
+        "month": "2024-06",
+        "season": "summer",
+        "result_id": "sha256:f1bb8741196d24c74942c3b8629a92a3c2d8f0ed239c452424d8b3032bea8aa2",
+        "snapshot_sha256": "sha256:a11ca236f57fae00cbf141de31cd0fbf9f9bbac76fc9ebef0079441ff6edcba7"
+      },
+      "status": "known_support",
+      "reason": "known_partial_support",
+      "source_result_id": "sha256:f1bb8741196d24c74942c3b8629a92a3c2d8f0ed239c452424d8b3032bea8aa2",
+      "source_projection_id": "sha256:1efd2ae23b82ae31979dd3e2961317039acb80a3d1e0a3726640d14d77075507",
+      "snapshot_sha256": "sha256:a11ca236f57fae00cbf141de31cd0fbf9f9bbac76fc9ebef0079441ff6edcba7",
+      "original_parameters": {
+        "purpose": "monthly_spatial_example",
+        "longitude": 124.5,
+        "latitude": 30.2,
+        "radius_km": 20,
+        "month": "2024-06",
+        "input_version": "g3-synthetic-months/v1",
+        "method_version": "monthly-known-support/v1",
+        "parameter_version": "known-unit-membership/v1"
+      },
+      "source": {
+        "id": "g3-known-unit-months",
+        "version": "g3-synthetic-months/v1",
+        "input_sha256": "sha256:7bee9a95f615c60a27af18a525be1be432b1e16220e2a5b12662141d6a296a03",
+        "license": "CC0-1.0; authored synthetic fixture, no observations",
+        "support_evidence": "g3-authored-support/v1; not P0 qualification or GIS"
+      },
+      "source_status": "partial",
+      "metrics": {
+        "total_hours": 10,
+        "area_time_km2_days": 2,
+        "supported_days": 1,
+        "calendar_days": 30,
+        "mean_hours_per_supported_day": 10,
+        "density_hours_per_km2_day": 5
+      },
+      "units": {
+        "total_hours": "fishing_hours",
+        "area_time_km2_days": "km2*d",
+        "mean_hours_per_supported_day": "fishing_hours/d",
+        "density_hours_per_km2_day": "fishing_hours/(km2*d)"
+      },
+      "daily": [
+        {
+          "date": "2024-06-01",
+          "state": "ready",
+          "hours": 10,
+          "effective_area_km2": 2,
+          "area_time_km2_days": 2,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-02",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-03",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-04",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-05",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-06",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-07",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-08",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-09",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-10",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-11",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-12",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-13",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-14",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-15",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-16",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-17",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-18",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-19",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-20",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-21",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-22",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-23",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-24",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-25",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-26",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-27",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-28",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-29",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-06-30",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        }
+      ],
+      "source_caveats": [
+        "Synthetic example only; not qualified real monthly research or fishery advice.",
+        "Known unit membership/areas are declared for this circle, not computed GIS geometry.",
+        "Known-support partial totals are not whole-circle totals; missing days are not filled.",
+        "Apparent fishing effort is not catch, biomass, revenue or guaranteed fishing success."
+      ]
+    },
+    {
+      "candidate": {
+        "id": "month-2024-08",
+        "month": "2024-08",
+        "season": "summer",
+        "result_id": "sha256:9b925a1c3202f90404f66920d815c4aa6db005ac7b2570ecbb911f338186c7d2",
+        "snapshot_sha256": "sha256:61a6b8625505b9d4e06ae60051e6889ab24c7bd8dea1abf660857ab2b31d4cba"
+      },
+      "status": "known_support",
+      "reason": "known_partial_support",
+      "source_result_id": "sha256:9b925a1c3202f90404f66920d815c4aa6db005ac7b2570ecbb911f338186c7d2",
+      "source_projection_id": "sha256:c6cdd4ac9c5a5d074c3a0d9ad50b3254c6a0307bcf04caf48d2f617fab0e532b",
+      "snapshot_sha256": "sha256:61a6b8625505b9d4e06ae60051e6889ab24c7bd8dea1abf660857ab2b31d4cba",
+      "original_parameters": {
+        "purpose": "monthly_spatial_example",
+        "longitude": 124.5,
+        "latitude": 30.2,
+        "radius_km": 20,
+        "month": "2024-08",
+        "input_version": "g3-synthetic-months/v1",
+        "method_version": "monthly-known-support/v1",
+        "parameter_version": "known-unit-membership/v1"
+      },
+      "source": {
+        "id": "g3-known-unit-months",
+        "version": "g3-synthetic-months/v1",
+        "input_sha256": "sha256:7bee9a95f615c60a27af18a525be1be432b1e16220e2a5b12662141d6a296a03",
+        "license": "CC0-1.0; authored synthetic fixture, no observations",
+        "support_evidence": "g3-authored-support/v1; not P0 qualification or GIS"
+      },
+      "source_status": "partial",
+      "metrics": {
+        "total_hours": 30,
+        "area_time_km2_days": 3,
+        "supported_days": 1,
+        "calendar_days": 31,
+        "mean_hours_per_supported_day": 30,
+        "density_hours_per_km2_day": 10
+      },
+      "units": {
+        "total_hours": "fishing_hours",
+        "area_time_km2_days": "km2*d",
+        "mean_hours_per_supported_day": "fishing_hours/d",
+        "density_hours_per_km2_day": "fishing_hours/(km2*d)"
+      },
+      "daily": [
+        {
+          "date": "2024-08-01",
+          "state": "ready",
+          "hours": 30,
+          "effective_area_km2": 3,
+          "area_time_km2_days": 3,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-02",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-03",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-04",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-05",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-06",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-07",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-08",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-09",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-10",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-11",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-12",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-13",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-14",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-15",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-16",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-17",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-18",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-19",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-20",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-21",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-22",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-23",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-24",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-25",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-26",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-27",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-28",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-29",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-30",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-08-31",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        }
+      ],
+      "source_caveats": [
+        "Synthetic example only; not qualified real monthly research or fishery advice.",
+        "Known unit membership/areas are declared for this circle, not computed GIS geometry.",
+        "Known-support partial totals are not whole-circle totals; missing days are not filled.",
+        "Apparent fishing effort is not catch, biomass, revenue or guaranteed fishing success."
+      ]
+    },
+    {
+      "candidate": {
+        "id": "month-2024-07",
+        "month": "2024-07",
+        "season": "summer",
+        "result_id": "sha256:708709c7b333bd54c91ed52e055f36d96c21518870216876f082eebdd7746880",
+        "snapshot_sha256": "sha256:f106ce577c9e2a1d59aef1563b8e39db352d2cf0f4db11488709323bd61f3e3f"
+      },
+      "status": "not_ready",
+      "reason": "source_not_public"
+    },
+    {
+      "candidate": {
+        "id": "month-2024-12",
+        "month": "2024-12",
+        "season": "winter",
+        "result_id": "sha256:5868ff0b5ea8daf4d093d40d25e6838d87313732f509179a809399308a8cd5c9",
+        "snapshot_sha256": "sha256:0f075b89a6d124de234534418ceaf5745ea43b5494848f377fc3edd90ded24d8"
+      },
+      "status": "unknown_support",
+      "reason": "no_known_support",
+      "source_result_id": "sha256:5868ff0b5ea8daf4d093d40d25e6838d87313732f509179a809399308a8cd5c9",
+      "source_projection_id": "sha256:003049a3975eb9b5b07cfa9d1094edbecfe856560f40491627ec77c7f05c5b74",
+      "snapshot_sha256": "sha256:0f075b89a6d124de234534418ceaf5745ea43b5494848f377fc3edd90ded24d8",
+      "original_parameters": {
+        "purpose": "monthly_spatial_example",
+        "longitude": 124.5,
+        "latitude": 30.2,
+        "radius_km": 20,
+        "month": "2024-12",
+        "input_version": "g3-synthetic-months/v1",
+        "method_version": "monthly-known-support/v1",
+        "parameter_version": "known-unit-membership/v1"
+      },
+      "source": {
+        "id": "g3-known-unit-months",
+        "version": "g3-synthetic-months/v1",
+        "input_sha256": "sha256:7bee9a95f615c60a27af18a525be1be432b1e16220e2a5b12662141d6a296a03",
+        "license": "CC0-1.0; authored synthetic fixture, no observations",
+        "support_evidence": "g3-authored-support/v1; not P0 qualification or GIS"
+      },
+      "source_status": "unavailable",
+      "metrics": {
+        "total_hours": null,
+        "area_time_km2_days": null,
+        "supported_days": 0,
+        "calendar_days": 31,
+        "mean_hours_per_supported_day": null,
+        "density_hours_per_km2_day": null
+      },
+      "units": {
+        "total_hours": "fishing_hours",
+        "area_time_km2_days": "km2*d",
+        "mean_hours_per_supported_day": "fishing_hours/d",
+        "density_hours_per_km2_day": "fishing_hours/(km2*d)"
+      },
+      "daily": [
+        {
+          "date": "2024-12-01",
+          "state": "missing",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-02",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-03",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-04",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-05",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-06",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-07",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-08",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-09",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-10",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-11",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-12",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-13",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-14",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-15",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-16",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-17",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-18",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-19",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-20",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-21",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-22",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-23",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-24",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-25",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-26",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-27",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-28",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-29",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-30",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        },
+        {
+          "date": "2024-12-31",
+          "state": "unprepared",
+          "hours": null,
+          "effective_area_km2": null,
+          "area_time_km2_days": null,
+          "excluded_units": 0
+        }
+      ],
+      "source_caveats": [
+        "Synthetic example only; not qualified real monthly research or fishery advice.",
+        "Known unit membership/areas are declared for this circle, not computed GIS geometry.",
+        "Known-support partial totals are not whole-circle totals; missing days are not filled.",
+        "Apparent fishing effort is not catch, biomass, revenue or guaranteed fishing success."
+      ]
+    },
+    {
+      "candidate": {
+        "id": "missing-2023-01",
+        "month": "2023-01",
+        "season": "winter",
+        "result_id": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "snapshot_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "status": "not_ready",
+      "reason": "source_result_missing"
+    }
+  ],
+  "strata": [
+    {
+      "year": 2023,
+      "season": "summer",
+      "candidate_ids": [
+        "month-2023-08"
+      ],
+      "loaded_candidate_ids": [
+        "month-2023-08"
+      ],
+      "contributing_candidate_ids": [
+        "month-2023-08"
+      ],
+      "excluded_candidates": [],
+      "status": "partial_known_support",
+      "metrics": {
+        "total_hours": 0,
+        "supported_days": 1,
+        "calendar_days": 31,
+        "area_time_km2_days": 4,
+        "mean_hours_per_supported_day": 0,
+        "density_hours_per_km2_day": 0
+      },
+      "planned_calendar_days": 31,
+      "units": {
+        "total_hours": "fishing_hours",
+        "area_time_km2_days": "km2*d",
+        "mean_hours_per_supported_day": "fishing_hours/d",
+        "density_hours_per_km2_day": "fishing_hours/(km2*d)"
+      },
+      "intervals": null,
+      "independence": "not_assessed"
+    },
+    {
+      "year": 2023,
+      "season": "winter",
+      "candidate_ids": [
+        "month-2023-02",
+        "missing-2023-01"
+      ],
+      "loaded_candidate_ids": [
+        "month-2023-02"
+      ],
+      "contributing_candidate_ids": [
+        "month-2023-02"
+      ],
+      "excluded_candidates": [
+        {
+          "id": "missing-2023-01",
+          "reason": "source_result_missing"
+        }
+      ],
+      "status": "partial_known_support",
+      "metrics": {
+        "total_hours": 40,
+        "supported_days": 2,
+        "calendar_days": 28,
+        "area_time_km2_days": 7,
+        "mean_hours_per_supported_day": 20,
+        "density_hours_per_km2_day": 5.714285714285714
+      },
+      "planned_calendar_days": 59,
+      "units": {
+        "total_hours": "fishing_hours",
+        "area_time_km2_days": "km2*d",
+        "mean_hours_per_supported_day": "fishing_hours/d",
+        "density_hours_per_km2_day": "fishing_hours/(km2*d)"
+      },
+      "intervals": null,
+      "independence": "not_assessed"
+    },
+    {
+      "year": 2024,
+      "season": "summer",
+      "candidate_ids": [
+        "month-2024-06",
+        "month-2024-08",
+        "month-2024-07"
+      ],
+      "loaded_candidate_ids": [
+        "month-2024-06",
+        "month-2024-08"
+      ],
+      "contributing_candidate_ids": [
+        "month-2024-06",
+        "month-2024-08"
+      ],
+      "excluded_candidates": [
+        {
+          "id": "month-2024-07",
+          "reason": "source_not_public"
+        }
+      ],
+      "status": "partial_known_support",
+      "metrics": {
+        "total_hours": 40,
+        "supported_days": 2,
+        "calendar_days": 61,
+        "area_time_km2_days": 5,
+        "mean_hours_per_supported_day": 20,
+        "density_hours_per_km2_day": 8
+      },
+      "planned_calendar_days": 92,
+      "units": {
+        "total_hours": "fishing_hours",
+        "area_time_km2_days": "km2*d",
+        "mean_hours_per_supported_day": "fishing_hours/d",
+        "density_hours_per_km2_day": "fishing_hours/(km2*d)"
+      },
+      "intervals": null,
+      "independence": "not_assessed"
+    },
+    {
+      "year": 2024,
+      "season": "winter",
+      "candidate_ids": [
+        "month-2024-02",
+        "month-2024-12"
+      ],
+      "loaded_candidate_ids": [
+        "month-2024-02",
+        "month-2024-12"
+      ],
+      "contributing_candidate_ids": [
+        "month-2024-02"
+      ],
+      "excluded_candidates": [
+        {
+          "id": "month-2024-12",
+          "reason": "no_known_support"
+        }
+      ],
+      "status": "partial_known_support",
+      "metrics": {
+        "total_hours": 20,
+        "supported_days": 1,
+        "calendar_days": 60,
+        "area_time_km2_days": 2,
+        "mean_hours_per_supported_day": 20,
+        "density_hours_per_km2_day": 10
+      },
+      "planned_calendar_days": 60,
+      "units": {
+        "total_hours": "fishing_hours",
+        "area_time_km2_days": "km2*d",
+        "mean_hours_per_supported_day": "fishing_hours/d",
+        "density_hours_per_km2_day": "fishing_hours/(km2*d)"
+      },
+      "intervals": null,
+      "independence": "not_assessed"
+    }
+  ],
+  "caveats": [
+    "Authored CC0 synthetic evidence only; no P0 qualification or real independent research.",
+    "Protocol and partition are references only; scientific freezing/contact guards are not integrated.",
+    "Same-circle nonoverlapping calendar months only; sum known H / same-support E is descriptive, not mean monthly effect.",
+    "Unknown/excluded candidates remain visible and never contribute invented zeros; A/B are not pooled.",
+    "No interval, p-value, stability, independence, causal or fishing-success claim is produced.",
+    "Reading reuses approved existing A results, never invokes A/B, archives, downloads or a model.",
+    "Native result IDs are opaque; imported content and public projections have separate identities, not authorization signatures."
+  ],
+  "result_id": "sha256:007a9080798e83e4f05211115058346aef9f7b4d579a4c6634cdca9d94da1ca3"
+}

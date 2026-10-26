@@ -1,0 +1,179 @@
+{
+  "schema": "ocean-controlled-month-input/v1",
+  "id": "g3-known-unit-months",
+  "version": "g3-synthetic-months/v1",
+  "evidence_kind": "synthetic_example",
+  "license": "CC0-1.0; authored synthetic fixture, no observations",
+  "public_aggregate_allowed": true,
+  "research_ready": false,
+  "unit": "fishing_hours",
+  "support_evidence": "g3-authored-support/v1; not P0 qualification or GIS",
+  "conditions": [
+    {
+      "id": "month-2023-02",
+      "longitude": 124.5,
+      "latitude": 30.2,
+      "radius_km": 20,
+      "month": "2023-02",
+      "support_scope": "known_synthetic_units_for_declared_circle",
+      "days": [
+        {
+          "date": "2023-02-01",
+          "state": "ready",
+          "units": [
+            {
+              "id": "known-unit",
+              "hours": 40,
+              "area_km2": 5,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2023-02-02",
+          "state": "ready",
+          "units": [
+            {
+              "id": "known-unit",
+              "hours": 0,
+              "area_km2": 2,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "month-2023-08",
+      "longitude": 124.5,
+      "latitude": 30.2,
+      "radius_km": 20,
+      "month": "2023-08",
+      "support_scope": "known_synthetic_units_for_declared_circle",
+      "days": [
+        {
+          "date": "2023-08-01",
+          "state": "ready",
+          "units": [
+            {
+              "id": "known-unit",
+              "hours": 0,
+              "area_km2": 4,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "month-2024-02",
+      "longitude": 124.5,
+      "latitude": 30.2,
+      "radius_km": 20,
+      "month": "2024-02",
+      "support_scope": "known_synthetic_units_for_declared_circle",
+      "days": [
+        {
+          "date": "2024-02-01",
+          "state": "ready",
+          "units": [
+            {
+              "id": "known-unit",
+              "hours": 20,
+              "area_km2": 2,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "month-2024-06",
+      "longitude": 124.5,
+      "latitude": 30.2,
+      "radius_km": 20,
+      "month": "2024-06",
+      "support_scope": "known_synthetic_units_for_declared_circle",
+      "days": [
+        {
+          "date": "2024-06-01",
+          "state": "ready",
+          "units": [
+            {
+              "id": "known-unit",
+              "hours": 10,
+              "area_km2": 2,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "month-2024-08",
+      "longitude": 124.5,
+      "latitude": 30.2,
+      "radius_km": 20,
+      "month": "2024-08",
+      "support_scope": "known_synthetic_units_for_declared_circle",
+      "days": [
+        {
+          "date": "2024-08-01",
+          "state": "ready",
+          "units": [
+            {
+              "id": "known-unit",
+              "hours": 30,
+              "area_km2": 3,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "month-2024-07",
+      "longitude": 124.5,
+      "latitude": 30.2,
+      "radius_km": 20,
+      "month": "2024-07",
+      "support_scope": "known_synthetic_units_for_declared_circle",
+      "days": [
+        {
+          "date": "2024-07-01",
+          "state": "ready",
+          "units": [
+            {
+              "id": "known-unit",
+              "hours": 999,
+              "area_km2": 1,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "month-2024-12",
+      "longitude": 124.5,
+      "latitude": 30.2,
+      "radius_km": 20,
+      "month": "2024-12",
+      "support_scope": "known_synthetic_units_for_declared_circle",
+      "days": [
+        {
+          "date": "2024-12-01",
+          "state": "missing",
+          "units": []
+        }
+      ]
+    }
+  ]
+}

@@ -7,3 +7,6 @@ deploy/*.ps1 text eol=crlf
 # Preserve upstream numeric table bytes and reproducible display artifacts.
 frontend/prototype/palettes/* text eol=lf
 frontend/prototype/data/display-domains.js text eol=lf
+
+# Frozen G3 evidence is hashed byte-for-byte; preserve LF on Windows checkouts.
+docs/reports/g3-known-validation-2026-10-26/** text eol=lf

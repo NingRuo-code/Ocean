@@ -1,0 +1,113 @@
+{
+  "schema_version": "front-response-experiment-manifest/v2",
+  "purpose": "stratified_validation_example",
+  "run_id": "1fa34f2d-2594-4e7f-b2c3-b1fe269715f3",
+  "state": "completed",
+  "created_at": "2026-10-26T11:27:51.814Z",
+  "evidence_kind": "synthetic_example",
+  "research_ready": false,
+  "transport_identity": {
+    "request_sha256": "sha256:5c2b272e4c2417fe0fce14dbc6e8e6908c5963b1b4342756318a83110c257491",
+    "input_sha256": "sha256:1587f9ad7e3be0aca988c572ba16870892cfed04f3290b86aa1bb330742a76e6"
+  },
+  "error": null,
+  "artifacts": {
+    "summary.json": "sha256:25776560431efec6356ea8a79da5da951ad4be28715b9fcb025a6b5b761cfa02",
+    "report.md": "sha256:79d3b6e8c2658b1a1b6b6e40ac7b6c026a3543151dd944695cc9bc50d828c05d"
+  },
+  "result_id": "sha256:007a9080798e83e4f05211115058346aef9f7b4d579a4c6634cdca9d94da1ca3",
+  "parameters": {
+    "purpose": "stratified_validation_example",
+    "analysis_kind": "monthly_spatial_example",
+    "method_version": "known-strata/v1",
+    "protocol_ref": "synthetic-descriptive/v1",
+    "partition_ref": "synthetic-exploration/v1",
+    "source_ref": "sha256:da686ee9cd5946b3751e4389ad6a783780eec9d9101e19317321133c21856a6a",
+    "region": {
+      "id": "authored-circle",
+      "name": "合成固定区",
+      "longitude": 124.5,
+      "latitude": 30.2
+    },
+    "radius_km": 20,
+    "season_year_rule": "calendar_year",
+    "seasons": {
+      "winter": [
+        1,
+        2,
+        12
+      ],
+      "summer": [
+        6,
+        7,
+        8
+      ]
+    },
+    "aggregation": "sum_known_nonoverlapping_H_over_E",
+    "candidates": [
+      {
+        "id": "month-2023-02",
+        "month": "2023-02",
+        "season": "winter",
+        "result_id": "sha256:8016fe8a8ddea03297b9cfc35d0116e780be8bb3949de677c64ffb440d4912aa",
+        "snapshot_sha256": "sha256:7dc6cedc47f0ea66a14f0dde23134810867af31f84c957ac26dcbd0bc76ce88f"
+      },
+      {
+        "id": "month-2023-08",
+        "month": "2023-08",
+        "season": "summer",
+        "result_id": "sha256:972c33a1c1d72ccf5c109934e31cce2eb592cf055d1e5741d521aabe6db4481f",
+        "snapshot_sha256": "sha256:b9dc257e3bfbc3e123634b20b168d110a970634f6b17fac35f405cfd7a703c7d"
+      },
+      {
+        "id": "month-2024-02",
+        "month": "2024-02",
+        "season": "winter",
+        "result_id": "sha256:0cf81002c0d55486d4994a70b96a24662a41979dee10d1bfeb2e06cbcc1d6080",
+        "snapshot_sha256": "sha256:4567e2e90b42c056e55b4e0dacb778662b0ad5c5a907201cdbc7290a81f74bb9"
+      },
+      {
+        "id": "month-2024-06",
+        "month": "2024-06",
+        "season": "summer",
+        "result_id": "sha256:f1bb8741196d24c74942c3b8629a92a3c2d8f0ed239c452424d8b3032bea8aa2",
+        "snapshot_sha256": "sha256:a11ca236f57fae00cbf141de31cd0fbf9f9bbac76fc9ebef0079441ff6edcba7"
+      },
+      {
+        "id": "month-2024-08",
+        "month": "2024-08",
+        "season": "summer",
+        "result_id": "sha256:9b925a1c3202f90404f66920d815c4aa6db005ac7b2570ecbb911f338186c7d2",
+        "snapshot_sha256": "sha256:61a6b8625505b9d4e06ae60051e6889ab24c7bd8dea1abf660857ab2b31d4cba"
+      },
+      {
+        "id": "month-2024-07",
+        "month": "2024-07",
+        "season": "summer",
+        "result_id": "sha256:708709c7b333bd54c91ed52e055f36d96c21518870216876f082eebdd7746880",
+        "snapshot_sha256": "sha256:f106ce577c9e2a1d59aef1563b8e39db352d2cf0f4db11488709323bd61f3e3f"
+      },
+      {
+        "id": "month-2024-12",
+        "month": "2024-12",
+        "season": "winter",
+        "result_id": "sha256:5868ff0b5ea8daf4d093d40d25e6838d87313732f509179a809399308a8cd5c9",
+        "snapshot_sha256": "sha256:0f075b89a6d124de234534418ceaf5745ea43b5494848f377fc3edd90ded24d8"
+      },
+      {
+        "id": "missing-2023-01",
+        "month": "2023-01",
+        "season": "winter",
+        "result_id": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "snapshot_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    ]
+  },
+  "inputs": [
+    {
+      "id": "explicit-known-month-snapshots",
+      "version": "known-strata/v1",
+      "input_sha256": "sha256:41399772cee078b9f410cfd7b832c8ffabdc8ad4e3e11fe42426f86547c0dba5"
+    }
+  ]
+}
