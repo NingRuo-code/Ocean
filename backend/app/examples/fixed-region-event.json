@@ -1,0 +1,463 @@
+{
+  "schema": "ocean-controlled-event-input/v1",
+  "id": "fixed-region-event-example",
+  "version": "synthetic-event/v1",
+  "evidence_kind": "synthetic_example",
+  "license": "CC0-1.0; authored synthetic fixture, no observations",
+  "public_aggregate_allowed": true,
+  "research_ready": false,
+  "unit": "fishing_hours",
+  "support_evidence": "synthetic-fixed-unit/v1; fixed declared circle, not GIS or real qualification",
+  "conditions": [
+    {
+      "id": "ecs-one",
+      "longitude": 124.5,
+      "latitude": 30.2,
+      "radius_km": 20,
+      "support_scope": "known_synthetic_units_for_declared_circle",
+      "days": [
+        {
+          "date": "2024-07-29",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 4,
+              "area_km2": 4,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-07-30",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 4,
+              "area_km2": 4,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-07-31",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 4,
+              "area_km2": 4,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-08-01",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 4,
+              "area_km2": 4,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-08-02",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 4,
+              "area_km2": 4,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-08-03",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 4,
+              "area_km2": 4,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-08-04",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 4,
+              "area_km2": 4,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-08-05",
+          "front_present": true,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 40,
+              "area_km2": 4,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-08-06",
+          "front_present": true,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 8,
+              "area_km2": 4,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-08-07",
+          "front_present": true,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 12,
+              "area_km2": 4,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-08-08",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 16,
+              "area_km2": 4,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-08-09",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 4,
+              "area_km2": 4,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-08-10",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 4,
+              "area_km2": 4,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-08-11",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 4,
+              "area_km2": 4,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-08-12",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 8,
+              "area_km2": 4,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        }
+      ],
+      "fixed_support": [
+        {
+          "id": "fixed-unit",
+          "area_km2": 4
+        }
+      ]
+    },
+    {
+      "id": "ecs-two",
+      "longitude": 125.5,
+      "latitude": 31.2,
+      "radius_km": 10,
+      "support_scope": "known_synthetic_units_for_declared_circle",
+      "days": [
+        {
+          "date": "2024-08-26",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 2,
+              "area_km2": 5,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-08-27",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 2,
+              "area_km2": 5,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-08-28",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 2,
+              "area_km2": 5,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-08-29",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 2,
+              "area_km2": 5,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-08-30",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 2,
+              "area_km2": 5,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-08-31",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 2,
+              "area_km2": 5,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-09-01",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 2,
+              "area_km2": 5,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-09-02",
+          "front_present": true,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 40,
+              "area_km2": 5,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-09-03",
+          "front_present": true,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 0,
+              "area_km2": 5,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-09-04",
+          "front_present": true,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 0,
+              "area_km2": 5,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-09-05",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 0,
+              "area_km2": 5,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-09-06",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 1,
+              "area_km2": 5,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-09-07",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 1,
+              "area_km2": 5,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-09-08",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 1,
+              "area_km2": 5,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        },
+        {
+          "date": "2024-09-09",
+          "front_present": false,
+          "state": "ready",
+          "units": [
+            {
+              "id": "fixed-unit",
+              "hours": 1,
+              "area_km2": 5,
+              "front_support": "valid",
+              "effort_support": "valid"
+            }
+          ]
+        }
+      ],
+      "fixed_support": [
+        {
+          "id": "fixed-unit",
+          "area_km2": 5
+        }
+      ]
+    }
+  ]
+}
