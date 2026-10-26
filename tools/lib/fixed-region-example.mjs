@@ -2,21 +2,22 @@ import { createHash, randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { closeSync, existsSync, lstatSync, mkdirSync, openSync, readSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 
 const hash = value => "sha256:" + createHash("sha256").update(value).digest("hex");
-const sameIdentity = (a,b) => a && b && Object.keys(a).length === Object.keys(b).length && Object.keys(a).every(key=>Object.hasOwn(b,key)&&a[key]===b[key]);
-const allowed = new Set(["--fixed-region-request", "--read-fixed-region-result", "--input", "--output"]);
-function options(args) {
+const ARTIFACT_BYTES = 1_048_576;
+function options(args, profile) {
+  const allowed = new Set([profile.requestFlag, profile.readFlag, "--input", "--output"]);
   const result = {};
   for (let i=0;i<args.length;i+=2) {
     if (!allowed.has(args[i]) || !args[i+1] || args[i+1].startsWith("--") || result[args[i]]) throw Error("invalid_options");
     result[args[i]] = resolve(args[i+1]);
   }
-  if (!!result["--fixed-region-request"] === !!result["--read-fixed-region-result"]) throw Error("invalid_mode");
-  if (result["--read-fixed-region-result"] && Object.keys(result).length !== 1) throw Error("read_is_not_execution");
+  if (!!result[profile.requestFlag] === !!result[profile.readFlag]) throw Error("invalid_mode");
+  if (result[profile.readFlag] && Object.keys(result).length !== 1) throw Error("read_is_not_execution");
   return result;
 }
-function boundedText(path, bytes=1_048_576) {
+function boundedText(path, bytes=ARTIFACT_BYTES) {
   if (!lstatSync(path).isFile() || lstatSync(path).isSymbolicLink()) throw Error("invalid_artifact");
   const fd=openSync(path,"r");
   try {
@@ -40,61 +41,83 @@ function report(result) {
     "实际GIS、完整事件识别、P0资格、同日对照及不确定性须在后续任务验收。", "");
   return lines.join("\n");
 }
-function readFrozen(folder) {
+function readFrozen(folder, profile) {
   if (!lstatSync(folder).isDirectory() || lstatSync(folder).isSymbolicLink()) throw Error("invalid_directory");
   const manifest=JSON.parse(boundedText(join(folder,"manifest.json")));
-  if (manifest.schema_version !== "front-response-experiment-manifest/v2" || manifest.purpose !== "fixed_region_event_example" || manifest.evidence_kind !== "synthetic_example" || manifest.research_ready !== false) throw Error("wrong_manifest");
+  if (manifest.schema_version !== "front-response-experiment-manifest/v2" || manifest.purpose !== profile.purpose || manifest.evidence_kind !== "synthetic_example" || manifest.research_ready !== false) throw Error("wrong_manifest");
   if (manifest.state === "failed") return {state:"failed",error:manifest.error,run_id:manifest.run_id};
   if (manifest.state !== "completed" || Object.keys(manifest.artifacts || {}).sort().join("|") !== "report.md|summary.json") throw Error("incomplete_manifest");
   for (const name of ["summary.json","report.md"]) {
     if (hash(boundedText(join(folder,name))) !== manifest.artifacts[name]) throw Error("artifact_mismatch");
   }
   const summary=JSON.parse(boundedText(join(folder,"summary.json")));
-  if (summary.kind !== "fixed_region_event_example" || summary.evidence_kind !== "synthetic_example" || summary.research_ready !== false || summary.result_id !== manifest.result_id) throw Error("result_mismatch");
-  if (!sameIdentity(summary.parameters,manifest.parameters) || manifest.inputs?.length !== 1 || !sameIdentity(summary.source,manifest.inputs[0])) throw Error("identity_mismatch");
+  if (summary.kind !== profile.purpose || summary.evidence_kind !== "synthetic_example" || summary.research_ready !== false || summary.result_id !== manifest.result_id) throw Error("result_mismatch");
+  if (!isDeepStrictEqual(summary.parameters,manifest.parameters) || manifest.inputs?.length !== 1 || !isDeepStrictEqual(summary.source,manifest.inputs[0])) throw Error("identity_mismatch");
   return summary;
 }
 
-export function runFixedRegionExample(args, root) {
+export function runControlledExample(args, root, profile) {
   let stage,stageParent,stagePrefix;
   try {
-    const opts=options(args);
-    if (opts["--read-fixed-region-result"]) {
-      console.log(JSON.stringify(readFrozen(opts["--read-fixed-region-result"]))); return 0;
+    const opts=options(args, profile);
+    if (opts[profile.readFlag]) {
+      console.log(JSON.stringify(readFrozen(opts[profile.readFlag], profile))); return 0;
     }
-    const output=opts["--output"] || join(root,"outputs/experiments/fixed-region-example");
+    const output=opts["--output"] || join(root,"outputs/experiments",profile.outputName);
     if (existsSync(output)) throw Error("output_already_exists");
     const parent=dirname(output),prefix=basename(output)+".staging-";
     stageParent=resolve(parent);stagePrefix=prefix;
     mkdirSync(parent,{recursive:true});stage=join(stageParent,prefix+randomUUID());mkdirSync(stage);
-    let state="failed",result,error={code:"controlled_event_failed"},requestHash=null,inputHash=null;
+    let state="failed",result,error={code:profile.errorCode},requestHash=null,inputHash=null;
     try {
-      const source=opts["--input"] || join(root,"backend/app/examples/fixed-region-event.json");
-      const requestJson=boundedText(opts["--fixed-region-request"],16_384);requestHash=hash(requestJson);
+      const source=opts["--input"] || join(root,"backend/app/examples",profile.inputName);
+      const requestJson=boundedText(opts[profile.requestFlag],16_384);requestHash=hash(requestJson);
       const inputJson=boundedText(source);inputHash=hash(inputJson);
-      const computed=spawnSync(process.env.OCEAN_EXPERIMENT_PYTHON || "python",["-m","app.fixed_region_example"],{
+      const computed=spawnSync(process.env.OCEAN_EXPERIMENT_PYTHON || "python",["-m",profile.module],{
         cwd:join(root,"backend"),encoding:"utf8",windowsHide:true,timeout:20_000,maxBuffer:4_194_304,
         input:JSON.stringify({request_json:requestJson,input_json:inputJson})});
       const value=JSON.parse(computed.stdout || "{}");
-      if (computed.status === 0 && value.state === "completed" && value.result?.kind === "fixed_region_event_example") {
+      if (computed.status === 0 && value.state === "completed" && value.result?.kind === profile.purpose) {
         state="completed";result=value.result;error=null;
       }
     } catch { /* Failed inputs never expose private locations or partial output. */ }
-    const manifest={schema_version:"front-response-experiment-manifest/v2",purpose:"fixed_region_event_example",
+    let summary, markdown;
+    if (result) {
+      try {
+        summary=JSON.stringify(result,null,2)+"\n";markdown=profile.report(result);
+        if ([summary,markdown].some(value=>Buffer.byteLength(value,"utf8")>ARTIFACT_BYTES)) throw Error("output_budget");
+      } catch { state="failed";result=null;error={code:profile.errorCode}; }
+    }
+    const manifest={schema_version:"front-response-experiment-manifest/v2",purpose:profile.purpose,
       run_id:randomUUID(),state,created_at:new Date().toISOString(),evidence_kind:"synthetic_example",research_ready:false,
       transport_identity:{request_sha256:requestHash,input_sha256:inputHash},error,artifacts:{}};
     if (result) {
-      const summary=JSON.stringify(result,null,2)+"\n",markdown=report(result);
-      writeFileSync(join(stage,"summary.json"),summary);writeFileSync(join(stage,"report.md"),markdown);
       manifest.result_id=result.result_id;manifest.parameters=result.parameters;manifest.inputs=[result.source];
       manifest.artifacts={"summary.json":hash(summary),"report.md":hash(markdown)};
+    }
+    if (Buffer.byteLength(JSON.stringify(manifest,null,2)+"\n","utf8")>ARTIFACT_BYTES) {
+      state="failed";result=null;error={code:profile.errorCode};
+      Object.assign(manifest,{state,error,artifacts:{}});
+      delete manifest.result_id;delete manifest.parameters;delete manifest.inputs;
+    }
+    if (result) {
+      writeFileSync(join(stage,"summary.json"),summary);writeFileSync(join(stage,"report.md"),markdown);
     }
     writeFileSync(join(stage,"manifest.json"),JSON.stringify(manifest,null,2)+"\n");
     renameSync(stage,output);stage=null;
     console.log(JSON.stringify({state,run_id:manifest.run_id,result_id:manifest.result_id,error}));
     return state === "completed" ? 0 : 2;
-  } catch { console.error("Fixed-region example rejected; no completed result was published.");return 2; }
+  } catch { console.error("Controlled example rejected; no completed result was published.");return 2; }
   finally {
     if (stage && existsSync(stage) && dirname(stage)===stageParent && basename(stage).startsWith(stagePrefix) && !lstatSync(stage).isSymbolicLink()) rmSync(stage,{recursive:true,force:true});
   }
+}
+
+export function runFixedRegionExample(args, root) {
+  return runControlledExample(args, root, {
+    requestFlag: "--fixed-region-request", readFlag: "--read-fixed-region-result",
+    purpose: "fixed_region_event_example", outputName: "fixed-region-example",
+    inputName: "fixed-region-event.json", module: "app.fixed_region_example",
+    errorCode: "controlled_event_failed", report,
+  });
 }
