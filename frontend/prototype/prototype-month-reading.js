@@ -162,6 +162,7 @@
   window.addEventListener("ocean-load-state",sync);
   window.addEventListener("ocean-month-draft",e=>{draftContext=e.detail;sync();OceanEvidence.sync();});
   window.addEventListener("ocean-history-view",e=>{if(e.detail!=="monthly")cancelRead();});
+  window.addEventListener("ocean-workbench-task",e=>{if(e.detail.pane!=="clim")cancelRead();});
   $("tabs").addEventListener("click",e=>{if(e.target.closest("[data-pane]")?.dataset.pane!=="clim")cancelRead();});
   window.OceanMonthlyReader = Object.freeze({openSavedResult(id){
     if(!idPattern.test(id))return;

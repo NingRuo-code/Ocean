@@ -115,5 +115,6 @@
   window.addEventListener("ocean-applied-context",sync);window.addEventListener("ocean-load-state",sync);
   window.addEventListener("ocean-month-draft",e=>{taskDraft=e.detail;sync();});
   window.addEventListener("ocean-history-view",e=>{if(e.detail!=="cases")cancel();});
+  window.addEventListener("ocean-workbench-task",e=>{if(e.detail.pane!=="clim")cancel();});
   $("tabs").addEventListener("click",e=>{if(e.target.closest("[data-pane]")?.dataset.pane!=="clim")cancel();});
 })();

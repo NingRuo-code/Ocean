@@ -78,6 +78,24 @@ test("a late monthly result cannot close the newer case evidence in the shared h
  }finally{await b.close();}
 }));
 
+for(const kind of ['case','monthly'])test(`a late denied ${kind} read cannot close evidence opened through a workbench shortcut`,()=>withService(async base=>{
+ const b=await launchBrowser(edge),c=b.cdp,pending=[];let held=null;
+ c.onEvent(m=>{if(m.method==='Fetch.requestPaused')held=m.params.requestId;});
+ try{
+  await openCases(c,base);
+  const pattern=kind==='case'?'*/query/known-cases/*':'*/query/monthly-analysis/published/*';
+  await c.send('Fetch.enable',{patterns:[{urlPattern:pattern,requestStage:'Request'}]});
+  await click(c,kind==='case'?"#caseCandidates [data-case-id='case-2024-06']":'#monthlyView');
+  for(let n=0;n<100&&!held;n++)await delay(25);assert.ok(held);
+  await click(c,"#taskWorkbench [data-open-pane='future']");await click(c,'#forecastRead');await click(c,'#forecastDetails');
+  assert.equal(await c.evaluate("document.getElementById('evidencePanel').hidden"),false);
+  await c.send('Fetch.fulfillRequest',{requestId:held,responseCode:403,responseHeaders:[{name:'Content-Type',value:'application/json'}],body:Buffer.from('{}').toString('base64')}).catch(()=>{});await delay(250);
+  assert.equal(await c.evaluate("document.getElementById('evidencePanel').hidden"),false);
+  assert.equal(await c.evaluate("document.getElementById('forecastEvidence').hidden"),false);
+  await Promise.allSettled(pending);await c.send('Fetch.disable');
+ }finally{await b.close();}
+}));
+
 test("case pages stay on the original query while applied and monthly draft edits mark it stale",()=>withService(async base=>{
  const b=await launchBrowser(edge),c=b.cdp,requests=[];
  c.onEvent(m=>{if(m.method==='Network.requestWillBeSent')requests.push(m.params.request);});
