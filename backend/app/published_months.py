@@ -135,11 +135,18 @@ def _project(entry):
     return result
 
 
+def project_public_month(entry):
+    """Shared approved month projection for public reads and controlled G3 composition."""
+    if entry.access != "public_aggregate" or entry.public_aggregate_allowed is not True:
+        raise PermissionError("Source is not approved for public reading")
+    return _project(entry)
+
+
 def published_month_results(path=PUBLISHED_PATH):
     """Shared read/projection for the API and explicitly shipped offline public sample."""
     pack, _ = read_controlled_input(path, SnapshotPack)
     return [
-        _project(entry)
+        project_public_month(entry)
         for entry in pack.snapshots
         if entry.access == "public_aggregate"
         and entry.public_aggregate_allowed is True
@@ -176,7 +183,7 @@ def create_published_router(path=PUBLISHED_PATH):
 
     def project(entry):
         try:
-            return _project(entry)
+            return project_public_month(entry)
         except (ValueError, TypeError, KeyError, ArithmeticError, AttributeError):
             raise HTTPException(
                 503,
