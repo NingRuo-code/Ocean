@@ -1,7 +1,44 @@
 import { runControlledExample } from "./fixed-region-example.mjs";
 
 const text = value => String(value ?? "未知").replace(/[\\|`*_<>\[\]#]/g, "\\$&").replace(/[\r\n]/g, " ");
+const statusLabel = state => ({comparable:"可比较",limited_side_by_side:"受限并列",incomparable:"不可比",not_ready:"未就绪"}[state] || state) + ` / ${state}`;
+const reasons = values => values.length ? values.map(r=>`\`${/^[a-z][a-z0-9_]*$/.test(r.code) ? r.code : text(r.code)}\` ${text(JSON.stringify(r))}`).join("；") : "已核对登记语义与现有支持";
+function compatibilityReport(result) {
+  const p=result.parameters;
+  const lines=["# 区域可比性 / 自建合成证据", "",
+    "所有判定仅针对已知合成支持，未完成真实研究或渔业验证。未重算A/B，未生成差值、显著性或排名。", "",
+    `比较身份：${result.result_id}`,`用途：${p.analysis_kind}；半径 ${p.radius_km} km；支持政策：${p.support_policy}。`,
+    p.month ? `月份：${p.month}。` : `锚日搜索期：${p.search_start} — ${p.search_end}。`, "",
+    "可比较表示这项已知样例口径与原支持可核对；每项和每个区域对分别判定，不代表所有数据已就绪。", "",
+    "## 区域 × 指标", "", "| 区域 | 指标/窗口 | 状态 | 原值 / 原单位 | 规范值 / 单位 | 原因与前置 |",
+    "|---|---|---|---|---|---|"];
+  for (const row of result.rows) for (const [key,c] of Object.entries(row.metric_assessments)) {
+    lines.push(`| ${text(row.candidate.name)} (${row.candidate.id}) | ${key} | ${statusLabel(c.status)} | ${c.original_value ?? "未知"} / ${text(c.original_unit)} | ${c.value ?? "未知"} / ${text(c.unit)} | ${reasons(c.reasons)}${c.conversion ? "；"+text(JSON.stringify(c.conversion)) : ""} |`);
+  }
+  lines.push("", "## 区域对 × 指标", "", "| 区域对 | 指标/窗口 | 状态 | 原因与实际差异 |", "|---|---|---|---|");
+  for (const pair of result.pairs) {
+    for (const [key,c] of Object.entries(pair.metrics)) lines.push(`| ${pair.candidates.join(" / ")} | ${key} | ${statusLabel(c.status)} | ${reasons(c.reasons)} |`);
+    lines.push("",`相关性提示 ${pair.candidates.join(" / ")}：${reasons(pair.warnings)}`,"");
+  }
+  lines.push("", "## 原支持与逐源证据", "");
+  for (const row of result.rows) {
+    const c=row.candidate;
+    lines.push(`- ${text(c.name)} (${c.id})，点 ${c.longitude}, ${c.latitude}；源结果 ${c.result_id}。`,
+      `  支持（日期、面积、H/E、有效日、排除及海域面积）：${text(JSON.stringify(row.effective_support))}`);
+    if(row.source) {
+      lines.push(`  来源 ${text(row.source.id)} / ${text(row.source.version)} / ${row.source.input_sha256}；许可 ${text(row.source.license)}。`,
+        `  实际方法与参数：${text(JSON.stringify(row.original_parameters))}；${text(JSON.stringify(row.method_equivalence || {}))}。`,
+        `  已登记合成比较事实：${text(JSON.stringify(row.comparison_facts || {}))}`);
+      for(const note of row.source_caveats)lines.push(`  原成果限制：${text(note)}`);
+    }else lines.push(`  ${text(row.reason)}；所需前置 ${text(row.required)}。`);
+  }
+  lines.push("", "不同区域不求海域几何交集；名义重叠仅为球面中心距离提示，不计算实际海水相交面积。共享日期/对照不能当独立重复，不合计小时或事件为样本数。", "",
+    "有效零保留0；缺测/未知不填0。只有登记的分钟↔小时可逆转换，保留原值和规则，不换几何、插值或强拼分组。", "",
+    "正式A/B/P0真实资格、共同支持衍生与差值、统计推断、工作台及生产仍在后续关口验收。", "");
+  return lines.join("\n");
+}
 function report(result) {
+  if (result.parameters.method_version === "known-snapshots/v2") return compatibilityReport(result);
   const p = result.parameters;
   const lines = ["# 区域证据并列 / 自建合成快照", "",
     "仅消费已存在、明确允许公开聚合的样例；不是真实渔业研究、排名或推荐。", "",

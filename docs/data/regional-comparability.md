@@ -1,0 +1,55 @@
+# C02：逐指标与区域对兼容判定
+
+关联#87/#85，基线main `028187d1ba51d9aa62c9eb5331ee846da34bdf3e`。本批沿用规格已确认的显式比较请求、实际快照读取及同身份产物接缝；独立三域小例核零/未知、单位、口径/权重、版本语义、支持/日期、重叠和局部失败。不新建科学计算或测试专用网络接口。
+
+## 使用
+
+```powershell
+node tools/run-front-response-experiment.mjs --regional-comparison-request docs/data/regional-comparability-month.example.json --input backend/app/examples/regional-comparability-snapshots.json --output outputs/experiments/compatibility-month-run1
+node tools/run-front-response-experiment.mjs --read-regional-comparison-result outputs/experiments/compatibility-month-run1
+node tools/run-front-response-experiment.mjs --regional-comparison-request docs/data/regional-comparability-event.example.json --input backend/app/examples/regional-comparability-snapshots.json --output outputs/experiments/compatibility-event-run1
+```
+
+输出目录必须是新的；仍使用既有有界输入、原子冻结/哈希回读流程。请求16KiB、输入1MiB，过程20秒/4MiB，摘要/报告/清单各1MiB；超限不发布完成产物。不触发A/B、归档、下载或模型。
+
+C02显式`method_version=known-snapshots/v2`。只有`verify_existing_support`才可核同日期/政策下既有支持；`read_existing_support`仅允许受限并列，不替用户选择对齐。v1请求/原并列合同保留，已发表v1结果身份有恒等回归。默认旧快照包不含新事实，v2必须明确提供资料，不默认升级其资格。
+
+## 消费合同与事实边界
+
+每个`SnapshotEntry`可携`comparison_facts`，使用`ocean-known-comparison-facts/v1`，绑定原结果ID和导入快照SHA；事实内容也进入整个包和C结果身份。含生命周期、新鲜度、产品/处理/质量、日界、公里圈/边界/粒度、合成水域面积、支持政策及逐指标量/估计量/权重/分组说明。
+
+这是**受控合成合同的已知事实**，并非外部输入的真实性认证或P0资格签发。支持的粒度标签、分组和水域面积只用于合成兼容/冲突小例，不宣称原始数据真实具有0.01°精度或已计算实际海陆面积。真实来源、方法与事实的权威核验由P0及正式A/B交接提供，未完成前不经本适配放行。
+
+先逐源核公开聚合声明与自建CC0合成身份，再读取其值/事实；源失败/运行中/未准备保留该列和前置，不输出完成数值。未知许可、未核方法/事实、缺成果明确未就绪；新鲜度未知/陈旧可读原快照值，但不称最新或已严格可比。私有数据不因另一个公开区域而获准。错误不返回私人定位或堆栈。
+
+原A/B结果ID不重算、不改写；另以导入SHA核实际对象。修改原快照要重新绑定导入SHA及请求；跨语言重新序列化数字可能改变导入对象形式，同样须重新核对。修改外层事实会产生新C身份，不能冒充旧判定。
+
+## 冻结语义登记
+
+| 登记 | 可用含义及限制 |
+|---|---|
+| A已知消费 | `monthly-known-support/v1`与`monthly-known-support/v1.0-label`仅为相同H/E合成读取合同的标签别名，参数仍须`known-unit-membership/v1`；不是第二算法或生产A执行版本 |
+| 处理别名 | `known-support-sum/v1`与`known-support-sum/v1.0-label`归一到同一支持求和合同，并保留等价依据与原标签 |
+| 数量/估计量 | H总小时、E面积时间、H/D支持日均、H/E密度分别命名；量、目标量、权重任一不符就限制该项，不因同名或同版本放行 |
+| 单位转换 | 仅明确表观捕捞时长的分钟→小时及对应日均/密度分钟单位，以1/60转换，逆为×60；保留原值/单位与规则。E只用已支持km²·d，不猜单位 |
+| 不自动等价 | 新算法版本、未核处理/质量、角度bbox、未知粒度或分组不能靠改标签、插值、常数换算或序号拼接放行；未知返回具体前置 |
+
+标签别名只为已知合成消费登记，任意新真实方法须有独立等价证据，不能借此声明算法升级已验收。即使标签和输入版本一样，产品、日界、质量、粒度、量、权重、支持/分组仍分别核查；不同区域不要求源内容SHA或输入版本名相同。
+
+## 判定与实际支持
+
+每区域×指标、每区域对×指标输出`comparable`、`limited_side_by_side`、`incomparable`或`not_ready`，包含机器原因、原/规范值与单位、实际冲突和所需前置。总体状态只是摘要，不替代局部判定；无合格对为`no_comparable_pairs`，保留所有候选。原值未知不填0，不计算差值、显著性、综合分或推荐排名。
+
+从已有逐日聚合读取有效日期、日面积、D、原H/E和排除状态/单元数，核支持记录与原面积时间计数自洽；不重新读取底表、不重识别事件或重估指标。未核实支持、水域面积未知、日期不同或未选严格支持政策时仅受限。H/日均在实际面积不同情况下受限；密度可以在同日期、同已登记口径及自身已知正E下并列比较，但仍不能说明海域混杂已消除。
+
+B逐窗读取前7、0日、后1–3、后1–7；核原锚日与实际日期。缺窗/坏窗只限制该窗，不以短窗填后7或删除其他合格窗口。无单一事件/未知事件保留原因，不填0。A与B用途不混列，复杂事件队列、对照效果/区间在正式B消费后接入。
+
+分组按ID及完整边界、单位、侧别比较，顺序不决定组义；不重分箱、不猜未知侧别。共同支持指时间和政策，不求不同海域的地理交集。球面6371km中心距只提示名义圈可能重叠，明确不是海水面积相交算法；共享日期/对照提示相关性，不合计小时或事件当独立样本。
+
+## 本批样例
+
+月度有三候选：甲读取既有CC0合成A结果H40/E7/D2；乙为独立手算的同日期合成合同样例H0/E7/D2，改变点、输入身份并赋新样例身份；丙缺结果。甲乙可核对应的已知子支持，丙未就绪，不把三域都说成完整2024-02研究。
+
+B两区来自C01已发表的已知合成快照并保留原结果ID，四窗原值不变。附加事实含声明的10km²合成水域面积，不是GIS成果。负例、转换/分组/标签等价都是独立合成合同测试；不称运行了新的真实A/B分析或真实地理适配。
+
+正式A/#71、B/#84交接和每区P0资料资格仍是C03/C04的真实前置；共同支持衍生/差值、图表、完整权限复用与真实多区域复算在C05以后验收。未改地图或部署生产。

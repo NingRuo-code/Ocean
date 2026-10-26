@@ -44,12 +44,17 @@ class ComparisonRequest(ClosedModel):
     search_start: Annotated[str, Field(min_length=10, max_length=10)] | None = None
     search_end: Annotated[str, Field(min_length=10, max_length=10)] | None = None
     evidence_use: Literal["descriptive_side_by_side"]
-    support_policy: Literal["read_existing_support"]
-    method_version: Literal["known-snapshots/v1"]
+    support_policy: Literal["read_existing_support", "verify_existing_support"]
+    method_version: Literal["known-snapshots/v1", "known-snapshots/v2"]
     candidates: Annotated[list[RegionCandidate], Field(min_length=2, max_length=8)]
 
     @model_validator(mode="after")
     def distinct_regions(self):
+        if (
+            self.method_version == "known-snapshots/v1"
+            and self.support_policy != "read_existing_support"
+        ):
+            raise ValueError("Version 1 preserves its original support policy")
         if self.analysis_kind == "monthly_spatial_example":
             if self.month is None or self.search_start is not None or self.search_end is not None:
                 raise ValueError("Monthly evidence requires only a month")
@@ -172,6 +177,7 @@ class SnapshotEntry(ClosedModel):
     public_aggregate_allowed: Annotated[bool, Field(strict=True)]
     snapshot_sha256: Identity
     result: dict
+    comparison_facts: object | None = None
 
 
 class SnapshotPack(ClosedModel):
