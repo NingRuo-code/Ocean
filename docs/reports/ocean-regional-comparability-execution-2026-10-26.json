@@ -1,6 +1,6 @@
 {
-  "recorded_at": "2026-10-26T05:49:56.146601+00:00",
-  "software_commit": "e91a123468b6f329b20cf226ece0c8e7c155d0f2",
+  "recorded_at": "2026-10-26T05:56:29.790333+00:00",
+  "software_commit": "7f59c3dc2d8d177d7392edd7ce369b6a995e7242",
   "evidence_kind": "synthetic_example",
   "research_ready": false,
   "artifact_role": "Public projection, not a portable original frozen directory; hashes apply to original runtime bytes.",
@@ -12,23 +12,23 @@
     "backend/app/comparison_models.py": "sha256:3b54dfd81088240c62d6aba228f8b61e931f1cbf30b828a5bdcee8e426e04cc4",
     "backend/app/regional_comparison.py": "sha256:108bc742a0a36c05a36ee49a39920ced8788ac96361a7e213a1d82b32f5d5d20",
     "backend/app/examples/regional-comparability-snapshots.json": "sha256:bf304f656430ae66fe0b491746a12c8ae7157956d338bec2cbba6ca4802d8f86",
-    "tools/lib/regional-comparison-example.mjs": "sha256:e60cedf6b99727544d64054b72a2f09deaeef9ddbb6264a393dbf5ea9d9499e4"
+    "tools/lib/regional-comparison-example.mjs": "sha256:c367b5f0b51faac18eb83833e332bfecb06e96aad3539cca262aedff6dbca14a"
   },
   "executions": [
     {
       "board": "month",
       "run": {
         "state": "completed",
-        "run_id": "0c2d21fd-2454-4aba-a9e1-07eed68336a6",
+        "run_id": "717074a5-d906-48af-b6b2-a98aa8881515",
         "result_id": "sha256:faca10af96355b9ebcf2f81fbc53d0038f323f2a13bcf790476866567f95036b",
         "error": null
       },
       "manifest": {
         "schema_version": "front-response-experiment-manifest/v2",
         "purpose": "regional_comparison_example",
-        "run_id": "0c2d21fd-2454-4aba-a9e1-07eed68336a6",
+        "run_id": "717074a5-d906-48af-b6b2-a98aa8881515",
         "state": "completed",
-        "created_at": "2026-10-26T05:49:55.550Z",
+        "created_at": "2026-10-26T05:56:29.080Z",
         "evidence_kind": "synthetic_example",
         "research_ready": false,
         "transport_identity": {
@@ -38,7 +38,7 @@
         "error": null,
         "artifacts": {
           "summary.json": "sha256:45f95462ea8ae1894b58ca3e04cf0a19ad3400a0263f1b135bc2dcf7a8793cbb",
-          "report.md": "sha256:1bc08d2c202c92ba3a158e8b81fa128eef29077d84e787d3b58a081eda7bd04b"
+          "report.md": "sha256:1bce7f65d984cc284cef9634df7fde4600e01d6ca755cd38e2be2832e2635842"
         },
         "result_id": "sha256:faca10af96355b9ebcf2f81fbc53d0038f323f2a13bcf790476866567f95036b",
         "parameters": {
@@ -885,16 +885,16 @@
       "board": "event",
       "run": {
         "state": "completed",
-        "run_id": "a8e06fac-48f4-44ed-a37f-e5f035cdeb1c",
+        "run_id": "c332a02e-9f11-4042-b83f-ae50b3b96c88",
         "result_id": "sha256:7f5a7e22a2509501c9aad64bf74406e8e7650c8a8601708353529ca7631844ec",
         "error": null
       },
       "manifest": {
         "schema_version": "front-response-experiment-manifest/v2",
         "purpose": "regional_comparison_example",
-        "run_id": "a8e06fac-48f4-44ed-a37f-e5f035cdeb1c",
+        "run_id": "c332a02e-9f11-4042-b83f-ae50b3b96c88",
         "state": "completed",
-        "created_at": "2026-10-26T05:49:56.071Z",
+        "created_at": "2026-10-26T05:56:29.674Z",
         "evidence_kind": "synthetic_example",
         "research_ready": false,
         "transport_identity": {
@@ -904,7 +904,7 @@
         "error": null,
         "artifacts": {
           "summary.json": "sha256:75079aed829eb740abc88007f3a18f24104763a16ce3d09533cf8553e6e92599",
-          "report.md": "sha256:37bf73178127d99470d874ae886220a8e5b7147d24eb26f4e906fa1146e15007"
+          "report.md": "sha256:6652a3837bfa4277e6f5f174c38086754bb677012a8bd74391e012bf50a8f2b4"
         },
         "result_id": "sha256:7f5a7e22a2509501c9aad64bf74406e8e7650c8a8601708353529ca7631844ec",
         "parameters": {
