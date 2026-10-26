@@ -203,3 +203,37 @@ test("a late first read cannot replace the subsequently selected zero-result sna
     await Promise.allSettled(pending);await c.send("Fetch.disable");
   }finally{await b.close();}
 }));
+
+
+test("a new snapshot closes any old evidence reopened while its read was pending",()=>withService(async base=>{
+  const b=await launchBrowser(edge),c=b.cdp;let held=null;
+  try{
+    await c.send("Page.enable");await c.send("Page.navigate",{url:base+"/prototype-fishing.html"});
+    await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
+    await click(c,"#workbenchToggle");await click(c,"#monthlyOpen");
+    await waitFor(c,"document.getElementById('monthlyResult').dataset.state==='ready'");
+    const first=await c.evaluate("document.getElementById('monthlyResult').dataset.resultId");
+    c.onEvent(m=>{if(m.method==="Fetch.requestPaused")held=m.params.requestId;});
+    await c.send("Fetch.enable",{patterns:[{urlPattern:"*/query/monthly-analysis/published/*",requestStage:"Request"}]});
+    await c.evaluate("document.getElementById('monthlySavedResult').focus()");
+    await c.send("Input.dispatchKeyEvent",{type:"keyDown",key:"ArrowDown",code:"ArrowDown"});
+    await c.send("Input.dispatchKeyEvent",{type:"keyUp",key:"ArrowDown",code:"ArrowDown"});
+    await c.send("Input.dispatchKeyEvent",{type:"keyDown",key:"Tab",code:"Tab"});
+    for(let n=0;n<100&&!held;n++)await delay(25);assert.ok(held);
+    await click(c,"#monthlyDetails");
+    assert.equal(await c.evaluate("document.getElementById('evidencePanel').hidden"),false);
+    assert.match(await c.evaluate("document.getElementById('evidenceIdentity').textContent"),/124.50/);
+    await c.send("Fetch.continueRequest",{requestId:held});
+    await waitFor(c,"document.getElementById('monthlyResult').dataset.state==='ready' && document.getElementById('monthlyHours').textContent==='0'");
+    assert.equal(await c.evaluate("document.getElementById('evidencePanel').hidden"),true);
+    await click(c,"#monthlyDetails");
+    const second=await c.evaluate("document.getElementById('monthlyResult').dataset.resultId");
+    assert.notEqual(second,first);
+    assert.match(await c.evaluate("document.getElementById('evidenceIdentity').textContent"),/125.50/);
+    assert.ok((await c.evaluate("document.getElementById('evidenceIdentity').textContent")).includes(second.slice(0,22)));
+    assert.ok((await c.evaluate("document.getElementById('monthlySource').textContent")).includes(second));
+    const csv=await c.evaluate("fetch(document.getElementById('monthlyDownload').href).then(r=>r.text())");
+    assert.ok(csv.includes(second));assert.ok(!csv.includes(first));
+    await c.send("Fetch.disable");
+  }finally{await b.close();}
+}));

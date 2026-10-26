@@ -116,6 +116,8 @@
     return "\uFEFF"+rows.map(row=>row.map(quote).join(",")).join("\r\n");
   }
   function render() {
+    // A user can reopen old evidence while a new read is pending. Publish atomically.
+    OceanEvidence.close(false);
     const r=record.result, m=r.metrics;
     section.dataset.state="ready";delete section.dataset.errorCode;section.dataset.resultId=r.result_id;section.dataset.projectionId=r.projection_id;$("monthlyMetrics").hidden=false;$("monthlyDetails").disabled=false;
     $("monthlyStatus").textContent=(record.from.kind === "server" ? "服务公开成果" : "离线公开成果")+" · 仅为合成样例，真实研究结果未接入。";

@@ -37,7 +37,7 @@ def main():
             if args.check
             else "Public offline monthly projection exported"
         )
-    except (OSError, ValueError, TypeError, KeyError):
+    except (OSError, ValueError, TypeError, KeyError, ArithmeticError, AttributeError):
         raise SystemExit(
             "Published aggregate unavailable or inconsistent; no fallback generated"
         ) from None
