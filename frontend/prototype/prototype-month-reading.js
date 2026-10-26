@@ -65,6 +65,12 @@
     return value;
   }
   function begin() { controller?.abort();controller=new AbortController();return ++generation; }
+  function cancelRead() {
+    if(section.dataset.state!=="reading")return;
+    generation++;controller?.abort();section.dataset.state=record?"ready":"empty";
+    $("monthlyStatus").textContent="读取已停止。"+(record?"以下保留上次读取的原成果。":"可明确重新读取目录。");
+    if(record)$("monthlySavedResult").value=record.result.result_id;
+  }
   function freeze(value) { if(value && typeof value === "object") { Object.values(value).forEach(freeze);Object.freeze(value); } return value; }
   function describe(p) { return p.month+" · "+fmtCoord(p.longitude,p.latitude)+" · "+p.radius_km+" km"; }
   function clear() {
@@ -155,6 +161,8 @@
   window.addEventListener("ocean-applied-context",sync);
   window.addEventListener("ocean-load-state",sync);
   window.addEventListener("ocean-month-draft",e=>{draftContext=e.detail;sync();OceanEvidence.sync();});
+  window.addEventListener("ocean-history-view",e=>{if(e.detail!=="monthly")cancelRead();});
+  $("tabs").addEventListener("click",e=>{if(e.target.closest("[data-pane]")?.dataset.pane!=="clim")cancelRead();});
   window.OceanMonthlyReader = Object.freeze({openSavedResult(id){
     if(!idPattern.test(id))return;
     OceanWorkbench.showResult("clim");view(true);OceanEvidence.close(false);load(id);

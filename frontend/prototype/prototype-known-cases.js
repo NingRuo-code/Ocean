@@ -31,11 +31,12 @@
     pane.dataset.errorCode=/^http_\d+$/.test(error.message)||["offline","contract","source_changed"].includes(error.message)?error.message:"read_failed";
   }
   function visible(){return !pane.hidden&&state.tab==="clim"&&!$("resultPanel").hidden;}
-  function cancel(){generation++;controller?.abort();pane.dataset.state=record?"ready":"idle";}
+  function stopped(){pane.dataset.state=record?"ready":"idle";$("caseStatus").textContent=record?"读取已停止；以下保留原条件的旧检索。":"读取已停止，可明确重新检索。";}
+  function cancel(){generation++;controller?.abort();if(pane.dataset.state==="loading")stopped();}
   function publishable(active){
     if(active.token!==generation)return false;
     if(!sameSource(active.from,source()))throw Error("source_changed");
-    if(!visible()){pane.dataset.state=record?"ready":"idle";return false;}
+    if(!visible()){stopped();return false;}
     return true;
   }
   async function perform(work){

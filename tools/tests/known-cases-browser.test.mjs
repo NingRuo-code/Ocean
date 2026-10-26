@@ -49,6 +49,35 @@ async function openCases(c,base){
  await waitFor(c,"document.getElementById('knownCasesPane').dataset.state==='ready'");
 }
 
+test("leaving an in-flight case page restores an honest stopped status on return",()=>withService(async base=>{
+ const b=await launchBrowser(edge),c=b.cdp,pending=[];let held=null;
+ c.onEvent(m=>{if(m.method==='Fetch.requestPaused'){if(m.params.request.url.includes('offset=3'))held=m.params.requestId;else pending.push(c.send('Fetch.continueRequest',{requestId:m.params.requestId}));}});
+ try{
+  await openCases(c,base);await c.send('Fetch.enable',{patterns:[{urlPattern:'*/query/known-cases?*',requestStage:'Request'}]});
+  await click(c,'#caseMore');for(let n=0;n<100&&!held;n++)await delay(25);assert.ok(held);
+  await click(c,'#monthlyView');await click(c,'#knownCaseOpen');
+  assert.doesNotMatch(await c.evaluate("document.getElementById('caseStatus').textContent"),/正在/);
+  assert.equal(await c.evaluate("document.getElementById('knownCasesPane').dataset.state"),'ready');
+  assert.equal(await c.evaluate("document.querySelectorAll('#caseCandidates button').length"),3);
+  await c.send('Fetch.continueRequest',{requestId:held}).catch(()=>{});await Promise.allSettled(pending);await c.send('Fetch.disable');
+ }finally{await b.close();}
+}));
+
+test("a late monthly result cannot close the newer case evidence in the shared history view",()=>withService(async base=>{
+ const b=await launchBrowser(edge),c=b.cdp,pending=[];let held=null;
+ c.onEvent(m=>{if(m.method==='Fetch.requestPaused'){if(m.params.request.url.includes('/published/'))held=m.params.requestId;else pending.push(c.send('Fetch.continueRequest',{requestId:m.params.requestId}));}});
+ try{
+  await openCases(c,base);await c.send('Fetch.enable',{patterns:[{urlPattern:'*/query/monthly-analysis/published/*',requestStage:'Request'}]});
+  await click(c,'#monthlyView');for(let n=0;n<100&&!held;n++)await delay(25);assert.ok(held);
+  await click(c,'#knownCaseOpen');await click(c,"#caseCandidates [data-case-id='case-2024-06']");
+  await waitFor(c,"document.getElementById('caseHours')?.textContent==='10'&&!document.getElementById('evidencePanel').hidden");
+  await c.send('Fetch.continueRequest',{requestId:held}).catch(()=>{});await delay(250);
+  assert.equal(await c.evaluate("document.getElementById('evidencePanel').hidden"),false);
+  assert.equal(await c.evaluate("document.getElementById('caseEvidence').hidden"),false);
+  await Promise.allSettled(pending);await c.send('Fetch.disable');
+ }finally{await b.close();}
+}));
+
 test("case pages stay on the original query while applied and monthly draft edits mark it stale",()=>withService(async base=>{
  const b=await launchBrowser(edge),c=b.cdp,requests=[];
  c.onEvent(m=>{if(m.method==='Network.requestWillBeSent')requests.push(m.params.request);});
