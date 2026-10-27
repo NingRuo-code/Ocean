@@ -56,4 +56,13 @@ Prepare the sanitized update/sync path for the already-deployed Alibaba Cloud se
 
 - The runbook uses placeholders and does not prove access to the real server. Actual server inventory values must be collected by the operator with server access.
 - Cache eviction is documented as a policy boundary here; implementation belongs to Ticket 07.
-- GitHub Issue synchronization could not be completed through `gh` on this machine because the CLI is not installed.
+- The initial implementation did not synchronize the GitHub issue. The 2026-10-27 follow-up uses the configured GitHub CLI; current remote status is tracked under #10.
+
+## Follow-up — 2026-10-27 (#10)
+
+- Updated the existing-server runbook for the user's planned replacement: old-server deep inventory/deploy is deferred; a minimal migration inventory and actual-target admission remain required.
+- Separated source-checkout sync from the platform-specific O01 isolated read-only package. Legacy broad deploy/setup helpers are retained but no longer recommended as the current full production release route.
+- Fixed-commit/asset manifest, environment/data boundaries, browser fallback and compatible rollback are explicit. #11 real sync, #12 completion review and OPS release/backup gates remain open.
+- The original PowerShell smoke command now emits sanitized scoped JSON, validates conditions/units/counts and distinguishes ready, limited and failed. `-RequireReady` rejects limited/skipped support; zero hours remains valid. It accepts the current frontend contract and UTF-8 native API metadata.
+- Test seam follows the original #1/#10 API/CLI entry: original FastAPI and page behind a path-only loopback ingress, plus explicitly controlled boundary failures. No production connection, deployment or raw download.
+- Checks and actual execution evidence are recorded in the implementation report before merge.
