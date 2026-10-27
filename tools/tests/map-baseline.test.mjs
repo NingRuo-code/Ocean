@@ -29,6 +29,7 @@ test("real browser baseline waits for matching data and marks small-sample tails
   assert.equal(report.sample_kind, "controlled-fixture");
   const navigation = report.attempts.find((a) => a.scenario === "navigation");
   assert.equal(navigation.status, "success");
+  assert.ok(navigation.after_action_ms >= 0 && navigation.after_action_ms <= navigation.elapsed_ms);
   assert.ok(navigation.elapsed_ms >= 300, String(navigation.elapsed_ms));
   assert.ok(report.attempts.find((a) => a.scenario === "reload").elapsed_ms >= 300);
   assert.ok(report.attempts.find((a) => a.scenario === "date-change").elapsed_ms >= 170);

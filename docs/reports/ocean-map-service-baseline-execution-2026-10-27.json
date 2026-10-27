@@ -1,0 +1,66 @@
+{
+  "schema": "ocean-original-service-baseline-execution/v1",
+  "date": "2026-10-27",
+  "ticket": 46,
+  "spec": 45,
+  "base_commit": "ba83323e6fbae9d3ad839b34a7c531a8bbd6d478",
+  "reviewed_commit": "a557b8c5442dea5108fa495745cf8b646431cbbb",
+  "evidence_kind": "local original app and existing display exports; not production or research-qualified B1",
+  "ticket_completed": false,
+  "production_contact": false,
+  "production_deployed": false,
+  "b1_qualified": false,
+  "targets_verified": false,
+  "speedup_claimed": false,
+  "old_server_inventory": "deferred per user replacement plan; #47 and #228 remain open",
+  "runs_per_mode": 3,
+  "original_service": {
+    "attempts": 15,
+    "success": 0,
+    "failure": 9,
+    "timeout": 6,
+    "success_latency_ms": null,
+    "report": "ocean-map-baseline-original-service-2026-10-27.json",
+    "profile": "original app with intentionally empty raw/cache and frozen workspace prototype data",
+    "interpretation": "day 404 is expected missing-input evidence in this isolated configuration, not a production incident or proof of a code defect"
+  },
+  "offline": {
+    "attempts": 15,
+    "success": 15,
+    "p50_ms": {
+      "navigation": 241.21370000000002,
+      "reload": 158.36040000000003,
+      "date-change": 33.65470000000005,
+      "zoom": 44.85500000000002,
+      "drag": 20.331699999999955
+    },
+    "all_p95_unknown": true,
+    "report": "ocean-map-baseline-offline-2026-10-27.json"
+  },
+  "identity": {
+    "tracked_changes_present": false,
+    "before_after": "unchanged",
+    "complete_installed_dependencies_snapshot": false,
+    "os_storage_cold": false
+  },
+  "checks": {
+    "targeted": 9,
+    "full_tools_and_browsers": 126,
+    "data": 922,
+    "syntax_and_diff": true,
+    "backend_unit_suite": "not rerun; backend business source unchanged; actual launch and API/browser consumers covered by full tools"
+  },
+  "review": {
+    "standards_initial_p2": 2,
+    "spec_initial_p2": 4,
+    "unresolved_standards": 0,
+    "unresolved_spec": 0
+  },
+  "remaining": [
+    "valid complete-activity B1 with matching support and fair comparison",
+    "usable original-service success baseline using permitted prepared data",
+    "stable tail and full dependency/cache protocol",
+    "actual P0 input qualification and activity source",
+    "new target inventory, admission and later deployment"
+  ]
+}
