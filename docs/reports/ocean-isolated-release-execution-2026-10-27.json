@@ -1,0 +1,293 @@
+{
+  "schema": "ocean-isolated-release-execution/v1",
+  "date": "2026-10-27",
+  "scope": "reviewed local Windows release; licensed map exports and authored CC0 A only",
+  "production_deployed": false,
+  "research_ready": false,
+  "source_commit": "28a3e2d5657235090a47539af0b3360228724802",
+  "release_id": "sha256:d3e35260921a4a4091628c18e48fcfa28e57611edbc305bff2dbecb07902fcb2",
+  "bundle_sha256": "sha256:b02448b29526675b28eb1449be8c5a2a30cfeeea6019278703efd81b1c83ff61",
+  "bundle_bytes": 101484071,
+  "manifest_files": 6583,
+  "manifest_file_bytes": 235121387,
+  "runtime": {
+    "cache_tag": "cpython-314",
+    "implementation": "cpython",
+    "machine": "AMD64",
+    "platform": "win32",
+    "python": "3.14.0"
+  },
+  "dependencies": {
+    "annotated-doc": "0.0.5",
+    "annotated-types": "0.7.0",
+    "anyio": "4.12.1",
+    "certifi": "2026.2.25",
+    "charset-normalizer": "3.5.1",
+    "click": "8.3.1",
+    "colorama": "0.4.6",
+    "fastapi": "0.141.1",
+    "h11": "0.16.0",
+    "h5netcdf": "1.8.1",
+    "h5py": "3.16.0",
+    "httptools": "0.8.0",
+    "idna": "3.20",
+    "numpy": "2.3.5",
+    "packaging": "25.0",
+    "pandas": "2.3.3",
+    "pydantic": "2.12.5",
+    "pydantic-core": "2.41.5",
+    "pydantic-settings": "2.15.0",
+    "python-dateutil": "2.9.0.post0",
+    "python-dotenv": "1.2.3",
+    "pytz": "2025.2",
+    "pyyaml": "6.0.3",
+    "remotezip": "0.12.6",
+    "requests": "2.34.2",
+    "scipy": "1.16.3",
+    "six": "1.17.0",
+    "starlette": "1.6.0",
+    "typing-extensions": "4.15.0",
+    "typing-inspection": "0.4.2",
+    "tzdata": "2025.2",
+    "urllib3": "2.7.0",
+    "uvicorn": "0.52.4",
+    "watchfiles": "1.2.0",
+    "websockets": "17.1",
+    "xarray": "2026.7.0"
+  },
+  "dependency_import": {
+    "module": "venv/Lib/site-packages/uvicorn/__init__.py",
+    "version": "0.52.4"
+  },
+  "system_site_packages": false,
+  "inherited_paths_ignored": true,
+  "package_members": {
+    "git": false,
+    "real_activity": false,
+    "fixture_activity": false
+  },
+  "health": {
+    "status": "ok",
+    "service": "Ocean Front Offline API",
+    "offline": true
+  },
+  "identity": {
+    "schema": "ocean-running-release/v1",
+    "release_id": "sha256:d3e35260921a4a4091628c18e48fcfa28e57611edbc305bff2dbecb07902fcb2",
+    "source_commit": "28a3e2d5657235090a47539af0b3360228724802",
+    "profile": "isolated-read-only/v1",
+    "runtime": {
+      "cache_tag": "cpython-314",
+      "implementation": "cpython",
+      "machine": "AMD64",
+      "platform": "win32",
+      "python": "3.14.0"
+    },
+    "dependencies": {
+      "annotated-doc": "0.0.5",
+      "annotated-types": "0.7.0",
+      "anyio": "4.12.1",
+      "certifi": "2026.2.25",
+      "charset-normalizer": "3.5.1",
+      "click": "8.3.1",
+      "colorama": "0.4.6",
+      "fastapi": "0.141.1",
+      "h11": "0.16.0",
+      "h5netcdf": "1.8.1",
+      "h5py": "3.16.0",
+      "httptools": "0.8.0",
+      "idna": "3.20",
+      "numpy": "2.3.5",
+      "packaging": "25.0",
+      "pandas": "2.3.3",
+      "pydantic": "2.12.5",
+      "pydantic-core": "2.41.5",
+      "pydantic-settings": "2.15.0",
+      "python-dateutil": "2.9.0.post0",
+      "python-dotenv": "1.2.3",
+      "pytz": "2025.2",
+      "pyyaml": "6.0.3",
+      "remotezip": "0.12.6",
+      "requests": "2.34.2",
+      "scipy": "1.16.3",
+      "six": "1.17.0",
+      "starlette": "1.6.0",
+      "typing-extensions": "4.15.0",
+      "typing-inspection": "0.4.2",
+      "tzdata": "2025.2",
+      "urllib3": "2.7.0",
+      "uvicorn": "0.52.4",
+      "watchfiles": "1.2.0",
+      "websockets": "17.1",
+      "xarray": "2026.7.0"
+    },
+    "known_A": "synthetic_read_only",
+    "map": "licensed_static_exports",
+    "raw_sources": "not_connected",
+    "persistent_workflows": "not_connected",
+    "models": "disabled",
+    "production": false
+  },
+  "request": {
+    "reference_date": "2024-08-05",
+    "longitude": 124.5,
+    "latitude": 30.2,
+    "radius_km": 20,
+    "library_id": "authored-exploration/v1",
+    "case_type": "monthly_background"
+  },
+  "known_case": {
+    "case_id": "case-2024-06",
+    "library_version": "sha256:afcb49288855c713c5946bff3a7f2ec66dcbbb90d5c978c68e5f604b02f893c0",
+    "search_id": "sha256:95b3be5d454b66e934a80d2bcdf72dc9c211161b079b7bdf3c81e3d12a0ecc4c",
+    "result_id": "sha256:f1bb8741196d24c74942c3b8629a92a3c2d8f0ed239c452424d8b3032bea8aa2",
+    "projection_id": "sha256:1efd2ae23b82ae31979dd3e2961317039acb80a3d1e0a3726640d14d77075507",
+    "metrics": {
+      "total_hours": 10,
+      "area_time_km2_days": 2,
+      "supported_days": 1,
+      "calendar_days": 30,
+      "mean_hours_per_supported_day": 10,
+      "density_hours_per_km2_day": 5
+    },
+    "units": {
+      "total_hours": "fishing_hours",
+      "area_time_km2_days": "km2*d",
+      "mean_hours_per_supported_day": "fishing_hours/d",
+      "density_hours_per_km2_day": "fishing_hours/(km2*d)"
+    },
+    "source": {
+      "id": "g3-known-unit-months",
+      "version": "g3-synthetic-months/v1",
+      "input_sha256": "sha256:7bee9a95f615c60a27af18a525be1be432b1e16220e2a5b12662141d6a296a03",
+      "license": "CC0-1.0; authored synthetic fixture, no observations",
+      "support_evidence": "g3-authored-support/v1; not P0 qualification or GIS"
+    }
+  },
+  "zero_case": {
+    "case_id": "case-2023-08",
+    "total_hours": 0
+  },
+  "unknown_case": {
+    "case_id": "case-2024-12",
+    "total_hours": null,
+    "density": null
+  },
+  "viewport": {
+    "meta": {
+      "status": "partial",
+      "source": "static_prototype",
+      "date": "2024-08-05",
+      "bbox": [
+        120,
+        30,
+        121,
+        31
+      ],
+      "step": 4,
+      "resolution": {
+        "spatial_deg": 0.05
+      },
+      "cache": {
+        "enabled": true,
+        "hit": false,
+        "version": "static-prototype-v1-contract-v1"
+      }
+    },
+    "coverage": {
+      "status": "partial",
+      "bbox": [
+        120,
+        30,
+        121,
+        31
+      ],
+      "requestBbox": [
+        120,
+        30,
+        121,
+        31
+      ],
+      "coveredBbox": [
+        120,
+        30,
+        121,
+        31
+      ],
+      "layers": {
+        "fronts": "empty",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      }
+    },
+    "activity_unit": "fishing_hours"
+  },
+  "blocked_maintenance_probes": {
+    "/api/ai/analyze": 403,
+    "/api/data/index/rebuild": 403
+  },
+  "omitted_asset_probes": {
+    "real-effort-input.json": 404,
+    "fixture-effort-sample.json": 404
+  },
+  "browser_post_count": 0,
+  "browser_case_reads": 4,
+  "captures": [
+    {
+      "width": 1440,
+      "before": {
+        "date": "2024-08-05",
+        "lon": 124.5,
+        "lat": 30.2,
+        "range": 20,
+        "view": {
+          "lon0": 124.5,
+          "lat0": 30.2
+        },
+        "zoom": 0.35
+      },
+      "after": {
+        "date": "2024-08-05",
+        "lon": 124.5,
+        "lat": 30.2,
+        "range": 20,
+        "view": {
+          "lon0": 124.5,
+          "lat0": 30.2
+        },
+        "zoom": 0.35
+      },
+      "screenshot": "screenshots/ocean-isolated-release-1440.png",
+      "offline_map_zoom": true
+    },
+    {
+      "width": 390,
+      "before": {
+        "date": "2024-08-05",
+        "lon": 124.5,
+        "lat": 30.2,
+        "range": 20,
+        "view": {
+          "lon0": 124.5,
+          "lat0": 30.2
+        },
+        "zoom": 0.35
+      },
+      "after": {
+        "date": "2024-08-05",
+        "lon": 124.5,
+        "lat": 30.2,
+        "range": 20,
+        "view": {
+          "lon0": 124.5,
+          "lat0": 30.2
+        },
+        "zoom": 0.35
+      },
+      "screenshot": "screenshots/ocean-isolated-release-390.png",
+      "offline_map_zoom": true
+    }
+  ],
+  "startup_ms": 102669,
+  "cache_files": 4
+}
