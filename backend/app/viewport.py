@@ -7,6 +7,7 @@ from datetime import date as DateType
 from pathlib import Path
 from typing import Any
 
+from .analysis_support import decode_controlled_json
 from .schemas import (
     ViewportCacheMetadata,
     ViewportCoverage,
@@ -17,14 +18,16 @@ from .schemas import (
     ViewportResolution,
     ViewportResponse,
 )
+from .viewport_inputs import DayExport, FrontObject, ResponseExport, ResponseRecord, SstExport
 
 FIXTURE_VERSION = "viewport-fixture-v1"
 STATIC_PROTOTYPE_VERSION = "static-prototype-v1"
-VIEWPORT_CACHE_VERSION = f"{STATIC_PROTOTYPE_VERSION}-contract-v1"
+VIEWPORT_CACHE_VERSION = f"{STATIC_PROTOTYPE_VERSION}-contract-v2"
 VIEWPORT_CACHE_SUBDIR = "viewport"
 FIXTURE_DATE = DateType(2024, 8, 5)
 FIXTURE_BBOX = (120.0, 30.0, 121.0, 31.0)
 DISPLAY_PRECISION = 4
+MAX_STATIC_BYTES = 32 * 1024 * 1024
 
 
 def _round_float(value: object, digits: int = DISPLAY_PRECISION) -> float:
@@ -57,10 +60,10 @@ def _contains_bbox(
     inner: list[float],
 ) -> bool:
     return (
-        inner[0] >= float(outer[0])
-        and inner[1] >= float(outer[1])
-        and inner[2] <= float(outer[2])
-        and inner[3] <= float(outer[3])
+        inner[0] >= float(outer[0]) - 1e-9
+        and inner[1] >= float(outer[1]) - 1e-9
+        and inner[2] <= float(outer[2]) + 1e-9
+        and inner[3] <= float(outer[3]) + 1e-9
     )
 
 
@@ -246,30 +249,68 @@ def _extract_json_object(text: str, marker: str) -> dict[str, Any] | None:
         elif char == "}":
             depth -= 1
             if depth == 0:
-                payload = json.loads(text[start : index + 1])
+                payload = decode_controlled_json(text[start : index + 1], max_bytes=MAX_STATIC_BYTES)
+                json.dumps(payload, allow_nan=False)
                 return payload if isinstance(payload, dict) else None
     return None
 
 
 def _load_js_assignment(path: Path, marker: str) -> dict[str, Any] | None:
     try:
-        return _extract_json_object(path.read_text(encoding="utf-8"), marker)
-    except (OSError, ValueError):
+        with path.open("rb") as stream:
+            raw = stream.read(MAX_STATIC_BYTES + 1)
+        if len(raw) > MAX_STATIC_BYTES:
+            return None
+        text = raw.decode("utf-8")
+        if text.count(marker) != 1:
+            return None
+        return _extract_json_object(text, marker)
+    except (OSError, ValueError, RecursionError):
         return None
 
 
 def _load_day_payload(prototype_data_dir: Path, observation_date: str) -> dict[str, Any] | None:
     marker = f'window.OF_DATA_DAYS["{observation_date}"]'
-    return _load_js_assignment(prototype_data_dir / "day" / f"{observation_date}.js", marker)
+    raw = _load_js_assignment(prototype_data_dir / "day" / f"{observation_date}.js", marker)
+    try:
+        day = DayExport.model_validate(raw)
+        if day.date is not None and day.date != observation_date:
+            return None
+    except ValueError:
+        return None
+    result = day.model_dump(mode="json")
+    objects = []
+    for raw_object in day.objects:
+        try:
+            objects.append(FrontObject.model_validate(raw_object).model_dump(mode="json"))
+        except ValueError:
+            continue
+    counts = {}
+    for item in objects:
+        counts[item["front_id"]] = counts.get(item["front_id"], 0) + 1
+    result["objects"] = [item for item in objects if counts[item["front_id"]] == 1]
+    result["_excluded_objects"] = len(day.objects) - len(result["objects"])
+    return result
 
 
 def _load_sst_payload(prototype_data_dir: Path, observation_date: str) -> dict[str, Any] | None:
     marker = f'window.OF_DATA_SST["{observation_date}"]'
-    return _load_js_assignment(prototype_data_dir / "sst" / f"{observation_date}.js", marker)
+    raw = _load_js_assignment(prototype_data_dir / "sst" / f"{observation_date}.js", marker)
+    try:
+        parsed = SstExport.model_validate(raw)
+        if parsed.date is not None and parsed.date != observation_date:
+            return None
+        return parsed.model_dump(mode="json")
+    except ValueError:
+        return None
 
 
 def _load_response_payload(prototype_data_dir: Path) -> dict[str, Any] | None:
-    return _load_js_assignment(prototype_data_dir / "front_response" / "events.js", "window.OF_FRONT_RESPONSE")
+    raw = _load_js_assignment(prototype_data_dir / "front_response" / "events.js", "window.OF_FRONT_RESPONSE")
+    try:
+        return ResponseExport.model_validate(raw).model_dump(mode="json")
+    except ValueError:
+        return None
 
 
 def _grid_bbox(grid: dict[str, Any]) -> tuple[float, float, float, float]:
@@ -303,7 +344,7 @@ def _bbox_status(request_bbox: list[float], data_bbox: tuple[float, float, float
 def _coverage_layer_status(raw_status: str, viewport_status: str) -> str:
     if raw_status in {"empty", "unavailable"}:
         return raw_status
-    return "partial" if viewport_status == "partial" else "available"
+    return "partial" if "partial" in {raw_status, viewport_status} else "available"
 
 
 def _feature_for_front(front: dict[str, Any]) -> dict[str, Any]:
@@ -313,8 +354,8 @@ def _feature_for_front(front: dict[str, Any]) -> dict[str, Any]:
         "properties": {
             "frontId": str(front.get("front_id", "")),
             "kind": "ocean_front",
-            "pixelCount": int(front.get("pixel_count") or 0),
-            "lengthKm": _round_float(front.get("length_km") or 0, 1),
+            "pixelCount": front.get("pixel_count"),
+            "lengthKm": _round_float(front["length_km"], 1) if front["length_km"] is not None else None,
             "centroid": _round_point(front.get("centroid") or [0, 0]),
             "bbox": _round_bbox(front.get("bbox") or [0, 0, 0, 0]),
             "codes": [int(code) for code in front.get("codes", [])],
@@ -323,13 +364,19 @@ def _feature_for_front(front: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _front_bbox_touches(query: list[float], bounds: list[float]) -> bool:
+    # A line's envelope may have zero width/height; it does not need raster area.
+    return (bounds[0] <= query[2] and bounds[2] >= query[0]
+            and bounds[1] <= query[3] and bounds[3] >= query[1])
+
+
 def _front_layers(day_payload: dict[str, Any], query_bbox: list[float]) -> tuple[dict[str, Any], str]:
     features = []
     for front in day_payload.get("objects", []):
         if not isinstance(front, dict):
             continue
         front_bbox = front.get("bbox")
-        if isinstance(front_bbox, list) and len(front_bbox) == 4 and _intersect_bbox(query_bbox, front_bbox):
+        if isinstance(front_bbox, list) and len(front_bbox) == 4 and _front_bbox_touches(query_bbox, front_bbox):
             features.append(_feature_for_front(front))
     layer = {
         "type": "FeatureCollection",
@@ -337,9 +384,12 @@ def _front_layers(day_payload: dict[str, Any], query_bbox: list[float]) -> tuple
         "source": {
             "kind": "static_prototype_day",
             "file": day_payload.get("source_file"),
-            "objectCount": int(day_payload.get("object_line_count") or len(day_payload.get("objects", []))),
+            "objectCount": len(day_payload.get("objects", [])),
+            "excludedObjects": day_payload.get("_excluded_objects", 0),
         },
     }
+    if day_payload.get("_excluded_objects"):
+        return layer, "partial" if features else "unavailable"
     return layer, "available" if features else "empty"
 
 
@@ -390,7 +440,7 @@ def _sst_layer(
     step: int,
 ) -> tuple[dict[str, Any], str]:
     if sst_payload is None:
-        return {"unit": "celsius", "cells": [], "source": {"kind": "missing_static_prototype_sst"}}, "unavailable"
+        return {"unit": "celsius", "cells": [], "source": {"kind": "unavailable_static_prototype_sst"}}, "unavailable"
     cells = _sample_sst_cells(sst_payload, query_bbox, step)
     product = sst_payload.get("product") if isinstance(sst_payload.get("product"), dict) else {}
     return (
@@ -461,7 +511,8 @@ def _fishing_layer(
         "metric": "apparent_fishing_effort",
         "unit": "fishing_hours",
         "cells": [],
-        "source": source or {"kind": "missing_front_response"},
+        "source": source or {"kind": "unavailable_front_response"},
+        "representation": "front_response_aggregate_points",
     }
     if response_payload is None:
         return layer, "unavailable"
@@ -469,23 +520,39 @@ def _fishing_layer(
     front_bboxes = _front_bbox_by_id(day_payload)
     records = _response_records_for_date(response_payload, observation_date)
     cells = []
+    rejected = 0
+    verified = []
     for record in records:
+        try:
+            record = ResponseRecord.model_validate(record).model_dump()
+        except ValueError:
+            rejected += 1
+            continue
+        verified.append(record)
+    counts = {}
+    for record in verified:
+        key = (record["front_id"], record["buffer_km"])
+        counts[key] = counts.get(key, 0) + 1
+    for record in verified:
+        if counts[(record["front_id"], record["buffer_km"])] != 1:
+            rejected += 1
+            continue
         front_id = str(record.get("front_id") or "")
         centroid = centroids.get(front_id)
         front_bbox = front_bboxes.get(front_id)
-        if centroid is None or front_bbox is None or not _intersect_bbox(query_bbox, front_bbox):
+        if centroid is None or front_bbox is None or not _front_bbox_touches(query_bbox, front_bbox):
             continue
         cells.append(
             {
                 "lon": centroid[0],
                 "lat": centroid[1],
                 "frontId": front_id,
-                "bufferKm": int(record.get("buffer_km") or 0),
-                "hours": _round_float(record.get("post1_3_hours") or 0, 2),
-                "pre7Hours": _round_float(record.get("pre7_hours") or 0, 2),
-                "controlHours": _round_float(record.get("non_front_control_hours") or 0, 2),
-                "liftPercent": _round_float(record.get("lift_percent") or 0, 2),
-                "enhanced": bool(record.get("enhanced_flag")),
+                "bufferKm": record["buffer_km"],
+                "hours": _round_float(record["post1_3_hours"], 2),
+                "pre7Hours": _round_float(record["pre7_hours"], 2) if record["pre7_hours"] is not None else None,
+                "controlHours": _round_float(record["non_front_control_hours"], 2) if record["non_front_control_hours"] is not None else None,
+                "liftPercent": _round_float(record["lift_percent"], 2) if record["lift_percent"] is not None else None,
+                "enhanced": record["enhanced_flag"],
                 "responseId": record.get("response_id"),
                 "coverageStatus": record.get("coverage_status") or record.get("status"),
             }
@@ -493,7 +560,8 @@ def _fishing_layer(
     layer["cells"] = cells
     layer["timeWindow"] = (response_payload or {}).get("time_window") or {}
     layer["spatialWindow"] = (response_payload or {}).get("spatial_window") or {}
-    return layer, "available" if cells else "unavailable"
+    layer["excludedRecords"] = rejected
+    return layer, ("partial" if rejected else "available") if cells else "unavailable"
 
 
 def _overall_status(
@@ -524,6 +592,7 @@ def _static_caveats(
         "Static prototype data is served through the backend viewport contract; raw NetCDF and raw AIS/GFW ingestion are not part of this endpoint yet.",
         "Fishing layer uses apparent fishing effort measured as fishing hours, not catch or yield.",
         "SST values are returned in Celsius and come from the committed static prototype SST artifact.",
+        "Response points represent post1_3_hours at front centroids, not same-day activity grid cells; missing metrics are not zero.",
     ]
     if status == "partial":
         caveats.append("Partial coverage: returned data only covers the overlap with committed prototype artifacts.")

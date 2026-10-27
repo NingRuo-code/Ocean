@@ -823,6 +823,10 @@
     {
       "source": "frontend/prototype/prototype-service-status.js",
       "target": "frontend/prototype/prototype-service-status.js"
+    },
+    {
+      "source": "backend/app/viewport_inputs.py",
+      "target": "backend/app/viewport_inputs.py"
     }
   ]
 }
