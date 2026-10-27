@@ -82,6 +82,59 @@ def query(client):
     )
 
 
+def test_original_summaries_preserve_missing_auxiliary_metrics_and_known_zero(
+    tmp_path, monkeypatch
+):
+    client, root, day, sst, response = setup_exports(tmp_path, monkeypatch)
+    record = response["by_date"]["2024-08-05"]["by_range"]["20"]
+    del record["pre7_hours"]
+    del record["non_front_control_hours"]
+    write_exports(root, day, sst, response)
+    params = {"date": "2024-08-05", "bbox": "120,30,120.1,30.1", "step": 1}
+    result = client.get("/api/query/front-response", params=params)
+    assert result.status_code == 200
+    metrics = result.json()["metrics"]
+    assert metrics["post_window_apparent_fishing_hours"] == 0
+    assert metrics["pre7_apparent_fishing_hours"] is None
+    assert metrics["non_front_control_hours"] is None
+    assert metrics["enhanced_response_count"] is None
+    assert metrics["mean_lift_percent"] is None
+    current = client.get("/api/query/current-state", params=params)
+    assert current.status_code == 200
+    assert current.json()["metrics"]["total_apparent_fishing_hours"] == 0
+    assert current.json()["metrics"]["enhanced_response_count"] is None
+
+
+@pytest.mark.parametrize("complete", [True, False])
+def test_original_summary_requires_complete_support_for_auxiliary_aggregation(
+    tmp_path, monkeypatch, complete
+):
+    client, root, day, sst, response = setup_exports(tmp_path, monkeypatch)
+    ranges = response["by_date"]["2024-08-05"]["by_range"]
+    ranges["20"].update({"lift_percent": 10, "enhanced_flag": False, "buffer_km": 20.5})
+    ranges["30"] = dict(ranges["20"], buffer_km=30, post1_3_hours=4)
+    if not complete:
+        for key in ("pre7_hours", "non_front_control_hours", "lift_percent", "enhanced_flag"):
+            del ranges["30"][key]
+    write_exports(root, day, sst, response)
+    result = client.get(
+        "/api/query/front-response",
+        params={"date": "2024-08-05", "bbox": "120,30,120.1,30.1", "step": 1},
+    )
+    assert result.status_code == 200
+    metrics = result.json()["metrics"]
+    assert metrics["response_record_count"] == 2
+    assert metrics["buffer_km"] == [20.5, 30]
+    assert metrics["post_window_apparent_fishing_hours"] == 4
+    for key, expected in (
+        ("pre7_apparent_fishing_hours", 4),
+        ("non_front_control_hours", 0),
+        ("mean_lift_percent", 10),
+        ("enhanced_response_count", 0),
+    ):
+        assert metrics[key] == (expected if complete else None)
+
+
 def test_invalid_sst_grid_degrades_only_that_layer_in_original_api(tmp_path, monkeypatch):
     client, root, day, sst, response = setup_exports(tmp_path, monkeypatch)
     sst["grid"]["nx"] = "broken"
