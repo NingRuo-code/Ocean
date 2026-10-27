@@ -22,6 +22,7 @@ test('data explanation explicitly reads layered original service status without 
  c.onEvent(m=>{if(m.method==='Network.requestWillBeSent')requests.push(m.params.request);});
  try{
   await c.send('Page.enable');await c.send('Network.enable');
+  await c.send('Emulation.setDeviceMetricsOverride',{width:1440,height:900,deviceScaleFactor:1,mobile:false});
   await c.send('Page.navigate',{url:base+'/prototype-fishing.html'});
   await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
   const before=await c.evaluate('({date:state.date,lon:state.lon,lat:state.lat,range:state.range,view:structuredClone(state.view),zoom:state.zoom})');
