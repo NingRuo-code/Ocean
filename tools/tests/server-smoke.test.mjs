@@ -7,7 +7,8 @@ import {withService} from '../lib/monthly-test-service.mjs';
 
 function smoke(base,args=[]){
   return new Promise((done,reject)=>{
-    const child=spawn('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',resolve('deploy/server-smoke.ps1'),'-BaseUrl',base,'-TimeoutSec','3',...args],{windowsHide:true,stdio:['ignore','pipe','pipe']});
+    const timeout=args.includes('-TimeoutSec')?[]:['-TimeoutSec','3'];
+    const child=spawn('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',resolve('deploy/server-smoke.ps1'),'-BaseUrl',base,...timeout,...args],{windowsHide:true,stdio:['ignore','pipe','pipe']});
     let out='',err='';child.stdout.on('data',b=>out+=b);child.stderr.on('data',b=>err+=b);child.on('error',reject);child.on('close',code=>done({code,out,err}));
   });
 }
@@ -102,11 +103,35 @@ test('invalid smoke arguments fail before networking and never echo private argu
   for(const [base,args] of [
     ['http://user:PRIVATE_SENTINEL@127.0.0.1:1',[]],
     ['http://127.0.0.1:1',['-FishingDate','PRIVATE_SENTINEL']],
+    ['http://127.0.0.1:1',['-TimeoutSec','PRIVATE_SENTINEL']],
+    ['http://127.0.0.1:1',['-TimeoutSec','99999999999999999999999']],
   ]){
     const result=await smoke(base,args);assert.equal(result.code,1);
     assert.equal((result.out+result.err).includes('PRIVATE_SENTINEL'),false);
+    assert.equal((result.out+result.err).includes('99999999999999999999999'),false);
     const value=JSON.parse(result.out);assert.equal(value.checks[0].name,'arguments');
   }
+});
+
+test('viewport smoke rejects invalid support geometry and unknown observations instead of reporting readiness',{skip:process.platform!=='win32'},async(t)=>{
+  await withService(async original=>{
+    for(const fault of ['partial-outside','partial-missing','unavailable-covered','hours-null','hours-negative','temperature-null','coordinate-invalid']){
+      await t.test(fault,async()=>withIngress(original,async base=>{
+        const result=await smoke(base,['-SkipFishing']);assert.equal(result.code,1,fault+result.out+result.err);
+        assert.equal(JSON.parse(result.out).status,'failed');
+      },(url,status,bytes)=>{
+        if(!url.startsWith('/api/viewport?'))return {status,body:bytes};
+        const body=JSON.parse(bytes);
+        if(fault.startsWith('partial')){body.meta.status='partial';body.coverage.status='partial';body.coverage.coveredBbox=fault==='partial-missing'?null:[0,0,1,1];}
+        if(fault==='unavailable-covered'){body.meta.status='unavailable';body.coverage.status='unavailable';}
+        if(fault==='hours-null')body.layers.fishingEffort.cells[0].hours=null;
+        if(fault==='hours-negative')body.layers.fishingEffort.cells[0].hours=-1;
+        if(fault==='temperature-null')body.layers.sst.cells[0].value=null;
+        if(fault==='coordinate-invalid')body.layers.sst.cells[0].lon=999;
+        return {status,body:JSON.stringify(body)};
+      }));
+    }
+  });
 });
 
 test('missing layers remain limited while a declared available layer cannot be empty',{skip:process.platform!=='win32'},async()=>{

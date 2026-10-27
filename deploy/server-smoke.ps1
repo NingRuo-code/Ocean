@@ -3,7 +3,7 @@
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)][string]$BaseUrl,
-  [int]$TimeoutSec = 30,
+  [string]$TimeoutSec = "30",
   [string]$FishingDate = "2024-08-05",
   [switch]$SkipFishing,
   [switch]$RequireReady
@@ -16,6 +16,7 @@ $checkpoint = "arguments"
 $date = "2024-08-05"
 $safeFishingDate = $null
 $safeViewportSource = $null
+$boundedTimeout = 0
 $bbox = @(122.0, 27.0, 124.2, 29.6)
 $query = "date=$date&bbox=122,27,124.2,29.6&step=4"
 
@@ -33,8 +34,11 @@ function Test-ArrayEqual($Actual, $Expected) {
   }
   return $true
 }
+function Test-Position($Lon, $Lat) {
+  return ((Test-Number $Lon) -and (Test-Number $Lat) -and [math]::Abs($Lon) -le 180 -and [math]::Abs($Lat) -le 90)
+}
 function Read-Endpoint([string]$Path, [switch]$Html) {
-  $body = & curl.exe --silent --fail --noproxy "*" --max-time $TimeoutSec --max-filesize 4194304 -- "$base$Path" 2>$null
+  $body = & curl.exe --silent --fail --noproxy "*" --max-time $boundedTimeout --max-filesize 4194304 -- "$base$Path" 2>$null
   if ($LASTEXITCODE -ne 0) { throw "request_failed" }
   $text = $body -join "`n"
   if ($Html) { return $text }
@@ -43,11 +47,22 @@ function Read-Endpoint([string]$Path, [switch]$Html) {
 function Add-Check([string]$Name, [string]$Status) {
   $checks.Add([ordered]@{ name = $Name; status = $Status })
 }
-function Check-ViewportCoverage($Value) {
+function Check-ViewportCoverage($Value, [switch]$GeographicState) {
   Assert-Contract ($Value.status -cin @("ok", "partial", "empty", "unavailable"))
   Assert-Contract (Test-ArrayEqual $Value.requestBbox $bbox)
   foreach ($name in @("fronts", "sst", "fishingEffort")) {
     Assert-Contract ($Value.layers.$name -cin @("available", "partial", "empty", "unavailable"))
+  }
+  if ($null -ne $Value.coveredBbox) {
+    $covered = $Value.coveredBbox
+    Assert-Contract ($covered -is [array] -and $covered.Count -eq 4)
+    foreach ($number in $covered) { Assert-Contract (Test-Number $number) }
+    Assert-Contract ($covered[0] -lt $covered[2] -and $covered[1] -lt $covered[3])
+    Assert-Contract ($covered[0] -ge $bbox[0] -and $covered[1] -ge $bbox[1] -and $covered[2] -le $bbox[2] -and $covered[3] -le $bbox[3])
+  }
+  if ($GeographicState) {
+    if ($Value.status -ceq "partial") { Assert-Contract ($null -ne $Value.coveredBbox) }
+    if ($Value.status -cin @("empty", "unavailable")) { Assert-Contract ($null -eq $Value.coveredBbox) }
   }
   if ($Value.status -ceq "ok") {
     foreach ($name in @("fronts", "sst", "fishingEffort")) { Assert-Contract ($Value.layers.$name -ceq "available") }
@@ -88,7 +103,8 @@ try {
   $uri = $null
   Assert-Contract ([Uri]::TryCreate($BaseUrl, [UriKind]::Absolute, [ref]$uri))
   Assert-Contract ($uri.Scheme -cin @("http", "https") -and -not $uri.UserInfo -and -not $uri.Query -and -not $uri.Fragment)
-  Assert-Contract ($TimeoutSec -ge 1 -and $TimeoutSec -le 120)
+  Assert-Contract ([int]::TryParse($TimeoutSec, [ref]$boundedTimeout))
+  Assert-Contract ($boundedTimeout -ge 1 -and $boundedTimeout -le 120)
   $parsedDate = [datetime]::MinValue
   Assert-Contract ([datetime]::TryParseExact($FishingDate, "yyyy-MM-dd", [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::None, [ref]$parsedDate))
   $safeFishingDate = $FishingDate
@@ -109,7 +125,7 @@ try {
   Assert-Contract ($viewport.meta.date -ceq $date -and $viewport.meta.step -eq 4 -and $viewport.meta.source -cin @("fixture", "static_prototype"))
   $safeViewportSource = $viewport.meta.source
   Assert-Contract (Test-ArrayEqual $viewport.meta.bbox $bbox)
-  Check-ViewportCoverage $viewport.coverage
+  Check-ViewportCoverage $viewport.coverage -GeographicState
   Assert-Contract ($viewport.meta.status -ceq $viewport.coverage.status -and $viewport.caveats -is [array])
   Assert-Contract ($viewport.layers.fronts.features -is [array] -and $viewport.layers.sst.cells -is [array] -and $viewport.layers.fishingEffort.cells -is [array])
   foreach ($name in @("fronts", "sst", "fishingEffort")) {
@@ -119,9 +135,15 @@ try {
   }
   if ($viewport.layers.sst.cells.Count -gt 0) {
     Assert-Contract ($viewport.layers.sst.unit -ceq "celsius" -and $viewport.layers.sst.sourceUnit -ceq "degree_C")
+    foreach ($cell in $viewport.layers.sst.cells) {
+      Assert-Contract ((Test-Position $cell.lon $cell.lat) -and (Test-Number $cell.value))
+    }
   }
   if ($viewport.layers.fishingEffort.cells.Count -gt 0) {
     Assert-Contract ($viewport.layers.fishingEffort.unit -ceq "fishing_hours" -and $viewport.layers.fishingEffort.metric -ceq "apparent_fishing_effort")
+    foreach ($cell in $viewport.layers.fishingEffort.cells) {
+      Assert-Contract ((Test-Position $cell.lon $cell.lat) -and (Test-Number $cell.hours) -and $cell.hours -ge 0)
+    }
   }
   if ($viewport.meta.status -ceq "ok") { Add-Check $checkpoint "ready" } else { Add-Check $checkpoint $viewport.meta.status }
 
@@ -158,8 +180,7 @@ try {
       Assert-Contract ($fishingDay.source.unit -cin @("fishing_hours", "hours", "hour", "h"))
       if ($null -ne $fishingDay.source.metric) { Assert-Contract ($fishingDay.source.metric -ceq "apparent_fishing_effort") }
       foreach ($cell in $fishingCells) {
-        Assert-Contract ((Test-Number $cell.hours) -and $cell.hours -ge 0 -and (Test-Number $cell.lon) -and (Test-Number $cell.lat))
-        Assert-Contract ([math]::Abs($cell.lon) -le 180 -and [math]::Abs($cell.lat) -le 90)
+        Assert-Contract ((Test-Number $cell.hours) -and $cell.hours -ge 0 -and (Test-Position $cell.lon $cell.lat))
       }
       Add-Check $checkpoint "ready"
     }
