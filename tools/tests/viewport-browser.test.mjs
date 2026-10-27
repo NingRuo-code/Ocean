@@ -37,6 +37,7 @@ test('original viewport renders honest partial support without global prewarming
       assert.equal(result.status.status,'partial');
       assert.equal(result.status.coverage.layers.sst,'partial');
       assert.equal(result.render,'partial');assert.match(result.text,/部分覆盖/);
+      assert.equal(await c.evaluate("document.querySelector('.legend-row[data-layer=sst]').dataset.readiness"),'partial','usable viewport SST must not be labelled missing by the separate day endpoint');
       assert.equal(result.day,null,'historical response points do not replace daily fishing data');
       assert.ok(result.calls.every(url=>!url.includes('-180%2C-90%2C180%2C90')),'planar startup never prewarms the global bbox');
       await c.evaluate("if(!state.layers.ground)document.querySelector('[data-layer=ground]').click();drawMap()");

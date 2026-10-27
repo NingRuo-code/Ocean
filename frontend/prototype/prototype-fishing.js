@@ -1088,23 +1088,28 @@ function renderLegend() {
       const fishing = k === "ground" ? OFData.fishingDay(state.date) : null;
       const usable = fishing?.cells?.some(OFData.fishingCellValid);
       const unavailable = ["loading", "error", "forbidden", "day-missing", "unprepared", "unknown-coverage", "unit-conflict"];
+      const viewportLayer = { front: "fronts", sst: "sst" }[k];
+      const support = viewportLayer && OFData.viewportState(state.date)?.coverage.layers[viewportLayer];
+      const local = k === "sst" ? OFData.hasSst(state.date) : ["front", "coldwarm"].includes(k) && OFData.hasDay(state.date);
+      const fallback = local && OFData.serverEnabled() && load && unavailable.includes(load.status);
       const readiness = k === "fishing" ? "example" : k === "ground" && !OFData.fishingAvailable() && !OFData.serverEnabled() ? "offline" :
+        support === "partial" ? "partial" : support === "available" ? "ready" : fallback ? "local-fallback" :
         load && unavailable.includes(load.status) ? load.status :
         k === "ground" && fishing && !OFData.fishingHoursUnitSupported(fishing) ? "unit-conflict" :
         k === "ground" && fishing && !usable ? "unknown-coverage" :
         (k === "ground" ? !!usable : k === "sst" ? OFData.hasSst(state.date) : OFData.hasDay(state.date)) ? "ready" : "not-ready";
       label.textContent = readiness === "ready" ? (on ? "已显示" : "已隐藏") :
-        ({ example: "示例，非实测", offline: "离线未接入", loading: "加载中", error: "请求失败", forbidden: "无权访问", "day-missing": "当日缺资料", unprepared: "未准备", "unknown-coverage": "覆盖未知", "unit-conflict": "单位冲突", "not-ready": "当日未就绪" }[readiness]);
+        ({ partial: "部分覆盖", "local-fallback": "保留本地资料", example: "示例，非实测", offline: "离线未接入", loading: "加载中", error: "请求失败", forbidden: "无权访问", "day-missing": "当日缺资料", unprepared: "未准备", "unknown-coverage": "覆盖未知", "unit-conflict": "单位冲突", "not-ready": "当日未就绪" }[readiness]);
       row.dataset.visibility = on ? "on" : "off";
       row.dataset.readiness = readiness;
       if (on && ["sst", "front", "coldwarm", "ground"].includes(k)) {
-        const ready = readiness === "ready";
+        const ready = ["ready", "partial", "local-fallback"].includes(readiness);
         const swatches = [...row.querySelectorAll(".swatch")].map(n => n.outerHTML).join("");
         let key = ready ? swatches : "";
         if (ready && k === "sst") key = '<button id="sstLegendOpen" type="button" aria-controls="layerDrawer" class="scale-key"><span class="scale-ramp" style="background:' + OFColors.sstGradient() + '"></span>' + OFColors.sstDomain().join("–") + " °C / " + OFColors.sstModeLabel() + "</button>";
         if (ready && k === "ground") key = '<button id="effortLegendOpen" type="button" aria-controls="layerDrawer" class="scale-key">' + (OFColors.effortScale(fishing) ? '<span class="scale-ramp" style="background:' + OFColors.effortGradient() + '"></span>' : "") + OFColors.effortLabel(fishing) + " / ◯ 0h</button>";
         legendRows.push('<div class="key-row">' + key +
-          ({ sst: "水温", front: "锋面线", coldwarm: "冷侧 / 暖侧", ground: "表观活动 / 小时" }[k]) + (ready ? "" : "：" + label.textContent) + "</div>");
+          ({ sst: "水温", front: "锋面线", coldwarm: "冷侧 / 暖侧", ground: "表观活动 / 小时" }[k]) + (readiness === "ready" ? "" : "：" + label.textContent) + "</div>");
       }
     }
   });
