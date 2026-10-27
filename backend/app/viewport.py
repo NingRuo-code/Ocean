@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
+from collections import Counter
 from datetime import date as DateType
 from pathlib import Path
 from typing import Any
@@ -18,7 +20,14 @@ from .schemas import (
     ViewportResolution,
     ViewportResponse,
 )
-from .viewport_inputs import DayExport, FrontObject, ResponseExport, ResponseRecord, SstExport
+from .viewport_inputs import (
+    DayExport,
+    FrontObject,
+    ResponseExport,
+    ResponseIdentity,
+    ResponseRecord,
+    SstExport,
+)
 
 FIXTURE_VERSION = "viewport-fixture-v1"
 STATIC_PROTOTYPE_VERSION = "static-prototype-v1"
@@ -229,6 +238,12 @@ def _extract_json_object(text: str, marker: str) -> dict[str, Any] | None:
     start = text.find("{", marker_index)
     if start < 0:
         return None
+    container = re.escape(marker.split("[", 1)[0])
+    prefix = re.sub(r"/\*.*?\*/|//[^\r\n]*", "", text[:marker_index], flags=re.DOTALL)
+    initializer = rf"\s*(?:{container}\s*=\s*{container}\s*\|\|\s*\{{\s*\}}\s*;)?\s*"
+    wrapped = bool(re.fullmatch(r'\s*\(function\s*\(\s*\)\s*\{\s*(?:[\'"]use strict[\'"]\s*;)?\s*', prefix))
+    if (not wrapped and not re.fullmatch(initializer, prefix)) or text[marker_index + len(marker):start].strip() != "=":
+        return None
     depth = 0
     in_string = False
     escaped = False
@@ -249,6 +264,11 @@ def _extract_json_object(text: str, marker: str) -> dict[str, Any] | None:
         elif char == "}":
             depth -= 1
             if depth == 0:
+                suffix = re.sub(r"/\*.*?\*/|//[^\r\n]*", "", text[index + 1:], flags=re.DOTALL).strip()
+                if wrapped and not re.fullmatch(r";?\s*\}\s*\)\s*\(\s*\)\s*;?", suffix):
+                    return None
+                if not wrapped and suffix not in {"", ";"}:
+                    return None
                 payload = decode_controlled_json(text[start : index + 1], max_bytes=MAX_STATIC_BYTES)
                 json.dumps(payload, allow_nan=False)
                 return payload if isinstance(payload, dict) else None
@@ -262,8 +282,6 @@ def _load_js_assignment(path: Path, marker: str) -> dict[str, Any] | None:
         if len(raw) > MAX_STATIC_BYTES:
             return None
         text = raw.decode("utf-8")
-        if text.count(marker) != 1:
-            return None
         return _extract_json_object(text, marker)
     except (OSError, ValueError, RecursionError):
         return None
@@ -279,16 +297,17 @@ def _load_day_payload(prototype_data_dir: Path, observation_date: str) -> dict[s
     except ValueError:
         return None
     result = day.model_dump(mode="json")
+    counts = Counter(item.get("front_id") for item in day.objects
+                     if isinstance(item, dict) and isinstance(item.get("front_id"), str))
     objects = []
     for raw_object in day.objects:
         try:
-            objects.append(FrontObject.model_validate(raw_object).model_dump(mode="json"))
+            parsed = FrontObject.model_validate(raw_object)
+            if counts[parsed.front_id] == 1:
+                objects.append(parsed.model_dump(mode="json"))
         except ValueError:
             continue
-    counts = {}
-    for item in objects:
-        counts[item["front_id"]] = counts.get(item["front_id"], 0) + 1
-    result["objects"] = [item for item in objects if counts[item["front_id"]] == 1]
+    result["objects"] = objects
     result["_excluded_objects"] = len(day.objects) - len(result["objects"])
     return result
 
@@ -521,20 +540,25 @@ def _fishing_layer(
     records = _response_records_for_date(response_payload, observation_date)
     cells = []
     rejected = 0
-    verified = []
+    identities = []
     for record in records:
+        try:
+            identity = ResponseIdentity.model_validate(record)
+            identities.append((identity.front_id, identity.buffer_km))
+        except ValueError:
+            identities.append(None)
+    counts = Counter(key for key in identities if key is not None)
+    partial = response_payload.get("status") == "partial"
+    for record, identity in zip(records, identities, strict=True):
+        if identity is None or counts[identity] != 1:
+            rejected += 1
+            continue
         try:
             record = ResponseRecord.model_validate(record).model_dump()
         except ValueError:
             rejected += 1
             continue
-        verified.append(record)
-    counts = {}
-    for record in verified:
-        key = (record["front_id"], record["buffer_km"])
-        counts[key] = counts.get(key, 0) + 1
-    for record in verified:
-        if counts[(record["front_id"], record["buffer_km"])] != 1:
+        if record["date"] is not None and record["date"] != observation_date:
             rejected += 1
             continue
         front_id = str(record.get("front_id") or "")
@@ -542,6 +566,7 @@ def _fishing_layer(
         front_bbox = front_bboxes.get(front_id)
         if centroid is None or front_bbox is None or not _front_bbox_touches(query_bbox, front_bbox):
             continue
+        partial = partial or "partial" in {record["coverage_status"], record["status"]}
         cells.append(
             {
                 "lon": centroid[0],
@@ -561,7 +586,7 @@ def _fishing_layer(
     layer["timeWindow"] = (response_payload or {}).get("time_window") or {}
     layer["spatialWindow"] = (response_payload or {}).get("spatial_window") or {}
     layer["excludedRecords"] = rejected
-    return layer, ("partial" if rejected else "available") if cells else "unavailable"
+    return layer, ("partial" if rejected or partial else "available") if cells else "unavailable"
 
 
 def _overall_status(

@@ -44,6 +44,9 @@ def setup_exports(tmp_path, monkeypatch):
                 "by_range": {
                     "20": {
                         "front_id": "T1",
+                        "date": "2024-08-05",
+                        "coverage_status": "available",
+                        "status": "available",
                         "buffer_km": 20,
                         "post1_3_hours": 0,
                         "pre7_hours": 2,
@@ -184,6 +187,91 @@ def test_old_contract_cache_cannot_bypass_typed_reading(tmp_path, monkeypatch):
     third = query(client).json()
     assert third["meta"]["cache"]["hit"] is True
     assert third["layers"] == second["layers"]
+
+
+@pytest.mark.parametrize(
+    "mode",
+    [
+        "unit",
+        "metric",
+        "row_unit",
+        "source_unit",
+        "row_metric",
+        "date",
+        "coverage",
+        "status",
+        "missing_coverage",
+    ],
+)
+def test_explicit_response_conflicts_and_unknown_coverage_do_not_publish_zero(
+    tmp_path, monkeypatch, mode
+):
+    client, root, day, sst, response = setup_exports(tmp_path, monkeypatch)
+    row = response["by_date"]["2024-08-05"]["by_range"]["20"]
+    if mode == "unit":
+        response["unit"] = "kg"
+    elif mode == "metric":
+        response["metric"] = "catch"
+    elif mode == "row_unit":
+        row["unit"] = "kg"
+    elif mode == "source_unit":
+        response["source"]["unit"] = "kg"
+    elif mode == "row_metric":
+        row["metric"] = "catch"
+    elif mode == "date":
+        row["date"] = "2024-08-06"
+    elif mode == "coverage":
+        row["coverage_status"] = "unavailable"
+    elif mode == "status":
+        row["status"] = "unavailable"
+    else:
+        row.pop("coverage_status")
+    write_exports(root, day, sst, response)
+    result = query(client)
+    assert result.status_code == 200
+    assert result.json()["coverage"]["layers"]["fishingEffort"] == "unavailable"
+    assert result.json()["layers"]["fishingEffort"]["cells"] == []
+
+
+@pytest.mark.parametrize("kind", ["front", "response"])
+def test_good_and_bad_records_sharing_an_identity_are_both_ambiguous(tmp_path, monkeypatch, kind):
+    client, root, day, sst, response = setup_exports(tmp_path, monkeypatch)
+    if kind == "front":
+        other = dict(day["objects"][0])
+        other["line"] = [[None, 30.025], [120.075, 30.075]]
+        day["objects"].append(other)
+    else:
+        rows = response["by_date"]["2024-08-05"]["by_range"]
+        rows["copy"] = {**rows["20"], "post1_3_hours": None}
+    write_exports(root, day, sst, response)
+    value = query(client).json()
+    name = "fronts" if kind == "front" else "fishingEffort"
+    assert value["coverage"]["layers"][name] == "unavailable"
+
+
+def test_finite_bin_inputs_cannot_overflow_the_decoded_temperature(tmp_path, monkeypatch):
+    client, root, day, sst, response = setup_exports(tmp_path, monkeypatch)
+    sst["bin_c"] = sst["product"]["bin_c"] = 1e308
+    write_exports(root, day, sst, response)
+    result = query(client)
+    assert result.status_code == 200
+    assert result.json()["coverage"]["layers"]["sst"] == "unavailable"
+    assert result.json()["layers"]["fronts"]["features"]
+
+
+def test_equivalent_second_js_assignment_is_not_ignored(tmp_path, monkeypatch):
+    client, root, _day, sst, _response = setup_exports(tmp_path, monkeypatch)
+    path = root / "sst/2024-08-05.js"
+    path.write_text(
+        path.read_text(encoding="utf-8")
+        + "\nwindow . OF_DATA_SST [ '2024-08-05' ] = "
+        + json.dumps(sst)
+        + ";",
+        encoding="utf-8",
+    )
+    result = query(client)
+    assert result.status_code == 200
+    assert result.json()["coverage"]["layers"]["sst"] == "unavailable"
 
 
 def test_valid_vertical_front_and_real_zero_response_remain_readable(tmp_path, monkeypatch):
