@@ -45,6 +45,7 @@
     Object.keys(DAYS).forEach(key => delete DAYS[key]); Object.assign(DAYS, LOCAL_DAYS);
     Object.keys(SST).forEach(key => delete SST[key]); Object.assign(SST, LOCAL_SST);
     Object.keys(PATCHES).forEach(key => delete PATCHES[key]);
+    Object.keys(VIEWPORT_RESULTS).forEach(key => delete VIEWPORT_RESULTS[key]);
     FISHING.days = {}; FISHING.inflight = {};
     SERVER.inflight = {}; VIEW_WINDOW.inflight = {};
   }
@@ -302,6 +303,7 @@
   // 窗口很大时自动降采样成概览（front.overview 标明口径，概览不做对象识别）；
   // 放大到 40° 以内自动换 0.05° 明细。离线（file://）没有服务器，只有本地那一片，行为不变。
   const PATCHES = {};              // iso -> [patch]（patch = 一片数据 + 自己的 grid）
+  const VIEWPORT_RESULTS = {};     // 按请求窗口记住已核对的覆盖，不能把覆盖范围当请求范围。
   const MAX_PATCHES_PER_DATE = 4;
   const VIEW_WINDOW = { key: null, bbox: null, step: 1, inflight: {} };
 
@@ -370,6 +372,8 @@
       sst: payload.sst || null,
       sstCoarse: payload.sst_coarse || null,      // 全球粗格海温（1°）：垫在明细下面，别处也有海温
       primary: !!isPrimary,
+      response: payload.response || null,
+      requestKey: payload.request_key || null,
     };
     const list = PATCHES[iso] || (PATCHES[iso] = []);
     const at = list.findIndex(function (item) { return item.key === entry.key; });
@@ -457,12 +461,12 @@
     const cells = layer && Array.isArray(layer.cells) ? layer.cells : [];
     if (!cells.length) return null;
     const grid = gridFromBbox(bbox, resolutionDeg);
-    const binC = 0.5;
+    const binC = 0.01; // API显示值已取两位；不再次量化到0.5°C。
     const runs = [];
     cells.forEach(function (cell) {
-      const lon = Number(cell.lon);
-      const lat = Number(cell.lat);
-      const value = Number(cell.value);
+      const lon = cell.lon;
+      const lat = cell.lat;
+      const value = cell.value;
       if (!Number.isFinite(lon) || !Number.isFinite(lat) || !Number.isFinite(value)) return;
       const col = Math.round((lon - grid.lon0) / grid.dlon);
       const row = Math.round((lat - grid.lat0) / grid.dlat);
@@ -474,34 +478,16 @@
       bin_c: binC,
       runs: mergeRuns(runs),
       stats: layer.stats || {},
-      product: { unit: "degree_C", bin_c: binC },
+      product: { ...(layer.source?.product || {}), unit: "degree_C", bin_c: binC },
+      source_product: layer.source?.product || null,
       source_file: "backend:/api/viewport",
-    };
-  }
-
-  function rememberViewportFishing(iso, layer) {
-    const cells = layer && Array.isArray(layer.cells) ? layer.cells : [];
-    if (!cells.length) return;
-    FISHING.days[iso] = {
-      date: iso,
-      cell_count: cells.length,
-      cells: cells.map(function (cell) {
-        return {
-          lon: Number(cell.lon),
-          lat: Number(cell.lat),
-          hours: typeof cell.hours === "number" ? cell.hours : NaN,
-          vessel_count: Number(cell.vesselCount || cell.vessel_count) || 0,
-          frontId: cell.frontId || null,
-        };
-      }),
-      source: layer.source || null,
     };
   }
 
   function viewportPayloadToPatchPayload(iso, payload) {
     if (!payload || !payload.meta || !payload.layers) return null;
     const coverage = payload.coverage || {};
-    const bbox = coverage.coveredBbox || coverage.bbox || payload.meta.bbox;
+    const bbox = coverage.coveredBbox;
     if (!Array.isArray(bbox) || bbox.length !== 4 || payload.meta.status === "unavailable") return null;
     const step = Number(payload.meta.step) || 1;
     const baseRes = payload.meta.resolution && Number(payload.meta.resolution.spatial_deg) ? Number(payload.meta.resolution.spatial_deg) : 0.05;
@@ -516,16 +502,17 @@
         return {
           front_id: String(props.frontId || props.front_id || ("V" + String(index + 1).padStart(3, "0"))),
           line: line,
-          length_km: Number(props.lengthKm || props.length_km || 0),
-          pixel_count: Number(props.pixelCount || props.pixel_count || line.length || 0),
+          length_km: props.lengthKm ?? props.length_km ?? null,
+          pixel_count: props.pixelCount ?? props.pixel_count ?? null,
           codes: Array.isArray(props.codes) ? props.codes : [],
           centroid: Array.isArray(props.centroid) ? props.centroid : lineCentroid(line),
           bbox: Array.isArray(props.bbox) ? props.bbox : lineBbox(line),
         };
       });
     const frontRuns = frontRunsFromObjects(objects, grid);
-    rememberViewportFishing(iso, payload.layers.fishingEffort);
     return {
+      response: payload.layers.fishingEffort?.representation === "front_response_aggregate_points"
+        ? payload.layers.fishingEffort : null,
       window: {
         bbox: bbox,
         step: step,
@@ -551,22 +538,40 @@
   }
 
   /** 视野与预热共享当前身份内请求；失败不关闭其他可用图层。 */
-  function fetchPatch(iso, key, url, kind) {
-    const list = PATCHES[iso] || [];
-    if (list.some(function (item) { return item.key === key; })) return Promise.resolve(true);
+  function fetchPatch(iso, key, url) {
+    const settled = reusableViewportResult(iso, key);
+    if (settled) {
+      publishLoad("viewport", settled.status);
+      return Promise.resolve(settled.usable);
+    }
     const epoch = requestEpoch, identity = epoch + ":" + iso + ":" + key;
     if (VIEW_WINDOW.inflight[identity]) return VIEW_WINDOW.inflight[identity];
     const task = requestJson(url, "viewport", epoch)
       .then(function (payload) {
         if (epoch !== requestEpoch) return false;
-        if (payload.meta?.date && payload.meta.date !== iso) throw new Error("response_date_mismatch");
-        if (payload.meta?.status === "empty" || payload.meta?.status === "unavailable") {
-          publishLoad("viewport", payload.meta.status === "empty" ? "unknown-coverage" : "unprepared");
-          return false;
-        }
-        const adapted = kind === "viewport" ? viewportPayloadToPatchPayload(iso, payload) : payload;
-        const ok = !!addPatch(iso, adapted, false);
-        publishLoad("viewport", ok ? "ready" : "unknown-coverage");
+        const requested = new URL(url, location.href).searchParams;
+        if (payload.meta?.date !== iso || !["ok", "partial", "empty", "unavailable"].includes(payload.meta?.status) ||
+            JSON.stringify(payload.meta.bbox) !== JSON.stringify(requested.get("bbox").split(",").map(Number)) ||
+            payload.meta.step !== Number(requested.get("step")) || !payload.coverage?.layers || !Array.isArray(payload.caveats) ||
+            JSON.stringify(payload.coverage.requestBbox) !== JSON.stringify(payload.meta.bbox) ||
+            payload.coverage.status !== payload.meta.status ||
+            !["fronts", "sst", "fishingEffort"].every(name => ["available", "partial", "empty", "unavailable"].includes(payload.coverage.layers[name]))) throw new Error("invalid_viewport_identity");
+        if (payload.layers?.sst?.cells?.length && (payload.layers.sst.unit !== "celsius" || payload.layers.sst.sourceUnit !== "degree_C")) throw new Error("invalid_sst_unit");
+        const effort = payload.layers?.fishingEffort;
+        if (effort?.representation === "front_response_aggregate_points" &&
+            (effort.unit !== "fishing_hours" || effort.metric !== "apparent_fishing_effort")) throw new Error("invalid_effort_meaning");
+        const empty = ["empty", "unavailable"].includes(payload.meta.status);
+        const adapted = empty ? null : viewportPayloadToPatchPayload(iso, payload);
+        if (adapted) adapted.request_key = key;
+        const patch = adapted && addPatch(iso, adapted, false);
+        const ok = !!patch;
+        if (!empty && !ok) throw new Error("invalid_viewport_support");
+        const result = { key, patchKey: patch?.key || null, status: payload.meta.status === "ok" ? "ready" : payload.meta.status, usable: ok,
+          meta: payload.meta, coverage: payload.coverage, caveats: payload.caveats,
+          sources: Object.fromEntries(["fronts", "sst", "fishingEffort"].map(name => [name, payload.layers[name]?.source || null])) };
+        const history = VIEWPORT_RESULTS[iso] = (VIEWPORT_RESULTS[iso] || []).filter(item => item.key !== key);
+        history.push(result);while (history.length > MAX_PATCHES_PER_DATE) history.shift();
+        publishLoad("viewport", result.status);
         return ok;
       })
       .catch(function (error) {
@@ -592,20 +597,26 @@
   }
 
   /** 取某天当前视野的窗口片 */
-  function ensureViewport(iso) {
+  function ensureViewport(iso, force) {
     if (!SERVER.enabled || !VIEW_WINDOW.bbox) return Promise.resolve(false);
-    if (coveredByPatch(iso, VIEW_WINDOW.bbox, VIEW_WINDOW.step)) return Promise.resolve(true);
-    return fetchPatch(iso, VIEW_WINDOW.key, viewportUrl(iso, VIEW_WINDOW.bbox, VIEW_WINDOW.step), "viewport");
+    if (force) VIEWPORT_RESULTS[iso] = (VIEWPORT_RESULTS[iso] || []).filter(item => item.key !== VIEW_WINDOW.key);
+    return fetchPatch(iso, VIEW_WINDOW.key, viewportUrl(iso, VIEW_WINDOW.bbox, VIEW_WINDOW.step));
   }
 
-  /** 预热「整颗地球 2° 概览」：服务器模式下启动就把全球锋面拿一次，
-   *  这样缩到球面立刻有数据（不必等 0.42s 防抖 + 首次 ~2s 现算；服务器侧也有缓存）。 */
-  const GLOBAL_BBOX = [-180, -90, 180, 90];
-  const OVERVIEW_STEP = 40;                       // 2°：全球 180×90，实测 89KB / 缓存命中 0.03s
+  function viewportState(iso) {
+    const result = reusableViewportResult(iso, VIEW_WINDOW.key);
+    return result ? JSON.parse(JSON.stringify(result)) : null;
+  }
+
+  function reusableViewportResult(iso, key) {
+    const result = (VIEWPORT_RESULTS[iso] || []).find(item => item.key === key);
+    if (!result || (result.usable && !(PATCHES[iso] || []).some(p => p.key === result.patchKey && p.requestKey === key))) return null;
+    return result;
+  }
+
+  /** 兼容既有入口；只预取当前视野，不在平面操作时额外请求全球。 */
   function prefetchOverview(iso) {
-    if (!SERVER.enabled) return Promise.resolve(false);
-    const key = bboxKey(GLOBAL_BBOX, OVERVIEW_STEP);
-    return fetchPatch(iso, key, viewportUrl(iso, GLOBAL_BBOX, OVERVIEW_STEP), "viewport");
+    return ensureViewport(iso);
   }
 
   /** 渲染用：该日所有数据片，按「粗 → 细」排（概览先画，明细压在上面） */
@@ -860,7 +871,14 @@
     setViewWindow: setViewWindow,
     viewWindow: viewWindow,
     ensureViewport: ensureViewport,
-    viewportReady: function (iso) { return !!(VIEW_WINDOW.bbox && coveredByPatch(iso, VIEW_WINDOW.bbox, VIEW_WINDOW.step)); },
+    viewportState: viewportState,
+    viewportReady: function (iso) { return viewportState(iso)?.status === "ready" && !!(VIEW_WINDOW.bbox && coveredByPatch(iso, VIEW_WINDOW.bbox, VIEW_WINDOW.step)); },
+    viewportResponses: function (iso) {
+      const result = viewportState(iso);
+      if (!result?.usable) return [];
+      const patch = patches(iso).find(p => p.key === result.patchKey && p.requestKey === result.key);
+      return patch?.response ? [patch.response] : [];
+    },
     prefetchOverview: prefetchOverview,
     workingWindow: workingWindow,
     stepForWindow: stepForWindow,
