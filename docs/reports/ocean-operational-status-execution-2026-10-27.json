@@ -1,0 +1,132 @@
+{
+  "schema": "ocean-operational-status-execution/v1",
+  "date": "2026-10-27",
+  "ticket": 233,
+  "spec": 226,
+  "baseline_commit": "70072bb40863085cad474e8a5455c71383341924",
+  "reviewed_application_commit": "617c8e7e5f4666a0c7ac83b7a25ed0e1a903fecd",
+  "test_revision": "a128f4971b118978999b1029b78fc51c9072808d",
+  "production_login": false,
+  "production_deployed": false,
+  "research_ready": false,
+  "real_incident_evidence": false,
+  "fixed_release": {
+    "evidence": "O07_fixed_release_status",
+    "source_commit": "268c0a941047d52cd3c849f1a47beab5f135edd8",
+    "release_id": "sha256:5cbcc3bc0638f71bdcb8f7071c13a728ac420e1b9983b91274e5ead7cbf34e55",
+    "policy_version": "ocean-light-status/1",
+    "map_days": 62,
+    "published_read": "readable_example",
+    "models": "disabled_by_profile",
+    "p0": "not_connected",
+    "production": false,
+    "source_kind": "independent Git source fixture created by the actual build/install test; not repository main or production"
+  },
+  "checks": {
+    "targeted_original_api": 9,
+    "complete_backend": 206,
+    "complete_tools": 119,
+    "new_browser_and_probe": 6,
+    "data": 922,
+    "e2e": 129,
+    "layout_widths": [
+      1680,
+      1440,
+      1280,
+      390
+    ]
+  },
+  "bounds": {
+    "sampling_interval_seconds": 30,
+    "sample_max_age_seconds": 90,
+    "sampling_wait_deadline_seconds": 2,
+    "active_sampling_jobs_per_process": 1,
+    "stored_snapshots_per_process": 1,
+    "disk_history": false,
+    "index_max_bytes": 65536,
+    "sample_input_max_bytes": 1048576,
+    "effort_manifest_max_bytes": 262144,
+    "registered_dates_max": 3660,
+    "browser_request_timeout_seconds": 3,
+    "operator_probe_paths_max": 2,
+    "operator_probe_deadline_per_path_seconds": 6,
+    "operator_response_max_bytes": 65536
+  },
+  "normal_read": {
+    "source": "original_application_loopback",
+    "map_index": {
+      "front_registered_days": 62,
+      "sst_registered_days": 62,
+      "observation_start": "2024-07-01",
+      "observation_end": "2024-08-31",
+      "generated_at": "2026-09-12",
+      "freshness": "historical_archive",
+      "update_cadence": "unknown",
+      "payload_integrity": "not_probed"
+    },
+    "published_read": "synthetic_example_only",
+    "analysis_execution": "not_probed",
+    "release_identity": null,
+    "unconnected_layers": [
+      "fishing_effort",
+      "p0_qualification",
+      "proxy",
+      "tasks",
+      "backups"
+    ],
+    "normal_browser_post_count": 0,
+    "map_conditions_center_and_zoom_preserved": true,
+    "offline_map_operable": true
+  },
+  "controlled_faults": {
+    "http_statuses": [
+      404,
+      503
+    ],
+    "invalid_schema": true,
+    "missing_timezone_rejected": true,
+    "stale_sample": true,
+    "future_sample_time": true,
+    "hung_browser_read_timeout": true,
+    "local_expiry_without_polling": true,
+    "late_response_after_mode_change_ignored": true,
+    "server_io_deadline_and_single_job": true,
+    "late_server_work_cannot_restore_ready": true,
+    "loopback_and_proxy_status_failure_separate": true
+  },
+  "captures": [
+    {
+      "width": 1440,
+      "height": 900,
+      "environment": "ordinary original application on loopback; release not registered",
+      "path": "screenshots/ocean-operational-status-1440.png"
+    },
+    {
+      "width": 390,
+      "height": 900,
+      "environment": "ordinary original application on loopback; release not registered",
+      "path": "screenshots/ocean-operational-status-390.png"
+    }
+  ],
+  "review": {
+    "standards_initial_hard_findings": 0,
+    "standards_robustness_suggestion": "timezone-ambiguous timestamp rejected in browser as in operator probe",
+    "spec_initial_p2": 1,
+    "spec_correction": "server sampling deadline, no held file-read lock, single daemon work, late-result isolation",
+    "unresolved_standards": 0,
+    "unresolved_spec": 0
+  },
+  "remaining": [
+    "actual trusted server connection and runtime inventory #47",
+    "target admission #228",
+    "private ingress and task phase dependencies of alerts #234",
+    "actual P0 qualification, persistent task and backup signal integration",
+    "real research, other-platform and production evidence"
+  ],
+  "limitations": [
+    "hung low-level IO is not force-terminated; at most one daemon sample remains until IO recovers",
+    "recent-success records are process memory only and reset after restart",
+    "registration and synthetic reads are not file-integrity or research-readiness proof"
+  ],
+  "capture_revision": "a6e7764dae5d766bfc437ab8e123318c79dff260"
+}
