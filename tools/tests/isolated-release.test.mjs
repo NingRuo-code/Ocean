@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,mkdir,readFile,writeFile,copyFile,rm,readdir} from 'node:fs/promises';
+import {mkdtemp,mkdir,readFile,writeFile,copyFile,rm,readdir,symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,dirname,resolve,basename} from 'node:path';
 import {spawnSync,spawn} from 'node:child_process';
@@ -34,9 +34,11 @@ test('fixed release starts original API from an independently installed no-Git p
   await writeFile(join(f.repo,'.env'),'SELF_AUTHORED_UNAPPROVED_SECRET');
   await writeFile(join(f.repo,'frontend/prototype/prototype-fishing.html'),'UNAPPROVED_WORKTREE');
   const built=command(['build','--repo',f.repo,'--commit',f.commit,'--out',bundle]);
+  const members=spawnSync(python,['-c',"import zipfile,sys,json;print(json.dumps(zipfile.ZipFile(sys.argv[1]).namelist()))",bundle],{encoding:'utf8',windowsHide:true,timeout:15000});assert.equal(members.status,0,members.stderr);
+  for(const name of ['real-effort-input.json','fixture-effort-sample.json'])assert.equal(JSON.parse(members.stdout).includes('frontend/prototype/data/front_response/'+name),false);
   command(['init','--root',isolation]);
   const installed=command(['install','--bundle',bundle,'--expected',built.bundle_sha256,'--commit',f.commit,'--root',isolation]);
-  child=spawn(installed.python,['-I','-S',join(installed.path,'deploy/release.py'),'serve','--release',installed.path,'--expected',built.release_id],{windowsHide:true,stdio:['ignore','pipe','pipe'],env:{...process.env,OCEAN_AI_PROVIDER:'local',OCEAN_MONTHLY_EXECUTION_TOKEN:'untrusted-parent-token'}});
+  child=spawn(installed.python,['-I','-S','-B',join(installed.path,'deploy/release.py'),'serve','--release',installed.path,'--expected',built.release_id],{windowsHide:true,stdio:['ignore','pipe','pipe'],env:{...process.env,OCEAN_AI_PROVIDER:'local',OCEAN_MONTHLY_EXECUTION_TOKEN:'untrusted-parent-token'}});
   let output='',errors='',base;child.stdout.on('data',b=>{output+=b;try{base=JSON.parse(output.split('\n')[0]).base;}catch{}});child.stderr.on('data',b=>errors+=b);
   for(let n=0;n<2400&&!base;n++){if(child.exitCode!==null)throw Error(errors);await delay(50);}assert.ok(base,errors);
   for(let n=0;n<100;n++){try{if((await fetch(base+'/api/health')).ok)break;}catch{}await delay(50);}
@@ -48,12 +50,13 @@ test('fixed release starts original API from an independently installed no-Git p
   const zero=await(await fetch(base+'/api/query/known-cases/case-2023-08?'+q+'&library_version='+encodeURIComponent(page.library_version))).json();assert.equal(zero.original.metrics.total_hours,0);
   const later=q.replace('2024-08-05','2025-01-01'),laterPage=await(await fetch(base+'/api/query/known-cases?'+later)).json();
   const unknown=await(await fetch(base+'/api/query/known-cases/case-2024-12?'+later+'&library_version='+encodeURIComponent(laterPage.library_version))).json();assert.equal(unknown.original.metrics.total_hours,null);assert.equal(unknown.original.metrics.density_hours_per_km2_day,null);
-  const viewport=await(await fetch(base+'/api/viewport?date=2024-08-05&bbox=120,30,121,31&step=4')).json();assert.equal(viewport.coverage.layers.fishing_effort,'unavailable');assert.equal(viewport.layers.fishing_effort.unit,'fishing_hours');
+  const viewport=await(await fetch(base+'/api/viewport?date=2024-08-05&bbox=120,30,121,31&step=4')).json();assert.equal(viewport.coverage.layers.fishingEffort,'unavailable');assert.equal(viewport.layers.fishingEffort.unit,'fishing_hours');
   assert.equal((await fetch(base+'/api/ai/analyze',{method:'POST',body:'{}'})).status,403);
   assert.equal((await fetch(base+'/api/data/index/rebuild',{method:'POST'})).status,403);
   assert.equal((await fetch(base+'/data/front_response/events.js')).status,200);assert.match(await(await fetch(base+'/data/front_response/events.js')).text(),/= null;/);
   const config=await readFile(join(installed.path,'venv','pyvenv.cfg'),'utf8');assert.match(config,/include-system-site-packages = false/);
   assert.equal((await fetch(base+'/.git/config')).status,404);
+  for(const name of ['real-effort-input.json','fixture-effort-sample.json'])assert.equal((await fetch(base+'/data/front_response/'+name)).status,404);
   assert.doesNotMatch(await(await fetch(base+'/prototype-fishing.html')).text(),/UNAPPROVED_WORKTREE/);
   await t.test('static ingress never serves files absent from the approved asset manifest',async()=>{
    const extra=join(installed.path,'frontend/prototype/private-note.txt');
@@ -86,7 +89,7 @@ test('fixed release starts original API from an independently installed no-Git p
     assert.equal(await c.evaluate('window.OF_FRONT_RESPONSE'),null);assert.equal(requests.some(r=>r.method==='POST'),false);
    }finally{await browser.close();}
   });
- }finally{if(child&&child.exitCode===null){if(process.platform==='win32')spawnSync('taskkill',['/PID',String(child.pid),'/T','/F'],{windowsHide:true});else child.kill();await Promise.race([new Promise(r=>child.once('exit',r)),delay(2000)]);}await f.close();}
+ }finally{if(child&&child.exitCode===null){if(process.platform==='win32')spawnSync('taskkill',['/PID',String(child.pid),'/T','/F'],{windowsHide:true,timeout:15000});else child.kill();await Promise.race([new Promise(r=>child.once('exit',r)),delay(2000)]);}await f.close();}
 });
 
 test('malformed bundle errors are bounded and preserve the existing isolation root',async()=>{
@@ -158,5 +161,43 @@ test('fixed-source construction refuses credential-shaped material even when it 
   git(['init','-q']);git(['add','.']);git(['-c','user.name=ReleaseCheck','-c','user.email=check@example.invalid','-c','commit.gpgsign=false','commit','-qm','Self-authored content refusal check']);
   const r=spawnSync(python,[script,'build','--repo',repo,'--commit',git(['rev-parse','HEAD']),'--out',join(root,'unpublished.zip')],{encoding:'utf8',windowsHide:true,timeout:15000});
   assert.equal(r.status,1);assert.equal(JSON.parse(r.stderr).error,'sensitive_source_content');assert.equal((await readdir(root)).includes('unpublished.zip'),false);
+ }finally{if(dirname(root)===tmpdir()&&basename(root).startsWith('ocean-release-check-'))await rm(root,{recursive:true,force:true,maxRetries:3});}
+});
+
+test('startup refuses unregistered importable code and configuration before importing original dependencies',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'ocean-release-check-'));
+ const prep=`import sys,json,hashlib,platform,os,shutil
+from pathlib import Path
+q=json.load(sys.stdin);r=Path(q['root']);(r/'deploy').mkdir(parents=True);(r/'backend').mkdir();(r/'frontend/prototype').mkdir(parents=True)
+site=r/'venv'/('Lib/site-packages' if os.name=='nt' else f'lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages');site.mkdir(parents=True)
+for p in ['raw','cache','tmp','outputs','logs']:(r/'state'/p).mkdir(parents=True)
+shutil.copyfile(q['script'],r/'deploy/release.py');(r/'deploy/release-allowlist.json').write_text('{}')
+sha=lambda x:'sha256:'+hashlib.sha256(x).hexdigest();canon=lambda x:json.dumps(x,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()
+files={p:{'bytes':len((r/p).read_bytes()),'sha256':sha((r/p).read_bytes())} for p in ['deploy/release.py','deploy/release-allowlist.json']}
+m={'schema':'ocean-isolated-release/v1','profile':'isolated-read-only/v1','source_commit':'a'*40,'allowlist_sha256':sha(b'{}'),'runtime':{'python':platform.python_version(),'implementation':sys.implementation.name,'cache_tag':sys.implementation.cache_tag,'platform':sys.platform,'machine':platform.machine()},'dependencies':{},'files':files};m['release_id']=sha(canon(m));(r/'manifest.json').write_bytes(canon(m))
+p=site/'uvicorn.py' if q['extra']=='runtime' else r/q['extra'];p.write_text('raise RuntimeError("UNREGISTERED_IMPORTED")')
+print(json.dumps({'id':m['release_id']}))`;
+ try{
+  for(const [n,extra] of ['backend/uvicorn.py','backend/.env','runtime'].entries()){
+   const release=join(root,'case-'+n),made=spawnSync(python,['-c',prep],{input:JSON.stringify({root:release,script,extra}),encoding:'utf8',windowsHide:true,timeout:15000});assert.equal(made.status,0,made.stderr);
+   const r=spawnSync(python,['-I','-S','-B',join(release,'deploy/release.py'),'serve','--release',release,'--expected',JSON.parse(made.stdout).id],{encoding:'utf8',windowsHide:true,timeout:15000});
+   assert.equal(r.status,1);assert.match(r.stderr,/"error":\s*"unregistered_installed_input"/);assert.doesNotMatch(r.stderr,/UNREGISTERED_IMPORTED/);
+  }
+ }finally{if(dirname(root)===tmpdir()&&basename(root).startsWith('ocean-release-check-'))await rm(root,{recursive:true,force:true,maxRetries:3});}
+});
+
+test('real directory links remain rejected when the pre-3.12 pathlib capability is absent',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'ocean-release-check-'));
+ const launch=`import json,sys,runpy
+from pathlib import Path
+q=json.load(sys.stdin)
+for c in Path.__mro__:
+ if 'is_junction' in c.__dict__:delattr(c,'is_junction');break
+sys.argv=[q['script'],'init','--root',q['target']]
+runpy.run_path(q['script'],run_name='__main__')`;
+ try{
+  const target=join(root,'target'),alias=join(root,'alias');await mkdir(target);await symlink(target,alias,process.platform==='win32'?'junction':'dir');
+  const r=spawnSync(python,['-I','-S','-c',launch],{input:JSON.stringify({script,target:join(alias,'escaped')}),encoding:'utf8',windowsHide:true,timeout:15000});
+  assert.equal(r.status,1);assert.equal(JSON.parse(r.stderr).error,'linked_target');assert.deepEqual(await readdir(target),[]);
  }finally{if(dirname(root)===tmpdir()&&basename(root).startsWith('ocean-release-check-'))await rm(root,{recursive:true,force:true,maxRetries:3});}
 });

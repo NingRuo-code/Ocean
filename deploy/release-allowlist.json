@@ -469,14 +469,6 @@
       "target": "frontend/prototype/data/front_response/events.js"
     },
     {
-      "source": "frontend/prototype/data/front_response/fixture-effort-sample.json",
-      "target": "frontend/prototype/data/front_response/fixture-effort-sample.json"
-    },
-    {
-      "source": "frontend/prototype/data/front_response/real-effort-input.json",
-      "target": "frontend/prototype/data/front_response/real-effort-input.json"
-    },
-    {
       "source": "frontend/prototype/data/meta.js",
       "target": "frontend/prototype/data/meta.js"
     },

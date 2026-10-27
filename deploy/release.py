@@ -86,8 +86,14 @@ def no_links(path, checked=None):
     for parent in (path, *path.parents):
         if checked is not None and parent in checked:
             continue
+        try:
+            facts = parent.lstat()
+        except FileNotFoundError:
+            continue
         require(
-            not parent.is_symlink() and not getattr(parent, "is_junction", lambda: False)(),
+            not stat.S_ISLNK(facts.st_mode)
+            # Win32 FILE_ATTRIBUTE_REPARSE_POINT also covers Python 3.11 junctions.
+            and not (getattr(facts, "st_file_attributes", 0) & 0x400),
             "linked_target",
         )
         if checked is not None:
@@ -451,13 +457,29 @@ def verify_tree(release, expected):
         digest((release / POLICY).read_bytes()) == manifest["allowlist_sha256"],
         "allowlist_integrity_failed",
     )
+    # Bind the whole import/configuration/asset surface, not just listed files.
+    require(
+        {p.name for p in release.iterdir()}
+        <= {"manifest.json", "backend", "frontend", "deploy", "venv", "state"},
+        "unregistered_installed_input",
+    )
+    registered = {installed_file(release, name) for name in manifest["files"]}
+    for tree in (release / "backend", release / "frontend", release / "deploy", site_path(release)):
+        for directory, children, names in os.walk(tree, followlinks=False):
+            folder = Path(directory)
+            no_links(folder, checked)
+            for name in children:
+                no_links(folder / name, checked)
+            require(
+                all(folder / name in registered for name in names), "unregistered_installed_input"
+            )
     return manifest
 
 
 def serve(args):
     require(
-        sys.flags.isolated and sys.flags.no_site,
-        "serve_requires_isolated_no_site_python",
+        sys.flags.isolated and sys.flags.no_site and sys.dont_write_bytecode,
+        "serve_requires_isolated_no_site_no_bytecode_python",
     )
     release = Path(args.release).absolute()
     print('{"stage":"verify_installed"}', file=sys.stderr, flush=True)

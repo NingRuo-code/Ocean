@@ -21,13 +21,13 @@ python deploy/release.py build --repo . --commit <reviewed-commit> --out <new-pa
 python deploy/release.py init --root <new-isolation-root>
 # 使用上一步实际输出的包SHA256，并核同一来源提交。
 python deploy/release.py install --bundle <new-package.zip> --expected <bundle-sha256> --commit <reviewed-commit> --root <new-isolation-root>
-# 安装输出的独立解释器与目录；-I -S防止环境变量或额外site启动钩子生效。
-<installed-python> -I -S <installed-directory>/deploy/release.py serve --release <installed-directory> --expected <release-id>
+# 安装输出的独立解释器与目录；隔离环境/site钩子，并从启动起禁止写字节码。
+<installed-python> -I -S -B <installed-directory>/deploy/release.py serve --release <installed-directory> --expected <release-id>
 ```
 
 `serve`实际校验安装文件后只绑定动态回环端口，输出本轮入口。打开`/prototype-fishing.html`操作原地图，`/api/release`读取进程声明的安全身份；静态及API响应携带`X-Ocean-Release`与`X-Ocean-Commit`。`/api/health`仍只证明原服务存活，不能代替案例/地图核对，更不代表原档、科研或任务服务已接入。停止仅针对这次实际进程及其子进程，不使用宽泛名称匹配。
 
-配置不继承父进程的OCEAN路径、执行令牌或模型选择；缓存、空原档目录、临时、输出和日志目录只在新版本的`state/`下。允许的GET中仅复用既有轻量查询及合成成果阅读，可能生成本例自己的缓存；写API、资料准备、模型和未列明接口均禁止。后端Python审计边界拒绝外部连接和状态目录外写入，不是运行不可信代码的操作系统沙箱。
+配置不继承父进程的OCEAN路径、执行令牌或模型选择；缓存、空原档目录、临时、输出和日志目录只在新版本的`state/`下。允许的GET中仅复用既有轻量查询及合成成果阅读，可能生成本例自己的缓存；写API、资料准备、模型和未列明接口均禁止。后端Python审计边界拒绝外部连接和状态目录外写入，不是运行不可信代码的操作系统沙箱。启动前还核实际代码、配置、资产及依赖树，无登记外新增文件，运行时静态入口仍只读清单内资产。目录联接通过`lstat`的链接/重解析标志拒绝，不依赖Python 3.12新增方法。
 
 ## 版本、失败与限制
 
