@@ -591,6 +591,14 @@
 
         <!-- 数据说明（支撑层：数据来源 / 评分规则 / 使用限制） -->
         <section class="pane" id="pane-basis">
+          <details class="card" id="operationalStatus" data-state="idle">
+            <summary>服务与资料状态</summary>
+            <p id="statusSummary" role="status" aria-live="polite">按需读取；离线地图仍可使用。</p>
+            <button class="btn" id="statusRefresh" type="button">读取状态</button>
+            <p class="muted" id="statusStamp"></p>
+            <div class="list service-status-layers" id="statusLayers"></div>
+            <details><summary>采样记录</summary><div class="service-status-records" id="statusRecords"></div></details>
+          </details>
           <div class="card">
             <h3>数据来源</h3>
             <div class="table" id="basisData"></div>
@@ -651,6 +659,7 @@
 <script src="prototype-evidence.js"></script>
 <script src="data/published-months.js"></script>
 <script src="prototype-public-read.js"></script>
+<script src="prototype-service-status.js"></script>
 <script src="prototype-month-reading.js"></script>
 <script src="prototype-month-draft.js"></script>
 <script src="prototype-known-cases.js"></script>

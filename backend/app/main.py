@@ -42,6 +42,7 @@ from .history import (
 from .known_cases import create_known_case_router
 from .main_analysis import compute_analysis_response
 from .monthly_analysis import create_monthly_router
+from .operational_status import create_status_router
 from .query_service import (
     build_current_state_query,
     build_front_response_query,
@@ -95,6 +96,7 @@ from .viewport import build_cached_viewport
 app = FastAPI(title=settings.app_name, version="0.1.0")
 app.include_router(create_monthly_router(settings))
 app.include_router(create_known_case_router(settings.api_prefix))
+app.include_router(create_status_router(settings))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
