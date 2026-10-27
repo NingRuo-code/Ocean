@@ -1,6 +1,6 @@
 # Ticket 06: Existing Server Sync Runbook
 
-Status: done on `codex/server-agent-backend`.
+Status: implemented with local evidence under #10; actual server sync remains #11.
 
 ## Goal
 
@@ -65,4 +65,4 @@ Prepare the sanitized update/sync path for the already-deployed Alibaba Cloud se
 - Fixed-commit/asset manifest, environment/data boundaries, browser fallback and compatible rollback are explicit. #11 real sync, #12 completion review and OPS release/backup gates remain open.
 - The original PowerShell smoke command now emits sanitized scoped JSON, validates conditions/units/counts and distinguishes ready, limited and failed. `-RequireReady` rejects limited/skipped support; zero hours remains valid. It accepts the current frontend contract and UTF-8 native API metadata.
 - Test seam follows the original #1/#10 API/CLI entry: original FastAPI and page behind a path-only loopback ingress, plus explicitly controlled boundary failures. No production connection, deployment or raw download.
-- Checks and actual execution evidence are recorded in the implementation report before merge.
+- Checks and actual execution evidence: [2026-10-27 report](../../reports/ocean-sync-smoke-implementation-2026-10-27.md) and its execution JSON. The native local profile remains limited; strict readiness exits 2. This completes preparation, not real sync.
