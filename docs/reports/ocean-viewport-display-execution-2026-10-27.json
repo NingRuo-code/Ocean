@@ -1,0 +1,114 @@
+{
+  "schema": "ocean-viewport-display-execution/v1",
+  "date": "2026-10-27",
+  "base_commit": "0a05cca6d7c89382bc5c3d22d2137d783621f01f",
+  "reviewed_commit": "de8452ec43a37e5be1e02f9c6866a33881e7385a",
+  "evidence_kind": "actual browser, original loopback app and existing display exports; controlled failures verified separately by committed test",
+  "production_contact": false,
+  "production_deployed": false,
+  "raw_downloaded": false,
+  "views": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "mode": "服务器模式 · 部分覆盖",
+      "mode_button_visible": true,
+      "visible_load_status": "日资料：整日缺资料 / 视野：部分覆盖",
+      "sst_legend": "partial",
+      "status": "partial",
+      "layer_coverage": {
+        "fronts": "partial",
+        "sst": "partial",
+        "fishingEffort": "partial"
+      },
+      "request_bbox": [
+        110,
+        20,
+        135,
+        40
+      ],
+      "covered_bbox": [
+        120,
+        27,
+        128,
+        34
+      ],
+      "step": 1,
+      "daily_activity_present": false,
+      "historical_response_records": 3,
+      "render": "partial",
+      "screenshot": "docs/reports/screenshots/ocean-viewport-support-1440.png",
+      "screenshot_sha256": "de90f539014d17ee87ff23f1b520f52d9d128448cea7ae4534a52c45c745fdfa"
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "mode": "服务器模式 · 部分覆盖",
+      "mode_button_visible": false,
+      "visible_load_status": "日资料：整日缺资料 / 视野：部分覆盖",
+      "sst_legend": "partial",
+      "status": "partial",
+      "layer_coverage": {
+        "fronts": "partial",
+        "sst": "partial",
+        "fishingEffort": "partial"
+      },
+      "request_bbox": [
+        110,
+        10,
+        135,
+        50
+      ],
+      "covered_bbox": [
+        120,
+        27,
+        128,
+        34
+      ],
+      "step": 1,
+      "daily_activity_present": false,
+      "historical_response_records": 3,
+      "render": "partial",
+      "screenshot": "docs/reports/screenshots/ocean-viewport-support-390.png",
+      "screenshot_sha256": "95f639fd2623b58cc8e81e35100ed43e5a64ff015b94d9f99154a94d1f7f9138"
+    }
+  ],
+  "verification": {
+    "counts": {
+      "tools": 130,
+      "targeted_browser": 5,
+      "e2e": 129,
+      "layout_widths": [
+        1680,
+        1440,
+        1280,
+        390
+      ],
+      "data": 922
+    },
+    "log_hashes": {
+      "tools": {
+        "sha256": "b217f11506e3b1621a4b89b206f89c7ce22a99c9b19bea78349b9d9fb3cc0e37",
+        "passed": true
+      },
+      "e2e": {
+        "sha256": "56be59bbb72426860283fd5c0ef2245312d62f1ded22a0c94962cfab321aa94e",
+        "passed": true
+      },
+      "layout": {
+        "sha256": "029b6cb057a5831081da6edbd9b4ead544eaacf4ab55574a0d360417eacd51f5",
+        "passed": true
+      },
+      "data": {
+        "sha256": "f3cdace6a1bdba27962689a4819d7a2046f37906ac6928f5404cdc97d61ffa79",
+        "passed": true
+      }
+    },
+    "standards_findings_remaining": 0,
+    "spec_findings_remaining": 0,
+    "syntax_and_diff_and_local_links": "passed"
+  },
+  "capacity_measured": false,
+  "p1_targets_verified": false,
+  "research_qualified": false
+}
