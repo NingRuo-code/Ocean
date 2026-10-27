@@ -1091,7 +1091,8 @@ function renderLegend() {
       const viewportLayer = { front: "fronts", sst: "sst" }[k];
       const support = viewportLayer && OFData.viewportState(state.date)?.coverage.layers[viewportLayer];
       const local = k === "sst" ? OFData.hasSst(state.date) : ["front", "coldwarm"].includes(k) && OFData.hasDay(state.date);
-      const fallback = local && OFData.serverEnabled() && load && unavailable.includes(load.status);
+      const viewUnavailable = ["loading", "error", "forbidden", "day-missing", "unprepared", "empty", "unavailable"].includes(status.viewport?.status) || ["empty", "unavailable"].includes(support);
+      const fallback = local && OFData.serverEnabled() && ((load && unavailable.includes(load.status)) || viewUnavailable);
       const readiness = k === "fishing" ? "example" : k === "ground" && !OFData.fishingAvailable() && !OFData.serverEnabled() ? "offline" :
         support === "partial" ? "partial" : support === "available" ? "ready" : fallback ? "local-fallback" :
         load && unavailable.includes(load.status) ? load.status :

@@ -81,6 +81,9 @@ test('original viewport renders honest partial support without global prewarming
         await c.evaluate(`OFData.setViewWindow(${JSON.stringify(windows[0])});OFData.ensureViewport(state.date)`);
         assert.equal(await c.evaluate('viewportCalls.length'),before+1);
         assert.ok(await c.evaluate('OFData.viewportState(state.date)?.usable'));
+        await c.evaluate('window.viewportFault=true;OFData.ensureViewport(state.date,true)');
+        await c.evaluate('renderLegend()');
+        assert.equal(await c.evaluate("document.querySelector('.legend-row[data-layer=sst]').dataset.readiness"),'local-fallback','day-ready followed by viewport failure must identify retained local data');
       });
       await t.test('historical points on the invisible hemisphere are never pinned to the globe edge',async()=>{
         await c.evaluate('window.viewportFault=false;centerOn(-60,24,zoomOutLimit());OFData.ensureViewport(state.date)');
