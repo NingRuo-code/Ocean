@@ -35,7 +35,7 @@ const timeout = Number(option("--timeout-ms", "15000"));
 if (!Number.isInteger(runs) || runs < 1 || runs > 20 || !Number.isFinite(timeout) || timeout < 100 || timeout > 60000) throw new Error("Invalid run budget");
 const edge = process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const scenarios = ["navigation", "reload", "date-change", "zoom", "drag"];
-async function runBaseline(page, isolatedService = false, serviceRuntime = null) {
+async function runBaseline(page, isolatedService = false, serviceRuntime = null, startupFailed = false) {
   const sampleKind = option("--sample-kind", "B0-current");
   if (!["B0-current", "controlled-fixture"].includes(sampleKind)) throw new Error("Unsupported evidence claim");
   const hashFile = async (path) => {
@@ -70,7 +70,7 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null)
   let commit = null;
   let trackedChanges=null;
   try { commit = execFileSync("git", ["-c", `safe.directory=${root.replaceAll("\\", "/")}`, "rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(); } catch { /* unknown, not guessed */ }
-  try{execFileSync('git',['-c',`safe.directory=${root.replaceAll('\\','/')}`,'diff','--quiet','HEAD','--','tools/benchmark-map.mjs','tools/lib/monthly-test-service.mjs','frontend/prototype','backend/app'],{cwd:root,stdio:'ignore'});trackedChanges=false;}catch(error){trackedChanges=error.status===1?true:null;}
+  try{execFileSync('git',['-c',`safe.directory=${root.replaceAll('\\','/')}`,'diff','--quiet','HEAD','--','tools/benchmark-map.mjs','tools/lib/monthly-test-service.mjs','tools/lib/browser-driver.mjs','frontend/prototype','backend/app','backend/pyproject.toml'],{cwd:root,stdio:'ignore'});trackedChanges=false;}catch(error){trackedChanges=error.status===1?true:null;}
   const attempts = [];
   const environment = { node_version: process.version, run_environments: [], cache_layers: {browser: "fresh profile then same-profile reload", service: isolatedService ? "empty at start; shared across all browser runs" : "not controlled", os_storage: "uncontrolled"}, platform: platform(), release: release(), cpu_model: cpus()[0]?.model ?? null,
     cpu_count: cpus().length, ram_bytes: totalmem(), browser: null, gpu: null,
@@ -81,6 +81,7 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null)
     let browser=null;
     const lifecycleStarted=performance.now();
     try {
+      if(startupFailed)throw Error('service_startup_failed');
       browser = await launchBrowser(edge);
       const cdp = browser.cdp;
       environment.browser = browser.version.Browser;
@@ -137,7 +138,7 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null)
         record.requests = [...requests.values()].map((r) => ({ role: r.role, method: r.method, content_encoding: r.content_encoding ?? null, kind: r.kind, status: r.status, encoded_bytes: r.encoded_bytes, from_cache: r.from_cache ?? null,
           failed: r.failed ?? false, canceled: r.canceled ?? false, duration_ms: r.finished ? r.finished - r.started : null, response_timing: r.response_timing ?? null }));
         record.browser_errors = errors.slice();
-        if (record.browser_errors.length && record.status === "success") { record.status = "failure"; record.elapsed_ms = null; }
+        if (record.browser_errors.length && record.status === "success") { record.status = "failure"; record.failure_reason='browser_exception';record.elapsed_ms = null;record.after_action_ms=null; }
         attempts.push(record);
         return record;
       };
@@ -164,13 +165,13 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null)
         if(attempts.some(a=>a.run===run&&a.scenario===scenario))continue;
         attempts.push({run,scenario,cache:scenario==='navigation'?'fresh-profile':'same-profile',
           status:'failure',elapsed_ms:null,after_action_ms:null,action_dispatch_ms:null,
-          attempt_duration_ms:null,action_attempted:false,lifecycle_failure_ms:performance.now()-lifecycleStarted,failure_phase:browser?'session_observation':'browser_startup',
+          attempt_duration_ms:null,action_attempted:false,lifecycle_failure_ms:performance.now()-lifecycleStarted,failure_phase:startupFailed?'service_startup':browser?'session_observation':'browser_startup',
           observed:null,last_observed:null,requests:[],browser_errors:[]});
       }
     } finally { if(browser)await browser.close(); }
   }
-  let service = {kind: "not_managed", status: null, release: null};
-  if (isolatedService) {
+  let service = {kind: isolatedService?'isolated_original_app':'not_managed', status: null, release: null,reason:startupFailed?'service_startup_failed':null};
+  if (isolatedService&&!startupFailed) {
     try {
       const response = await fetch(new URL("/api/status", page), {signal:AbortSignal.timeout(3000),cache:"no-store"});
       if (!response.ok) throw Error("status_unavailable");
@@ -230,5 +231,7 @@ function responseEncoding(headers) {
 }
 if(args.includes("--isolated-service")){
   if(args.includes("--page") || option("--sample-kind","B0-current")!=="B0-current")throw Error("Isolated original service cannot override page or claim a fixture");
-  await withService((base,context)=>runBaseline(base+"/prototype-fishing.html",true,context.runtime));
+  let entered=false;
+  try{await withService((base,context)=>{entered=true;return runBaseline(base+"/prototype-fishing.html",true,context.runtime);});}
+  catch{if(entered)throw Error('Managed baseline could not finish');await runBaseline(page,true,null,true);}
 } else await runBaseline(page);

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,readFile,rm,writeFile} from 'node:fs/promises';
+import {mkdtemp,readFile,rm,writeFile,mkdir,copyFile,appendFile} from 'node:fs/promises';
 import {join,dirname,resolve,basename} from 'node:path';
 import {tmpdir} from 'node:os';
 import {execFile} from 'node:child_process';
@@ -23,12 +23,15 @@ test('baseline rejects credential-confused remote pages and conflicting original
 test('existing baseline CLI records real original-app missing-day failure with explicit caches and no fabricated B1 claim',async()=>{
  const root=await mkdtemp(join(tmpdir(),'ocean-service-baseline-')),out=join(root,'report.json');
  try{
-  const execution=await execute(process.execPath,['tools/benchmark-map.mjs','--isolated-service','--runs','1','--timeout-ms','1500','--out',out],{windowsHide:true,timeout:35000}).catch(error=>error);
+  const foreign=join(root,'PRIVATE-foreign-data');await mkdir(foreign);
+  const execution=await execute(process.execPath,['tools/benchmark-map.mjs','--isolated-service','--runs','1','--timeout-ms','1500','--out',out],{windowsHide:true,timeout:35000,env:{...process.env,OCEAN_PROTOTYPE_DATA_DIR:foreign,OCEAN_API_PREFIX:'/PRIVATE_API',OCEAN_AI_PROVIDER:'local',OCEAN_MONTHLY_EXECUTION_TOKEN:'PRIVATE_TOKEN'}}).catch(error=>error);
   assert.equal(execution.code,1,'Missing raw sources must not become successful observations');
   const report=JSON.parse(await readFile(out,'utf8'));
   assert.equal(report.service.kind,'isolated_original_app');
   assert.equal(report.service.status.layers.fishing_effort,'not_connected');
   assert.equal(report.service.status.layers.p0_qualification,'not_connected');
+  assert.equal(report.service.status.layers.map_index,'registered','Must bind actual API input to the frozen workspace exports');
+  assert.equal(report.service.status.layers.models,'rules_only');
   assert.equal(report.service.release,null);
   assert.ok(/^\d+\.\d+\.\d+$/.test(report.service.runtime.version));
   assert.match(report.artifact_hashes['frontend/prototype/prototype-effort.js'],/^[a-f0-9]{64}$/);
@@ -52,6 +55,58 @@ test('existing baseline CLI records real original-app missing-day failure with e
  }finally{
   if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith('ocean-service-baseline-'))await rm(root,{recursive:true,force:true});
  }
+});
+
+test('service startup and runtime configuration failures are safe reports without raw errors',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'ocean-service-baseline-'));
+ try{
+  for(const [name,env] of [
+   ['spawn',{OCEAN_EXPERIMENT_PYTHON:join(root,'PRIVATE-MISSING-python.exe')}],
+   ['python-init',{PYTHONHOME:join(root,'PRIVATE-PYTHONHOME')}],
+  ]){
+   const out=join(root,name+'.json');
+   const result=await execute(process.execPath,['tools/benchmark-map.mjs','--isolated-service','--runs','1','--out',out],{windowsHide:true,timeout:25000,env:{...process.env,...env}}).catch(error=>error);
+   assert.equal(result.code,1);
+   assert.doesNotMatch(result.stderr,/PRIVATE|AppData|Traceback|Fatal Python/);
+   const report=JSON.parse(await readFile(out,'utf8'));
+   assert.equal(report.service.reason,'service_startup_failed');
+   assert.ok(report.attempts.every(a=>a.failure_phase==='service_startup'&&!a.action_attempted&&a.elapsed_ms===null));
+   assert.doesNotMatch(JSON.stringify(report),/PRIVATE|AppData|Traceback|Fatal Python/);
+  }
+ }finally{if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith('ocean-service-baseline-'))await rm(root,{recursive:true,force:true});}
+});
+
+test('browser runtime exceptions invalidate both total and after-action success timings',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'ocean-service-baseline-')),page=join(root,'error.html'),out=join(root,'report.json');
+ try{
+  await writeFile(page,`<input id="timeDate" value="2024-08-05"><button id="dateNext">next</button><svg id="mapSvg" width="600" height="400" data-render-date="2024-08-05" data-render-status="ready" data-view-key="first"></svg><script>const m=document.getElementById('mapSvg');document.getElementById('dateNext').onclick=()=>{document.getElementById('timeDate').value='2024-08-06';m.dataset.renderDate='2024-08-06'};m.onwheel=()=>m.dataset.viewKey='zoom';m.onpointerup=()=>m.dataset.viewKey='drag';throw Error('PRIVATE_CONTROLLED_BROWSER_ERROR');</script>`);
+  const result=await execute(process.execPath,['tools/benchmark-map.mjs','--page',pathToFileURL(page).href,'--sample-kind','controlled-fixture','--runs','1','--timeout-ms','1500','--out',out],{windowsHide:true,timeout:15000}).catch(error=>error);
+  assert.equal(result.code,1);
+  const report=JSON.parse(await readFile(out,'utf8'));
+  const bad=report.attempts.filter(a=>a.browser_errors.length);
+  assert.ok(bad.length>0);
+  assert.ok(bad.every(a=>a.status==='failure'&&a.elapsed_ms===null&&a.after_action_ms===null));
+  assert.doesNotMatch(JSON.stringify(report),/PRIVATE_CONTROLLED/);
+ }finally{if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith('ocean-service-baseline-'))await rm(root,{recursive:true,force:true});}
+});
+
+test('a tracked browser driver change cannot be reported as clean committed code',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'ocean-service-baseline-')),fixture=join(root,'source'),out=join(root,'report.json');
+ try{
+  for(const name of ['tools/benchmark-map.mjs','tools/lib/monthly-test-service.mjs','tools/lib/browser-driver.mjs']){
+   await mkdir(dirname(join(fixture,name)),{recursive:true});await copyFile(name,join(fixture,name));
+  }
+  await mkdir(join(fixture,'frontend/prototype'),{recursive:true});
+  await writeFile(join(fixture,'frontend/prototype/prototype-fishing.html'),`<input id="timeDate" value="2024-08-05"><button id="dateNext">next</button><svg id="mapSvg" width="600" height="400" data-render-date="2024-08-05" data-render-status="ready" data-view-key="first"></svg><script>const m=document.getElementById('mapSvg');document.getElementById('dateNext').onclick=()=>{document.getElementById('timeDate').value='2024-08-06';m.dataset.renderDate='2024-08-06'};m.onwheel=()=>m.dataset.viewKey='zoom';m.onpointerup=()=>m.dataset.viewKey='drag';</script>`);
+  const git=async args=>execute('git',['-c','safe.directory='+fixture,...args],{cwd:fixture,windowsHide:true});
+  await git(['init','-q','-b','codex/identity-fixture']);await git(['add','.']);
+  await git(['-c','user.name=BaselineCheck','-c','user.email=check@example.invalid','commit','-qm','Self-authored timing fixture']);
+  await appendFile(join(fixture,'tools/lib/browser-driver.mjs'),'\n// self-authored tracked change\n');
+  await execute(process.execPath,[join(fixture,'tools/benchmark-map.mjs'),'--runs','1','--out',out],{cwd:fixture,windowsHide:true,timeout:15000});
+  const report=JSON.parse(await readFile(out,'utf8'));
+  assert.equal(report.tracked_changes_present,true);
+  assert.equal(report.artifact_integrity,'unchanged');
+ }finally{if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith('ocean-service-baseline-'))await rm(root,{recursive:true,force:true});}
 });
 
 test('entry source changed during a run invalidates successes before quantiles are calculated',async()=>{
