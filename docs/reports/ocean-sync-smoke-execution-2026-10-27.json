@@ -1,0 +1,277 @@
+{
+  "schema": "ocean-sync-smoke-execution/v1",
+  "date": "2026-10-27",
+  "ticket": 10,
+  "base_commit": "f6aae39cad6869aa1a7c6cdd052015d17e3c1b11",
+  "reviewed_commit": "43381f57058303be84e54239cdf00b34232591c0",
+  "profile": "original FastAPI and frontend; empty raw/cache; loopback ingress maps root path only; no production or real Nginx proof",
+  "production_contact": false,
+  "deployment_performed": false,
+  "research_qualified": false,
+  "capacity_measured": false,
+  "input_identity": [
+    {
+      "file": "deploy/server-smoke.ps1",
+      "sha256": "91c2694d79f405e63dfbbf74815ed1c1172dbbe16d48d2ae540075e9dd7a7d7b"
+    },
+    {
+      "file": "frontend/prototype/prototype-fishing.html",
+      "sha256": "bde748947c09667b31602a437747ece1decfa288ba122e8d3731e0884742b99a"
+    },
+    {
+      "file": "frontend/prototype/data/day/2024-08-05.js",
+      "sha256": "b4a57b8060dcfad6323e1d694278c59f3184ff219f0a92b98e8af662311f3e8f"
+    },
+    {
+      "file": "frontend/prototype/data/sst/2024-08-05.js",
+      "sha256": "287d590a031a84d0ecfa4828c5c3f89545fc2f31183aec26c1258704f533e4eb"
+    },
+    {
+      "file": "frontend/prototype/data/front_response/events.js",
+      "sha256": "107e3096191e5c480866766f3164e33fc0acaf6fa70eed49fb65b7118bdbd388"
+    }
+  ],
+  "runs": [
+    {
+      "name": "declared-index",
+      "args": [],
+      "exit_code": 0,
+      "read_paths": [
+        "/",
+        "/api/health",
+        "/api/viewport?date=2024-08-05&bbox=122,27,124.2,29.6&step=4",
+        "/api/query/current-state?date=2024-08-05&bbox=122,27,124.2,29.6&step=4",
+        "/api/query/front-response?date=2024-08-05&bbox=122,27,124.2,29.6&step=4",
+        "/api/query/historical-comparison?date=2024-08-05&longitude=120.5&latitude=30.5&radius_deg=1",
+        "/api/fishing/availability"
+      ],
+      "report": {
+        "schema": "ocean-server-smoke/v2",
+        "status": "limited",
+        "conditions": {
+          "date": "2024-08-05",
+          "step": 4,
+          "fishing_date": "2024-08-05",
+          "bbox": [
+            122,
+            27,
+            124.2,
+            29.6
+          ]
+        },
+        "checks": [
+          {
+            "name": "frontend",
+            "status": "ready"
+          },
+          {
+            "name": "health",
+            "status": "ready"
+          },
+          {
+            "name": "viewport",
+            "status": "ready"
+          },
+          {
+            "name": "current-state",
+            "status": "ready"
+          },
+          {
+            "name": "front-response",
+            "status": "ready"
+          },
+          {
+            "name": "historical-comparison",
+            "status": "unavailable"
+          },
+          {
+            "name": "fishing-availability",
+            "status": "unavailable"
+          },
+          {
+            "name": "fishing-day",
+            "status": "unavailable"
+          }
+        ],
+        "strict": false,
+        "viewport_source": "static_prototype",
+        "research_qualified": false,
+        "production_verified": false,
+        "deployment_performed": false,
+        "release_identity_verified": false
+      }
+    },
+    {
+      "name": "explicit-skip",
+      "args": [
+        "-SkipFishing"
+      ],
+      "exit_code": 0,
+      "read_paths": [
+        "/",
+        "/api/health",
+        "/api/viewport?date=2024-08-05&bbox=122,27,124.2,29.6&step=4",
+        "/api/query/current-state?date=2024-08-05&bbox=122,27,124.2,29.6&step=4",
+        "/api/query/front-response?date=2024-08-05&bbox=122,27,124.2,29.6&step=4",
+        "/api/query/historical-comparison?date=2024-08-05&longitude=120.5&latitude=30.5&radius_deg=1"
+      ],
+      "report": {
+        "schema": "ocean-server-smoke/v2",
+        "status": "limited",
+        "conditions": {
+          "date": "2024-08-05",
+          "step": 4,
+          "fishing_date": "2024-08-05",
+          "bbox": [
+            122,
+            27,
+            124.2,
+            29.6
+          ]
+        },
+        "checks": [
+          {
+            "name": "frontend",
+            "status": "ready"
+          },
+          {
+            "name": "health",
+            "status": "ready"
+          },
+          {
+            "name": "viewport",
+            "status": "ready"
+          },
+          {
+            "name": "current-state",
+            "status": "ready"
+          },
+          {
+            "name": "front-response",
+            "status": "ready"
+          },
+          {
+            "name": "historical-comparison",
+            "status": "unavailable"
+          },
+          {
+            "name": "fishing-availability",
+            "status": "skipped"
+          },
+          {
+            "name": "fishing-day",
+            "status": "skipped"
+          }
+        ],
+        "strict": false,
+        "viewport_source": "static_prototype",
+        "research_qualified": false,
+        "production_verified": false,
+        "deployment_performed": false,
+        "release_identity_verified": false
+      }
+    },
+    {
+      "name": "strict",
+      "args": [
+        "-RequireReady"
+      ],
+      "exit_code": 2,
+      "read_paths": [
+        "/",
+        "/api/health",
+        "/api/viewport?date=2024-08-05&bbox=122,27,124.2,29.6&step=4",
+        "/api/query/current-state?date=2024-08-05&bbox=122,27,124.2,29.6&step=4",
+        "/api/query/front-response?date=2024-08-05&bbox=122,27,124.2,29.6&step=4",
+        "/api/query/historical-comparison?date=2024-08-05&longitude=120.5&latitude=30.5&radius_deg=1",
+        "/api/fishing/availability"
+      ],
+      "report": {
+        "schema": "ocean-server-smoke/v2",
+        "status": "limited",
+        "conditions": {
+          "date": "2024-08-05",
+          "step": 4,
+          "fishing_date": "2024-08-05",
+          "bbox": [
+            122,
+            27,
+            124.2,
+            29.6
+          ]
+        },
+        "checks": [
+          {
+            "name": "frontend",
+            "status": "ready"
+          },
+          {
+            "name": "health",
+            "status": "ready"
+          },
+          {
+            "name": "viewport",
+            "status": "ready"
+          },
+          {
+            "name": "current-state",
+            "status": "ready"
+          },
+          {
+            "name": "front-response",
+            "status": "ready"
+          },
+          {
+            "name": "historical-comparison",
+            "status": "unavailable"
+          },
+          {
+            "name": "fishing-availability",
+            "status": "unavailable"
+          },
+          {
+            "name": "fishing-day",
+            "status": "unavailable"
+          }
+        ],
+        "strict": true,
+        "viewport_source": "static_prototype",
+        "research_qualified": false,
+        "production_verified": false,
+        "deployment_performed": false,
+        "release_identity_verified": false
+      }
+    }
+  ],
+  "python_runtime": {
+    "version": "3.14.0",
+    "implementation": "CPython",
+    "workers": 1
+  },
+  "input_unchanged": true,
+  "verification": {
+    "counts": {
+      "tools": 143,
+      "targeted": 13,
+      "data": 922
+    },
+    "logs": {
+      "tools": {
+        "passed": true,
+        "sha256": "6d2fdd36a93753d6926740b74245dd4d5ceb34f185ad6b00bc3bead2c25724d7"
+      },
+      "targeted": {
+        "passed": true,
+        "sha256": "a0941b6c4c8732ea1cad9f92179f7ca9546180c96ad29adf460a965ff717d93e"
+      },
+      "data": {
+        "passed": true,
+        "sha256": "f3cdace6a1bdba27962689a4819d7a2046f37906ac6928f5404cdc97d61ffa79"
+      }
+    },
+    "powershell_5_1_parse": "passed",
+    "js_syntax_diff_local_links": "passed",
+    "standards_findings_remaining": 0,
+    "spec_findings_remaining": 0
+  }
+}
