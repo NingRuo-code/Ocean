@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { readFile, writeFile, mkdir, rename, lstat, readdir, realpath } from "node:fs/promises";
+import { writeFile, mkdir, rename, lstat, readdir, realpath } from "node:fs/promises";
 import { dirname, resolve, relative, isAbsolute, extname } from "node:path";
+import {readAuditJson} from "./audit-json.mjs";
 
 const SCHEMA = "ocean-source-audit/v1";
 const CONTRACT = "source-registration/v1";
@@ -119,7 +120,7 @@ export async function runSourceAudit(args, defaultRoot) {
   }
   const registryPath = resolve(option("--source-registry"));
   const root = await realpath(resolve(option("--source-root") ?? defaultRoot));
-  const registry = JSON.parse(await readFile(registryPath, "utf8"));
+  const registry = await readAuditJson(registryPath);
   if (registry.schema !== "ocean-source-registry/v1" || !Array.isArray(registry.sources)) throw new Error("Invalid source registry");
   const ids = new Set();
   for (const source of registry.sources) {
@@ -169,7 +170,7 @@ export async function runSourceAudit(args, defaultRoot) {
 }
 
 export async function readSourceSnapshot(path) {
-  const snapshot = JSON.parse(await readFile(path, "utf8"));
+  const snapshot = await readAuditJson(path);
   const identity = { contract: snapshot.contract, processing_version: snapshot.processing_version, sources: snapshot.sources };
   if (snapshot.schema !== SCHEMA || snapshot.snapshot_id !== `sha256:${digest(identity)}` ||
     snapshot.research_ready !== false || snapshot.public_release_approved !== false) throw new Error("Invalid audit snapshot");

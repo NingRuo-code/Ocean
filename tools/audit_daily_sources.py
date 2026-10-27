@@ -21,6 +21,19 @@ SCHEMA = "ocean-daily-source-audit/v1"
 MAX_SAMPLES = 2_000_000
 
 
+def unique_json_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate_json_key")
+        result[key] = value
+    return result
+
+
+def read_json(path):
+    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_json_object)
+
+
 def digest(value):
     return hashlib.sha256(
         json.dumps(
@@ -173,10 +186,16 @@ def activity_rows(path, entry, file, source, support):
     )
     if csv_input:
         with path.open(encoding="utf-8-sig", newline="") as stream:
-            cells = list(csv.DictReader(stream))
+            reader = csv.DictReader(stream)
+            columns = reader.fieldnames
+            if columns is None:
+                raise ValueError("invalid_csv_header")
+            if len(columns) != len(set(columns)):
+                raise ValueError("duplicate_csv_column")
+            cells = list(reader)
         payload = {}
     else:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = read_json(path)
         if not isinstance(payload, dict):
             raise TypeError("invalid_activity_payload")
         cells = payload[entry.get("records_field", "cells")]
@@ -441,7 +460,16 @@ def display_rows(path, entry, file, source, support):
     if len(matches) != 1:
         raise ValueError("invalid_display_assignment")
     match = matches[0]
-    payload, end = json.JSONDecoder().raw_decode(text[match.end() :])
+    prefix = re.sub(
+        r"/\*.*?\*/|//[^\r\n\u2028\u2029]*", "", text[: match.start()], flags=re.DOTALL
+    )
+    container = r"window\." + module
+    initializer = rf"\s*(?:{container}\s*=\s*{container}\s*\|\|\s*\{{\s*\}}\s*;)?\s*"
+    if not re.fullmatch(initializer, prefix):
+        raise ValueError("invalid_display_program")
+    payload, end = json.JSONDecoder(object_pairs_hook=unique_json_object).raw_decode(
+        text[match.end() :]
+    )
     if text[match.end() + end :].strip() != ";":
         raise ValueError("trailing_display_program")
     if not isinstance(payload, dict):
@@ -775,7 +803,7 @@ def main():
     parser.add_argument("--support-out", type=Path)
     args = parser.parse_args()
     if args.read_daily_snapshot:
-        frozen = json.loads(args.read_daily_snapshot.read_text(encoding="utf-8"))
+        frozen = read_json(args.read_daily_snapshot)
         identity = {
             key: value for key, value in frozen.items() if key != "daily_snapshot_id"
         }
@@ -803,9 +831,9 @@ def main():
         )
     if args.end < args.start or (args.end - args.start).days > 366:
         raise ValueError("invalid_date_budget")
-    registry = json.loads(args.daily_registry.read_text(encoding="utf-8"))
-    snapshot = json.loads(args.source_snapshot.read_text(encoding="utf-8"))
-    private = json.loads(args.private_locators.read_text(encoding="utf-8"))
+    registry = read_json(args.daily_registry)
+    snapshot = read_json(args.source_snapshot)
+    private = read_json(args.private_locators)
     if (
         registry.get("schema") != "ocean-daily-audit-registry/v1"
         or snapshot.get("schema") != "ocean-source-audit/v1"
