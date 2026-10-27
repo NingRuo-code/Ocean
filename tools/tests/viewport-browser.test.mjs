@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {withService} from '../lib/monthly-test-service.mjs';
 import {launchBrowser,waitFor} from '../lib/browser-driver.mjs';
 
-test('original viewport renders honest partial support without global prewarming or replacing daily activity',async()=>{
+test('original viewport renders honest partial support without global prewarming or replacing daily activity',async(t)=>{
   await withService(async(base)=>{
     const browser=await launchBrowser(process.env.EDGE??'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'),c=browser.cdp;
     const errors=[];c.onEvent(e=>{if(e.method==='Runtime.exceptionThrown')errors.push(e.params.exceptionDetails);});
@@ -12,6 +12,9 @@ test('original viewport renders honest partial support without global prewarming
       await c.send('Page.addScriptToEvaluateOnNewDocument',{source:`
         window.viewportCalls=[];window.viewportFault=false;
         const originalFetch=window.fetch;window.fetch=(url,options)=>{
+          if(window.viewportDayFixture && String(url).includes('/frontend/day/'))return Promise.resolve(new Response(JSON.stringify({
+            front:structuredClone(window.OF_DATA_DAYS[state.date]),window:{bbox:[120,27,128,34],step:1,resolution_deg:0.05}
+          })));
           if(String(url).includes('/viewport?')){
             window.viewportCalls.push(String(url));
             if(window.viewportFault===true)return Promise.resolve(new Response('{}',{status:403}));
@@ -20,6 +23,9 @@ test('original viewport renders honest partial support without global prewarming
             });
             if(window.viewportFault==='precision')return originalFetch(url,options).then(async response=>{
               const body=await response.json();body.layers.sst.cells[0].value=22.17;return new Response(JSON.stringify(body));
+            });
+            if(['unit','metric'].includes(window.viewportFault))return originalFetch(url,options).then(async response=>{
+              const body=await response.json();body.layers.fishingEffort[window.viewportFault]=window.viewportFault==='unit'?'kg':'catch';return new Response(JSON.stringify(body));
             });
           }
           return originalFetch(url,options);
@@ -60,6 +66,28 @@ test('original viewport renders honest partial support without global prewarming
       assert.equal(await c.evaluate('OFData.loadState().viewport.status'),'error');
       await c.evaluate("window.viewportFault=false;OFData.ensureViewport(state.date,true)");
       assert.equal(await c.evaluate('OFData.viewportState(state.date).status'),'empty','manual retry reaches original service again');
+      await t.test('explicit response unit and metric conflicts never become fishing hours',async()=>{
+        for(const fault of ['unit','metric']){
+          await c.evaluate(`window.viewportFault=${JSON.stringify(fault)};OFData.setViewWindow({lonMin:122,lonMax:124,latMin:28,latMax:30});OFData.ensureViewport(state.date,true)`);
+          assert.equal(await c.evaluate('OFData.loadState().viewport.status'),'error',fault);
+        }
+      });
+      await t.test('an evicted viewport patch cannot survive as a usable result beside a primary patch',async()=>{
+        await c.evaluate('window.viewportFault=false;window.viewportDayFixture=true;OFData.ensureDay(state.date,true)');
+        const windows=[{lonMin:121,lonMax:122,latMin:27,latMax:28},{lonMin:124,lonMax:125,latMin:27,latMax:28},{lonMin:121,lonMax:122,latMin:32,latMax:33},{lonMin:124,lonMax:125,latMin:32,latMax:33}];
+        for(const bounds of windows)await c.evaluate(`OFData.setViewWindow(${JSON.stringify(bounds)});OFData.ensureViewport(state.date,true)`);
+        const before=await c.evaluate('viewportCalls.length');
+        await c.evaluate(`OFData.setViewWindow(${JSON.stringify(windows[0])});OFData.ensureViewport(state.date)`);
+        assert.equal(await c.evaluate('viewportCalls.length'),before+1);
+        assert.ok(await c.evaluate('OFData.viewportState(state.date)?.usable'));
+      });
+      await t.test('historical points on the invisible hemisphere are never pinned to the globe edge',async()=>{
+        await c.evaluate('window.viewportFault=false;centerOn(-60,24,zoomOutLimit());OFData.ensureViewport(state.date)');
+        await waitFor(c,"globeMode() && OFData.viewportState(state.date)?.status==='partial'");
+        assert.ok(await c.evaluate('OFData.viewportResponses(state.date).some(layer=>layer.cells.length>0)'));
+        await c.evaluate('drawMap()');
+        assert.equal(await c.evaluate("document.querySelectorAll('[data-layer=response-point]').length"),0);
+      });
       await c.evaluate("OFData.setServerMode('offline');refresh()");
       assert.equal(await c.evaluate('OFData.serverEnabled()'),false);
       assert.equal(await c.evaluate("document.getElementById('mapEmpty').hidden"),true);

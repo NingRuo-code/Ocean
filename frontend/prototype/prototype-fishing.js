@@ -729,7 +729,7 @@ function drawExtras(svg, snap, iso, sel) {
   if (state.layers.ground) {
     // 历史事件窗口只画独立方标，不计入当日格网、均值或强弱色标。
     OFData.viewportResponses(iso).forEach(layer => {
-      (layer.cells || []).filter(OFData.fishingCellValid).slice(0, 700).forEach(cell => {
+      (layer.cells || []).filter(cell => OFData.fishingCellValid(cell) && OFMap.visible(cell.lon, cell.lat, _view)).slice(0, 700).forEach(cell => {
         const p = xy(cell.lon, cell.lat);
         const marker = el("rect", { x: p[0] - 3, y: p[1] - 3, width: 6, height: 6,
           fill: "none", stroke: "#ba9fe8", "stroke-width": 1.2,

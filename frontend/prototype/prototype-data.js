@@ -373,6 +373,7 @@
       sstCoarse: payload.sst_coarse || null,      // 全球粗格海温（1°）：垫在明细下面，别处也有海温
       primary: !!isPrimary,
       response: payload.response || null,
+      requestKey: payload.request_key || null,
     };
     const list = PATCHES[iso] || (PATCHES[iso] = []);
     const at = list.findIndex(function (item) { return item.key === entry.key; });
@@ -538,7 +539,7 @@
 
   /** 视野与预热共享当前身份内请求；失败不关闭其他可用图层。 */
   function fetchPatch(iso, key, url) {
-    const settled = (VIEWPORT_RESULTS[iso] || []).find(item => item.key === key);
+    const settled = reusableViewportResult(iso, key);
     if (settled) {
       publishLoad("viewport", settled.status);
       return Promise.resolve(settled.usable);
@@ -556,14 +557,19 @@
             payload.coverage.status !== payload.meta.status ||
             !["fronts", "sst", "fishingEffort"].every(name => ["available", "partial", "empty", "unavailable"].includes(payload.coverage.layers[name]))) throw new Error("invalid_viewport_identity");
         if (payload.layers?.sst?.cells?.length && (payload.layers.sst.unit !== "celsius" || payload.layers.sst.sourceUnit !== "degree_C")) throw new Error("invalid_sst_unit");
+        const effort = payload.layers?.fishingEffort;
+        if (effort?.representation === "front_response_aggregate_points" &&
+            (effort.unit !== "fishing_hours" || effort.metric !== "apparent_fishing_effort")) throw new Error("invalid_effort_meaning");
         const empty = ["empty", "unavailable"].includes(payload.meta.status);
         const adapted = empty ? null : viewportPayloadToPatchPayload(iso, payload);
-        const ok = !!(adapted && addPatch(iso, adapted, false));
+        if (adapted) adapted.request_key = key;
+        const patch = adapted && addPatch(iso, adapted, false);
+        const ok = !!patch;
         if (!empty && !ok) throw new Error("invalid_viewport_support");
-        const result = { key, status: payload.meta.status === "ok" ? "ready" : payload.meta.status, usable: ok,
+        const result = { key, patchKey: patch?.key || null, status: payload.meta.status === "ok" ? "ready" : payload.meta.status, usable: ok,
           meta: payload.meta, coverage: payload.coverage, caveats: payload.caveats,
           sources: Object.fromEntries(["fronts", "sst", "fishingEffort"].map(name => [name, payload.layers[name]?.source || null])) };
-        const history = VIEWPORT_RESULTS[iso] || (VIEWPORT_RESULTS[iso] = []);
+        const history = VIEWPORT_RESULTS[iso] = (VIEWPORT_RESULTS[iso] || []).filter(item => item.key !== key);
         history.push(result);while (history.length > MAX_PATCHES_PER_DATE) history.shift();
         publishLoad("viewport", result.status);
         return ok;
@@ -598,8 +604,14 @@
   }
 
   function viewportState(iso) {
-    const result = (VIEWPORT_RESULTS[iso] || []).find(item => item.key === VIEW_WINDOW.key);
+    const result = reusableViewportResult(iso, VIEW_WINDOW.key);
     return result ? JSON.parse(JSON.stringify(result)) : null;
+  }
+
+  function reusableViewportResult(iso, key) {
+    const result = (VIEWPORT_RESULTS[iso] || []).find(item => item.key === key);
+    if (!result || (result.usable && !(PATCHES[iso] || []).some(p => p.key === result.patchKey && p.requestKey === key))) return null;
+    return result;
   }
 
   /** 兼容既有入口；只预取当前视野，不在平面操作时额外请求全球。 */
@@ -864,7 +876,7 @@
     viewportResponses: function (iso) {
       const result = viewportState(iso);
       if (!result?.usable) return [];
-      const patch = patches(iso).find(p => p.bbox && bboxKey(p.bbox, p.step) === bboxKey(result.coverage.coveredBbox, result.meta.step));
+      const patch = patches(iso).find(p => p.key === result.patchKey && p.requestKey === result.key);
       return patch?.response ? [patch.response] : [];
     },
     prefetchOverview: prefetchOverview,
