@@ -574,6 +574,7 @@ def serve(args):
         for name in manifest["files"]
         if name.startswith("frontend/prototype/")
     }
+    app.state.release_identity = identity
 
     @app.get("/api/release")
     def running_release():
@@ -584,6 +585,7 @@ def serve(args):
         path = request.url.path
         allowed = path in {
             "/api/health",
+            "/api/status",
             "/api/release",
             "/api/viewport",
             "/api/query/current-state",

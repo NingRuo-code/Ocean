@@ -815,6 +815,14 @@
     {
       "source": "frontend/prototype/prototype-workbench.js",
       "target": "frontend/prototype/prototype-workbench.js"
+    },
+    {
+      "source": "backend/app/operational_status.py",
+      "target": "backend/app/operational_status.py"
+    },
+    {
+      "source": "frontend/prototype/prototype-service-status.js",
+      "target": "frontend/prototype/prototype-service-status.js"
     }
   ]
 }

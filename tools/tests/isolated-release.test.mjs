@@ -16,7 +16,8 @@ function command(args,options={}){
 async function fixture(){
  const root=await mkdtemp(join(tmpdir(),'ocean-release-check-')),repo=join(root,'source');await mkdir(repo);
  const listed=spawnSync('git',['-c','safe.directory='+resolve('.'),'ls-files','-z','backend/app','backend/pyproject.toml','frontend/prototype'],{encoding:'utf8'}).stdout.split('\0').filter(Boolean);
- for(const file of [...listed,'backend/scripts/export_prototype_data.py','deploy/release.py','deploy/release-allowlist.json','deploy/examples/no-front-response.js']){
+ const approved=JSON.parse(await readFile('deploy/release-allowlist.json','utf8')).files.map(item=>item.source);
+ for(const file of new Set([...listed,...approved,'backend/scripts/export_prototype_data.py','deploy/release.py','deploy/release-allowlist.json','deploy/examples/no-front-response.js'])){
   await mkdir(dirname(join(repo,file)),{recursive:true});
   try{await copyFile(file,join(repo,file));}catch(e){if(e.code!=='ENOENT')throw e;}
  }
@@ -43,6 +44,11 @@ test('fixed release starts original API from an independently installed no-Git p
   for(let n=0;n<2400&&!base;n++){if(child.exitCode!==null)throw Error(errors);await delay(50);}assert.ok(base,errors);
   for(let n=0;n<100;n++){try{if((await fetch(base+'/api/health')).ok)break;}catch{}await delay(50);}
   const identity=await(await fetch(base+'/api/release')).json();assert.equal(identity.source_commit,f.commit);assert.equal(identity.release_id,built.release_id);assert.equal(identity.profile,'isolated-read-only/v1');
+  const statusResponse=await fetch(base+'/api/status'),status=await statusResponse.json();
+  assert.equal(status.release.release_id,built.release_id);assert.equal(status.release.source_commit,f.commit);
+  assert.equal(statusResponse.headers.get('X-Ocean-Release'),built.release_id);
+  assert.equal(status.layers.models.state,'disabled_by_profile');assert.equal(status.layers.analysis_execution.state,'disabled_by_profile');
+  assert.equal(status.layers.published_read.state,'readable_example');assert.equal(status.layers.map_index.front.registered_days,62);
   const q='reference_date=2024-08-05&longitude=124.5&latitude=30.2&radius_km=20';
   const page=await(await fetch(base+'/api/query/known-cases?'+q)).json();assert.equal(page.total,4);
   const response=await fetch(base+'/api/query/known-cases/case-2024-06?'+q+'&library_version='+encodeURIComponent(page.library_version));
