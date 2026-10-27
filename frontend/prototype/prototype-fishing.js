@@ -1957,8 +1957,11 @@ function syncServerModeUi() {
     btn.classList.add("server");
     btn.classList.toggle("warn", ["forbidden", "error", "unavailable", "day-missing"].includes(status));
     const current = OFData.viewportState(state.date);
+    const layerNames = { fronts: "锋面", sst: "水温", fishingEffort: "历史响应" };
+    const supportNames = { available: "可用", partial: "部分覆盖", empty: "范围外无覆盖", unavailable: "未就绪" };
     btn.title = "按当前视野取数；未覆盖区域无结论，失败时保留已有同日资料。点击切回离线数据" +
-      (current ? "\n" + current.caveats.join("\n") : "");
+      (current ? "\n" + Object.entries(current.coverage.layers).map(([key, value]) => layerNames[key] + "：" + supportNames[value]).join(" · ") +
+        "\n" + current.caveats.join("\n") : "");
     return;
   }
   if (mode.checking) {
