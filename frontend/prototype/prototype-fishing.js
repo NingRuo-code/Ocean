@@ -727,6 +727,17 @@ function drawExtras(svg, snap, iso, sel) {
   // 渔场线索（GFW 表观捕捞活动，fishing hours）：登记域内使用浅紫对数标尺；域未知时仅用统一标记。
   // 刻意与 SST 的连续色带在形态上区分（点阵 vs 色带）；低于当日中位数的格子不画，避免糊成一片。
   if (state.layers.ground) {
+    // 历史事件窗口只画独立方标，不计入当日格网、均值或强弱色标。
+    OFData.viewportResponses(iso).forEach(layer => {
+      (layer.cells || []).filter(OFData.fishingCellValid).slice(0, 700).forEach(cell => {
+        const p = xy(cell.lon, cell.lat);
+        const marker = el("rect", { x: p[0] - 3, y: p[1] - 3, width: 6, height: 6,
+          fill: "none", stroke: "#ba9fe8", "stroke-width": 1.2,
+          "data-layer": "response-point", "aria-label": "历史响应窗口 " + cell.hours + " h" }, svg);
+        el("title", {}, marker).textContent = "历史锋面后1–3日响应 " + cell.hours + " h · " +
+          cell.bufferKm + " km窗口；多半径可重叠，非当日格点或渔获量";
+      });
+    });
     const fishing = OFData.fishingDay(iso);
     const cells = fishing && OFData.fishingHoursUnitSupported(fishing) && Array.isArray(fishing.cells) ? fishing.cells.filter(OFData.fishingCellValid) : [];
     if (cells.length) {
@@ -837,8 +848,8 @@ function drawMap(opts) {
   svg.innerHTML = "";
   const defs = el("defs", {}, svg);
   const snap = snapshot();
-  const ok = snap.ok;
   const iso = state.date;
+  const ok = snap.ok || (OFData.serverEnabled() && OFData.patches(iso).some(p => !p.primary && p.front));
   const globe = globeMode();
 
   // 没数据就盖一层说明，不让地图假装有东西
@@ -1098,6 +1109,9 @@ function renderLegend() {
     }
   });
   const summary = $("mapLegendSummary");
+  if (state.layers.ground && OFData.viewportResponses(state.date).some(layer => layer.cells?.length)) {
+    legendRows.push('<div class="key-row">□ 历史后1–3日响应 / 多半径可重叠，非当日格网</div>');
+  }
   if (summary) { summary.innerHTML = legendRows.join(""); summary.hidden = !legendRows.length; }
 }
 
@@ -1777,13 +1791,13 @@ function loadThenRefresh(iso) {
     if (state.date !== iso || identity !== syncRequestContext()) return false;
     if (!ok && !OFData.hasDay(iso)) showToast(mdText(iso) + " 没取到，请换个日期");
     refresh();
-    warmOverview(iso);                            // 顺手把全球 2° 概览取回来，缩到球面立刻有数据
+    warmOverview(iso);                            // 只补当前视野，不额外预热全球
     loadFishing(iso);                             // 渔场线索图层开着时，同一天也把当日捕捞格点取回来
     return ok && OFData.hasDay(iso);
   });
 }
 
-// 预热全球概览：这一次取数不打乱界面（后台进行），到位后只重画地图
+// 补当前视野：不改变日资料/研究状态，到位后只重画地图
 function warmOverview(iso) {
   if (!OFData.serverEnabled()) return;
   const identity = syncRequestContext();
@@ -1937,9 +1951,14 @@ function syncServerModeUi() {
   const mode = OFData.serverMode();
   btn.classList.remove("server", "warn");
   if (mode.enabled) {
-    btn.textContent = "服务器模式";
+    const status = OFData.loadState().viewport?.status || OFData.viewportState(state.date)?.status;
+    const label = { partial: "部分覆盖", empty: "范围外无覆盖", unavailable: "视窗未就绪", forbidden: "无权访问", error: "读取失败", "day-missing": "视窗缺资料", loading: "视窗加载中" }[status];
+    btn.textContent = "服务器模式" + (label ? " · " + label : "");
     btn.classList.add("server");
-    btn.title = "正在使用后端 /api/viewport 按当前视野取数；点击切回离线数据";
+    btn.classList.toggle("warn", ["forbidden", "error", "unavailable", "day-missing"].includes(status));
+    const current = OFData.viewportState(state.date);
+    btn.title = "按当前视野取数；未覆盖区域无结论，失败时保留已有同日资料。点击切回离线数据" +
+      (current ? "\n" + current.caveats.join("\n") : "");
     return;
   }
   if (mode.checking) {
@@ -2156,7 +2175,7 @@ function syncRequestContext() {
 function requestViewportPatch(soon) {
   if (!OFData.serverEnabled()) return;
   if (viewportTimer) clearTimeout(viewportTimer);
-  OFData.setViewWindow(OFMap.visibleBounds(_view, mapAspect()));
+  OFData.setViewWindow(viewportRequestBounds());
   viewportLoading = !OFData.viewportReady(state.date);
   if (viewportLoading) $("mapSvg").dataset.renderStatus = "pending";
   const delay = soon === false ? 0 : 420;
@@ -2165,7 +2184,7 @@ function requestViewportPatch(soon) {
     const iso = state.date;
     const identity = syncRequestContext();
     if (!OFData.hasDay(iso) && !OFData.serverAvailable(iso)) return;
-    const bounds = OFMap.visibleBounds(_view, mapAspect());
+    const bounds = viewportRequestBounds();
     OFData.setViewWindow(bounds); // ensureViewport handles cache coverage; date and mode are part of request identity.
     viewportLoading = true;
     if (globeMode()) syncViewHint();
@@ -2174,7 +2193,7 @@ function requestViewportPatch(soon) {
       if (identity !== syncRequestContext()) return;
       showToast("正在取这一片的数据（按当前视野取数，窗口很大时给概览）…");
     }, 600);
-    OFData.ensureViewport(iso).then((ok) => {
+    OFData.ensureViewport(iso, soon === false).then((ok) => {
       clearTimeout(slowNotice);
       if (identity !== syncRequestContext()) return;
       viewportLoading = false;
@@ -2188,6 +2207,14 @@ function requestViewportPatch(soon) {
   }, delay);
 }
 
+// 球面可见半球的经纬包围框；极点可见时经度需覆盖全球，但不预取背面纬带。
+function viewportRequestBounds() {
+  return OFMap.visibleBounds(_view, mapAspect()) || {
+    lonMin: -180, lonMax: 180,
+    latMin: Math.max(-90, _view.lat0 - 90), latMax: Math.min(90, _view.lat0 + 90),
+  };
+}
+
 // 一键在「整颗地球」与「数据窗口」之间切换
 function centerGlobe() {
   if (globeMode()) {
@@ -2196,7 +2223,7 @@ function centerGlobe() {
   } else {
     state.zoom = zoomOutLimit();
     centerOn(127.5, 24, state.zoom);
-    warmOverview(state.date);                     // 立刻去取全球概览，别等松手后的防抖
+    warmOverview(state.date);                     // 立刻取当前球面包围框，仍复用同身份请求
     showToast("已缩到整颗地球（滚轮可放大）");
   }
 }

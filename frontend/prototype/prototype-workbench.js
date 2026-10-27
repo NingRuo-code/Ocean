@@ -48,6 +48,7 @@
   loading.innerHTML = '<span id="loadStatusText"></span><button id="retryData" hidden>重试当前条件</button>';
   $("map").append(loading);
   const stateText = { loading: "加载中", ready: "就绪", "ready-zero-records": "返回记录均为零（不代表完整海域）",
+    partial: "部分覆盖", empty: "范围外无覆盖", unavailable: "视窗资料未就绪",
     "unit-conflict": "单位冲突，未按小时显示",
     "unknown-coverage": "无记录／覆盖未知", "day-missing": "整日缺资料", unprepared: "资料未准备", forbidden: "无权访问", error: "请求失败" };
   window.addEventListener("ocean-load-state", () => {
@@ -55,7 +56,7 @@
     renderEffortSummary();
     const entries = Object.entries(OFData.loadState());
     $("loadStatusText").textContent = entries.map(([key, value]) => ({ day: "日资料", viewport: "视野", fishing: "活动" }[key]) + "：" + (stateText[value.status] || value.status)).join(" / ");
-    $("retryData").hidden = !entries.some(([, value]) => ["error", "day-missing", "unprepared", "forbidden"].includes(value.status));
+    $("retryData").hidden = !entries.some(([, value]) => ["error", "day-missing", "unprepared", "forbidden", "unavailable"].includes(value.status));
   });
   $("retryData").onclick = () => { loadThenRefresh(state.date); loadFishing(state.date, true); requestViewportPatch(false); };
   $("wbAI").append($("pane-ai"));
