@@ -49,6 +49,10 @@ test('fixed release starts original API from an independently installed no-Git p
   assert.equal(statusResponse.headers.get('X-Ocean-Release'),built.release_id);
   assert.equal(status.layers.models.state,'disabled_by_profile');assert.equal(status.layers.analysis_execution.state,'disabled_by_profile');
   assert.equal(status.layers.published_read.state,'readable_example');assert.equal(status.layers.map_index.front.registered_days,62);
+  t.diagnostic(JSON.stringify({evidence:'O07_fixed_release_status',source_commit:f.commit,release_id:built.release_id,
+   policy_version:status.policy_version,map_days:status.layers.map_index.front.registered_days,
+   published_read:status.layers.published_read.state,models:status.layers.models.state,
+   p0:status.layers.p0_qualification.state,production:false}));
   const q='reference_date=2024-08-05&longitude=124.5&latitude=30.2&radius_km=20';
   const page=await(await fetch(base+'/api/query/known-cases?'+q)).json();assert.equal(page.total,4);
   const response=await fetch(base+'/api/query/known-cases/case-2024-06?'+q+'&library_version='+encodeURIComponent(page.library_version));
@@ -85,6 +89,10 @@ test('fixed release starts original API from an independently installed no-Git p
     await c.send('Page.navigate',{url:base+'/prototype-fishing.html'});await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
     const before=await c.evaluate('({date:state.date,lon:state.lon,lat:state.lat,range:state.range,view:structuredClone(state.view),zoom:state.zoom})');
     const running=await c.evaluate("fetch('/api/release').then(r=>r.json())");assert.equal(running.release_id,built.release_id);
+    await click(c,'#toBasis');await click(c,'#operationalStatus summary');await click(c,'#statusRefresh');
+    await waitFor(c,"document.getElementById('operationalStatus').dataset.state==='ready'");
+    assert.match(await c.evaluate("document.getElementById('statusRecords').textContent"),new RegExp(built.release_id));
+    assert.match(await c.evaluate("document.getElementById('statusLayers').textContent"),/模型本发布禁用/);
     await click(c,'#workbenchToggle');await click(c,'#knownCaseOpen');await waitFor(c,"document.getElementById('knownCasesPane').dataset.state==='ready'");
     await click(c,"#caseCandidates [data-case-id='case-2024-06']");await waitFor(c,"document.getElementById('caseHours')?.textContent==='10'");
     assert.equal(await c.evaluate("document.getElementById('caseAreaTime').textContent"),'2');
