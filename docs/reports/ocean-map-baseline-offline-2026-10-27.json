@@ -1,0 +1,1158 @@
+{
+  "service": {
+    "kind": "not_managed",
+    "status": null,
+    "release": null,
+    "reason": null
+  },
+  "artifact_integrity": "unchanged",
+  "identity_collection_ms": {
+    "before": 77.09169999999999,
+    "after": 67.8779999999997
+  },
+  "b1_qualified": false,
+  "schema": "ocean-map-baseline-public-projection/v1",
+  "generated_at": "2026-10-27T06:24:15.213Z",
+  "sample_kind": "B0-current",
+  "runner_sha256": "61c38634de7d272173eeb261a374df42a23307feccd4b00bdd53266bb4d305cc",
+  "page_sha256": "bde748947c09667b31602a437747ece1decfa288ba122e8d3731e0884742b99a",
+  "commit": "a557b8c5442dea5108fa495745cf8b646431cbbb",
+  "tracked_changes_present": false,
+  "artifact_hashes": {
+    "entry_document": "bde748947c09667b31602a437747ece1decfa288ba122e8d3731e0884742b99a",
+    "frontend/prototype/data/base/asia.js": "9c4adb4ede5c6c9accff933f2dd1efac7bc4de0fc7c9d0b1aa0e697190d0ddf8",
+    "frontend/prototype/data/base/basemap.js": "dff5500596c23e773b5816b6a574eef4ed56c2cd1f9dcf634cff3df99f9804b1",
+    "frontend/prototype/data/base/world.js": "0876971f0bac1c9ea307303d17571bcfa55c83a04316c1628b44ebd9d59cbb57",
+    "frontend/prototype/data/clim/same-period.js": "22ff6b61ba3a150224cc9b52887734febc50745b0c1fb4aa623caa0e16e3052b",
+    "frontend/prototype/data/day/2024-07-01.js": "1d4c566090a5b79ce82c935cde08ea1309161d972449243de1cad3aa5cc0ae21",
+    "frontend/prototype/data/day/2024-07-02.js": "eb15d1f2a2878dffed9ab77374c2e80d3c2be4a6d7692ba5b07132205beac4f3",
+    "frontend/prototype/data/day/2024-07-03.js": "1033a1074f23a53e8bf65072083f790092cb113298f2ce6afd19b18d1b83cd76",
+    "frontend/prototype/data/day/2024-07-04.js": "e164224cde0c1bd2132b97ecdce4d8cb1f257d192e08ae265086c2849009a45e",
+    "frontend/prototype/data/day/2024-07-05.js": "2ec1d75d235b1d83c5f791d3c9e84bbdbead1f5b7b5d07a2a2bd566d9bc0b7c1",
+    "frontend/prototype/data/day/2024-07-06.js": "c0da0cd0b3d4842974b7284f43b45838bfea0908c45cd829aff243cf451f848b",
+    "frontend/prototype/data/day/2024-07-07.js": "5286d35050101bcd8f3e97238730fe995110a28a00ca0a56f4a65c235e01d159",
+    "frontend/prototype/data/day/2024-07-08.js": "a8b00573b0f8a8670034c4317d49cf23830be6ed0e0501f33993342a23731a1f",
+    "frontend/prototype/data/day/2024-07-09.js": "3fb3824a4034e51bb6d9811963a3f673608003c87e185969703a9a29d23cb265",
+    "frontend/prototype/data/day/2024-07-10.js": "fc27d8a509637b3f5e07e619c51ec19ca2a8af3cd7c0c13a5748f31c27af5788",
+    "frontend/prototype/data/day/2024-07-11.js": "d3d3307bff7c64e531b17c4fe01e7eb407d4b7462f8f6bd082619b21597a7c3a",
+    "frontend/prototype/data/day/2024-07-12.js": "1b198225db05d9772b99508a78e1a6c089680f779f1e93cfa088146d49f402da",
+    "frontend/prototype/data/day/2024-07-13.js": "d385af5ca747afd2f6dc7f3cf497376d0533ee200be85867475db5d7e8260a5b",
+    "frontend/prototype/data/day/2024-07-14.js": "e01721d1b5ad6bcd29951c3615994160c8a9da93d8741f8f061f03a713925d70",
+    "frontend/prototype/data/day/2024-07-15.js": "11e63a044c055c304bafa55efc5500aff5acc43cc7398e32ad53d47cc8f94bd2",
+    "frontend/prototype/data/day/2024-07-16.js": "afcebbf21c9468739a70d91c58ae0c1f21d6473d8be1bc5637ca9eb67e5e2bff",
+    "frontend/prototype/data/day/2024-07-17.js": "48dd35283dc8c30c4dcffa086bf469e55711d0cb56e1f86b55f08b938d153696",
+    "frontend/prototype/data/day/2024-07-18.js": "c0de9d4d554cc694e15b7b5e20da58469ff721c5e830eddb51ac76ad18a343f9",
+    "frontend/prototype/data/day/2024-07-19.js": "b02d5e65132c473a49cefbd96f5b6f9e66028339e487fe830d26d63e81ec3b98",
+    "frontend/prototype/data/day/2024-07-20.js": "eb70e3cd465f95e485350bf6419d4d48a26373f5ae9b14b3b216047acae1bd9c",
+    "frontend/prototype/data/day/2024-07-21.js": "7153e1db30a5964a019635e1b2e18905dd938538a2639178fc47cca652ccd12b",
+    "frontend/prototype/data/day/2024-07-22.js": "08f0155bcab2ce7174f42f670df3ecc01f38be2a157eb05d150dd17a847fbfcc",
+    "frontend/prototype/data/day/2024-07-23.js": "86e2cacec26cefbcf06851785fb9a1d6a9ef40aa0c880d978ba734610ac86e57",
+    "frontend/prototype/data/day/2024-07-24.js": "a9f5d9e7cb0cd8038e22e469dca9af8c8685bbaf160bf61e4ad3b8bf62c8fb3a",
+    "frontend/prototype/data/day/2024-07-25.js": "52b2e0afc48fc7be6d7523cae1335559b8b263ee0229aee4faab31e93d2cf0d3",
+    "frontend/prototype/data/day/2024-07-26.js": "c003ea77fdd67749448a0f61dbae55cd147028f889a3687344eadbc4f3a33431",
+    "frontend/prototype/data/day/2024-07-27.js": "36abc688a9c9b1059b05974bb2bf69439e340e74e300fa13a8d4aff46ef2633a",
+    "frontend/prototype/data/day/2024-07-28.js": "b4d07711213d4b6cd08dd033ab64de43bd1cdbc5eac0cd1078592492af3e06dc",
+    "frontend/prototype/data/day/2024-07-29.js": "d0a7621d7fda34892b65dbccc1865c2a2f163025481af2d151286c6830454c88",
+    "frontend/prototype/data/day/2024-07-30.js": "d338cc9e7daf8fa631864bbc33b66ad24c25d713c4fea6e269e7f0a6e605d3a2",
+    "frontend/prototype/data/day/2024-07-31.js": "4aceee6a8056bc3b67ac116fe2053bc5db666588d2cf58b921ee01a5b49c45ee",
+    "frontend/prototype/data/day/2024-08-01.js": "d4e9b2cbac9e79c6602cde9d72a38e4d5972370bc89699b8937b0e09bc5d4f9f",
+    "frontend/prototype/data/day/2024-08-02.js": "2d7adaa2b49a20e4ef9813dd9b491574847e6b027fbd18053256d492244968ff",
+    "frontend/prototype/data/day/2024-08-03.js": "882e5c3849e817a573a134b956cab0707bd478b0abfdf2fb51a6d8bc15d8123e",
+    "frontend/prototype/data/day/2024-08-04.js": "a33de90173efcff324be4d98dd524574016950b6960992ba4bb5d2dc27dfbf5c",
+    "frontend/prototype/data/day/2024-08-05.js": "b4a57b8060dcfad6323e1d694278c59f3184ff219f0a92b98e8af662311f3e8f",
+    "frontend/prototype/data/day/2024-08-06.js": "904c8259721fb7431942d0402a5259730099769865a095e2629c2056bea78c75",
+    "frontend/prototype/data/day/2024-08-07.js": "656aefa11b672e30a6218d40b81cbfa9e62d5c353f3d3f213d39769494f58d9c",
+    "frontend/prototype/data/day/2024-08-08.js": "7282a04bfc503e29735b20bb49fcdf44467f6299ddd41c69106f4e4b0e591eef",
+    "frontend/prototype/data/day/2024-08-09.js": "c2b616000b9746e8eaa177c35a073bec25171147461d814e31db0e6ec70de605",
+    "frontend/prototype/data/day/2024-08-10.js": "56b12da7f0c4414c48f3d8e72d64316deb9d41ccccdd2510138598220fa042de",
+    "frontend/prototype/data/day/2024-08-11.js": "f522e73715235ea735ef5b4d37dd70793a493e92b1e519ba3620b8e46fc27851",
+    "frontend/prototype/data/day/2024-08-12.js": "585c80d214bb32cf50f979e5f55c4bdc71ec96542cf4708d13b60b58a33a2432",
+    "frontend/prototype/data/day/2024-08-13.js": "8a21a02320cd34ce64fc52423fe00e06c6d37dda277f0d70ccb63a3ff7ca3dea",
+    "frontend/prototype/data/day/2024-08-14.js": "28ca895840409f483365edd74fd07e709acca8cbe5b06dd867bedf6954721afb",
+    "frontend/prototype/data/day/2024-08-15.js": "03ba459ee121396a27304982af68d8acf336bdeb3e43ec5bf76991dcdf47429b",
+    "frontend/prototype/data/day/2024-08-16.js": "80adec99c7925cf93d2fd3fd63307529476c88e11d4161ffc1f8322b374e52f4",
+    "frontend/prototype/data/day/2024-08-17.js": "b027cd878569527ba7bf327ace1defedb81ecb59d5e3b9850c8240a23076eae8",
+    "frontend/prototype/data/day/2024-08-18.js": "9671197d15c93c137684a556d09554212d122f9227b9343d961cef70e74b975d",
+    "frontend/prototype/data/day/2024-08-19.js": "134decaf1346dd40951ec28cfa57b015c197099448e4cbe406c8296a62141869",
+    "frontend/prototype/data/day/2024-08-20.js": "7264fda931f000e2c041d6bd4a9b8ea8493467a33078689c681d8f9c82a6de35",
+    "frontend/prototype/data/day/2024-08-21.js": "d86853bf73f40a4b6a6ceddc96a076f27650b5e15a4ee3b626b70a9bdaa251d9",
+    "frontend/prototype/data/day/2024-08-22.js": "9b83506e52adb134b052d79d56b3270c938b4d92718d91b08b0d63f9e31fc866",
+    "frontend/prototype/data/day/2024-08-23.js": "a5737b6944315f0f2196d77b47b22c1ddb1576f22a1e2e80d4a95f56dc94fe0d",
+    "frontend/prototype/data/day/2024-08-24.js": "c2d662a4127d2b505109f93ea3e30643753683dfab855f8418aa7fea28fab4c9",
+    "frontend/prototype/data/day/2024-08-25.js": "23680a49969e60e6a34fb45b1a9b444dac70bb55a7a62ec633d708279a72cee2",
+    "frontend/prototype/data/day/2024-08-26.js": "54ac2b8db9d2919df6a7b180bcec3c262f43eff9480ae8a60758fb47ca15c1c8",
+    "frontend/prototype/data/day/2024-08-27.js": "029717db5baf2da6edffb7c71ff204c8c4ebf79b7d348b742fd53615e87fe3b5",
+    "frontend/prototype/data/day/2024-08-28.js": "a38ab03f46268deaeab11f20aaa2934d40c649339fbac6f67d3b18fa4adf7262",
+    "frontend/prototype/data/day/2024-08-29.js": "e26082d133020ef87cf690b941ac69a916da1b500a782e01a2134adeb95afcfa",
+    "frontend/prototype/data/day/2024-08-30.js": "16e2527365c7a5c9dffe85ec7bf31bf559dd57e4e6c099b4c559de7790e1b473",
+    "frontend/prototype/data/day/2024-08-31.js": "b4b45920dfb5146f4f8b6372f04ca21ca76022359db1cb304847af2b0b073b4b",
+    "frontend/prototype/data/days.js": "66c5a3c96021b33afdaa157c8e0d3f387bb6f6be9f7a798256c7084e02dc8738",
+    "frontend/prototype/data/display-domains.js": "1e41e6d01aa25c8f63cfeff2aa0992849581777b2bda2fca597b575b7e212e1e",
+    "frontend/prototype/data/front_response/events.js": "107e3096191e5c480866766f3164e33fc0acaf6fa70eed49fb65b7118bdbd388",
+    "frontend/prototype/data/front_response/fixture-effort-sample.json": "7abcf1ebfcf8984f64c7a155cf8a7934af0029c1e0fae59ed35c65c5bd941d9e",
+    "frontend/prototype/data/front_response/real-effort-input.json": "a4c6dc163a6335103f41def93a29faaeaf29991ee37d227d01211b34168cfdd3",
+    "frontend/prototype/data/meta.js": "5a2a7ec2f712e8a66c01dad844380b8dc8fb435e1821d35cf2c2e23e45a446f3",
+    "frontend/prototype/data/published-months.js": "ce459fb226982a88cc8684208c23b7f9e782e47b16385d2c07132e94ac5d7cff",
+    "frontend/prototype/data/sst/2024-07-01.js": "ea04710d3fbab3d6aed34b5a08601f7dfd4196a49c6fa6e360ff901f0dfc346d",
+    "frontend/prototype/data/sst/2024-07-02.js": "496e1f03675d1c54009e46b713781386a9dd4bffc7b9d2a832c9cf20b6a6b376",
+    "frontend/prototype/data/sst/2024-07-03.js": "9cf0c1fb0be8d046aeefb586463d6d7f5a6e3dcaae723af74fbb852bd8181eaf",
+    "frontend/prototype/data/sst/2024-07-04.js": "3985dd7d4897f4d85ea3816cb3cf4ce3596c598bf0c2f49bb5fe41536237bc24",
+    "frontend/prototype/data/sst/2024-07-05.js": "963b33c3982bff184c8b4552229300dc367cd7aa167c688d803d424e77a35b15",
+    "frontend/prototype/data/sst/2024-07-06.js": "a4fdaa385f22c3d89e461d4cd4b7cf331a9fdaf04a2ec8f3bd1eb3d11966443c",
+    "frontend/prototype/data/sst/2024-07-07.js": "f7777bc12b68025f3b90bb8cf1c14c82e3a6cfe18edf9ac2b5a6de719afe81d8",
+    "frontend/prototype/data/sst/2024-07-08.js": "384944867c3d69090376388988b708471f48a95fb063fc926135af5a3c19201d",
+    "frontend/prototype/data/sst/2024-07-09.js": "2a484383f8ff76714f1c5a0218278691235c74400e4d1c6eb0781703adcc37d6",
+    "frontend/prototype/data/sst/2024-07-10.js": "6d64d3933f446e9b5a1e5631bdbb7a00d923c9a75a784f0ad96ed25cdf2c3194",
+    "frontend/prototype/data/sst/2024-07-11.js": "403853f5a9d6ddd7431c8cbeef16c28dafa0d7383580f2762af45459fd31d20c",
+    "frontend/prototype/data/sst/2024-07-12.js": "afee96385ecb7cc79917a9872f3dc98411eaeb9bff0fa41ddea945ece90f3abe",
+    "frontend/prototype/data/sst/2024-07-13.js": "9872367d549a1ea1db09c0c2cbf3658c31294dec5adf4063edaab1a8850e1b80",
+    "frontend/prototype/data/sst/2024-07-14.js": "fbd79e913b3fb89df1aa061e4ca852e899e2ae57fe943a116e383ba818de4da5",
+    "frontend/prototype/data/sst/2024-07-15.js": "4a6079060a72da8ca81c10e19f9bc1193cfc28a8a428dac1290459477d1e8dac",
+    "frontend/prototype/data/sst/2024-07-16.js": "109a3ef7a8f220f4157aae7c856a648613fdb5fa1a809c24ac2f8be3c2c84a60",
+    "frontend/prototype/data/sst/2024-07-17.js": "c35261a7035b302f388facf3de0c7fd63ce3235d7add7c603402de52223db7a6",
+    "frontend/prototype/data/sst/2024-07-18.js": "6b9617baa6caa6e0bdd7150a7beb2d490e7f7e56f5f12fc34d10fed7f81c503e",
+    "frontend/prototype/data/sst/2024-07-19.js": "7c9b82361c477a26cf0fa43a24bcd4f1f68fd6c6de0828237dccb87e022eac50",
+    "frontend/prototype/data/sst/2024-07-20.js": "4be649ab50df94a619abb885303cf0ec4698d7882c66ebdbb1d83739653f25c0",
+    "frontend/prototype/data/sst/2024-07-21.js": "361df7e1cf06e6d7ceece903b9d48a1497c683d9677b6838634627a9f0177847",
+    "frontend/prototype/data/sst/2024-07-22.js": "352eb7c899c970eda10394cec9798f21e4dcaed9b8b512142879fb9c3a7dba7b",
+    "frontend/prototype/data/sst/2024-07-23.js": "4a58031482c88c4682e176ef6b01cb33aa837b596a1404da17eb5067906b9060",
+    "frontend/prototype/data/sst/2024-07-24.js": "bdd3c1b4138ceecdb5dcec027d3d7129c0cdf786ec00595b8c256c23e481a7cb",
+    "frontend/prototype/data/sst/2024-07-25.js": "22a4065e613cae857256811f0a2c51984f1323d1c89f26b022212e1e701d1faf",
+    "frontend/prototype/data/sst/2024-07-26.js": "cf5cfac68b806c33fe5ec27ea9b38b662178c283b1d5612e69ed43affa248ca9",
+    "frontend/prototype/data/sst/2024-07-27.js": "3d8e10ceaf819d90459ffe7303737ecbc82b1d16e5f4b00248dc0fea2e3d66d4",
+    "frontend/prototype/data/sst/2024-07-28.js": "fbfbf7463b99d877239063fbbf9bf85b4dd5a4b7682db4fc86469176a955e00a",
+    "frontend/prototype/data/sst/2024-07-29.js": "89a7e99d39708d01590a27b61dab0f091802ccb5aebad7d8b75c41f799545ce0",
+    "frontend/prototype/data/sst/2024-07-30.js": "7da1d4c5ed263c6f8937e6e0f7cd9a4576b7bbd544b29c63dae926ee8fd3fcb9",
+    "frontend/prototype/data/sst/2024-07-31.js": "7d159f65c4fdf04990cfa8929ed495f0ce4c3f182ad34c90929366c78a69104f",
+    "frontend/prototype/data/sst/2024-08-01.js": "3bebaf45e78183822f4ef1f9c426974fc408a3684732252be9787036b2c57676",
+    "frontend/prototype/data/sst/2024-08-02.js": "1d3406331be93d3f298b45a63438655e533bdf8f08e8116e5acc572096bd297c",
+    "frontend/prototype/data/sst/2024-08-03.js": "58016760a2a7a28dcdd344b03f8785b31bd5d24e0ea916a130646be71376f4bf",
+    "frontend/prototype/data/sst/2024-08-04.js": "758c1d28c6e97ed9385c23e79b84e0b5359a27b49748f2724abd5353b29605d5",
+    "frontend/prototype/data/sst/2024-08-05.js": "287d590a031a84d0ecfa4828c5c3f89545fc2f31183aec26c1258704f533e4eb",
+    "frontend/prototype/data/sst/2024-08-06.js": "5055e7a029afab424a2f478db2ea95aa6c406b25994aa5c4ddad00030596f376",
+    "frontend/prototype/data/sst/2024-08-07.js": "bd0eae3b7f3e3e888625bfce30323f2522e2d3c4053a7b617692f4813b6e42af",
+    "frontend/prototype/data/sst/2024-08-08.js": "d2d8eed75682a9735686ab316434e5fa91505ca3eebc2cb8958cd5757b0a3fc1",
+    "frontend/prototype/data/sst/2024-08-09.js": "fad3a18c438c3478dda7567651354ae3b00664600617cd2a1bb06ce87ea33840",
+    "frontend/prototype/data/sst/2024-08-10.js": "8e5b0cd693bd838c511102fe17d12d5a5ce89132a86e90a6f92a97dc1554757a",
+    "frontend/prototype/data/sst/2024-08-11.js": "d965f7cf779ea28ef8b8c10b8616a3987842a21d7310613ecc28d9008f6e7f65",
+    "frontend/prototype/data/sst/2024-08-12.js": "ab851bb278bee9b98971ebd3261e88eea7311257b6aef8dc2271aaffb3745813",
+    "frontend/prototype/data/sst/2024-08-13.js": "b45a0a82a9235956b0b12ac938b60f6ff506b354e22dadd333a0854b20f02279",
+    "frontend/prototype/data/sst/2024-08-14.js": "c8cfd57839dc7103f080c1053f2c2134dd219578251473333457d7a13b2e55e0",
+    "frontend/prototype/data/sst/2024-08-15.js": "4449be8fda2784f5b36ae197c8f79c3691b26aaeb15896d719b78f803f329890",
+    "frontend/prototype/data/sst/2024-08-16.js": "adbdbde79440e07abb0d229ac70e379e7c29205b508e07468753d79339c029a0",
+    "frontend/prototype/data/sst/2024-08-17.js": "5cc8f1f0e6aab8d7bfac79a943ae99a369b794a567206a5ad38ada833082d839",
+    "frontend/prototype/data/sst/2024-08-18.js": "e15afb16df36f8d7e477e1e8b4a22b517de8b48d68e8744f9913f674be659b5a",
+    "frontend/prototype/data/sst/2024-08-19.js": "0a302612bf59582dc50a6b6075593fdc8528229a13c5c3fa55fc033ee174aa02",
+    "frontend/prototype/data/sst/2024-08-20.js": "8d03442084b73968df0aa90e9bb1b08f8330542b9f13f5a2ae64fac049f79377",
+    "frontend/prototype/data/sst/2024-08-21.js": "b08ab7b406daf0313b740bf4e146bb22043013c9b95b6d59095066c088003b49",
+    "frontend/prototype/data/sst/2024-08-22.js": "4785eccb6ead40eba2aaf265c6686916947bcdf6482f79afedaacae5330de915",
+    "frontend/prototype/data/sst/2024-08-23.js": "c85202f04fafcbf76d1368f6bc62acee3ec4b664e8f865cc676bea70b107c7dd",
+    "frontend/prototype/data/sst/2024-08-24.js": "eebadb5576bff2ab361ec5227631668325f3bea280b1113e836cebd82222efd4",
+    "frontend/prototype/data/sst/2024-08-25.js": "8c8081574084d07df6b8d2f5e009d0568a9c4509d80bc6f553ba64c95fa74c65",
+    "frontend/prototype/data/sst/2024-08-26.js": "de507d467c0491ab8ba0f235afb725b59117976cb795d21d95c2a9b984e8bb65",
+    "frontend/prototype/data/sst/2024-08-27.js": "b30d59f89371b04a4dc2146d83d93f46f2062085f3e63d6cceeeca1b9ba641f9",
+    "frontend/prototype/data/sst/2024-08-28.js": "d09e5f2fb272c946ed691772cb1d3caf3d7f3d790e8a7a8fefd51f2133fa8e6d",
+    "frontend/prototype/data/sst/2024-08-29.js": "3d9ea1bb3a92e5e6be87d6527e00a6e451a28a8104a14cd70594b4bbf3be309a",
+    "frontend/prototype/data/sst/2024-08-30.js": "7f673511df0e6eb398a95886229ddd7ffba8d4ec119773ca25dd140b14c4a8b7",
+    "frontend/prototype/data/sst/2024-08-31.js": "cb7bf0c33fc77b0d2064b456a86a7f568c821770026ddc42fcdd9e3b915ca91e",
+    "frontend/prototype/fonts/Saira.ttf": "9d050fc5a01c85f74c4257c207d50b55d1e40c37308c642f974a2c5003231dde",
+    "frontend/prototype/palettes/palettes.js": "e345640b4262f215d1a85e14c34420f2312f79dddb63f6fe99eea471df8d94b9",
+    "frontend/prototype/prototype-color-controls.js": "cc613f6fa0389af967ddcb8202af72be26be8082731e2dd1ea5984d4ae837365",
+    "frontend/prototype/prototype-colors.js": "7a6d8f379305bd1a134903536d16bb126cd13375395ae58ea3be27b51369ee44",
+    "frontend/prototype/prototype-data.js": "09e3d0af607b6554145d1bbd46ee80c564e15d3206fe2b97d1bca9e3907dcae6",
+    "frontend/prototype/prototype-effort.js": "db76ab8af01c72d3a60f8a35da88ee230dadfc6bfd27a79a13e86923e14698ce",
+    "frontend/prototype/prototype-evidence.js": "32a65d5f953e7b5610f057098de8f9ca996413b484d19fa3c5fde9de7b86360d",
+    "frontend/prototype/prototype-fishing.html": "bde748947c09667b31602a437747ece1decfa288ba122e8d3731e0884742b99a",
+    "frontend/prototype/prototype-fishing.js": "da30ff8f0282fc92af889f2191308bf9fec096506403e1e77d21fa69e047a767",
+    "frontend/prototype/prototype-known-cases.js": "6cc2c9a140d7c9f91262d40dbf9b8a3bb0284c23927bf84301d2105aefb62221",
+    "frontend/prototype/prototype-map.js": "4970453f0380003ae389b9854861fb9ebb4cd2d7232bc5204208d02d7aaeedff",
+    "frontend/prototype/prototype-month-draft.js": "c8109427cd4d0c13bf6df98b52937aed2a85c6c8380b4c4f49f58d8cd4f7df8a",
+    "frontend/prototype/prototype-month-reading.js": "fc5b1963bda345733d78c67ea2f0696716e73701e8e07668e5abf0dab144212d",
+    "frontend/prototype/prototype-preferences.js": "d9f71eed2be06ff4b7ac74bea4901c7d1277603a7597b729969599c0c4d3acef",
+    "frontend/prototype/prototype-public-read.js": "8edc5ec76936ca2cccc55d1cede7eabf7000765639d88ff661c675e5f5cdb865",
+    "frontend/prototype/prototype-service-status.js": "340c456c786fd7b4caca3208a437cf400dd69ce86de8c2c0f82777ea7fbf2786",
+    "frontend/prototype/prototype-workbench.css": "baa92419f40b217e5288560194593d85cfa5ea919eaa7799bed603f7f1e5094c",
+    "frontend/prototype/prototype-workbench.js": "8de9164d8e536951194f6b50b85b54af892e63e411b609ba8a440eaf93cd4d01",
+    "tools/benchmark-map.mjs": "61c38634de7d272173eeb261a374df42a23307feccd4b00bdd53266bb4d305cc",
+    "tools/lib/browser-driver.mjs": "2212010c61a4e2376d3388857ee2fefbdd630ec27018368f2f8f837fc85d32ea",
+    "tools/lib/monthly-test-service.mjs": "d78eddcd2295a44ddd59f15d655df8c3b15fb5efe003caba06ce003c27054250"
+  },
+  "environment": {
+    "node_version": "v24.16.0",
+    "run_environments": [
+      {
+        "run": 1,
+        "browser": "Edg/156.0.4314.42",
+        "gpu": {
+          "devices": [
+            {
+              "vendor": "",
+              "device": "NVIDIA GeForce RTX 4060 Laptop GPU"
+            },
+            {
+              "vendor": "",
+              "device": "Intel(R) UHD Graphics"
+            },
+            {
+              "vendor": "",
+              "device": "Intel(R) UHD Graphics"
+            },
+            {
+              "vendor": "",
+              "device": "Microsoft Basic Render Driver"
+            }
+          ],
+          "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 Laptop GPU (0x000028E0) Direct3D11 vs_5_0 ps_5_0, D3D11-31.0.15.5183)"
+        }
+      },
+      {
+        "run": 2,
+        "browser": "Edg/156.0.4314.42",
+        "gpu": {
+          "devices": [
+            {
+              "vendor": "",
+              "device": "NVIDIA GeForce RTX 4060 Laptop GPU"
+            },
+            {
+              "vendor": "",
+              "device": "Intel(R) UHD Graphics"
+            },
+            {
+              "vendor": "",
+              "device": "Intel(R) UHD Graphics"
+            },
+            {
+              "vendor": "",
+              "device": "Microsoft Basic Render Driver"
+            }
+          ],
+          "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 Laptop GPU (0x000028E0) Direct3D11 vs_5_0 ps_5_0, D3D11-31.0.15.5183)"
+        }
+      },
+      {
+        "run": 3,
+        "browser": "Edg/156.0.4314.42",
+        "gpu": {
+          "devices": [
+            {
+              "vendor": "",
+              "device": "NVIDIA GeForce RTX 4060 Laptop GPU"
+            },
+            {
+              "vendor": "",
+              "device": "Intel(R) UHD Graphics"
+            },
+            {
+              "vendor": "",
+              "device": "Intel(R) UHD Graphics"
+            },
+            {
+              "vendor": "",
+              "device": "Microsoft Basic Render Driver"
+            }
+          ],
+          "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 Laptop GPU (0x000028E0) Direct3D11 vs_5_0 ps_5_0, D3D11-31.0.15.5183)"
+        }
+      }
+    ],
+    "cache_layers": {
+      "browser": "fresh profile then same-profile reload",
+      "service": "not controlled",
+      "os_storage": "uncontrolled"
+    },
+    "platform": "win32",
+    "release": "10.0.22621",
+    "cpu_model": "Intel(R) Core(TM) i9-14900HX",
+    "cpu_count": 32,
+    "ram_bytes": 34070192128,
+    "browser": "Edg/156.0.4314.42",
+    "gpu": {
+      "devices": [
+        {
+          "vendor": "",
+          "device": "NVIDIA GeForce RTX 4060 Laptop GPU"
+        },
+        {
+          "vendor": "",
+          "device": "Intel(R) UHD Graphics"
+        },
+        {
+          "vendor": "",
+          "device": "Intel(R) UHD Graphics"
+        },
+        {
+          "vendor": "",
+          "device": "Microsoft Basic Render Driver"
+        }
+      ],
+      "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 Laptop GPU (0x000028E0) Direct3D11 vs_5_0 ps_5_0, D3D11-31.0.15.5183)"
+    },
+    "gpu_disabled_by_runner": false,
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "dpr": 1
+    },
+    "network": "local; no throttling; file transfer sizes may be unavailable",
+    "cache": "fresh browser profile then same-profile reload; OS/storage caches uncontrolled"
+  },
+  "attempts": [
+    {
+      "run": 1,
+      "scenario": "navigation",
+      "cache": "fresh-profile",
+      "action_attempted": true,
+      "status": "success",
+      "elapsed_ms": 232.74840000000006,
+      "observed": {
+        "time_origin": 1793082252421.8,
+        "date": "2024-08-05",
+        "render_date": "2024-08-05",
+        "status": "ready",
+        "view": "[\"2024-08-05\",124.5,30.2,0.8,\"plane\"]",
+        "map_ms": 14.799999952316284,
+        "panel_ms": 3.700000047683716,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "requests": [],
+      "browser_errors": [],
+      "last_observed": {
+        "time_origin": 1793082252421.8,
+        "date": "2024-08-05",
+        "render_date": "2024-08-05",
+        "status": "ready",
+        "view": "[\"2024-08-05\",124.5,30.2,0.8,\"plane\"]",
+        "map_ms": 14.799999952316284,
+        "panel_ms": 3.700000047683716,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "after_action_ms": 222.19039999999995,
+      "action_dispatch_ms": 10.558000000000106,
+      "attempt_duration_ms": 232.74840000000006,
+      "request_summary": {
+        "total": 152,
+        "roles": {
+          "static_asset": 151,
+          "other": 1
+        },
+        "http_statuses": {
+          "200": 152
+        },
+        "content_encodings": {
+          "identity": 152
+        },
+        "known_encoded_bytes_sum": 5080520,
+        "encoded_bytes_unknown_count": 1,
+        "canceled": 0,
+        "failed": 0,
+        "duration_unknown_count": 0
+      }
+    },
+    {
+      "run": 1,
+      "scenario": "reload",
+      "cache": "same-profile",
+      "action_attempted": true,
+      "status": "success",
+      "elapsed_ms": 158.36040000000003,
+      "observed": {
+        "time_origin": 1793082252655.5,
+        "date": "2024-08-05",
+        "render_date": "2024-08-05",
+        "status": "ready",
+        "view": "[\"2024-08-05\",124.5,30.2,0.8,\"plane\"]",
+        "map_ms": 4.200000047683716,
+        "panel_ms": 0.9999998807907104,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "requests": [],
+      "browser_errors": [],
+      "last_observed": {
+        "time_origin": 1793082252655.5,
+        "date": "2024-08-05",
+        "render_date": "2024-08-05",
+        "status": "ready",
+        "view": "[\"2024-08-05\",124.5,30.2,0.8,\"plane\"]",
+        "map_ms": 15.299999952316284,
+        "panel_ms": 1.9000000953674316,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "after_action_ms": 153.51970000000006,
+      "action_dispatch_ms": 4.84069999999997,
+      "attempt_duration_ms": 158.36040000000003,
+      "request_summary": {
+        "total": 152,
+        "roles": {
+          "static_asset": 151,
+          "other": 1
+        },
+        "http_statuses": {
+          "200": 152
+        },
+        "content_encodings": {
+          "identity": 152
+        },
+        "known_encoded_bytes_sum": 5080520,
+        "encoded_bytes_unknown_count": 1,
+        "canceled": 0,
+        "failed": 0,
+        "duration_unknown_count": 0
+      }
+    },
+    {
+      "run": 1,
+      "scenario": "date-change",
+      "cache": "same-profile",
+      "action_attempted": true,
+      "status": "success",
+      "elapsed_ms": 33.65470000000005,
+      "observed": {
+        "time_origin": 1793082252655.5,
+        "date": "2024-08-06",
+        "render_date": "2024-08-06",
+        "status": "ready",
+        "view": "[\"2024-08-06\",124.5,30.2,0.8,\"plane\"]",
+        "map_ms": 5,
+        "panel_ms": 0.7999999523162842,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "requests": [],
+      "browser_errors": [],
+      "last_observed": {
+        "time_origin": 1793082252655.5,
+        "date": "2024-08-06",
+        "render_date": "2024-08-06",
+        "status": "ready",
+        "view": "[\"2024-08-06\",124.5,30.2,0.8,\"plane\"]",
+        "map_ms": 5,
+        "panel_ms": 0.7999999523162842,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "after_action_ms": 26.176500000000033,
+      "action_dispatch_ms": 7.478200000000015,
+      "attempt_duration_ms": 33.65470000000005,
+      "request_summary": {
+        "total": 0,
+        "roles": {},
+        "http_statuses": {},
+        "content_encodings": {},
+        "known_encoded_bytes_sum": null,
+        "encoded_bytes_unknown_count": 0,
+        "canceled": 0,
+        "failed": 0,
+        "duration_unknown_count": 0
+      }
+    },
+    {
+      "run": 1,
+      "scenario": "zoom",
+      "cache": "same-profile",
+      "action_attempted": true,
+      "status": "success",
+      "elapsed_ms": 56.945199999999886,
+      "observed": {
+        "time_origin": 1793082252655.5,
+        "date": "2024-08-06",
+        "render_date": "2024-08-06",
+        "status": "ready",
+        "view": "[\"2024-08-06\",124.50054695371318,30.199527281687818,0.9693364135719205,\"plane\"]",
+        "map_ms": 5,
+        "panel_ms": 0.7999999523162842,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "requests": [],
+      "browser_errors": [],
+      "last_observed": {
+        "time_origin": 1793082252655.5,
+        "date": "2024-08-06",
+        "render_date": "2024-08-06",
+        "status": "ready",
+        "view": "[\"2024-08-06\",124.50054695371318,30.199527281687818,0.9693364135719205,\"plane\"]",
+        "map_ms": 5,
+        "panel_ms": 0.7999999523162842,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "after_action_ms": 39.86069999999995,
+      "action_dispatch_ms": 17.084499999999935,
+      "attempt_duration_ms": 56.945199999999886,
+      "request_summary": {
+        "total": 0,
+        "roles": {},
+        "http_statuses": {},
+        "content_encodings": {},
+        "known_encoded_bytes_sum": null,
+        "encoded_bytes_unknown_count": 0,
+        "canceled": 0,
+        "failed": 0,
+        "duration_unknown_count": 0
+      }
+    },
+    {
+      "run": 1,
+      "scenario": "drag",
+      "cache": "same-profile",
+      "action_attempted": true,
+      "status": "success",
+      "elapsed_ms": 20.331699999999955,
+      "observed": {
+        "time_origin": 1793082252655.5,
+        "date": "2024-08-06",
+        "render_date": "2024-08-06",
+        "status": "ready",
+        "view": "[\"2024-08-06\",124.1387878564633,30.266525697144374,0.9693364135719205,\"plane\"]",
+        "map_ms": 5,
+        "panel_ms": 0.7999999523162842,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "requests": [],
+      "browser_errors": [],
+      "last_observed": {
+        "time_origin": 1793082252655.5,
+        "date": "2024-08-06",
+        "render_date": "2024-08-06",
+        "status": "ready",
+        "view": "[\"2024-08-06\",124.1387878564633,30.266525697144374,0.9693364135719205,\"plane\"]",
+        "map_ms": 5,
+        "panel_ms": 0.7999999523162842,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "after_action_ms": 10.817000000000007,
+      "action_dispatch_ms": 9.514699999999948,
+      "attempt_duration_ms": 20.331699999999955,
+      "request_summary": {
+        "total": 0,
+        "roles": {},
+        "http_statuses": {},
+        "content_encodings": {},
+        "known_encoded_bytes_sum": null,
+        "encoded_bytes_unknown_count": 0,
+        "canceled": 0,
+        "failed": 0,
+        "duration_unknown_count": 0
+      }
+    },
+    {
+      "run": 2,
+      "scenario": "navigation",
+      "cache": "fresh-profile",
+      "action_attempted": true,
+      "status": "success",
+      "elapsed_ms": 241.21370000000002,
+      "observed": {
+        "time_origin": 1793082253434.4,
+        "date": "2024-08-05",
+        "render_date": "2024-08-05",
+        "status": "ready",
+        "view": "[\"2024-08-05\",124.5,30.2,0.8,\"plane\"]",
+        "map_ms": 16.700000047683716,
+        "panel_ms": 4.100000023841858,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "requests": [],
+      "browser_errors": [],
+      "last_observed": {
+        "time_origin": 1793082253434.4,
+        "date": "2024-08-05",
+        "render_date": "2024-08-05",
+        "status": "ready",
+        "view": "[\"2024-08-05\",124.5,30.2,0.8,\"plane\"]",
+        "map_ms": 16.700000047683716,
+        "panel_ms": 4.100000023841858,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "after_action_ms": 230.55169999999998,
+      "action_dispatch_ms": 10.662000000000035,
+      "attempt_duration_ms": 241.21370000000002,
+      "request_summary": {
+        "total": 152,
+        "roles": {
+          "static_asset": 151,
+          "other": 1
+        },
+        "http_statuses": {
+          "200": 152
+        },
+        "content_encodings": {
+          "identity": 152
+        },
+        "known_encoded_bytes_sum": 5080520,
+        "encoded_bytes_unknown_count": 1,
+        "canceled": 0,
+        "failed": 0,
+        "duration_unknown_count": 0
+      }
+    },
+    {
+      "run": 2,
+      "scenario": "reload",
+      "cache": "same-profile",
+      "action_attempted": true,
+      "status": "success",
+      "elapsed_ms": 173.1826000000001,
+      "observed": {
+        "time_origin": 1793082253677.1,
+        "date": "2024-08-05",
+        "render_date": "2024-08-05",
+        "status": "ready",
+        "view": "[\"2024-08-05\",124.5,30.2,0.8,\"plane\"]",
+        "map_ms": 4.199999928474426,
+        "panel_ms": 1.0000001192092896,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "requests": [],
+      "browser_errors": [],
+      "last_observed": {
+        "time_origin": 1793082253677.1,
+        "date": "2024-08-05",
+        "render_date": "2024-08-05",
+        "status": "ready",
+        "view": "[\"2024-08-05\",124.5,30.2,0.8,\"plane\"]",
+        "map_ms": 4.199999928474426,
+        "panel_ms": 1.0000001192092896,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "after_action_ms": 167.90160000000014,
+      "action_dispatch_ms": 5.280999999999949,
+      "attempt_duration_ms": 173.1826000000001,
+      "request_summary": {
+        "total": 152,
+        "roles": {
+          "static_asset": 151,
+          "other": 1
+        },
+        "http_statuses": {
+          "200": 152
+        },
+        "content_encodings": {
+          "identity": 152
+        },
+        "known_encoded_bytes_sum": 5080520,
+        "encoded_bytes_unknown_count": 1,
+        "canceled": 0,
+        "failed": 0,
+        "duration_unknown_count": 0
+      }
+    },
+    {
+      "run": 2,
+      "scenario": "date-change",
+      "cache": "same-profile",
+      "action_attempted": true,
+      "status": "success",
+      "elapsed_ms": 29.433500000000095,
+      "observed": {
+        "time_origin": 1793082253677.1,
+        "date": "2024-08-06",
+        "render_date": "2024-08-06",
+        "status": "ready",
+        "view": "[\"2024-08-06\",124.5,30.2,0.8,\"plane\"]",
+        "map_ms": 4.599999904632568,
+        "panel_ms": 0.7000000476837158,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "requests": [],
+      "browser_errors": [],
+      "last_observed": {
+        "time_origin": 1793082253677.1,
+        "date": "2024-08-06",
+        "render_date": "2024-08-06",
+        "status": "ready",
+        "view": "[\"2024-08-06\",124.5,30.2,0.8,\"plane\"]",
+        "map_ms": 4.599999904632568,
+        "panel_ms": 0.7000000476837158,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "after_action_ms": 22.7038,
+      "action_dispatch_ms": 6.7297000000000935,
+      "attempt_duration_ms": 29.433500000000095,
+      "request_summary": {
+        "total": 0,
+        "roles": {},
+        "http_statuses": {},
+        "content_encodings": {},
+        "known_encoded_bytes_sum": null,
+        "encoded_bytes_unknown_count": 0,
+        "canceled": 0,
+        "failed": 0,
+        "duration_unknown_count": 0
+      }
+    },
+    {
+      "run": 2,
+      "scenario": "zoom",
+      "cache": "same-profile",
+      "action_attempted": true,
+      "status": "success",
+      "elapsed_ms": 32.252100000000155,
+      "observed": {
+        "time_origin": 1793082253677.1,
+        "date": "2024-08-06",
+        "render_date": "2024-08-06",
+        "status": "ready",
+        "view": "[\"2024-08-06\",124.50054695371318,30.199527281687818,0.9693364135719205,\"plane\"]",
+        "map_ms": 4.599999904632568,
+        "panel_ms": 0.7000000476837158,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "requests": [],
+      "browser_errors": [],
+      "last_observed": {
+        "time_origin": 1793082253677.1,
+        "date": "2024-08-06",
+        "render_date": "2024-08-06",
+        "status": "ready",
+        "view": "[\"2024-08-06\",124.50054695371318,30.199527281687818,0.9693364135719205,\"plane\"]",
+        "map_ms": 4.599999904632568,
+        "panel_ms": 0.7000000476837158,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "after_action_ms": 17.107300000000123,
+      "action_dispatch_ms": 15.144800000000032,
+      "attempt_duration_ms": 32.252100000000155,
+      "request_summary": {
+        "total": 0,
+        "roles": {},
+        "http_statuses": {},
+        "content_encodings": {},
+        "known_encoded_bytes_sum": null,
+        "encoded_bytes_unknown_count": 0,
+        "canceled": 0,
+        "failed": 0,
+        "duration_unknown_count": 0
+      }
+    },
+    {
+      "run": 2,
+      "scenario": "drag",
+      "cache": "same-profile",
+      "action_attempted": true,
+      "status": "success",
+      "elapsed_ms": 12.296700000000328,
+      "observed": {
+        "time_origin": 1793082253677.1,
+        "date": "2024-08-06",
+        "render_date": "2024-08-06",
+        "status": "ready",
+        "view": "[\"2024-08-06\",124.1387878564633,30.266525697144374,0.9693364135719205,\"plane\"]",
+        "map_ms": 4.599999904632568,
+        "panel_ms": 0.7000000476837158,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "requests": [],
+      "browser_errors": [],
+      "last_observed": {
+        "time_origin": 1793082253677.1,
+        "date": "2024-08-06",
+        "render_date": "2024-08-06",
+        "status": "ready",
+        "view": "[\"2024-08-06\",124.1387878564633,30.266525697144374,0.9693364135719205,\"plane\"]",
+        "map_ms": 4.599999904632568,
+        "panel_ms": 0.7000000476837158,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "after_action_ms": 6.548200000000179,
+      "action_dispatch_ms": 5.748500000000149,
+      "attempt_duration_ms": 12.296700000000328,
+      "request_summary": {
+        "total": 0,
+        "roles": {},
+        "http_statuses": {},
+        "content_encodings": {},
+        "known_encoded_bytes_sum": null,
+        "encoded_bytes_unknown_count": 0,
+        "canceled": 0,
+        "failed": 0,
+        "duration_unknown_count": 0
+      }
+    },
+    {
+      "run": 3,
+      "scenario": "navigation",
+      "cache": "fresh-profile",
+      "action_attempted": true,
+      "status": "success",
+      "elapsed_ms": 244.9295000000002,
+      "observed": {
+        "time_origin": 1793082254395.5,
+        "date": "2024-08-05",
+        "render_date": "2024-08-05",
+        "status": "ready",
+        "view": "[\"2024-08-05\",124.5,30.2,0.8,\"plane\"]",
+        "map_ms": 16.100000023841858,
+        "panel_ms": 4,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "requests": [],
+      "browser_errors": [],
+      "last_observed": {
+        "time_origin": 1793082254395.5,
+        "date": "2024-08-05",
+        "render_date": "2024-08-05",
+        "status": "ready",
+        "view": "[\"2024-08-05\",124.5,30.2,0.8,\"plane\"]",
+        "map_ms": 16.100000023841858,
+        "panel_ms": 4,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "after_action_ms": 232.82740000000013,
+      "action_dispatch_ms": 12.102100000000064,
+      "attempt_duration_ms": 244.9295000000002,
+      "request_summary": {
+        "total": 152,
+        "roles": {
+          "static_asset": 151,
+          "other": 1
+        },
+        "http_statuses": {
+          "200": 152
+        },
+        "content_encodings": {
+          "identity": 152
+        },
+        "known_encoded_bytes_sum": 5080520,
+        "encoded_bytes_unknown_count": 1,
+        "canceled": 0,
+        "failed": 0,
+        "duration_unknown_count": 0
+      }
+    },
+    {
+      "run": 3,
+      "scenario": "reload",
+      "cache": "same-profile",
+      "action_attempted": true,
+      "status": "success",
+      "elapsed_ms": 154.18340000000035,
+      "observed": {
+        "time_origin": 1793082254640,
+        "date": "2024-08-05",
+        "render_date": "2024-08-05",
+        "status": "ready",
+        "view": "[\"2024-08-05\",124.5,30.2,0.8,\"plane\"]",
+        "map_ms": 4.100000023841858,
+        "panel_ms": 0.8000000715255737,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "requests": [],
+      "browser_errors": [],
+      "last_observed": {
+        "time_origin": 1793082254640,
+        "date": "2024-08-05",
+        "render_date": "2024-08-05",
+        "status": "ready",
+        "view": "[\"2024-08-05\",124.5,30.2,0.8,\"plane\"]",
+        "map_ms": 13.700000047683716,
+        "panel_ms": 1.6999999284744263,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "after_action_ms": 149.03819999999996,
+      "action_dispatch_ms": 5.145200000000386,
+      "attempt_duration_ms": 154.18340000000035,
+      "request_summary": {
+        "total": 152,
+        "roles": {
+          "static_asset": 151,
+          "other": 1
+        },
+        "http_statuses": {
+          "200": 152
+        },
+        "content_encodings": {
+          "identity": 152
+        },
+        "known_encoded_bytes_sum": 5080520,
+        "encoded_bytes_unknown_count": 1,
+        "canceled": 0,
+        "failed": 0,
+        "duration_unknown_count": 0
+      }
+    },
+    {
+      "run": 3,
+      "scenario": "date-change",
+      "cache": "same-profile",
+      "action_attempted": true,
+      "status": "success",
+      "elapsed_ms": 49.66190000000006,
+      "observed": {
+        "time_origin": 1793082254640,
+        "date": "2024-08-06",
+        "render_date": "2024-08-06",
+        "status": "ready",
+        "view": "[\"2024-08-06\",124.5,30.2,0.8,\"plane\"]",
+        "map_ms": 5.200000047683716,
+        "panel_ms": 0.7999999523162842,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "requests": [],
+      "browser_errors": [],
+      "last_observed": {
+        "time_origin": 1793082254640,
+        "date": "2024-08-06",
+        "render_date": "2024-08-06",
+        "status": "ready",
+        "view": "[\"2024-08-06\",124.5,30.2,0.8,\"plane\"]",
+        "map_ms": 5.200000047683716,
+        "panel_ms": 0.7999999523162842,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "after_action_ms": 41.316699999999855,
+      "action_dispatch_ms": 8.345200000000204,
+      "attempt_duration_ms": 49.66190000000006,
+      "request_summary": {
+        "total": 0,
+        "roles": {},
+        "http_statuses": {},
+        "content_encodings": {},
+        "known_encoded_bytes_sum": null,
+        "encoded_bytes_unknown_count": 0,
+        "canceled": 0,
+        "failed": 0,
+        "duration_unknown_count": 0
+      }
+    },
+    {
+      "run": 3,
+      "scenario": "zoom",
+      "cache": "same-profile",
+      "action_attempted": true,
+      "status": "success",
+      "elapsed_ms": 44.85500000000002,
+      "observed": {
+        "time_origin": 1793082254640,
+        "date": "2024-08-06",
+        "render_date": "2024-08-06",
+        "status": "ready",
+        "view": "[\"2024-08-06\",124.50054695371318,30.199527281687818,0.9693364135719205,\"plane\"]",
+        "map_ms": 5.200000047683716,
+        "panel_ms": 0.7999999523162842,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "requests": [],
+      "browser_errors": [],
+      "last_observed": {
+        "time_origin": 1793082254640,
+        "date": "2024-08-06",
+        "render_date": "2024-08-06",
+        "status": "ready",
+        "view": "[\"2024-08-06\",124.50054695371318,30.199527281687818,0.9693364135719205,\"plane\"]",
+        "map_ms": 5.200000047683716,
+        "panel_ms": 0.7999999523162842,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "after_action_ms": 23.946199999999862,
+      "action_dispatch_ms": 20.908800000000156,
+      "attempt_duration_ms": 44.85500000000002,
+      "request_summary": {
+        "total": 0,
+        "roles": {},
+        "http_statuses": {},
+        "content_encodings": {},
+        "known_encoded_bytes_sum": null,
+        "encoded_bytes_unknown_count": 0,
+        "canceled": 0,
+        "failed": 0,
+        "duration_unknown_count": 0
+      }
+    },
+    {
+      "run": 3,
+      "scenario": "drag",
+      "cache": "same-profile",
+      "action_attempted": true,
+      "status": "success",
+      "elapsed_ms": 178.66490000000022,
+      "observed": {
+        "time_origin": 1793082254640,
+        "date": "2024-08-06",
+        "render_date": "2024-08-06",
+        "status": "ready",
+        "view": "[\"2024-08-06\",124.1387878564633,30.266525697144374,0.9693364135719205,\"plane\"]",
+        "map_ms": 5.200000047683716,
+        "panel_ms": 0.7999999523162842,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "requests": [],
+      "browser_errors": [],
+      "last_observed": {
+        "time_origin": 1793082254640,
+        "date": "2024-08-06",
+        "render_date": "2024-08-06",
+        "status": "ready",
+        "view": "[\"2024-08-06\",124.1387878564633,30.266525697144374,0.9693364135719205,\"plane\"]",
+        "map_ms": 5.200000047683716,
+        "panel_ms": 0.7999999523162842,
+        "step": 0.05,
+        "server_enabled": false,
+        "viewport_ready": false,
+        "layer_states": {}
+      },
+      "after_action_ms": 167.96810000000005,
+      "action_dispatch_ms": 10.696800000000167,
+      "attempt_duration_ms": 178.66490000000022,
+      "request_summary": {
+        "total": 0,
+        "roles": {},
+        "http_statuses": {},
+        "content_encodings": {},
+        "known_encoded_bytes_sum": null,
+        "encoded_bytes_unknown_count": 0,
+        "canceled": 0,
+        "failed": 0,
+        "duration_unknown_count": 0
+      }
+    }
+  ],
+  "summary": {
+    "navigation": {
+      "attempts": 3,
+      "success": 3,
+      "failure": 0,
+      "timeout": 0,
+      "p50_ms": 241.21370000000002,
+      "p95_ms": null,
+      "tail_note": "insufficient samples for stable tail claim"
+    },
+    "reload": {
+      "attempts": 3,
+      "success": 3,
+      "failure": 0,
+      "timeout": 0,
+      "p50_ms": 158.36040000000003,
+      "p95_ms": null,
+      "tail_note": "insufficient samples for stable tail claim"
+    },
+    "date-change": {
+      "attempts": 3,
+      "success": 3,
+      "failure": 0,
+      "timeout": 0,
+      "p50_ms": 33.65470000000005,
+      "p95_ms": null,
+      "tail_note": "insufficient samples for stable tail claim"
+    },
+    "zoom": {
+      "attempts": 3,
+      "success": 3,
+      "failure": 0,
+      "timeout": 0,
+      "p50_ms": 44.85500000000002,
+      "p95_ms": null,
+      "tail_note": "insufficient samples for stable tail claim"
+    },
+    "drag": {
+      "attempts": 3,
+      "success": 3,
+      "failure": 0,
+      "timeout": 0,
+      "p50_ms": 20.331699999999955,
+      "p95_ms": null,
+      "tail_note": "insufficient samples for stable tail claim"
+    }
+  },
+  "targets_verified": false,
+  "protocol": {
+    "runs": 3,
+    "timeout_ms": 15000,
+    "clock": "Node monotonic action dispatch to matching observed DOM plus two animation frames; 25ms polling overhead included",
+    "segments": "Browser render/panel and network segments overlap; not added to elapsed time",
+    "canceled": "reported in request records; failed/timed-out attempts retained with null elapsed",
+    "cache_limitations": "no production cache purge; OS and storage warmth uncontrolled"
+  },
+  "limitations": [
+    "B0 activity layer still uses percentile/700-cell truncation; no valid acceleration ratio against a complete-support renderer.",
+    "Controlled fixtures verify timing/identity only, not real data coverage. This is not B1 numerical/coverage qualification.",
+    "Local measured results do not establish production, server capacity, or 3/1/2-second targets."
+  ],
+  "source_schema": "ocean-map-baseline/v1",
+  "full_trace_sha256": "sha256:e1c4080ff1b9e2f49d0d12b4ecd8f8f88c60452231c9dc61c6a7ef8aee125029",
+  "request_detail_scope": "All attempt outcomes and all API request details; every request counted in summaries. Full local CLI trace also includes each static asset network segment."
+}

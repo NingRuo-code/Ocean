@@ -26,3 +26,7 @@ None (can start immediately).
 部分实现，继续补证。已有本地B0与受控浏览器计时；合法完整支持B1、实际服务及稳定尾部证据未完成，不结项。
 
 详见[首批实施、检查与残余项](../../reports/ocean-first-implementation-batch-2026-10-25.md)。分支 `codex/research-execution-plan`；Issue、PR、合并和生产部署分别记录，不以本地测试代替线上验收。
+
+## Software continuation — 2026-10-27
+
+原CLI新增本地原服务测量、实际代码/展示身份前后核对、请求角色/编码及失败证据，见[本批交付与未完成项](../../reports/ocean-map-service-baseline-implementation-2026-10-27.md)。修复后各三轮：离线15/15可用；原服务明确空raw配置9失败/6超时，失败不生成成功耗时，不推断现服状态或加速倍率。B1、完整依赖/服务冷热、真实可用服务成功与尾部证据仍缺，#46保持开放，不解除原生依赖。
