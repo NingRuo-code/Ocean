@@ -58,6 +58,7 @@ test('browser shows HTTP failure, malformed, stale and clock-unknown status with
   await c.send('Page.enable');await c.send('Fetch.enable',{patterns:[{urlPattern:'*/api/status',requestStage:'Request'}]});
   for(const [responseCode,change,expected] of [
    [503,{},'error'],[404,{},'error'],[200,{schema:'unsupported'},'error'],
+   [200,{sampled_at:'2026-10-27T08:00:00'},'error'],
    [200,{sample_age_seconds:91},'stale'],
    [200,{sampled_at:new Date(Date.now()+3600000).toISOString()},'stale'],
   ]){
@@ -101,6 +102,32 @@ test('file based offline page does not infer service readiness from bundled date
   assert.equal(await c.evaluate("document.getElementById('operationalStatus').dataset.state"),'offline');
  }finally{await b.close();}
 });
+
+test('an initially recent snapshot expires locally without network polling and a hung read times out',()=>withService(async base=>{
+ const original=await(await fetch(base+'/api/status')).json();
+ const b=await launchBrowser(edge),c=b.cdp;let paused,mode='aging',reads=0;
+ c.onEvent(m=>{if(m.method==='Fetch.requestPaused'){
+  reads++;paused=m.params.requestId;
+  if(mode==='aging')c.send('Fetch.fulfillRequest',{requestId:paused,responseCode:200,
+   responseHeaders:[{name:'Content-Type',value:'application/json'}],body:Buffer.from(JSON.stringify({...original,sample_age_seconds:89})).toString('base64')}).catch(()=>{});
+ }});
+ try{
+  await c.send('Page.enable');await c.send('Fetch.enable',{patterns:[{urlPattern:'*/api/status',requestStage:'Request'}]});
+  await c.send('Page.navigate',{url:base+'/prototype-fishing.html'});
+  await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
+  await click(c,'#toBasis');await click(c,'#operationalStatus summary');await click(c,'#statusRefresh');
+  await waitFor(c,"document.getElementById('operationalStatus').dataset.state==='ready'");
+  await waitFor(c,"document.getElementById('operationalStatus').dataset.state==='stale'");
+  assert.equal(reads,1);
+  mode='hanging';paused=null;
+  await c.send('Page.navigate',{url:base+'/prototype-fishing.html'});
+  await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
+  await click(c,'#toBasis');await click(c,'#operationalStatus summary');await click(c,'#statusRefresh');
+  await waitFor(c,"document.getElementById('operationalStatus').dataset.state==='error'");
+  assert.equal(reads,2);assert.equal(await c.evaluate("document.getElementById('statusRefresh').disabled"),false);
+  if(paused)await c.send('Fetch.failRequest',{requestId:paused,errorReason:'Aborted'}).catch(()=>{});
+ }finally{await b.close();}
+}));
 
 test('operator probe separates actual loopback service from a failing proxy hop without publishing addresses',()=>withService(async base=>{
  const proxy=createServer(async(req,res)=>{

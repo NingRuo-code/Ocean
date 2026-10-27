@@ -9,13 +9,14 @@
     fishing_effort:'活动数据',p0_qualification:'研究资格',models:'模型',proxy:'代理链路',tasks:'持久任务',backups:'备份'};
   const states={responding:'可回答',registered:'已登记',empty_registry:'空清单',readable_example:'合成样例可读',
     not_connected:'未连接',not_probed:'未验证',disabled_by_profile:'本发布禁用',rules_only:'仅规则模式',read_failed:'读取失败'};
+  function timestamp(value){return typeof value==='string'&&value.length<=40&&/(Z|[+-]\d{2}:\d{2})$/.test(value)&&Number.isFinite(Date.parse(value));}
   function valid(value){
     if(value?.schema!=='ocean-operational-status/v1'||value.policy_version!=='ocean-light-status/1'||
-       !Number.isFinite(Date.parse(value.sampled_at))||!Number.isFinite(value.sample_age_seconds)||
+       !timestamp(value.sampled_at)||!Number.isFinite(value.sample_age_seconds)||
        value.sample_age_seconds<0||value.max_age_seconds!==90||value.min_interval_seconds!==30)throw Error('invalid_status');
     for(const key of Object.keys(names)){
       const layer=value.layers?.[key];
-      if(!states[layer?.state]||(layer.last_success_at!==null&&!Number.isFinite(Date.parse(layer.last_success_at))))throw Error('invalid_layer');
+      if(!states[layer?.state]||(layer.last_success_at!==null&&!timestamp(layer.last_success_at)))throw Error('invalid_layer');
     }
     if(value.release&&(!/^sha256:[a-f0-9]{64}$/.test(value.release.release_id)||
        !/^[a-f0-9]{40}$/.test(value.release.source_commit)||value.release.profile!=='isolated-read-only/v1'))throw Error('invalid_release');
@@ -38,6 +39,7 @@
     const stale=age>value.max_age_seconds||clockAge< -5;
     panel.dataset.state=stale?'stale':'ready';
     summary.textContent=stale?'采样已陈旧或时间无法核对，请重新读取。':
+      value.sample_state==='timed_out'?'入口可达 · 部分状态检查超时':
       '入口可达 · '+(value.layers.fishing_effort.state==='registered'?'活动清单已登记，资格未核':
         value.layers.fishing_effort.state==='not_connected'?'活动数据未连接':'活动数据状态待核');
     stamp.textContent='采样 '+new Date(value.sampled_at).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false})+'（北京时间）'+

@@ -186,3 +186,46 @@ def test_existing_effort_manifest_is_registration_not_validated_files_or_researc
     assert layer["payload_integrity"] == "not_probed"
     assert layer["research_ready"] is False
     assert "SECRET" not in response.text and "total_hours" not in response.text
+
+
+def test_server_sampling_deadline_bounds_waiting_and_does_not_accumulate_or_accept_late_work(
+    tmp_path, monkeypatch
+):
+    import os
+    import time
+    from threading import Event
+
+    client, data, clock = client_for(tmp_path)
+    first = client.get("/api/status").json()
+    gate = Event()
+    calls = []
+    original = os.open
+
+    def slow(path, *args, **kwargs):
+        if Path(path) == data / "days.js":
+            calls.append("read")
+            gate.wait(8)
+        return original(path, *args, **kwargs)
+
+    clock[0] += timedelta(seconds=31)
+    try:
+        with monkeypatch.context() as scoped:
+            scoped.setattr(os, "open", slow)
+            started = time.monotonic()
+            timed_out = client.get("/api/status").json()
+            assert time.monotonic() - started < 3.5
+            layer = timed_out["layers"]["map_index"]
+            assert layer["state"] == "read_failed"
+            assert layer["reason"] == "sampling_deadline"
+            assert layer["last_success_at"] == first["sampled_at"]
+            assert timed_out["sample_state"] == "timed_out"
+            for _ in range(3):
+                assert client.get("/api/status").json()["sample_state"] == "timed_out"
+            assert len(calls) == 1
+            gate.set()
+            time.sleep(0.1)
+        assert client.get("/api/status").json()["layers"]["map_index"]["state"] == "read_failed"
+        clock[0] += timedelta(seconds=31)
+        assert client.get("/api/status").json()["layers"]["map_index"]["state"] == "registered"
+    finally:
+        gate.set()
