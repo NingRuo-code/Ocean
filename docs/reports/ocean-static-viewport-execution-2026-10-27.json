@@ -1,0 +1,1121 @@
+{
+  "schema": "ocean-static-viewport-execution/v1",
+  "date": "2026-10-27",
+  "base_commit": "a215dcb339348c874c97225cc0ceb5ecd1e3fe46",
+  "reviewed_commit": "d5b77454bc225926d2e8a639ea36945daf741c04",
+  "evidence_kind": "original loopback app; existing static display exports; not P0-qualified research",
+  "production_contact": false,
+  "production_deployed": false,
+  "raw_downloaded": false,
+  "source_files": 125,
+  "source_sha256": "5926b01cd37e4bb35c8fbe38845b3b3aa0a9ed1d57a9ad96cd5e94d481df8ffd",
+  "request": {
+    "bbox": [
+      122,
+      27,
+      124.2,
+      29.6
+    ],
+    "step": 4
+  },
+  "days": [
+    {
+      "date": "2024-07-01",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-02",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 4,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-03",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-04",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-05",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 4,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-06",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-07",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-08",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 4,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-09",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-10",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-11",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-12",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-13",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 4,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-14",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-15",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-16",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 4,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-17",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-18",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-19",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-20",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-21",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 1,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-22",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 1,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-23",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-24",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-25",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-26",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-27",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 1,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-28",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-29",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-30",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-07-31",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-01",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-02",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-03",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-04",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-05",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-06",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-07",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-08",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-09",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-10",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-11",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-12",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 1,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-13",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-14",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 4,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-15",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 4,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-16",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 4,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-17",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-18",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-19",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-20",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 4,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-21",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 4,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-22",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 4,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-23",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-24",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-25",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-26",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-27",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 3,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-28",
+      "status": "partial",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "unavailable"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 0,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-29",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-30",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 1,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    },
+    {
+      "date": "2024-08-31",
+      "status": "ok",
+      "layers": {
+        "fronts": "available",
+        "sst": "available",
+        "fishingEffort": "available"
+      },
+      "fronts": 2,
+      "sst_cells": 143,
+      "response_points": 3,
+      "cache_version": "static-prototype-v1-contract-v2",
+      "cold_hit": false,
+      "warm_hit": true,
+      "source_unit": "degree_C",
+      "representation": "front_response_aggregate_points"
+    }
+  ],
+  "runtime": {
+    "version": "3.14.0",
+    "implementation": "CPython",
+    "workers": 1
+  },
+  "outside": {
+    "status": "empty",
+    "layers": {
+      "fronts": "empty",
+      "sst": "empty",
+      "fishingEffort": "empty"
+    },
+    "covered_bbox": null
+  },
+  "current_summary": {
+    "status": "ok",
+    "version": "basic-query-v2",
+    "metrics": {
+      "front_feature_count": 2,
+      "sst_cell_count": 143,
+      "fishing_effort_cell_count": 3,
+      "total_apparent_fishing_hours": 50872.41,
+      "enhanced_response_count": 3
+    }
+  },
+  "response_summary": {
+    "status": "ok",
+    "version": "basic-query-v2",
+    "metrics": {
+      "response_record_count": 3,
+      "buffer_km": [
+        10,
+        20,
+        30
+      ],
+      "post_window_apparent_fishing_hours": 50872.41,
+      "pre7_apparent_fishing_hours": 30485.18,
+      "non_front_control_hours": 13355.25,
+      "enhanced_response_count": 3,
+      "mean_lift_percent": 78.67
+    }
+  },
+  "source_unchanged": true,
+  "day_count": 62
+}

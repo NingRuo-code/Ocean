@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date as DateType
+from math import isfinite
 from pathlib import Path
 from statistics import mean
 
@@ -14,7 +15,7 @@ from .schemas import (
 )
 from .viewport import build_cached_viewport
 
-QUERY_SERVICE_VERSION = "basic-query-v1"
+QUERY_SERVICE_VERSION = "basic-query-v2"
 
 
 def _round(value: float | None, digits: int = 4) -> float | None:
@@ -88,6 +89,31 @@ def _metric_count(items: list[object], status: str) -> int | None:
     return len(items) if _layer_has_data(status) else None
 
 
+def _complete_values(cells: list[dict[str, object]], key: str) -> list[float] | None:
+    values = [cell.get(key) for cell in cells]
+    if not values or any(
+        isinstance(value, bool) or not isinstance(value, (int, float)) or not isfinite(value)
+        for value in values
+    ):
+        return None
+    return [float(value) for value in values]
+
+
+def _complete_total(cells: list[dict[str, object]], key: str) -> float | None:
+    values = _complete_values(cells, key)
+    total = sum(values) if values is not None else None
+    return total if total is not None and isfinite(total) else None
+
+
+def _enhanced_count(cells: list[dict[str, object]]) -> int | None:
+    flags = [cell.get("enhanced") for cell in cells]
+    return (
+        sum(flag is True for flag in flags)
+        if flags and all(isinstance(flag, bool) for flag in flags)
+        else None
+    )
+
+
 def _format_hours(value: float | None) -> str:
     return "unavailable" if value is None else f"{value:.2f} fishing hours"
 
@@ -106,14 +132,12 @@ def build_current_state_query(
     sst_count = _metric_count(sst_cells, layer_statuses.sst)
     fishing_count = _metric_count(fishing_cells, layer_statuses.fishing_effort)
     total_hours = (
-        sum(float(cell.get("hours") or 0) for cell in fishing_cells)
+        _complete_total(fishing_cells, "hours")
         if _layer_has_data(layer_statuses.fishing_effort)
         else None
     )
     enhanced_count = (
-        sum(1 for cell in fishing_cells if bool(cell.get("enhanced")))
-        if _layer_has_data(layer_statuses.fishing_effort)
-        else None
+        _enhanced_count(fishing_cells) if _layer_has_data(layer_statuses.fishing_effort) else None
     )
     source_files = _source_files_from_viewport(viewport)
     evidence = [
@@ -190,23 +214,23 @@ def build_front_response_query(
     cells = _fishing_cells(viewport)
     status = _front_response_status(viewport)
     has_effort_data = _layer_has_data(viewport.coverage.layers.fishing_effort)
-    total_post_hours = sum(float(cell.get("hours") or 0) for cell in cells) if has_effort_data else None
-    total_pre7_hours = sum(float(cell.get("pre7Hours") or 0) for cell in cells) if has_effort_data else None
-    total_control_hours = (
-        sum(float(cell.get("controlHours") or 0) for cell in cells) if has_effort_data else None
-    )
-    lifts = (
-        [float(cell["liftPercent"]) for cell in cells if isinstance(cell.get("liftPercent"), (int, float))]
-        if has_effort_data
-        else []
-    )
+    total_post_hours = _complete_total(cells, "hours") if has_effort_data else None
+    total_pre7_hours = _complete_total(cells, "pre7Hours") if has_effort_data else None
+    total_control_hours = _complete_total(cells, "controlHours") if has_effort_data else None
+    lifts = _complete_values(cells, "liftPercent") if has_effort_data else []
     buffer_km = (
-        sorted({int(cell.get("bufferKm") or 0) for cell in cells if int(cell.get("bufferKm") or 0) > 0})
+        sorted(
+            {
+                float(cell["bufferKm"])
+                for cell in cells
+                if cell.get("bufferKm") is not None and float(cell["bufferKm"]) > 0
+            }
+        )
         if has_effort_data
         else []
     )
     response_record_count = len(cells) if has_effort_data else None
-    enhanced_count = sum(1 for cell in cells if bool(cell.get("enhanced"))) if has_effort_data else None
+    enhanced_count = _enhanced_count(cells) if has_effort_data else None
     source_files = _source_files_from_viewport(viewport)
     evidence = [
         BasicQueryEvidence(

@@ -394,7 +394,7 @@ def test_basic_query_current_state_summarizes_viewport_contract(
     assert payload["kind"] == "current_state"
     assert payload["status"] == "ok"
     assert payload["source"]["service"] == "viewport"
-    assert payload["source"]["query_service_version"] == "basic-query-v1"
+    assert payload["source"]["query_service_version"] == "basic-query-v2"
     assert payload["parameters"] == {
         "date": "2024-08-05",
         "bbox": [122.0, 27.0, 124.2, 29.6],
