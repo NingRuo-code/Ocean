@@ -38,6 +38,32 @@ test("selected public month opens an original-condition report through the actua
   } finally {await browser.close();}
 }));
 
+test("a delayed report cannot replace a subsequently selected zero-result report", () => withService(async base => {
+  const browser = await launchBrowser(edge), c = browser.cdp, pending = [];
+  let held = null;
+  c.onEvent(m => {if(m.method === "Fetch.requestPaused") {
+    if(!held) held = m.params.requestId;
+    else pending.push(c.send("Fetch.continueRequest",{requestId:m.params.requestId}));
+  }});
+  try {
+    await c.send("Page.enable"); await c.send("Page.navigate",{url:base+"/prototype-fishing.html"});
+    await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
+    await click(c,"#workbenchToggle");await click(c,"#monthlyOpen");
+    await waitFor(c,"document.getElementById('monthlyResult').dataset.state==='ready'");
+    await c.send("Fetch.enable",{patterns:[{urlPattern:"*/report?*",requestStage:"Request"}]});
+    await click(c,"#monthlyReportOpen");
+    await waitFor(c,"document.getElementById('monthReport').dataset.state==='reading'");
+    await c.evaluate("document.getElementById('monthlySavedResult').selectedIndex=1;document.getElementById('monthlySavedResult').dispatchEvent(new Event('change'))");
+    await waitFor(c,"document.getElementById('monthlyHours').textContent==='0'");
+    await click(c,"#monthlyReportOpen");
+    await waitFor(c,"document.getElementById('monthReport').dataset.state==='ready'");
+    assert.match(await c.evaluate("document.getElementById('monthReportMetrics').textContent"),/H：0 h/);
+    if(held) await c.send("Fetch.continueRequest",{requestId:held}).catch(()=>{});
+    await Promise.allSettled(pending);await c.send("Fetch.disable");
+    assert.match(await c.evaluate("document.getElementById('monthReportMetrics').textContent"),/H：0 h/);
+  } finally {await browser.close();}
+}));
+
 test("offline report preserves zero and unknown days, keyboard focus and a usable small-screen map", async () => {
   const browser = await launchBrowser(edge), c = browser.cdp;
   try {
@@ -71,6 +97,27 @@ test("offline report preserves zero and unknown days, keyboard focus and a usabl
     assert.equal(await c.evaluate("document.querySelectorAll('#monthReportChart [data-state=unknown]').length"),28);
   } finally {await browser.close();}
 });
+
+test("leaving the monthly view cancels a pending report instead of reopening its panel later", () => withService(async base => {
+  const browser = await launchBrowser(edge), c = browser.cdp;
+  let held = null;
+  c.onEvent(m => {if(m.method === "Fetch.requestPaused") held = m.params.requestId;});
+  try {
+    await c.send("Page.enable");await c.send("Page.navigate",{url:base+"/prototype-fishing.html"});
+    await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
+    await click(c,"#workbenchToggle");await click(c,"#monthlyOpen");
+    await waitFor(c,"document.getElementById('monthlyResult').dataset.state==='ready'");
+    await c.send("Fetch.enable",{patterns:[{urlPattern:"*/report?*",requestStage:"Request"}]});
+    await click(c,"#monthlyReportOpen");
+    await waitFor(c,"document.getElementById('monthReport').dataset.state==='reading'");
+    await click(c,"#observationView");
+    assert.equal(await c.evaluate("document.getElementById('monthReport').dataset.state"),"empty");
+    if(held) await c.send("Fetch.continueRequest",{requestId:held}).catch(()=>{});
+    await c.send("Fetch.disable");
+    assert.equal(await c.evaluate("document.getElementById('evidencePanel').hidden"),true);
+    assert.equal(await c.evaluate("document.getElementById('monthReport').textContent"),"");
+  } finally {await browser.close();}
+}));
 
 test("denied report reads show no report and never silently use the offline copy", () => withService(async base => {
   const browser = await launchBrowser(edge), c = browser.cdp, pending = [];

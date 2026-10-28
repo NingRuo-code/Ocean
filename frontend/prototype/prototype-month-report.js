@@ -11,7 +11,6 @@
   let selection = null, report = null, generation = 0, controller = null;
   let draft = null;
   const idPattern = /^sha256:[0-9a-f]{64}$/;
-  const states = {ready:"有效", partial_support:"部分单元有效", unprepared:"未准备", missing:"缺测", read_failed:"读取失败", no_records:"无记录／覆盖未知", unknown_support:"支持未知"};
 
   function text(parent, tag, value, id) {
     const node = document.createElement(tag); node.textContent = value;
@@ -53,27 +52,14 @@
     const wrap = document.createElement("div"); wrap.className = "monthly-chart-wrap";
     const chart = document.createElement("div"); chart.id = "monthReportChart"; chart.className = "monthly-chart";
     chart.setAttribute("role", "img");
-    const max = Math.max(0, ...r.daily.map(d => d.hours ?? 0));
-    chart.setAttribute("aria-label", `日历日活动小时，纵轴 0–${max} h；有效零与未知分开。`);
-    for(const d of r.daily) {
-      const item = document.createElement("div"); item.className = "monthly-day";
-      item.dataset.state = d.hours === null ? "unknown" : d.hours === 0 ? "zero" : "known";
-      item.title = `${d.date} ${states[d.state]} ${d.hours ?? "未知"} h`;
-      const bar = document.createElement("i");
-      if(d.hours === null) bar.textContent = "—"; else bar.style.height = `${max ? d.hours/max*80 : 0}px`;
-      item.append(bar); text(item, "small", d.date.slice(-2)); chart.append(item);
-    }
     wrap.append(chart); content.append(wrap);
-    text(content, "p", `纵轴 0–${max} h，横轴为日历日；0 为有效零，— 为未知，未知未补零。`);
+    const scale = text(content, "p", "");
     const tableWrap = document.createElement("div"); tableWrap.className = "monthly-table-wrap";
     const table = document.createElement("table"); table.id = "monthReportTable";
     const head = table.createTHead().insertRow();
     for(const label of ["日期","状态","活动小时 (h)","有效面积 (km²)"]) text(head,"th",label);
-    const body = table.createTBody();
-    for(const d of r.daily) {
-      const row = body.insertRow(); row.dataset.date = d.date;
-      for(const value of [d.date,states[d.state],d.hours ?? "未知",d.effective_area_km2 ?? "未知"]) text(row,"td",value);
-    }
+    table.createTBody();
+    scale.textContent = OceanMonthEvidence.render(chart,table,r.daily)+" 0 为有效零，未知未补零。";
     tableWrap.append(table); content.append(tableWrap);
     text(content, "h4", "方法、来源与局限");
     text(content, "p", `方法：${r.parameters.method_version}；参数：${r.parameters.parameter_version}；输入：${r.parameters.input_version}。`);
@@ -113,4 +99,7 @@
   window.addEventListener("ocean-month-result",e => invalidate(e.detail));
   window.addEventListener("ocean-load-state",() => {if(selection && !sameSource(selection.from,source())) invalidate();});
   window.addEventListener("ocean-month-draft",e => {draft = e.detail; OceanEvidence.sync();});
+  function cancelPending() {if(content.dataset.state === "reading") invalidate(selection);}
+  window.addEventListener("ocean-history-view",e => {if(e.detail !== "monthly") cancelPending();});
+  window.addEventListener("ocean-workbench-task",cancelPending);
 })();
