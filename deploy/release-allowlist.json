@@ -121,6 +121,10 @@
       "target": "backend/app/known_cases.py"
     },
     {
+      "source": "backend/app/known_month_report.py",
+      "target": "backend/app/known_month_report.py"
+    },
+    {
       "source": "backend/app/main.py",
       "target": "backend/app/main.py"
     },
@@ -477,6 +481,10 @@
       "target": "frontend/prototype/data/published-months.js"
     },
     {
+      "source": "frontend/prototype/data/known-month-reports.js",
+      "target": "frontend/prototype/data/known-month-reports.js"
+    },
+    {
       "source": "frontend/prototype/data/sst/2024-07-01.js",
       "target": "frontend/prototype/data/sst/2024-07-01.js"
     },
@@ -799,6 +807,14 @@
     {
       "source": "frontend/prototype/prototype-month-reading.js",
       "target": "frontend/prototype/prototype-month-reading.js"
+    },
+    {
+      "source": "frontend/prototype/prototype-month-evidence.js",
+      "target": "frontend/prototype/prototype-month-evidence.js"
+    },
+    {
+      "source": "frontend/prototype/prototype-month-report.js",
+      "target": "frontend/prototype/prototype-month-report.js"
     },
     {
       "source": "frontend/prototype/prototype-preferences.js",

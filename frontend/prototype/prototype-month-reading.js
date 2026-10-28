@@ -64,16 +64,19 @@
     });
     return value;
   }
-  function begin() { controller?.abort();controller=new AbortController();return ++generation; }
+  function publishSelection(value) { window.dispatchEvent(new CustomEvent("ocean-month-result",{detail:value})); }
+  function begin() { publishSelection(null);controller?.abort();controller=new AbortController();return ++generation; }
   function cancelRead() {
     if(section.dataset.state!=="reading")return;
     generation++;controller?.abort();section.dataset.state=record?"ready":"empty";
     $("monthlyStatus").textContent="读取已停止。"+(record?"以下保留上次读取的原成果。":"可明确重新读取目录。");
     if(record)$("monthlySavedResult").value=record.result.result_id;
+    if(record)publishSelection(record);
   }
   function freeze(value) { if(value && typeof value === "object") { Object.values(value).forEach(freeze);Object.freeze(value); } return value; }
   function describe(p) { return p.month+" · "+fmtCoord(p.longitude,p.latitude)+" · "+p.radius_km+" km"; }
   function clear() {
+    publishSelection(null);
     if(blobUrl){URL.revokeObjectURL(blobUrl);blobUrl=null;}
     record=null;delete section.dataset.resultId;delete section.dataset.projectionId;$("monthlyMetrics").hidden=true;$("monthlyDetails").disabled=true;
     $("monthlyHours").textContent="";$("monthlyDensity").textContent="";$("monthlyDays").textContent="";$("monthlyConditions").textContent="";$("monthlyBrief").textContent="";$("monthlyContext").textContent="";
@@ -140,16 +143,11 @@
     evidence.innerHTML=evidenceTemplate;
     $("monthlySource").textContent=r.result_id+" / "+r.projection_id+"；来源 "+r.source.id+" / "+r.source.version+"；许可 "+r.source.license;
     $("monthlyIntervals").textContent="统计区间：此样例未估计。面积时间 E="+(m.area_time_km2_days??"未知")+" km²·d；日值表保留缺测状态。";
-    const known=r.daily.filter(d=>d.hours!==null),max=Math.max(0,...known.map(d=>d.hours));
-    $("monthlyChartScale").textContent=known.length ? (max ? "纵轴：0–"+max+" h；横轴为日历日。" : "有效日均为0 h，未知日不绘柱。") : "没有可绘制的已知日值。";
-    $("monthlyChart").setAttribute("aria-label",$("monthlyChartScale").textContent);
-    if(!known.length){$("monthlyChart").dataset.state="empty";}
-    else for(const d of r.daily) {const item=document.createElement("div");item.className="monthly-day";item.dataset.state=d.hours===null?"unknown":d.hours===0?"zero":"known";item.title=d.date+" "+states[d.state]+" "+(d.hours??"未知")+" h";const bar=document.createElement("i");if(d.hours!==null)bar.style.height=(max?d.hours/max*80:0)+"px";else bar.textContent="—";const label=document.createElement("small");label.textContent=d.date.slice(-2);item.append(bar,label);$("monthlyChart").append(item);}
-    for(const d of r.daily) {const tr=document.createElement("tr");tr.dataset.date=d.date;for(const [field,v] of [["date",d.date],["state",states[d.state]],["hours",d.hours??"未知"],["area",d.effective_area_km2??"未知"]]){const td=document.createElement("td");td.dataset.field=field;td.textContent=v;tr.append(td);}$("monthlyTable").tBodies[0].append(tr);}
+    $("monthlyChartScale").textContent=OceanMonthEvidence.render($("monthlyChart"),$("monthlyTable"),r.daily);
     $("monthlyLimitations").textContent="原成果限制（保留来源原文）："+r.caveats.join(" ");
     if(blobUrl)URL.revokeObjectURL(blobUrl);blobUrl=URL.createObjectURL(new Blob([csv(r)],{type:"text/csv;charset=utf-8"}));
     $("monthlyDownload").href=blobUrl;$("monthlyDownload").download="Ocean-month-"+r.parameters.month+"-"+r.result_id.slice(7,19)+".csv";
-    sync();OceanEvidence.sync();
+    sync();OceanEvidence.sync();publishSelection(record);
   }
   OceanEvidence.register("monthly",{content:evidence,button:$("monthlyDetails"),view:()=>record ? {title:"月度空间关系证据",identity:describe(record.result.parameters)+" / "+record.result.result_id.slice(0,22)+"… / "+record.result.projection_id.slice(0,22)+"…",stale:stale()} : null});
   $("monthlySavedResult").onchange=()=>{const item=catalog.find(i=>i.result_id===$("monthlySavedResult").value);if(item)selectResult(item);};

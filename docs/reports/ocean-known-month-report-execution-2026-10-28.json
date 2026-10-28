@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-28",
+  "baseline": "4debe2a7b7f3e3493df654881ca1427e63b12c1c",
+  "implementation": "d04f2e041dc46ddd9a93ab739fb9baa764a6362e",
+  "pull_request": "https://github.com/NingRuo-code/Ocean/pull/309",
+  "spec": 306,
+  "software_tickets": [
+    307,
+    308
+  ],
+  "evidence_kind": "authored_CC0_synthetic_public_month_aggregates",
+  "research_qualification_passed": false,
+  "production_deployed": false,
+  "checks": [
+    {
+      "name": "backend",
+      "passed": 265,
+      "failed": 0,
+      "log_sha256": "c31a1f2ff242a48cf9cd0bc576cd14aa73a3dcd07d750516ee70b45197f7fe15"
+    },
+    {
+      "name": "python_tools",
+      "passed": 63,
+      "failed": 0,
+      "log_sha256": "09cd9d23682d4dc64b49c8f6b4e784624ec9889d0fd9c0b1e4f2077d4385db4f"
+    },
+    {
+      "name": "node_tools",
+      "passed": 157,
+      "failed": 0,
+      "log_sha256": "f96f2d9a2ce6ab78a7e7b630f9b013a7989e199ec269c429a5381bec2150c362"
+    },
+    {
+      "name": "data",
+      "passed": 922,
+      "failed": 0,
+      "log_sha256": "f3cdace6a1bdba27962689a4819d7a2046f37906ac6928f5404cdc97d61ffa79"
+    },
+    {
+      "name": "map_e2e",
+      "passed": 129,
+      "failed": 0,
+      "log_sha256": "56be59bbb72426860283fd5c0ef2245312d62f1ded22a0c94962cfab321aa94e"
+    },
+    {
+      "name": "layout",
+      "passed": 4,
+      "failed": 0,
+      "log_sha256": "029b6cb057a5831081da6edbd9b4ead544eaacf4ab55574a0d360417eacd51f5"
+    }
+  ],
+  "reviews": {
+    "standards_unresolved": 0,
+    "spec_unresolved": 0,
+    "fixed_range": "4debe2a...d04f2e0"
+  },
+  "retained_open_dependencies": {
+    "39": [
+      37,
+      38
+    ],
+    "99": [
+      70
+    ],
+    "126": [
+      69
+    ]
+  },
+  "earlier_incomplete_or_failed_runs": [
+    "initial_full_node_interrupted_during_release_adaptation",
+    "later_full_node_156_of_157_touch_calendar_click_through"
+  ],
+  "touch_fix_repetitions": 10,
+  "private_paths_or_source_records_included": false
+}

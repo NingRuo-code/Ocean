@@ -170,8 +170,10 @@ test("small-screen evidence is touch reachable, preserves map dragging and retur
     await c.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 45, y: 500 }] });
     await c.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     assert.notEqual(await c.evaluate("document.getElementById('mapSvg').getAttribute('viewBox')"), before);
+    const originalContext = await c.evaluate("({date:state.date,tab:state.tab})");
     await tap("#evidenceClose");
     await waitFor(c,"document.getElementById('evidencePanel').hidden");
+    assert.deepEqual(await c.evaluate("({date:state.date,tab:state.tab})"),originalContext,"Touch close must not click through to the underlying calendar");
     await tap("#historyDetails");
     assert.equal(await c.evaluate("document.getElementById('evidencePanel').hidden"), false, "touch reopens the evidence before Escape");
     await c.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape" });

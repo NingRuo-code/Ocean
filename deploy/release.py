@@ -594,7 +594,7 @@ def serve(args):
         }
         allowed = allowed or bool(
             re.fullmatch(
-                r"/api/(query/(known-cases(?:/[A-Za-z][A-Za-z0-9_-]{0,63})?|monthly-analysis/published(?:/sha256:[0-9a-f]{64})?)|frontend/day/[0-9-]{10}|fishing/[0-9-]{10})",
+                r"/api/(query/(known-cases(?:/[A-Za-z][A-Za-z0-9_-]{0,63})?|monthly-analysis/published(?:/sha256:[0-9a-f]{64}(?:/report(?:/(?:markdown|csv))?)?)?)|frontend/day/[0-9-]{10}|fishing/[0-9-]{10})",
                 path,
             )
         )
