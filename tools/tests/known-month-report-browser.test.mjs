@@ -83,6 +83,8 @@ test("offline report preserves zero and unknown days, keyboard focus and a usabl
       const screenshot = await c.send("Page.captureScreenshot",{format:"png"});
       await writeFile(`docs/reports/screenshots/ocean-known-month-report-${width}.png`,Buffer.from(screenshot.data,"base64"));
     }
+    await click(c,"#monthReport details summary");
+    assert.equal(await c.evaluate("document.documentElement.scrollWidth<=innerWidth"),true,"Expanded long report identities fit a small screen");
     const before = await c.evaluate("document.getElementById('mapSvg').getAttribute('viewBox')");
     await c.send("Input.dispatchMouseEvent",{type:"mouseWheel",x:25,y:350,deltaX:0,deltaY:-220});
     await waitFor(c,`document.getElementById('mapSvg').getAttribute('viewBox')!==${JSON.stringify(before)}`);
