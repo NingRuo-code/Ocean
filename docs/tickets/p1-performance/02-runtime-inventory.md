@@ -26,3 +26,5 @@ None (can start immediately).
 工具与部分清单已验证，待PR审查。当前服务器硬件/版本/进程仍未知，公开视野端点404已记录，不给采购结论。
 
 详见[首批实施、检查与残余项](../../reports/ocean-first-implementation-batch-2026-10-25.md)。分支 `codex/research-execution-plan`；Issue、PR、合并和生产部署分别记录，不以本地测试代替线上验收。
+
+2026-10-28软件接续：原盘点CLI补共享扫描预算、部分结果未知总量/观测下界、链接路径排除、P0冻结身份核验及不覆盖发布。定向16项覆盖实际Windows目录联接等反例，固定8个本机位置完成实际盘点；见[本批实施与范围](../../reports/ocean-bounded-storage-inventory-implementation-2026-10-28.md)。按换服安排未连接旧服，#47及#228、实际目标和容量预算仍未完成，不解除原生依赖。
