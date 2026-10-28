@@ -203,6 +203,7 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
     protocol: { runs, timeout_ms: timeout, clock: "Node monotonic action dispatch to matching observed DOM plus two animation frames; 25ms polling overhead included",
       segments: "Browser render/panel and network segments overlap; not added to elapsed time", canceled: "reported in request records; failed/timed-out attempts retained with null elapsed", cache_limitations: "no production cache purge; OS and storage warmth uncontrolled" },
     limitations: ["B0 activity layer still uses percentile/700-cell truncation; no valid acceleration ratio against a complete-support renderer.",
+      "Managed Python inventory samples visible installed distribution metadata at service startup only; duplicates remain ambiguous, paths and direct URLs are excluded. This is not a dependency lock or installed-byte integrity check.",
       "Controlled fixtures verify timing/identity only, not real data coverage. This is not B1 numerical/coverage qualification.",
       "Local measured results do not establish production, server capacity, or 3/1/2-second targets."] };
   const output = resolve(option("--out", "data/processed/map-baseline.json"));
@@ -232,6 +233,6 @@ function responseEncoding(headers) {
 if(args.includes("--isolated-service")){
   if(args.includes("--page") || option("--sample-kind","B0-current")!=="B0-current")throw Error("Isolated original service cannot override page or claim a fixture");
   let entered=false;
-  try{await withService((base,context)=>{entered=true;return runBaseline(base+"/prototype-fishing.html",true,context.runtime);});}
+  try{await withService((base,context)=>{entered=true;return runBaseline(base+"/prototype-fishing.html",true,context.runtime);},{collectRuntimeInventory:true});}
   catch{if(entered)throw Error('Managed baseline could not finish');await runBaseline(page,true,null,true);}
 } else await runBaseline(page);

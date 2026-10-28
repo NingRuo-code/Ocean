@@ -76,6 +76,70 @@ test('service startup and runtime configuration failures are safe reports withou
  }finally{if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith('ocean-service-baseline-'))await rm(root,{recursive:true,force:true});}
 });
 
+test('original-service baseline identifies installed package versions without recording installation paths or direct URLs',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'ocean-service-baseline-')),out=join(root,'report.json');
+ try{
+  const metadata=join(root,'ocean_baseline_inventory_probe-1.2.3.dist-info');await mkdir(metadata);
+  await writeFile(join(metadata,'METADATA'),'Metadata-Version: 2.1\nName: ocean-baseline-inventory-probe\nVersion: 1.2.3\n');
+  await writeFile(join(metadata,'direct_url.json'),JSON.stringify({url:'https://PRIVATE_TOKEN@example.invalid/private'}));
+  const execution=await execute(process.execPath,['tools/benchmark-map.mjs','--isolated-service','--runs','1','--timeout-ms','200','--out',out],{
+   windowsHide:true,timeout:30000,env:{...process.env,PYTHONPATH:root}
+  }).catch(error=>error);
+  assert.equal(execution.code,1,'No raw input was provided');
+  const report=JSON.parse(await readFile(out,'utf8')),inventory=report.service.runtime.installed_distributions;
+  assert.ok(['recorded','ambiguous'].includes(inventory.status),'Visible duplicate registrations must remain explicit');
+  assert.match(inventory.snapshot_id,/^sha256:[a-f0-9]{64}$/);
+  assert.ok(inventory.packages.some(p=>p.name==='ocean-baseline-inventory-probe'&&p.version==='1.2.3'));
+  assert.ok(inventory.packages.some(p=>p.name==='fastapi'));
+  assert.ok(inventory.packages.some(p=>p.name==='uvicorn'));
+  assert.equal(inventory.packages.filter(p=>p.name==='ocean-baseline-inventory-probe').length,1);
+  assert.equal(inventory.packages.length,inventory.count);
+  assert.doesNotMatch(JSON.stringify(inventory),/PRIVATE_TOKEN|example\.invalid|AppData|ocean-service-baseline-|direct_url/);
+  assert.equal(report.b1_qualified,false);
+ }finally{if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith('ocean-service-baseline-'))await rm(root,{recursive:true,force:true});}
+});
+
+test('duplicate normalized package names remain ambiguous with both versions retained',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'ocean-service-baseline-')),out=join(root,'report.json');
+ try{
+  for(const [dir,name,version] of [['probe_a','Ocean_Baseline_Probe','1.2.3'],['probe_b','ocean-baseline-probe','2.0.0']]){
+   const metadata=join(root,dir+'.dist-info');await mkdir(metadata);
+   await writeFile(join(metadata,'METADATA'),`Metadata-Version: 2.1\nName: ${name}\nVersion: ${version}\n`);
+  }
+  await execute(process.execPath,['tools/benchmark-map.mjs','--isolated-service','--runs','1','--timeout-ms','200','--out',out],{
+   windowsHide:true,timeout:30000,env:{...process.env,PYTHONPATH:root}
+  }).catch(()=>{});
+  const report=JSON.parse(await readFile(out,'utf8')),inventory=report.service.runtime.installed_distributions;
+  assert.equal(inventory.status,'ambiguous');
+  assert.ok(inventory.duplicate_names.includes('ocean-baseline-probe'));
+  assert.deepEqual(inventory.packages.filter(p=>p.name==='ocean-baseline-probe'),[
+   {name:'ocean-baseline-probe',version:'1.2.3'},{name:'ocean-baseline-probe',version:'2.0.0'}
+  ]);
+  assert.equal(report.targets_verified,false);
+ }finally{if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith('ocean-service-baseline-'))await rm(root,{recursive:true,force:true});}
+});
+
+test('unreadable package declarations produce an explicit unavailable inventory without leaking metadata',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'ocean-service-baseline-')),out=join(root,'report.json');
+ try{
+  const metadata=join(root,'probe.dist-info');await mkdir(metadata);
+  await writeFile(join(metadata,'METADATA'),'Metadata-Version: 2.1\nName: ocean-baseline-probe\nVersion: https://PRIVATE_SENTINEL@example.invalid/path\n');
+  const execution=await execute(process.execPath,['tools/benchmark-map.mjs','--isolated-service','--runs','1','--timeout-ms','200','--out',out],{
+   windowsHide:true,timeout:30000,env:{...process.env,PYTHONPATH:root}
+  }).catch(error=>error);
+  assert.equal(execution.code,1);
+  const report=JSON.parse(await readFile(out,'utf8')),inventory=report.service.runtime.installed_distributions;
+  assert.equal(inventory.status,'unavailable');
+  assert.equal(inventory.reason,'runtime_inventory_unavailable');
+  assert.equal(inventory.packages,null);
+  assert.equal(inventory.count,null);
+  assert.equal(inventory.snapshot_id,null);
+  assert.equal(inventory.duplicate_names,null);
+  assert.equal(report.service.status.layers.map_index,'registered','Inventory failure must not become service-startup failure');
+  assert.doesNotMatch(JSON.stringify(report)+execution.stderr,/PRIVATE_SENTINEL|example\.invalid\/path/);
+ }finally{if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith('ocean-service-baseline-'))await rm(root,{recursive:true,force:true});}
+});
+
 test('browser runtime exceptions invalidate both total and after-action success timings',async()=>{
  const root=await mkdtemp(join(tmpdir(),'ocean-service-baseline-')),page=join(root,'error.html'),out=join(root,'report.json');
  try{

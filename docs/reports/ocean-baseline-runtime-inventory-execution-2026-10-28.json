@@ -1,0 +1,180 @@
+{
+  "schema": "ocean-baseline-runtime-inventory-execution/v1",
+  "date": "2026-10-28",
+  "base_commit": "4080ab8e4728fe538d8007e840a77766e28c750a",
+  "reviewed_commit": "085d34aa19e34ccb8f5264de9e3fa328ed8ab650",
+  "production_contact": false,
+  "dependencies_installed_or_updated": false,
+  "raw_downloaded": false,
+  "b1_qualified": false,
+  "targets_verified": false,
+  "inventory": {
+    "status": "ambiguous",
+    "count": 73,
+    "snapshot_id": "sha256:d81dabd4320034f9574f6ad9efc6d24033d0193e4dcb6a267f9a3cfa03409922",
+    "scope": "visible_distribution_metadata",
+    "sampled": "service_startup",
+    "byte_integrity_verified": false,
+    "collection_ms": 54.98440004885197
+  },
+  "reviewed_distribution_versions": [
+    {
+      "name": "fastapi",
+      "version": "0.141.1"
+    },
+    {
+      "name": "h5netcdf",
+      "version": "1.8.1"
+    },
+    {
+      "name": "h5py",
+      "version": "3.16.0"
+    },
+    {
+      "name": "numpy",
+      "version": "2.3.5"
+    },
+    {
+      "name": "ocean-front-backend",
+      "version": "0.1.0"
+    },
+    {
+      "name": "ocean-front-backend",
+      "version": "0.1.0"
+    },
+    {
+      "name": "pydantic",
+      "version": "2.12.5"
+    },
+    {
+      "name": "pydantic-settings",
+      "version": "2.15.0"
+    },
+    {
+      "name": "requests",
+      "version": "2.34.2"
+    },
+    {
+      "name": "scipy",
+      "version": "1.16.3"
+    },
+    {
+      "name": "uvicorn",
+      "version": "0.52.4"
+    },
+    {
+      "name": "xarray",
+      "version": "2026.7.0"
+    }
+  ],
+  "reviewed_duplicate_names": [
+    "ocean-front-backend"
+  ],
+  "other_package_names_projected": false,
+  "runtime": {
+    "python_version": "3.14.0",
+    "python_implementation": "CPython",
+    "node_version": "v24.16.0",
+    "browser": "Edg/156.0.4314.50"
+  },
+  "modes": {
+    "offline": {
+      "input_profile": "existing committed offline display exports",
+      "artifact_integrity": "unchanged",
+      "tracked_changes_present": false,
+      "local_full_report_sha256": "18f5936e6b19d045808563291f8285455058a2d3a50ca4e669c5a8f4fed9fa2a",
+      "attempts": [
+        {
+          "scenario": "navigation",
+          "status": "success",
+          "elapsed_ms": 230.25130000000001,
+          "after_action_ms": 219.9977
+        },
+        {
+          "scenario": "reload",
+          "status": "success",
+          "elapsed_ms": 145.45990000000006,
+          "after_action_ms": 141.06560000000002
+        },
+        {
+          "scenario": "date-change",
+          "status": "success",
+          "elapsed_ms": 27.316800000000057,
+          "after_action_ms": 20.429899999999975
+        },
+        {
+          "scenario": "zoom",
+          "status": "success",
+          "elapsed_ms": 30.902600000000007,
+          "after_action_ms": 16.33510000000001
+        },
+        {
+          "scenario": "drag",
+          "status": "success",
+          "elapsed_ms": 13.7503999999999,
+          "after_action_ms": 8.063599999999951
+        }
+      ],
+      "p95_all_unknown": true
+    },
+    "service": {
+      "input_profile": "existing committed display exports; managed service has empty raw/cache",
+      "artifact_integrity": "unchanged",
+      "tracked_changes_present": false,
+      "local_full_report_sha256": "307d62f9d10970b2a8f93f78f2ee2562e4f3e5f9a459dd229c8dcb759b5aeb41",
+      "attempts": [
+        {
+          "scenario": "navigation",
+          "status": "failure",
+          "elapsed_ms": null,
+          "after_action_ms": null
+        },
+        {
+          "scenario": "reload",
+          "status": "failure",
+          "elapsed_ms": null,
+          "after_action_ms": null
+        },
+        {
+          "scenario": "date-change",
+          "status": "failure",
+          "elapsed_ms": null,
+          "after_action_ms": null
+        },
+        {
+          "scenario": "zoom",
+          "status": "timeout",
+          "elapsed_ms": null,
+          "after_action_ms": null
+        },
+        {
+          "scenario": "drag",
+          "status": "timeout",
+          "elapsed_ms": null,
+          "after_action_ms": null
+        }
+      ],
+      "p95_all_unknown": true
+    }
+  },
+  "verification": {
+    "tools_full": {
+      "passed": 148,
+      "local_log_sha256": "0348c9c0fc94c895c664fe9513c11280bacae73f8e7460a56e4392eb699bc0cf"
+    },
+    "targeted": {
+      "passed": 12,
+      "local_log_sha256": "212199045e3b62a44f7d6fb36d9827db47611e62bf66c19294feba80f2a62083"
+    },
+    "data": {
+      "passed": 922,
+      "local_log_sha256": "f3cdace6a1bdba27962689a4819d7a2046f37906ac6928f5404cdc97d61ffa79"
+    }
+  },
+  "review": {
+    "code_commit": "085d34aa19e34ccb8f5264de9e3fa328ed8ab650",
+    "standards_findings": 0,
+    "spec_functional_findings": 0,
+    "spec_wording_suggestion_fixed": true
+  }
+}
