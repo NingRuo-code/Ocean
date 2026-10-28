@@ -1,0 +1,108 @@
+{
+  "schema": "ocean-u1-delivery-execution/v1",
+  "date": "2026-10-28",
+  "base_commit": "b2f843ee1849c32b2c495aa2086b547058c04d5e",
+  "reviewed_code_commit": "65a125c24f5a4a5617f9011a620553abca72ce55",
+  "scope": "U1 v1 original offline display, actual pointer and keyboard interactions; no production or scientific qualification",
+  "production_contact": false,
+  "raw_downloaded": false,
+  "paid_model_called": false,
+  "code_sha256": {
+    "frontend/prototype/prototype-workbench.js": "9aab42f78f6d78199a02d9353f5b650d84eb3fcfeac5dd08c4cff7a69f95d095",
+    "frontend/prototype/prototype-workbench.css": "f9326076bb46ad25b377c507bbe457fdda0c1bebdd3a6222e19fdeebb0bf12ed",
+    "frontend/prototype/prototype-fishing.js": "f3cd3dfafd54863744ecb64b7bb4d1db546fa36c95a2e39c0a0faf18dce11f57",
+    "frontend/prototype/prototype-fishing.html": "582e553bbd4e844578089c97edbf888f804273fa8af59d3bc4bf05f7dabab010",
+    "tools/tests/filter-layers-browser.test.mjs": "18b8f3389b1dfa31cc9c39fd84f1a2d6c3298acb00f17fe9abf421b915fc6927"
+  },
+  "browser_capture": {
+    "schema": "ocean-u1-delivery-browser/v1",
+    "profile": "original offline display in actual browser; not science or production evidence",
+    "rows": [
+      {
+        "width": 1440,
+        "date": "2024-08-05",
+        "range": "20 km",
+        "point": "124.50°E, 30.20°N",
+        "nonmodal": true,
+        "overflow": false,
+        "context_clipped": false,
+        "help_collapsed": true
+      },
+      {
+        "width": 390,
+        "date": "2024-08-05",
+        "range": "20 km",
+        "point": "124.50°E, 30.20°N",
+        "nonmodal": true,
+        "overflow": false,
+        "context_clipped": false,
+        "help_collapsed": true
+      }
+    ]
+  },
+  "layer_capture": [
+    {
+      "width": 1440,
+      "label": " 捕捞活动热点（表观捕捞活动）离线未接入",
+      "clipped": false,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "label": " 捕捞活动热点（表观捕捞活动）离线未接入",
+      "clipped": false,
+      "overflow": false
+    }
+  ],
+  "screenshots_sha256": {
+    "docs/reports/screenshots/ocean-u1-context-1440.png": "f07848d1b1b36822b926826e9db3a879bac3d9f2a32c8b0f15bae636b8b5c02c",
+    "docs/reports/screenshots/ocean-u1-context-390.png": "aedb39be1d46a3d5e9779b3a97d76bc3a2c6fc519345267626059f54dbc17e25",
+    "docs/reports/screenshots/ocean-u1-layers-1440.png": "8a50d98123290053ca1b2ead88a304ebdc561cc41975816d5f98e2e0000df740",
+    "docs/reports/screenshots/ocean-u1-layers-390.png": "bf2c48de4043bbab4295b596d4f110081aa9c660ef5b86888f3f51436e7af902"
+  },
+  "verification": {
+    "tools_full": {
+      "passed": 149,
+      "local_log_sha256": "4d3a2f7afd993a005fe66e74c4fbe1cafbb5178f8cb33f446a83f2743c2f59d4"
+    },
+    "map_e2e": {
+      "passed": 129,
+      "local_log_sha256": "56be59bbb72426860283fd5c0ef2245312d62f1ded22a0c94962cfab321aa94e"
+    },
+    "data": {
+      "passed": 922,
+      "local_log_sha256": "f3cdace6a1bdba27962689a4819d7a2046f37906ac6928f5404cdc97d61ffa79"
+    },
+    "layouts": {
+      "passed": 4,
+      "local_log_sha256": "029b6cb057a5831081da6edbd9b4ead544eaacf4ab55574a0d360417eacd51f5"
+    },
+    "new_flow": {
+      "passed": 1,
+      "local_log_sha256": "b6b8a6a5a7a697c790ce196b131345d250d7c46e6c017e6cc321d286aa55312f"
+    }
+  },
+  "review": {
+    "standards_initial_findings": 0,
+    "standards_increment_findings": 0,
+    "spec_initial_findings": 1,
+    "spec_fixed": 1,
+    "spec_final_findings": 0
+  },
+  "issue_closure_scope": [
+    15
+  ],
+  "not_completed_by_this_delivery": [
+    16,
+    24,
+    34,
+    21,
+    14,
+    17,
+    18,
+    19,
+    20,
+    47,
+    228
+  ]
+}
