@@ -28,6 +28,60 @@ async function pointer(c, point) {
   await c.send("Input.dispatchMouseEvent", { type: "mouseReleased", ...point, button: "left", clickCount: 1 });
 }
 
+test("workbench shows applied conditions through the original filter and keeps drafts separate from map navigation", async () => {
+  const browser = await launchBrowser(process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe");
+  const c = browser.cdp;
+  try {
+    await c.send("Page.enable");await c.send("Page.navigate", {url:page});await ready(c);
+    await click(c,"#workbenchToggle");
+    assert.equal(await c.evaluate("!!document.getElementById('workbenchContext')"),true);
+    assert.equal(await c.evaluate("document.getElementById('wbContextPoint').textContent"),"124.50°E, 30.20°N");
+    await click(c,"#workbenchContext");
+    assert.equal(await c.evaluate("document.getElementById('filterPanel').hidden"),false);
+    await fill(c,"#locInput","125,31");
+    await click(c,"#rangeSeg [data-range='30']");
+    await click(c,"#dateNext");
+    assert.equal(await c.evaluate("document.getElementById('wbContextDate').textContent"),"2024-08-06");
+    assert.equal(await c.evaluate("document.getElementById('wbContextRange').textContent"),"30 km");
+    assert.equal(await c.evaluate("document.getElementById('wbContextPoint').textContent"),"124.50°E, 30.20°N","unapplied coordinate draft is not the analysis point");
+    await click(c,"#locateBtn");
+    assert.equal(await c.evaluate("document.getElementById('wbContextPoint').textContent"),"125.00°E, 31.00°N");
+    await key(c,"Escape");
+    assert.equal(await c.evaluate("document.activeElement.id"),"workbenchContext");
+    assert.equal(await c.evaluate("document.getElementById('workbenchContext').getAttribute('aria-expanded')"),"false");
+    await click(c,"#workbenchMapHelp summary");
+    assert.equal(await c.evaluate("document.getElementById('workbenchMapHelp').open"),true);
+    assert.match(await c.evaluate("document.getElementById('workbenchMapHelp').textContent"),/设置分析点[\s\S]*回到分析点/);
+    const context = await c.evaluate("document.getElementById('workbenchContext').textContent");
+    const point = await mapPoint(c);
+    await c.send("Input.dispatchMouseEvent",{type:"mousePressed",...point,button:"left",clickCount:1});
+    await c.send("Input.dispatchMouseEvent",{type:"mouseMoved",x:point.x+70,y:point.y+15,button:"left",buttons:1});
+    await c.send("Input.dispatchMouseEvent",{type:"mouseReleased",x:point.x+70,y:point.y+15,button:"left",clickCount:1});
+    await click(c,"#recenter");
+    await pointer(c,await mapPoint(c));
+    assert.equal(await c.evaluate("document.getElementById('workbenchContext').textContent"),context,"drag, recenter and probe do not set a new analysis point");
+    await click(c,"#workbenchContext");await click(c,"#pickOriginBtn");
+    await pointer(c,await mapPoint(c));
+    const assigned = await c.evaluate("document.getElementById('wbContextPoint').textContent");
+    assert.notEqual(assigned,"125.00°E, 31.00°N","explicit map point selection updates applied context");
+    assert.equal(await c.evaluate(`document.getElementById('mapSvg').textContent.includes(${JSON.stringify(assigned)})`),true);
+    await key(c,"Escape");
+    assert.equal(await c.evaluate("document.getElementById('taskWorkbench').open"),true,"map Escape must not seize workbench focus");
+    await click(c,"#workbenchMapHelp summary");await key(c,"Escape");
+    assert.equal(await c.evaluate("document.getElementById('taskWorkbench').open"),false);
+    assert.equal(await c.evaluate("document.activeElement.id"),"workbenchToggle");
+    await click(c,"#workbenchToggle");
+    assert.equal(await c.evaluate("document.getElementById('wbContextPoint').textContent"),assigned);
+    assert.equal(await c.evaluate("document.getElementById('taskWorkbench').matches(':modal')"),false);
+    for (const pane of ["clim","future","basis"]) {
+      await click(c,`#taskWorkbench [data-open-pane='${pane}']`);
+      assert.equal(await c.evaluate(`document.getElementById('pane-${pane}').classList.contains('active')`),true);
+      assert.equal(await c.evaluate("document.getElementById('wbContextPoint').textContent"),assigned);
+    }
+    assert.match(await c.evaluate("document.getElementById('futureBestTag').textContent"),/未独立验证/);
+  } finally {await browser.close();}
+});
+
 test("unified filters preserve drafts, apply only valid coordinates and distinguish map click from drag or zoom", async () => {
   const browser = await launchBrowser(process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe");
   const c = browser.cdp;

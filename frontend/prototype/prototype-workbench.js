@@ -10,6 +10,23 @@
     <section class="wb-shortcuts"><h3>快捷功能</h3><button id="nearbyFront">⌖　附近锋面</button><button id="fishingActivity">◉　捕捞活动</button><button id="monthlyOpen">▦　月度空间关系</button><button id="knownCaseOpen">⌕　相似历史案例</button><button id="monthlyDraftOpen" aria-controls="monthDraftPanel" aria-expanded="false">☷　月任务条件</button><button data-open-pane="clim">◷　历史观测</button><button data-open-pane="future">↗　预测参考</button><button id="filterToggle" aria-controls="filterPanel" aria-expanded="false">☷　筛选条件</button><button id="wbLayers" aria-controls="layerDrawer" aria-expanded="false">▧　图层开关</button><button data-open-pane="basis">ⓘ　数据说明</button><details class="analysis-pending"><summary>其他分析</summary><p>事件响应：待事件及对照证据接入。<br>区域比较：待多区域研究成果接入。</p></details><p id="layerPresetNote" role="status"></p></section>
     <section id="wbAI"><h3>AI 分析</h3></section>`;
   main.prepend(workbench);
+  const context = document.createElement("button");
+  context.id = "workbenchContext";context.className = "workbench-context";context.type = "button";
+  context.setAttribute("aria-controls", "filterPanel");context.setAttribute("aria-expanded", "false");
+  context.title = "调整已应用条件";
+  context.innerHTML = '<span class="wb-context-values"><time id="wbContextDate"></time><span id="wbContextRange"></span></span><small><span id="wbContextPoint"></span><span aria-hidden="true">↗</span></small>';
+  workbench.querySelector(".panel-head").after(context);
+  function renderWorkbenchContext() {
+    $("wbContextDate").textContent = state.date;$("wbContextDate").dateTime = state.date;
+    $("wbContextRange").textContent = state.range + " km";
+    $("wbContextPoint").textContent = fmtCoord(state.lon, state.lat);
+    context.setAttribute("aria-label", "调整已应用条件：" + state.date + "，" + state.range + "公里，分析点 " + fmtCoord(state.lon, state.lat));
+  }
+  window.addEventListener("ocean-applied-context", renderWorkbenchContext);
+  renderWorkbenchContext();
+  const mapHelp = document.createElement("details");mapHelp.id = "workbenchMapHelp";mapHelp.className = "workbench-map-help";
+  mapHelp.innerHTML = '<summary>地图操作说明</summary><p>设置分析点：在筛选中应用坐标，或按“点选”后点击地图。</p><p>回到分析点：按地图“◎”，只移动视野。拖动和普通查点不改分析点。</p>';
+  workbench.querySelector(".wb-shortcuts").append(mapHelp);
   const filters = document.createElement("section");
   filters.id = "filterPanel"; filters.className = "filter-panel"; filters.hidden = true;
   filters.setAttribute("aria-label", "筛选条件");
@@ -17,6 +34,8 @@
   header.querySelectorAll(".ctx").forEach(item => filters.append(item));
   filters.querySelectorAll(".num").forEach(item => item.remove());
   filters.querySelectorAll("input").forEach(input => input.setAttribute("aria-label", input.id === "locInput" ? "定位坐标" : input.id === "timeDate" ? "观测日期" : "日期滑块"));
+  filters.querySelector("#locateBtn").title = "应用坐标，设置分析点";
+  $("recenter").title = "回到分析点（只移动视野）";$("recenter").setAttribute("aria-label", "回到分析点");
   filters.querySelector("#locateBtn").textContent = "应用";
   filters.querySelectorAll(".ctx-lab")[0].textContent = "分析点";
   filters.querySelectorAll(".ctx-lab")[2].textContent = "观测日";
@@ -106,6 +125,7 @@
     filters.hidden = !open;
     $("filterToggle").setAttribute("aria-expanded", String(open));
     $("headerFilter").setAttribute("aria-expanded", String(open));
+    context.setAttribute("aria-expanded", String(open));
     if (!open && restore) (filterOpener.getClientRects().length ? filterOpener : $("headerFilter")).focus({ preventScroll: true });
   }
   let layerOpenerId = "wbLayers";
@@ -140,7 +160,7 @@
   $("nearbyFront").onclick = () => activateTask("now");
   $("fishingActivity").onclick = () => activateTask("effort");
   workbench.querySelectorAll("[data-open-pane]").forEach(b => b.onclick = () => activateTask(b.dataset.openPane));
-  $("filterToggle").onclick = $("headerFilter").onclick = e => showFilters(filters.hidden, e.currentTarget);
+  context.onclick = $("filterToggle").onclick = $("headerFilter").onclick = e => showFilters(filters.hidden, e.currentTarget);
   $("filterClose").onclick = () => showFilters(false);
   window.addEventListener("ocean-map-activate", () => { showFilters(false, null, false); showLayers(false, false); });
   window.addEventListener("ocean-evidence-open", () => { showFilters(false, null, false); showLayers(false, false); });
