@@ -35,6 +35,9 @@ test("workbench shows applied conditions through the original filter and keeps d
     await c.send("Page.enable");await c.send("Page.navigate", {url:page});await ready(c);
     await click(c,"#workbenchToggle");
     assert.equal(await c.evaluate("!!document.getElementById('workbenchContext')"),true);
+    assert.match(await c.evaluate("document.querySelector('#layerDrawer [data-layer=ground]').textContent"),/捕捞活动热点/);
+    assert.doesNotMatch(await c.evaluate("document.getElementById('layerDrawer').textContent"),/渔场线索/);
+    assert.match(await c.evaluate("document.querySelector('#layerDrawer .legend-note').textContent"),/fishing hours[\s\S]*不等于渔获/);
     assert.equal(await c.evaluate("document.getElementById('wbContextPoint').textContent"),"124.50°E, 30.20°N");
     await click(c,"#workbenchContext");
     assert.equal(await c.evaluate("document.getElementById('filterPanel').hidden"),false);
