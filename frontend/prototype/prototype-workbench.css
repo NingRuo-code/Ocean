@@ -21,6 +21,12 @@ button:focus-visible,input:focus-visible{outline:2px solid currentColor!importan
 .wb-shortcuts{display:grid;gap:6px;padding-bottom:18px;border-bottom:1px solid #40515c}
 .workbench h3{font-size:13px;margin-bottom:10px}
 .wb-shortcuts button{text-align:left}
+.workbench .workbench-context{display:block;width:100%;min-height:56px;text-align:left;margin:-6px 0 16px;font-size:12px}
+.wb-context-values,.workbench-context small{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.workbench-context small{margin-top:3px;font-size:11px;font-weight:400;color:inherit}
+.workbench-map-help{font-size:12px;line-height:1.65}
+.workbench-map-help summary{cursor:pointer;min-height:44px;padding:12px 0}
+.workbench-map-help p{margin:0 0 8px}
 #wbAI{padding-top:18px}#wbAI .pane{display:block;padding:0}#wbAI .card{padding:0;background:none;border:0;box-shadow:none}
 .side .pane,.workbench .pane{animation:none}
 #wbAI .list,#wbAI .why{color:#c4d3dd}
