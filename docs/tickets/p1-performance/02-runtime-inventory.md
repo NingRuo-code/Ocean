@@ -28,3 +28,5 @@ None (can start immediately).
 详见[首批实施、检查与残余项](../../reports/ocean-first-implementation-batch-2026-10-25.md)。分支 `codex/research-execution-plan`；Issue、PR、合并和生产部署分别记录，不以本地测试代替线上验收。
 
 2026-10-28软件接续：原盘点CLI补共享扫描预算、部分结果未知总量/观测下界、链接路径排除、P0冻结身份核验及不覆盖发布。定向16项覆盖实际Windows目录联接等反例，固定8个本机位置完成实际盘点；见[本批实施与范围](../../reports/ocean-bounded-storage-inventory-implementation-2026-10-28.md)。按换服安排未连接旧服，#47及#228、实际目标和容量预算仍未完成，不解除原生依赖。
+
+同日变化观测接续：原CLI可在同一进程读取两次，仅对两侧完整层报告有符号变化，未知/部分仍null；原默认单次模式和不覆盖发布保留。定向24项与本机空闲短间隔复跑见[实施记录](../../reports/ocean-storage-change-implementation-2026-10-28.md)。这不是增长率、业务负载或容量证明，#47/#228继续开放。
