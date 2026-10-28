@@ -7,11 +7,12 @@ from datetime import date
 from pathlib import Path
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Query, Response
 from pydantic import Field, model_validator
 
 from .analysis_support import content_id, known_period_summary, read_controlled_input
 from .comparison_models import KnownMetrics, SnapshotPack, SnapshotSource
+from .known_month_report import build_known_month_report
 from .monthly_models import ClosedModel, MonthlyRequest, NonNegative
 
 PUBLISHED_PATH = Path(__file__).parent / "examples/regional-known-snapshots.json"
@@ -225,5 +226,19 @@ def create_published_router(path=PUBLISHED_PATH):
                 403, "Published source is not public", headers={"Cache-Control": "no-store"}
             )
         return project(entry)
+
+    @router.get("/{result_id}/report")
+    def report(
+        result_id: str,
+        response: Response,
+        projection_id: Annotated[str, Query(pattern=r"^sha256:[0-9a-f]{64}$")],
+    ):
+        value = read(result_id, response)
+        if value["projection_id"] != projection_id:
+            raise HTTPException(
+                409, "Published projection changed; read the result again",
+                headers={"Cache-Control": "no-store"},
+            )
+        return build_known_month_report(value)
 
     return router

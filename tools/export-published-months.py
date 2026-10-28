@@ -7,6 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
+from app.known_month_report import build_known_month_report
 from app.published_months import published_month_results
 
 
@@ -32,6 +33,22 @@ def main():
                 raise ValueError("Published aggregate drift")
         else:
             target.write_text(content, encoding="utf-8")
+        reports = {
+            "schema_version": "ocean-offline-month-reports/v1",
+            "reports": [build_known_month_report(result) for result in payload["results"]],
+        }
+        report_content = (
+            "/* CC0 synthetic reports; generated from the verified public month projection. */\n"
+            "window.OceanKnownMonthReports = "
+            + json.dumps(reports, ensure_ascii=False, indent=2)
+            + ";\n"
+        )
+        report_target = ROOT / "frontend/prototype/data/known-month-reports.js"
+        if args.check:
+            if report_target.read_text(encoding="utf-8") != report_content:
+                raise ValueError("Published report drift")
+        else:
+            report_target.write_text(report_content, encoding="utf-8")
         print(
             "Public offline monthly projection verified"
             if args.check
