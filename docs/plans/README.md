@@ -2,6 +2,8 @@
 
 最近整理：2026-10-28。
 
+本次连续实施批次：[补充规格#306](../specs/ocean-known-month-report-software-spec-2026-10-28.md)将已公开CC0合成A成果的报告软件单列为#307→#308，贯通同源预览和Markdown/逐日CSV下载。[交付、验证与保留关口](../reports/ocean-known-month-report-implementation-2026-10-28.md)，[PR #309](https://github.com/NingRuo-code/Ocean/pull/309)。原#126/#69及其他真实研究/生产依赖保留，几何与持久任务等其他建议本批未实施；原252项与补充2项分账。
+
 新对话或跨会话接续：先读[项目交接入口](../agents/project-handoff.md)，再核对GitHub实时状态。[2026-10-28量化进度快照](../reports/ocean-progress-snapshot-2026-10-28.md)区分已结项、部分软件实现和真实前置；它不替代实时任务账。
 
 2026-10-28 U1首版接续：#15补齐工作台已应用条件、设置点/回中说明和捕捞活动热点名称，[首版逐项验收与截图](../reports/ocean-u1-delivery-implementation-2026-10-28.md)。本批按#15原范围结项，合并/关闭以GitHub实际状态为准；#16/#24/#34、正式分析与生产部署不随之完成。
