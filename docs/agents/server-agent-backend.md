@@ -2,6 +2,8 @@
 
 Use this when work touches server deployment, viewport APIs, data/cache pipelines, response-analysis experiments, or later Agent tool contracts.
 
+For current server availability and the user's replacement/deployment decisions, first read [project handoff](project-handoff.md). The existing-server hosting sequence below records the original baseline; it is not current production authorization.
+
 ## Current Direction
 
 - Branch topic: `codex/server-agent-backend`.
