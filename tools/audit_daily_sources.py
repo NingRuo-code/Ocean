@@ -451,18 +451,46 @@ def compare_lineage(results, entries):
     return checks
 
 
+def mask_display_comments(text):
+    masked = list(text)
+    position = 0
+    while position < len(text):
+        char = text[position]
+        if char in "\"'`":
+            quote = char
+            position += 1
+            while position < len(text) and text[position] != quote:
+                position += 2 if text[position] == "\\" else 1
+            position += 1
+        elif text.startswith("//", position):
+            end = position + 2
+            while end < len(text) and text[end] not in "\r\n\u2028\u2029":
+                end += 1
+            masked[position:end] = " " * (end - position)
+            position = end
+        elif text.startswith("/*", position):
+            end = text.find("*/", position + 2)
+            if end < 0:
+                raise ValueError("invalid_display_program")
+            end += 2
+            masked[position:end] = " " * (end - position)
+            position = end
+        else:
+            position += 1
+    return "".join(masked)
+
+
 def display_rows(path, entry, file, source, support):
     text = path.read_text(encoding="utf-8")
+    program = mask_display_comments(text)
     module = "OF_DATA_DAYS" if entry["format"] == "front-display" else "OF_DATA_SST"
     matches = list(
-        re.finditer(r"window\." + module + r'\["(\d{4}-\d{2}-\d{2})"\]\s*=\s*', text)
+        re.finditer(r"window\." + module + r'\["(\d{4}-\d{2}-\d{2})"\]\s*=\s*', program)
     )
     if len(matches) != 1:
         raise ValueError("invalid_display_assignment")
     match = matches[0]
-    prefix = re.sub(
-        r"/\*.*?\*/|//[^\r\n\u2028\u2029]*", "", text[: match.start()], flags=re.DOTALL
-    )
+    prefix = program[: match.start()]
     container = r"window\." + module
     initializer = rf"\s*(?:{container}\s*=\s*{container}\s*\|\|\s*\{{\s*\}}\s*;)?\s*"
     if not re.fullmatch(initializer, prefix):

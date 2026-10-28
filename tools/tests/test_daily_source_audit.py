@@ -187,6 +187,29 @@ def test_display_audit_rejects_hidden_prefix_program_instead_of_selecting_later_
     assert row["days"][0]["state"] == "missing"
 
 
+@pytest.mark.parametrize("ending", ["", "\n", "\r\n", "\u2028", "\u2029", "block"])
+def test_commented_export_is_not_an_observation_and_other_source_still_audits(tmp_path, ending):
+    source = tmp_path / "sst20240805.js"
+    payload = {
+        "date": "2024-08-05",
+        "grid": {"lon0": 122, "lat0": 30, "dlon": 0.05, "dlat": 0.05, "nx": 1, "ny": 1},
+        "product": {"unit": "degree_C"}, "bin_c": 0.5, "runs": [[0, 0, 1, 60]],
+    }
+    assignment = 'window.OF_DATA_SST["2024-08-05"] = ' + json.dumps(payload) + ";"
+    text = "/* " + assignment + " */" if ending == "block" else "// " + assignment + ending
+    source.write_text(text, encoding="utf-8")
+    good = tmp_path / "front20240805.nc"
+    front_file(good)
+    prepare(tmp_path, [
+        ("sst", "sst", source, {"format": "sst-display", "role": "display"}),
+        ("front", "front", good, {"format": "netcdf", "variable": "front"}),
+    ])
+    sources = audit(tmp_path)["sources"]
+    assert sources[0]["errors"][0]["reason"] == "invalid_display_assignment"
+    assert sources[0]["days"][0]["state"] == "missing"
+    assert sources[1]["days"][0]["valid_samples"] == 3
+
+
 def prepare(tmp_path, sources):
     registry = {
         "schema": "ocean-source-registry/v1",
