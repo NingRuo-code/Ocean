@@ -141,6 +141,42 @@ def inventory(root, snapshot, max_entries=100_000, max_seconds=10):
                             "No downloads, load tests, cache clearing or procurement recommendation."]}
 
 
+def observe_inventory(root, snapshot, max_entries, max_seconds, samples, interval):
+    started = time.monotonic()
+    before = inventory(root, snapshot, max_entries, max_seconds)
+    if samples == 1:
+        return before
+    print(json.dumps({"event": "inventory_observation_complete", "sample": 1, "samples": 2}), flush=True)
+    time.sleep(interval)
+    second_started = time.monotonic()
+    after = inventory(root, snapshot, max_entries, max_seconds)
+    print(json.dumps({"event": "inventory_observation_complete", "sample": 2, "samples": 2}), flush=True)
+    changes = {}
+    for name, previous in before["layers"].items():
+        current = after["layers"][name]
+        comparable = previous["status"] == current["status"] == "measured"
+        changes[name] = {
+            "status": "comparable" if comparable else "unavailable",
+            "before_status": previous["status"], "after_status": current["status"],
+            "bytes_delta": current["bytes"] - previous["bytes"] if comparable else None,
+            "files_delta": current["files"] - previous["files"] if comparable else None,
+        }
+    after["observations"] = {
+        "schema": "ocean-storage-observations/v1", "count": 2,
+        "comparison_scope": "same process and selected root path; not cross-host identity proof",
+        "interval_requested_seconds": interval,
+        "elapsed_between_starts_ms": (second_started - started) * 1000,
+        "before": {key: before[key] for key in ["generated_at", "source_snapshot_id", "layers", "scan", "route_config_status", "route_config_sha256"]},
+        "changes": changes,
+    }
+    after["limitations"] = [
+        "Two observations describe logical size changes only, not cause, rate, trend or capacity.",
+        "The source snapshot is frozen audit context, not a new content audit of either observation.",
+        *[text for text in after["limitations"] if not text.startswith("One snapshot")],
+    ]
+    return after
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
@@ -148,9 +184,16 @@ if __name__ == "__main__":
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--max-entries", type=int, default=100_000)
     parser.add_argument("--max-seconds", type=float, default=10)
+    parser.add_argument("--samples", type=int, choices=[1, 2], default=1)
+    parser.add_argument("--interval-seconds", type=float)
     args = parser.parse_args()
     if not 1 <= args.max_entries <= 1_000_000 or not math.isfinite(args.max_seconds) or not 0.01 <= args.max_seconds <= 120:
         parser.error("Invalid scan budget")
+    if args.samples == 1 and args.interval_seconds is not None:
+        parser.error("Interval requires two observations")
+    interval = 1 if args.interval_seconds is None else args.interval_seconds
+    if not math.isfinite(interval) or not 0 <= interval <= 30:
+        parser.error("Invalid observation interval")
     try:
         root = args.root.resolve(strict=True)
         if not root.is_dir():
@@ -171,7 +214,7 @@ if __name__ == "__main__":
         parser.error("Invalid source snapshot")
     temporary = None
     try:
-        report = inventory(root, snapshot, args.max_entries, args.max_seconds)
+        report = observe_inventory(root, snapshot, args.max_entries, args.max_seconds, args.samples, interval)
         args.out.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=args.out.parent,
                                          prefix=".ocean-inventory-", suffix=".tmp", delete=False) as stream:

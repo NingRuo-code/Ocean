@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -37,6 +38,98 @@ def directory_link(target, link):
         result = subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(target)], capture_output=True, timeout=10)
         if result.returncode:
             pytest.skip("directory links unavailable on this host")
+
+
+def two_observations(workspace, change, *options, expected_error=False):
+    root, snapshot = workspace
+    process = subprocess.Popen([sys.executable, str(ROOT / "tools/inventory-runtime.py"),
+                                "--root", str(root), "--snapshot", str(snapshot),
+                                "--out", str(root / "inventory.json"), "--samples", "2",
+                                "--interval-seconds", "1", *options],
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8")
+    try:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            try:
+                line = pool.submit(process.stdout.readline).result(timeout=15)
+            except TimeoutError:
+                process.kill()
+                process.wait(timeout=5)
+                raise
+        assert line, "CLI did not emit its first observation event"
+        assert json.loads(line) == {"event": "inventory_observation_complete", "sample": 1, "samples": 2}
+        assert not (root / "inventory.json").exists(), "Observation is not completed publication"
+        change(root)
+        _, error = process.communicate(timeout=20)
+        if expected_error:
+            assert process.returncode != 0
+            return error
+        assert process.returncode == 0, error
+        return json.loads((root / "inventory.json").read_text(encoding="utf-8"))
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait(timeout=5)
+        process.stdout.close()
+        process.stderr.close()
+
+
+def test_cli_two_observations_report_signed_changes_and_keep_missing_unknown(cli_workspace):
+    root, _ = cli_workspace
+    (root / "data/raw").mkdir(parents=True)
+    (root / "data/cache").mkdir()
+    (root / "frontend/prototype/data").mkdir(parents=True)
+    (root / "data/cache/old.bin").write_bytes(b"1234")
+
+    def change(root):
+        (root / "data/raw/new.bin").write_bytes(b"1234567")
+        (root / "data/cache/old.bin").unlink()
+
+    report = two_observations(cli_workspace, change)
+    samples = report["observations"]
+    assert samples["count"] == 2
+    assert samples["elapsed_between_starts_ms"] >= 1000
+    assert samples["before"]["layers"]["raw"]["bytes"] == 0
+    assert report["layers"]["raw"]["bytes"] == 7
+    assert samples["changes"]["raw"]["bytes_delta"] == 7
+    assert samples["changes"]["raw"]["files_delta"] == 1
+    assert samples["changes"]["cache"]["bytes_delta"] == -4
+    assert samples["changes"]["cache"]["files_delta"] == -1
+    assert samples["changes"]["backup"]["bytes_delta"] is None
+    assert samples["changes"]["backup"]["status"] == "unavailable"
+    assert samples["changes"]["hot_display"]["status"] == "comparable"
+    assert samples["changes"]["hot_display"]["bytes_delta"] == 0
+    assert report["production"]["status"] == "unverified"
+
+
+def test_cli_two_partial_observations_do_not_turn_equal_lower_bounds_into_zero_change(cli_workspace):
+    root, _ = cli_workspace
+    raw = root / "data/raw"
+    raw.mkdir(parents=True)
+    for name in ("a", "b"):
+        (raw / name).write_bytes(b"abc")
+    report = two_observations(cli_workspace, lambda root: None, "--max-entries", "1")
+    observations = report["observations"]
+    assert observations["before"]["layers"]["raw"]["observed_bytes"] == 3
+    assert report["layers"]["raw"]["observed_bytes"] == 3
+    assert observations["changes"]["raw"]["status"] == "unavailable"
+    assert observations["changes"]["raw"]["bytes_delta"] is None
+    assert observations["changes"]["raw"]["files_delta"] is None
+
+
+def test_cli_two_observations_do_not_replace_a_writer_that_publishes_during_interval(cli_workspace):
+    root, _ = cli_workspace
+    error = two_observations(cli_workspace, lambda root: (root / "inventory.json").write_bytes(b"PRIVATE_SENTINEL"), expected_error=True)
+    assert (root / "inventory.json").read_bytes() == b"PRIVATE_SENTINEL"
+    assert str(root) not in error
+    assert "PRIVATE_SENTINEL" not in error
+
+
+@pytest.mark.parametrize("options", [("--samples", "3"), ("--samples", "2", "--interval-seconds", "-1"), ("--samples", "2", "--interval-seconds", "nan"), ("--samples", "2", "--interval-seconds", "31"), ("--interval-seconds", "0")])
+def test_cli_rejects_invalid_observation_options(cli_workspace, options):
+    root, _ = cli_workspace
+    result = run_cli(cli_workspace, *options)
+    assert result.returncode != 0
+    assert not (root / "inventory.json").exists()
 
 
 def test_cli_file_in_place_of_layer_is_unknown_not_empty(cli_workspace):
