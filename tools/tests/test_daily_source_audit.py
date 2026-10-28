@@ -109,6 +109,107 @@ def test_mixed_csv_units_cannot_be_verified_by_registry_fallback(tmp_path):
     assert row["state"] == "conflict"
 
 
+@pytest.mark.parametrize(
+    "content",
+    [
+        '{"date":"2024-08-05","unit":"minutes","unit":"fishing_hours",'
+        '"cells":[{"lon":122,"lat":30,"hours":0}]}',
+        '{"date":"2024-08-05","unit":"fishing_hours",'
+        '"cells":[{"lon":122,"lat":30,"hours":12,"hours":0}]}',
+        '{"date":"2024-08-05","unit":"fishing_hours",'
+        '"cells":[{"lon":122,"lat":30,"hours":12,"\\u0068ours":0}]}',
+    ],
+)
+def test_duplicate_activity_json_fields_never_choose_a_value_or_drop_other_sources(
+    tmp_path, content
+):
+    bad = tmp_path / "effort20240805.json"
+    bad.write_text(content, encoding="utf-8")
+    good = tmp_path / "front20240805.nc"
+    front_file(good)
+    prepare(
+        tmp_path,
+        [
+            ("activity", "activity", bad, {"format": "activity-json"}),
+            ("front", "front", good, {"format": "netcdf", "variable": "front"}),
+        ],
+    )
+    value = audit(tmp_path)
+    bad_source, good_source = value["sources"]
+    assert bad_source["errors"][0]["reason"] == "duplicate_json_key"
+    assert bad_source["days"][0]["state"] == "missing"
+    assert good_source["days"][0]["valid_samples"] == 3
+    assert value["research_ready"] is False
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        "date,lon,lat,hours,hours,unit\n2024-08-05,122,30,12,0,fishing_hours\n",
+        "date,lon,lat,hours,unit,unit\n2024-08-05,122,30,0,minutes,fishing_hours\n",
+    ],
+)
+def test_duplicate_csv_columns_cannot_overwrite_hours_or_units(tmp_path, content):
+    bad = tmp_path / "effort20240805.csv"
+    bad.write_text(content, encoding="utf-8")
+    prepare(tmp_path, [("activity", "activity", bad, {"format": "activity-csv"})])
+    value = audit(tmp_path)["sources"][0]
+    assert value["errors"][0]["reason"] == "duplicate_csv_column"
+    assert value["days"][0]["state"] == "missing"
+
+
+@pytest.mark.parametrize(
+    "prefix",
+    [
+        "window.OF_DATA_SST['2024-08-05'] = {};\n",
+        'window.PRIVATE_SENTINEL = "unrelated program";\n',
+        '// comment\u2028window.PRIVATE_SENTINEL = "unrelated program";\n',
+    ],
+)
+def test_display_audit_rejects_hidden_prefix_program_instead_of_selecting_later_assignment(
+    tmp_path, prefix
+):
+    source = tmp_path / "sst20240805.js"
+    payload = {
+        "date": "2024-08-05",
+        "grid": {"lon0": 122, "lat0": 30, "dlon": 0.05, "dlat": 0.05, "nx": 1, "ny": 1},
+        "product": {"unit": "degree_C"},
+        "bin_c": 0.5,
+        "runs": [[0, 0, 1, 60]],
+    }
+    source.write_text(
+        prefix + 'window.OF_DATA_SST["2024-08-05"] = ' + json.dumps(payload) + ";",
+        encoding="utf-8",
+    )
+    prepare(tmp_path, [("sst", "sst", source, {"format": "sst-display", "role": "display"})])
+    row = audit(tmp_path)["sources"][0]
+    assert row["errors"][0]["reason"] == "invalid_display_program"
+    assert row["days"][0]["state"] == "missing"
+
+
+@pytest.mark.parametrize("ending", ["", "\n", "\r\n", "\u2028", "\u2029", "block"])
+def test_commented_export_is_not_an_observation_and_other_source_still_audits(tmp_path, ending):
+    source = tmp_path / "sst20240805.js"
+    payload = {
+        "date": "2024-08-05",
+        "grid": {"lon0": 122, "lat0": 30, "dlon": 0.05, "dlat": 0.05, "nx": 1, "ny": 1},
+        "product": {"unit": "degree_C"}, "bin_c": 0.5, "runs": [[0, 0, 1, 60]],
+    }
+    assignment = 'window.OF_DATA_SST["2024-08-05"] = ' + json.dumps(payload) + ";"
+    text = "/* " + assignment + " */" if ending == "block" else "// " + assignment + ending
+    source.write_text(text, encoding="utf-8")
+    good = tmp_path / "front20240805.nc"
+    front_file(good)
+    prepare(tmp_path, [
+        ("sst", "sst", source, {"format": "sst-display", "role": "display"}),
+        ("front", "front", good, {"format": "netcdf", "variable": "front"}),
+    ])
+    sources = audit(tmp_path)["sources"]
+    assert sources[0]["errors"][0]["reason"] == "invalid_display_assignment"
+    assert sources[0]["days"][0]["state"] == "missing"
+    assert sources[1]["days"][0]["valid_samples"] == 3
+
+
 def prepare(tmp_path, sources):
     registry = {
         "schema": "ocean-source-registry/v1",
@@ -159,8 +260,8 @@ def prepare(tmp_path, sources):
     assert first.returncode == 0, first.stderr
 
 
-def audit(tmp_path, start="2024-08-05", end="2024-08-05"):
-    result = subprocess.run(
+def run_daily_cli(tmp_path, start="2024-08-05", end="2024-08-05"):
+    return subprocess.run(
         [
             "node",
             str(CLI),
@@ -185,6 +286,10 @@ def audit(tmp_path, start="2024-08-05", end="2024-08-05"):
         timeout=30,
         check=False,
     )
+
+
+def audit(tmp_path, start="2024-08-05", end="2024-08-05"):
+    result = run_daily_cli(tmp_path, start, end)
     assert result.returncode == 0, result.stderr
     return json.loads((tmp_path / "report.json").read_text(encoding="utf-8"))
 
@@ -494,6 +599,48 @@ def test_daily_snapshot_replays_without_reopening_sources_and_detects_drift(tmp_
     )
     assert replay.returncode == 0, replay.stderr
     assert json.loads(replay.stdout) == frozen
+
+
+@pytest.mark.parametrize("name", ["daily.json", "snapshot.json", "private.json"])
+def test_daily_control_files_with_duplicate_schema_fail_without_publishing(tmp_path, name):
+    source = tmp_path / "front20240805.nc"
+    front_file(source)
+    prepare(tmp_path, [("front", "front", source, {"format": "netcdf", "variable": "front"})])
+    path = tmp_path / name
+    original = path.read_text(encoding="utf-8")
+    path.write_text(
+        original.replace('"schema":', '"schema":"PRIVATE_SENTINEL", "schema":', 1),
+        encoding="utf-8",
+    )
+    result = run_daily_cli(tmp_path)
+    assert result.returncode == 1
+    assert not (tmp_path / "report.json").exists()
+    assert "PRIVATE_SENTINEL" not in result.stdout + result.stderr
+
+
+def test_daily_frozen_replay_rejects_duplicate_alias_even_with_unchanged_final_identity(tmp_path):
+    source = tmp_path / "front20240805.nc"
+    front_file(source)
+    prepare(tmp_path, [("front", "front", source, {"format": "netcdf", "variable": "front"})])
+    audit(tmp_path)
+    path = tmp_path / "report.json"
+    path.write_text(
+        path.read_text(encoding="utf-8").replace(
+            '"research_ready": false',
+            '"research_rea\\u0064y": true, "research_ready": false',
+        ),
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        ["node", str(CLI), "--read-daily-snapshot", str(path)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+        check=False,
+    )
+    assert result.returncode == 1
+    assert result.stdout == ""
 
 
 def test_paired_hours_conservation_is_scoped_and_empty_records_are_not_zero(tmp_path):

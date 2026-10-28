@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, unlinkSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, unlinkSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -59,6 +59,27 @@ test("reading a frozen snapshot does not reopen or rescan original inputs", () =
   assert.deepEqual(JSON.parse(result.stdout), original);
 });
 
+test("source registration rejects duplicate declarations and frozen keys instead of silently taking the last value", () => {
+  for (const mode of ["registry", "escaped-registry", "frozen"]) {
+    const w = workspace();
+    if (mode === "frozen") {
+      assert.equal(run(w).status, 0);
+      const original = readFileSync(w.output, "utf8");
+      writeFileSync(w.output, original.replace('"research_ready": false', '"research_ready": true, "research_ready": false'));
+      const result = spawnSync(process.execPath, [cli, "--read-snapshot", w.output], { encoding: "utf8" });
+      assert.equal(result.status, 1);
+      assert.equal(result.stdout, "");
+    } else {
+      const key = mode === "registry" ? "processing_version" : "processing_\\u0076ersion";
+      writeFileSync(w.registryPath, JSON.stringify(w.registry).replace('"processing_version":', `"${key}":"PRIVATE_SENTINEL","processing_version":`));
+      const result = run(w);
+      assert.equal(result.status, 1);
+      assert.equal(existsSync(w.output), false);
+      assert.equal((result.stdout + result.stderr).includes("PRIVATE_SENTINEL"), false);
+    }
+  }
+});
+
 test("unknown declarations, missing inputs and conflicting license evidence remain visible gaps", () => {
   const w = workspace();
   w.registry.sources[0].license_claims = [
@@ -80,6 +101,31 @@ test("unknown declarations, missing inputs and conflicting license evidence rema
   assert.equal(missing.product.unit, null);
   assert.ok(missing.gaps.includes("lineage_unknown:missing-parent"));
   assert.equal(report.research_ready, false);
+});
+
+test("audit control input budgets and strict UTF-8 reject ambiguous or oversized declarations before output", () => {
+  for (const mode of ["utf8", "bytes", "depth"]) {
+    const w = workspace();
+    const original = JSON.stringify(w.registry);
+    if (mode === "utf8") {
+      writeFileSync(w.registryPath, Buffer.concat([
+        Buffer.from(original.slice(0, -1) + ',"note":"'), Buffer.from([0xff]), Buffer.from('"}'),
+      ]));
+    } else if (mode === "bytes") {
+      w.registry.sources[0].product.version = "x".repeat(16 * 1024 * 1024);
+      writeFileSync(w.registryPath, JSON.stringify(w.registry));
+    } else {
+      writeFileSync(w.registryPath, original.slice(0, -1) + ',"note":' + "[".repeat(65) + "0" + "]".repeat(65) + "}");
+    }
+    try {
+      const result = run(w);
+      assert.equal(result.status, 1, mode);
+      assert.equal(existsSync(w.output), false);
+      assert.equal(result.stdout, "");
+    } finally {
+      unlinkSync(w.registryPath);
+    }
+  }
 });
 
 test("output choices cannot overwrite source evidence or mix private locators into the public snapshot", () => {
