@@ -49,6 +49,17 @@ test('fixed release starts original API from an independently installed no-Git p
   assert.equal(statusResponse.headers.get('X-Ocean-Release'),built.release_id);
   assert.equal(status.layers.models.state,'disabled_by_profile');assert.equal(status.layers.analysis_execution.state,'disabled_by_profile');
   assert.equal(status.layers.published_read.state,'readable_example');assert.equal(status.layers.map_index.front.registered_days,62);
+  const monthCatalog=await(await fetch(base+'/api/query/monthly-analysis/published')).json();
+  const month=monthCatalog.results[0],monthPath=base+'/api/query/monthly-analysis/published/'+encodeURIComponent(month.result_id);
+  const reportResponse=await fetch(monthPath+'/report?projection_id='+encodeURIComponent(month.projection_id));
+  assert.equal(reportResponse.status,200);const report=await reportResponse.json();
+  assert.equal(report.result.metrics.total_hours,40);assert.equal(report.result.research_ready,false);
+  for(const representation of ['markdown','csv']){
+   const file=await fetch(monthPath+'/report/'+representation+'?projection_id='+encodeURIComponent(month.projection_id)+'&report_id='+encodeURIComponent(report.report_id));
+   assert.equal(file.status,200);assert.equal(file.headers.get('X-Ocean-Release'),built.release_id);
+   assert.match(await file.text(),/真实研究资格未通过/);
+  }
+  for(const asset of ['prototype-month-evidence.js','prototype-month-report.js','data/known-month-reports.js'])assert.equal((await fetch(base+'/'+asset)).status,200);
   t.diagnostic(JSON.stringify({evidence:'O07_fixed_release_status',source_commit:f.commit,release_id:built.release_id,
    policy_version:status.policy_version,map_days:status.layers.map_index.front.registered_days,
    published_read:status.layers.published_read.state,models:status.layers.models.state,
