@@ -13,7 +13,22 @@ python tools/inventory-runtime.py --snapshot data/processed/source-audit-new.jso
 
 需要项目已有Node和Python环境；复用来源冻结读取器只核身份，不重新扫描原档。`--root`默认为当前仓库，可显式指定要盘点的本机目录；root是操作者选定的目录，工具不证明它属于哪台服务器。CPU和磁盘字段仍属本机，RAM/IO/带宽/worker/负载未知，不据此给并发或缓存配额。
 
+固定逻辑层与相对root路径如下。缺项只指这些选定位置，不代表主机其他目录也没有对应资料；不把整个磁盘或仓库所有产物都计入。
+
+| 层 | 相对路径 |
+| --- | --- |
+| raw | data/raw |
+| hot_display | frontend/prototype/data |
+| derived_unclassified | data/processed |
+| indexes | data/indexes |
+| staging | data/staging |
+| cache | data/cache |
+| results | data/outputs |
+| backup | data/backups |
+
 默认8层共享最多100000个条目和10秒扫描预算，最大可设置1000000条目、120秒；深度上限64层。流式遍历，在条目间检查预算，不能打断阻塞的单次文件系统调用。配置文件哈希另有每文件32 MiB上限，既定3个路径逐段排除链接。工具不是防御恶意并发改写路径的文件系统隔离器。
+
+`scan.elapsed_ms`包含盘点开始后的硬件/路径元信息及配置哈希耗时，不能当成纯文件遍历耗时；`max_seconds`用于分层遍历中的协作检查，不是整个CLI的强制超时。
 
 ## 结果与限制
 
@@ -24,5 +39,7 @@ python tools/inventory-runtime.py --snapshot data/processed/source-audit-new.jso
 统计不读取各资料文件正文，也不是原档展开大小、内存数组、磁盘已分配块或去重后物理占用；硬链接按文件名分别计数。遍历期间资料可能变化，不宣称全目录原子快照或增长率。所有层相加也不能自动等同磁盘容量需求。
 
 报告形成后才创建输出目录，避免输出操作把原本缺失的层变成“空目录”。先写同目录临时文件，再以不覆盖的硬链接发布；输出盘须支持该操作（常用NTFS/ext4支持），不支持时安全失败，不降级覆盖。已有输出、来源快照或并发写入者不会被替换。重复运行请使用新文件名；不自动删除旧报告、缓存或数据。失败时可能保留未能清理的临时文件，不能视为已发布结果。
+
+CLI成功退出表示形成了这份报告；其中可以有 `partial/missing/unavailable`，不等于全部层完整或服务器已经准入。调用方应逐层检查状态和限制。
 
 本机报告只包含固定逻辑层名、状态、数量/字节、配置哈希及来源身份，不含原始文件清单、私有目录、凭据或AIS记录。公开前仍应审核实际硬件/资料摘要；生产目标的路由、版本、资源、备份与容量须等后续实际访问另验。

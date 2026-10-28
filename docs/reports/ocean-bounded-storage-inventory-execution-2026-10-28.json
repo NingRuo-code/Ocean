@@ -1,0 +1,126 @@
+{
+  "schema": "ocean-bounded-storage-inventory-execution/v1",
+  "date": "2026-10-28",
+  "base_commit": "2c14d576d5d56c702590e37a767eda19ae3b279c",
+  "reviewed_code_commit": "46fe9c7b59e5693006928a9e8520354e2376502c",
+  "tool_sha256": "66781a317e3cd627eaa733fc362be9a09a18145f6c5e9f6de868a7b28d728659",
+  "scope": "eight fixed paths under local checkout; not host-wide or actual server",
+  "production_contact": false,
+  "raw_downloaded": false,
+  "hardware_projected": false,
+  "source_snapshot_id": "sha256:653f86c7d75726ec9e5b3b677784d15b92ec765d54735197317bba077d5f1755",
+  "source_research_ready": false,
+  "source_public_release_approved": false,
+  "local_source_report_sha256": "ece609a37cb0da42f725f42f355333fb0a2f8e74ff6fce5b1feb8e0f607f6218",
+  "local_full_report_sha256": "68beabd3075a4351a2226ed24220cbc010e35e8aa5a358a2d27ecc421d7fd211",
+  "layers": {
+    "raw": {
+      "status": "missing",
+      "bytes": null,
+      "files": null
+    },
+    "hot_display": {
+      "status": "measured",
+      "bytes": 4288301,
+      "files": 136,
+      "observed_bytes": 4288301,
+      "observed_files": 136,
+      "reasons": []
+    },
+    "derived_unclassified": {
+      "status": "measured",
+      "bytes": 7213921,
+      "files": 575,
+      "observed_bytes": 7213921,
+      "observed_files": 575,
+      "reasons": []
+    },
+    "indexes": {
+      "status": "missing",
+      "bytes": null,
+      "files": null
+    },
+    "staging": {
+      "status": "missing",
+      "bytes": null,
+      "files": null
+    },
+    "cache": {
+      "status": "measured",
+      "bytes": 98299,
+      "files": 9,
+      "observed_bytes": 98299,
+      "observed_files": 9,
+      "reasons": []
+    },
+    "results": {
+      "status": "missing",
+      "bytes": null,
+      "files": null
+    },
+    "backup": {
+      "status": "missing",
+      "bytes": null,
+      "files": null
+    }
+  },
+  "scan": {
+    "max_entries": 100000,
+    "max_seconds": 10.0,
+    "entries_examined": 765,
+    "elapsed_ms": 211.27299987711012,
+    "max_depth": 64
+  },
+  "route_config_status": {
+    "deploy/nginx/ocean.conf": "hashed",
+    "deploy/systemd/ocean-api.service": "hashed",
+    "frontend/prototype/prototype-data.js": "hashed"
+  },
+  "route_config_sha256": {
+    "deploy/nginx/ocean.conf": "7acdcfd1355a9e73ba2195f352731a676758eea51b9e4f9b3ad9d8ec02d897d1",
+    "deploy/systemd/ocean-api.service": "de656c141059e4d76dfada042ffc444ff7830731571b1758aa970564ca911925",
+    "frontend/prototype/prototype-data.js": "4c440686e05632d971a367c23035829193a147b64a562ef4932a2f6fb577fa4c"
+  },
+  "production": {
+    "status": "unverified",
+    "revision": null,
+    "cpu": null,
+    "ram": null,
+    "disk": null,
+    "io": null,
+    "bandwidth": null,
+    "workers": null,
+    "load": null
+  },
+  "capacity": {
+    "current_demo": "local bytes only",
+    "east_china_sea_multiyear": "unknown",
+    "global_archive": "unknown",
+    "concurrency_budget": null,
+    "cache_budget_bytes": null
+  },
+  "output_publication": "same-directory complete temporary file, exclusive hard link; existing output not replaced",
+  "verification": {
+    "tools_full": {
+      "passed": 148,
+      "local_log_sha256": "da7238d56bd95df87881aed6d503f15673b2fd95d1b059dd7572e5224b259e28"
+    },
+    "python_full": {
+      "passed": 55,
+      "local_log_sha256": "4dc3456992d9629706337550a95b94aa6716f2f79cf986b17447784402a30f9a"
+    },
+    "targeted": {
+      "passed": 16,
+      "local_log_sha256": "7e0828860804e3fd9befc3e38cbf16c2d5c7a26e7c1bc6d83adc64a25454a360"
+    },
+    "data": {
+      "passed": 922,
+      "local_log_sha256": "f3cdace6a1bdba27962689a4819d7a2046f37906ac6928f5404cdc97d61ffa79"
+    }
+  },
+  "review": {
+    "code_commit": "46fe9c7b59e5693006928a9e8520354e2376502c",
+    "standards_findings": 0,
+    "spec_findings": 0
+  }
+}
