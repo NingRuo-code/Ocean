@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
-from app.known_month_report import build_known_month_report
+from app.known_month_report import build_known_month_report, render_report_file
 from app.published_months import published_month_results
 
 
@@ -36,6 +36,13 @@ def main():
         reports = {
             "schema_version": "ocean-offline-month-reports/v1",
             "reports": [build_known_month_report(result) for result in payload["results"]],
+        }
+        reports["exports"] = {
+            report["report_id"]: {
+                representation: render_report_file(report, representation)
+                for representation in ["markdown", "csv"]
+            }
+            for report in reports["reports"]
         }
         report_content = (
             "/* CC0 synthetic reports; generated from the verified public month projection. */\n"

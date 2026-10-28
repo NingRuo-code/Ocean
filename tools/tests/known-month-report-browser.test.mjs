@@ -1,10 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {resolve} from "node:path";
+import {resolve,join} from "node:path";
 import {pathToFileURL} from "node:url";
 import {launchBrowser, waitFor} from "../lib/browser-driver.mjs";
 import {withService} from "../lib/monthly-test-service.mjs";
-import {mkdir, writeFile} from "node:fs/promises";
+import {mkdir, writeFile, readdir, readFile} from "node:fs/promises";
+import {setTimeout as delay} from "node:timers/promises";
 
 const edge = process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 async function click(c, selector) {
@@ -137,3 +138,80 @@ test("denied report reads show no report and never silently use the offline copy
     await Promise.allSettled(pending); await c.send("Fetch.disable");
   } finally {await browser.close();}
 }));
+
+test("preview downloads actual Markdown and CSV files from the service with the same report identity", () => withService(async base => {
+  const browser = await launchBrowser(edge), c = browser.cdp, requests = [];
+  const directory = resolve(`.tmp/report-downloads-${Date.now()}`);
+  await mkdir(directory,{recursive:true});
+  c.onEvent(m => {if(m.method === "Network.requestWillBeSent") requests.push(m.params.request);});
+  try {
+    await c.send("Browser.setDownloadBehavior",{behavior:"allow",downloadPath:directory});
+    await c.send("Network.enable");await c.send("Page.enable");
+    await c.send("Page.navigate",{url:base+"/prototype-fishing.html"});
+    await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
+    await click(c,"#workbenchToggle");await click(c,"#monthlyOpen");
+    await waitFor(c,"document.getElementById('monthlyResult').dataset.state==='ready'");
+    await click(c,"#monthlyReportOpen");
+    await waitFor(c,"document.getElementById('monthReport').dataset.state==='ready'");
+    const reportId = await c.evaluate("document.getElementById('monthReport').dataset.reportId");
+    for(const [button,extension] of [["#monthReportMarkdown",".md"],["#monthReportCsv",".csv"]]) {
+      await click(c,button);
+      let file;
+      for(let n=0;n<200&&!file;n++){file=(await readdir(directory)).find(name=>name.endsWith(extension));if(!file)await delay(50);}
+      assert.ok(file,"Actual downloaded "+extension);
+      assert.ok(file.includes(reportId.slice(7,19)));
+      const contents = await readFile(join(directory,file),"utf8");
+      assert.match(contents,/真实研究资格未通过/);
+      if(extension === ".csv") {assert.ok(contents.includes(reportId));assert.match(contents,/"2024-02-02","partial_support",0\.0,2\.0,2\.0/);assert.match(contents,/"2024-02-03","no_records","","",""/);}
+      else {assert.match(contents,/# Ocean 月度活动报告/);assert.match(contents,/40.*7/s);}
+    }
+    assert.equal(requests.some(r=>r.method==="POST"),false);
+    assert.equal(requests.filter(r=>/\/report\/(markdown|csv)\?/.test(r.url)).length,2);
+  } finally {await browser.close();}
+}));
+
+test("denied downloads remove old report actions and do not use an offline file", () => withService(async base => {
+  const browser = await launchBrowser(edge), c = browser.cdp, pending = [];
+  c.onEvent(m => {if(m.method === "Fetch.requestPaused") pending.push(c.send("Fetch.fulfillRequest",{requestId:m.params.requestId,responseCode:403,responseHeaders:[{name:"Content-Type",value:"application/json"}],body:Buffer.from('{"detail":"restricted"}').toString("base64")}));});
+  try {
+    await c.send("Page.enable");await c.send("Page.navigate",{url:base+"/prototype-fishing.html"});
+    await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
+    await click(c,"#workbenchToggle");await click(c,"#monthlyOpen");
+    await waitFor(c,"document.getElementById('monthlyResult').dataset.state==='ready'");
+    await click(c,"#monthlyReportOpen");
+    await waitFor(c,"document.getElementById('monthReport').dataset.state==='ready'");
+    await c.send("Fetch.enable",{patterns:[{urlPattern:"*/report/csv?*",requestStage:"Request"}]});
+    await click(c,"#monthReportCsv");
+    await waitFor(c,"document.getElementById('monthReportStatus').textContent.includes('不允许下载')");
+    assert.equal(await c.evaluate("document.getElementById('monthReportCsv')"),null);
+    assert.equal(await c.evaluate("document.getElementById('evidencePanel').hidden"),true);
+    await Promise.allSettled(pending);await c.send("Fetch.disable");
+  } finally {await browser.close();}
+}));
+
+test("offline report downloads its shipped file without service requests", async () => {
+  const browser = await launchBrowser(edge), c = browser.cdp, requests = [];
+  const directory = resolve(`.tmp/report-offline-downloads-${Date.now()}`);
+  await mkdir(directory,{recursive:true});
+  c.onEvent(m => {if(m.method === "Network.requestWillBeSent") requests.push(m.params.request);});
+  try {
+    await c.send("Browser.setDownloadBehavior",{behavior:"allow",downloadPath:directory});
+    await c.send("Network.enable");await c.send("Page.enable");
+    await c.send("Emulation.setDeviceMetricsOverride",{width:390,height:900,deviceScaleFactor:1,mobile:true});
+    await c.send("Page.navigate",{url:pathToFileURL(resolve("frontend/prototype/prototype-fishing.html")).href});
+    await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
+    await click(c,"#workbenchToggle");await click(c,"#monthlyOpen");
+    await waitFor(c,"document.getElementById('monthlyResult').dataset.state==='ready'");
+    await click(c,"#monthlyReportOpen");
+    await waitFor(c,"document.getElementById('monthReport').dataset.state==='ready'");
+    await click(c,"#monthReportMarkdown");
+    let file;
+    for(let n=0;n<200&&!file;n++){file=(await readdir(directory)).find(name=>name.endsWith(".md"));if(!file)await delay(50);}
+    assert.ok(file);
+    assert.match(await readFile(join(directory,file),"utf8"),/合成样例；真实研究资格未通过/);
+    assert.equal(requests.some(r=>/^https?:/.test(r.url)),false);
+    assert.equal(await c.evaluate("document.documentElement.scrollWidth<=innerWidth"),true);
+    const screenshot = await c.send("Page.captureScreenshot",{format:"png"});
+    await writeFile("docs/reports/screenshots/ocean-known-month-report-download-390.png",Buffer.from(screenshot.data,"base64"));
+  } finally {await browser.close();}
+});

@@ -9,6 +9,8 @@
   const status = document.createElement("p"); status.id = "monthReportStatus"; status.setAttribute("role", "status");
   $("monthlyResult").append(status);
   let selection = null, report = null, generation = 0, controller = null;
+  const downloads = new Set();
+  let downloadBusy = false;
   let draft = null;
   const idPattern = /^sha256:[0-9a-f]{64}$/;
 
@@ -27,6 +29,8 @@
   }
   function invalidate(value = null) {
     generation++; controller?.abort(); selection = value; report = null;
+    for(const url of downloads) URL.revokeObjectURL(url);
+    downloads.clear(); downloadBusy = false;
     if(button.getAttribute("aria-expanded") === "true") OceanEvidence.close(false);
     content.replaceChildren(); content.dataset.state = "empty"; delete content.dataset.reportId;
     button.disabled = !selection; status.textContent = "";
@@ -68,7 +72,50 @@
     text(content, "p", report.interpretation.boundary);
     const identity = text(content, "details", ""); text(identity,"summary","成果与报告身份");
     text(identity,"p",`${r.result_id} / ${r.projection_id} / ${report.report_id} / ${report.report_version}`);
+    const actions = document.createElement("div"); actions.className = "monthly-actions";
+    for(const [format,label,id] of [["markdown","下载 Markdown 报告","monthReportMarkdown"],["csv","下载逐日汇总 CSV","monthReportCsv"]]) {
+      const action = text(actions,"button",label,id); action.onclick = () => download(format);
+    }
+    content.append(actions);
+    text(content,"p","文件只含本合成成果的允许聚合；未知日留空，真实研究与 PDF 导出尚未验收。","monthReportDownloadStatus");
     content.dataset.state = "ready"; content.dataset.reportId = report.report_id;
+  }
+  async function download(format) {
+    if(!report || !selection || downloadBusy) return;
+    if(!sameSource(selection.from,source())) {invalidate();status.textContent = "阅读来源已改变，请重新读取月结果。";return;}
+    const token = generation, frozen = report, from = selection.from;
+    downloadBusy = true;
+    $("monthReportMarkdown").disabled = true; $("monthReportCsv").disabled = true;
+    $("monthReportDownloadStatus").textContent = "正在核对当前公开权限与报告版本…";
+    controller?.abort();controller = new AbortController();
+    const activeController = controller, timer = setTimeout(() => activeController.abort(),10000);
+    try {
+      const r = frozen.result;
+      let data;
+      if(from.kind === "server") data = await OceanPublicRead.text(`${from.base}/query/monthly-analysis/published/${encodeURIComponent(r.result_id)}/report/${format}?projection_id=${encodeURIComponent(r.projection_id)}&report_id=${encodeURIComponent(frozen.report_id)}`,activeController.signal);
+      else {
+        if(window.OceanKnownMonthReports?.schema_version !== "ocean-offline-month-reports/v1") throw Error("contract");
+        data = window.OceanKnownMonthReports.exports?.[frozen.report_id]?.[format];
+        if(typeof data !== "string" || new TextEncoder().encode(data).length > 1048576) throw Error("contract");
+      }
+      if(token !== generation) return;
+      if(!sameSource(from,source())) throw Error("source_changed");
+      const extension = format === "markdown" ? "md" : "csv";
+      const url = URL.createObjectURL(new Blob([data],{type:format === "markdown" ? "text/markdown;charset=utf-8" : "text/csv;charset=utf-8"}));
+      downloads.add(url);
+      const link = document.createElement("a");link.href = url;
+      link.download = `Ocean-month-${r.parameters.month}-${r.result_id.slice(7,19)}-${frozen.report_id.slice(7,19)}.${extension}`;
+      document.body.append(link);link.click();link.remove();
+      setTimeout(() => {URL.revokeObjectURL(url);downloads.delete(url);},1000);
+      $("monthReportDownloadStatus").textContent = "文件已交给浏览器下载；内容对应当前报告原条件。";
+    } catch(error) {
+      if(token !== generation) return;
+      invalidate(selection);
+      status.textContent = ["http_401","http_403"].includes(error.message) ? "此成果当前不允许下载，请重新读取月结果。" : error.message === "http_409" ? "成果或报告版本已变化，请重新读取月结果。" : "下载未完成，请重新预览报告后重试。";
+    } finally {
+      clearTimeout(timer);
+      if(token === generation) {downloadBusy = false;$("monthReportMarkdown").disabled = false;$("monthReportCsv").disabled = false;}
+    }
   }
   async function open() {
     if(!selection) return;

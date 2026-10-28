@@ -12,7 +12,7 @@ from pydantic import Field, model_validator
 
 from .analysis_support import content_id, known_period_summary, read_controlled_input
 from .comparison_models import KnownMetrics, SnapshotPack, SnapshotSource
-from .known_month_report import build_known_month_report
+from .known_month_report import build_known_month_report, render_report_file
 from .monthly_models import ClosedModel, MonthlyRequest, NonNegative
 
 PUBLISHED_PATH = Path(__file__).parent / "examples/regional-known-snapshots.json"
@@ -240,5 +240,28 @@ def create_published_router(path=PUBLISHED_PATH):
                 headers={"Cache-Control": "no-store"},
             )
         return build_known_month_report(value)
+
+    @router.get("/{result_id}/report/{representation}")
+    def download_report(
+        result_id: str,
+        representation: Literal["markdown", "csv"],
+        response: Response,
+        projection_id: Annotated[str, Query(pattern=r"^sha256:[0-9a-f]{64}$")],
+        report_id: Annotated[str, Query(pattern=r"^sha256:[0-9a-f]{64}$")],
+    ):
+        value = report(result_id, response, projection_id)
+        if value["report_id"] != report_id:
+            raise HTTPException(
+                409, "Report changed; read the preview again",
+                headers={"Cache-Control": "no-store"},
+            )
+        result = value["result"]
+        extension = "md" if representation == "markdown" else "csv"
+        filename = f"Ocean-month-{result['parameters']['month']}-{result_id[7:19]}-{report_id[7:19]}.{extension}"
+        return Response(
+            render_report_file(value, representation),
+            media_type="text/markdown" if representation == "markdown" else "text/csv",
+            headers={"Cache-Control": "no-store", "Content-Disposition": f'attachment; filename="{filename}"'},
+        )
 
     return router
