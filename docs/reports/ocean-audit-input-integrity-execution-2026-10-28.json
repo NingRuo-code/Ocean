@@ -1,0 +1,123 @@
+{
+  "schema": "ocean-audit-input-integrity-execution/v1",
+  "date": "2026-10-28",
+  "issues": [
+    36,
+    37,
+    38
+  ],
+  "base_commit": "d168238047fedaf44a5a3e924203ec0d39cf0881",
+  "reviewed_commit": "e68914e3422976c378dc39895d871ba20f172cfc",
+  "profile": "existing committed display exports and declared local source locations; no server or download",
+  "production_contact": false,
+  "raw_downloaded": false,
+  "research_ready": false,
+  "public_release_approved": false,
+  "range": [
+    "2024-08-01",
+    "2024-08-31"
+  ],
+  "source_snapshot_id": "sha256:653f86c7d75726ec9e5b3b677784d15b92ec765d54735197317bba077d5f1755",
+  "daily_snapshot_id": "sha256:60cb06e9c4319173d9243126bb15ae2f106f2c5accd95f84642bf045a95d73b8",
+  "frozen_replays_equal": true,
+  "runtime": {
+    "python": "3.14.0",
+    "numpy": "2.3.5",
+    "xarray": "2026.7.0"
+  },
+  "local_full_report_sha256": "b16386513e29aa3c039370d4406f0d75d7fe8aa56dc56b479323d43fb57bebec",
+  "code_sha256": {
+    "tools/audit_daily_sources.py": "d8776988f780e9c3f4ebfcde8540eeabc0f2238332275cf7d273f5eba5e69235",
+    "tools/lib/source-audit.mjs": "42f64599603a4f6bf410ca768b13202a4fc4b858b361e13e4e094d3c8a9ecc02",
+    "tools/lib/audit-json.mjs": "cc0ad755b3bc0f51e595fd3b52279e44c22b847e9fcd650905d4199a9625a753"
+  },
+  "sources": [
+    {
+      "id": "front-original",
+      "kind": "front",
+      "role": "analysis_source",
+      "days": 31,
+      "states": {
+        "missing": 31
+      },
+      "errors": []
+    },
+    {
+      "id": "front-display",
+      "kind": "front",
+      "role": "display",
+      "days": 31,
+      "states": {
+        "parsed": 31
+      },
+      "errors": []
+    },
+    {
+      "id": "sst-original",
+      "kind": "sst",
+      "role": "analysis_source",
+      "days": 31,
+      "states": {
+        "missing": 31
+      },
+      "errors": []
+    },
+    {
+      "id": "sst-display",
+      "kind": "sst",
+      "role": "display",
+      "days": 31,
+      "states": {
+        "parsed": 31
+      },
+      "errors": []
+    },
+    {
+      "id": "effort-original",
+      "kind": "activity",
+      "role": "analysis_source",
+      "days": 31,
+      "states": {
+        "missing": 31
+      },
+      "errors": []
+    },
+    {
+      "id": "effort-display",
+      "kind": "activity",
+      "role": "display",
+      "days": 31,
+      "states": {
+        "missing": 31
+      },
+      "errors": []
+    }
+  ],
+  "lineage_states": {
+    "not_verified": 31
+  },
+  "verification": {
+    "python_daily": {
+      "passed": 39,
+      "local_log_sha256": "57a1b978b1541ce03ed43eff7f76b355394e181a2d8cd9532e3f3ec28019b2bf"
+    },
+    "node_source_targeted": {
+      "passed": 6,
+      "local_log_sha256": "a24581673e34f43eff0eee75c630579312044471e68a8d2a499e94cdeb9eec48"
+    },
+    "tools_full": {
+      "passed": 145,
+      "local_log_sha256": "f5fa404b01004d6bac453ea9ffd034649896f55d924b11fe2763378d9c3506f3"
+    },
+    "data": {
+      "passed": 922,
+      "local_log_sha256": "f3cdace6a1bdba27962689a4819d7a2046f37906ac6928f5404cdc97d61ffa79"
+    }
+  },
+  "review": {
+    "code_commit": "e68914e3422976c378dc39895d871ba20f172cfc",
+    "standards_unresolved": 0,
+    "spec_unresolved": 0,
+    "initial_standards_findings_fixed": 1
+  }
+}

@@ -1,6 +1,8 @@
 # Ocean 项目规划入口
 
-最近整理：2026-10-25。
+最近整理：2026-10-28。
+
+2026-10-28接续：P0审计入口修复重复字段/CSV列及注释展示赋值误判，整月展示复跑仍为31天可读，真实原档在登记位置仍缺。[实施及实际资料边界](../reports/ocean-audit-input-integrity-implementation-2026-10-28.md)。#37/#38保持开放，合并以GitHub为准；旧服深度操作继续按换服安排暂缓。
 
 当前主分支已包含PR #22（`44dd1cb`）与P0逐日审计PR #280（`77f323c`）。后续资料身份核对与真实环境缺口见[环境比较实施记录](../reports/ocean-environment-lineage-implementation-2026-10-25.md)；前批逐日审计见[实施记录](../reports/ocean-p0-daily-audit-implementation-2026-10-25.md)。合入仓库与部署生产分别记证。
 
