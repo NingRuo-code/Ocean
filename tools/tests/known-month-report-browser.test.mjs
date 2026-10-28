@@ -154,13 +154,20 @@ test("preview downloads actual Markdown and CSV files from the service with the 
     await click(c,"#monthlyReportOpen");
     await waitFor(c,"document.getElementById('monthReport').dataset.state==='ready'");
     const reportId = await c.evaluate("document.getElementById('monthReport').dataset.reportId");
+    const resultId = await c.evaluate("document.getElementById('monthlyResult').dataset.resultId");
+    const projectionId = await c.evaluate("document.getElementById('monthlyResult').dataset.projectionId");
     for(const [button,extension] of [["#monthReportMarkdown",".md"],["#monthReportCsv",".csv"]]) {
       await click(c,button);
       let file;
       for(let n=0;n<200&&!file;n++){file=(await readdir(directory)).find(name=>name.endsWith(extension));if(!file)await delay(50);}
       assert.ok(file,"Actual downloaded "+extension);
       assert.ok(file.includes(reportId.slice(7,19)));
-      const contents = await readFile(join(directory,file),"utf8");
+      const saved = await readFile(join(directory,file));
+      const representation = extension === ".md" ? "markdown" : "csv";
+      const response = await fetch(`${base}/api/query/monthly-analysis/published/${encodeURIComponent(resultId)}/report/${representation}?projection_id=${encodeURIComponent(projectionId)}&report_id=${encodeURIComponent(reportId)}`);
+      assert.equal(response.status,200);
+      assert.deepEqual(saved,Buffer.from(await response.arrayBuffer()),"Saved file bytes match the same service report");
+      const contents = saved.toString("utf8");
       assert.match(contents,/真实研究资格未通过/);
       if(extension === ".csv") {assert.ok(contents.includes(reportId));assert.match(contents,/"2024-02-02","partial_support",0\.0,2\.0,2\.0/);assert.match(contents,/"2024-02-03","no_records","","",""/);}
       else {assert.match(contents,/# Ocean 月度活动报告/);assert.match(contents,/40.*7/s);}
