@@ -46,9 +46,9 @@ def report_metadata(report):
     ]
 
 
-def render_report_file(report, representation):
+def render_report_file(report, representation, *, metadata_prefix=()):
     """Render only the same whitelisted aggregate already used by the preview."""
-    metadata = report_metadata(report)
+    metadata = [*metadata_prefix, *report_metadata(report)]
     daily = report["result"]["daily"]
     header = ["date", "state", "fishing_hours", "effective_area_km2", "area_time_km2_days"]
     rows = [

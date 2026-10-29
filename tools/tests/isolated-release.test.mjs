@@ -51,6 +51,7 @@ test('fixed release starts original API from an independently installed no-Git p
   assert.equal(status.layers.published_read.state,'readable_example');assert.equal(status.layers.map_index.front.registered_days,62);
   assert.equal((await fetch(base+'/api/query/monthly-analysis/cases')).status,403);
   assert.equal((await fetch(base+'/api/query/monthly-analysis/cases',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).status,403);
+  for(const format of ['markdown','csv','bundle'])assert.equal((await fetch(base+'/api/query/monthly-analysis/cases/'+'a'.repeat(32)+'/versions/1/exports/'+format+'?version_id=sha256%3A'+'a'.repeat(64)+'&report_id=sha256%3A'+'a'.repeat(64))).status,403);
   const monthCatalog=await(await fetch(base+'/api/query/monthly-analysis/published')).json();
   const month=monthCatalog.results[0],monthPath=base+'/api/query/monthly-analysis/published/'+encodeURIComponent(month.result_id);
   const reportResponse=await fetch(monthPath+'/report?projection_id='+encodeURIComponent(month.projection_id));

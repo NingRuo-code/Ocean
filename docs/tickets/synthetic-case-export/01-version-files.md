@@ -1,0 +1,9 @@
+# E01：下载本人所读案例版本的报告及逐日表
+
+执行票[#315](https://github.com/NingRuo-code/Ocean/issues/315)，归属[补充规格#314](../../specs/ocean-synthetic-case-export-software-spec-2026-10-29.md)，承接已完成#312；原真实#127/#130不结项或改边。
+
+从“我的合成案例”下载明确已保存版本的Markdown/CSV，包含人工笔记与冻结科学证据并清楚区分。每次服务端本人校验、版本/报告身份核对；旧版、未知/零、单位/来源与研究边界随文件保留。实际浏览器落盘逐字节与服务核对，普通下载失败保留草稿，退出不触发晚下载；401/403按原安全锁定合同清除令牌、私有显示及未保存草稿并明确提示。已保存案例始终不改。
+
+状态：软件实现、定向验收及双轴复核完成，0e405a8已推送，GitHub #315已关闭后才领取#316。导出API4项及原报告/月兼容共37项、本人下载6项和前批案例12项通过；Standards/Spec未解决项均0。整批最终回归在E02之后记证。
+
+[整批最终验证与边界](../../reports/ocean-synthetic-case-export-implementation-2026-10-29.md)，[PR #317](https://github.com/NingRuo-code/Ocean/pull/317)。
