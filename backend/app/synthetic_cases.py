@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import Field, field_validator
 
 from .analysis_support import content_id
@@ -48,6 +48,12 @@ class CaseCreate(CaseMetadata):
     intent_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")]
 
 
+class CaseUpdate(CaseMetadata):
+    base_version: Annotated[int, Field(strict=True, ge=1, le=16)]
+    base_version_id: Identity
+    intent_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")]
+
+
 def create_case_router(settings, published_path):
     router = APIRouter(dependencies=[Depends(owner_requirement(settings))])
     store = CaseStore(settings.case_store_path)
@@ -57,7 +63,7 @@ def create_case_router(settings, published_path):
             return work()
         except CaseStoreError as error:
             code = str(error)
-            status = 404 if code == "not_found" else 409 if code in {"intent_conflict", "capacity", "version_conflict"} else 503
+            status = 404 if code == "not_found" else 409 if code in {"intent_conflict", "capacity", "version_conflict", "no_changes"} else 503
             raise HTTPException(status, "Case " + (code if status != 503 else "store unavailable"), headers={"Cache-Control": "no-store"}) from None
 
     @router.post("")
@@ -74,13 +80,25 @@ def create_case_router(settings, published_path):
         return guarded(lambda: store.create(request.intent_id, fingerprint, request.model_dump(include={"title", "tags", "note"}), report))
 
     @router.get("")
-    def catalog(response: Response):
+    def catalog(response: Response, q: Annotated[str, Query(max_length=120)] = ""):
         response.headers["Cache-Control"] = "no-store"
-        return {"schema_version": "ocean-synthetic-case-catalog/v1", "cases": guarded(store.catalog)}
+        values = guarded(lambda: store.catalog(q))
+        return {"schema_version": "ocean-synthetic-case-catalog/v1", "cases": values, "total": len(values), "query": q, "complete": True}
+
+    @router.put("/{case_id}")
+    def edit(case_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], request: CaseUpdate, response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        fingerprint = content_id({"action": "update", "case_id": case_id, **request.model_dump(exclude={"intent_id"})})
+        return guarded(lambda: store.update(case_id, request.base_version, request.base_version_id, request.intent_id, fingerprint, request.model_dump(include={"title", "tags", "note"})))
+
+    @router.get("/{case_id}/versions")
+    def versions(case_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        return {"schema_version": "ocean-synthetic-case-versions/v1", "case_id": case_id, "versions": guarded(lambda: store.versions(case_id))}
 
     @router.get("/{case_id}")
-    def read(case_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response):
+    def read(case_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response, version: Annotated[int | None, Query(ge=1, le=16)] = None):
         response.headers["Cache-Control"] = "no-store"
-        return guarded(lambda: store.read(case_id))
+        return guarded(lambda: store.read(case_id, version))
 
     return router

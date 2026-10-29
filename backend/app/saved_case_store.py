@@ -97,6 +97,11 @@ class CaseStore:
         with self.connection() as db:
             return self.replay(db, key, fingerprint)
 
+    def new_version(self, identity, number, metadata, report):
+        value = {"schema_version": "ocean-synthetic-case-version/v1", "case_id": identity, "version": number, "created_at": datetime.now(UTC).isoformat(), "metadata": metadata, "report": report, "source_state": "saved_CC0_synthetic_snapshot; current_source_not_rechecked"}
+        value["version_id"] = content_id(value)
+        return value
+
     def create(self, key, fingerprint, metadata, report):
         with self.connection(write=True) as db:
             previous = self.replay(db, key, fingerprint)
@@ -105,22 +110,51 @@ class CaseStore:
             if db.execute("SELECT count(*) FROM cases").fetchone()[0] >= 64:
                 raise CaseStoreError("capacity")
             identity, now = uuid4().hex, datetime.now(UTC).isoformat()
-            value = {"schema_version": "ocean-synthetic-case-version/v1", "case_id": identity, "version": 1, "created_at": now, "metadata": metadata, "report": report, "source_state": "saved_CC0_synthetic_snapshot; current_source_not_rechecked"}
-            value["version_id"] = content_id(value)
+            value = self.new_version(identity, 1, metadata, report)
             db.execute("INSERT INTO cases VALUES(?,?,1)", (identity, now))
             db.execute("INSERT INTO versions VALUES(?,1,?)", (identity, json.dumps(value)))
             db.execute("INSERT INTO intents VALUES(?,?,?,1)", (key, fingerprint, identity))
+            return value
+
+    def update(self, identity, base_version, base_id, key, fingerprint, metadata):
+        if self.path is not None and not self.path.exists():
+            raise CaseStoreError("not_found")
+        with self.connection(write=True) as db:
+            previous = self.replay(db, key, fingerprint)
+            if previous:
+                return previous
+            old = self.read_version(db, identity)
+            if old["version"] != base_version or old["version_id"] != base_id:
+                raise CaseStoreError("version_conflict")
+            if old["metadata"] == metadata:
+                raise CaseStoreError("no_changes")
+            number = old["version"] + 1
+            if number > 16:
+                raise CaseStoreError("capacity")
+            value = self.new_version(identity, number, metadata, old["report"])
+            db.execute("INSERT INTO versions VALUES(?,?,?)", (identity, number, json.dumps(value)))
+            db.execute("INSERT INTO intents VALUES(?,?,?,?)", (key, fingerprint, identity, number))
+            db.execute("UPDATE cases SET head=? WHERE id=?", (number, identity))
             return value
 
     def read(self, identity, version=None):
         with self.connection() as db:
             return self.read_version(db, identity, version)
 
-    def catalog(self):
+    def versions(self, identity):
+        with self.connection() as db:
+            self.read_version(db, identity)
+            numbers = db.execute("SELECT number FROM versions WHERE case_id=? ORDER BY number DESC", (identity,)).fetchall()
+            if len(numbers) > 16:
+                raise CaseStoreError("unavailable")
+            return [{k: v for k, v in self.read_version(db, identity, row[0]).items() if k in {"version", "version_id", "created_at", "metadata"}} for row in numbers]
+
+    def catalog(self, query=""):
         with self.connection() as db:
             if db is None:
                 return []
             rows = db.execute("SELECT id FROM cases ORDER BY created_at DESC,id").fetchall()
             if len(rows) > 64:
                 raise CaseStoreError("unavailable")
-            return [{k: v for k, v in self.read_version(db, row[0]).items() if k in {"case_id", "version", "version_id", "created_at", "metadata"}} for row in rows]
+            results = [{k: v for k, v in self.read_version(db, row[0]).items() if k in {"case_id", "version", "version_id", "created_at", "metadata"}} for row in rows]
+            return [r for r in results if query.strip().casefold() in (r["metadata"]["title"] + " " + " ".join(r["metadata"]["tags"])).casefold()]

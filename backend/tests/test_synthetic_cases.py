@@ -109,3 +109,88 @@ def test_failed_saves_never_publish_cases_or_replace_unknown_material(tmp_path, 
         assert db.read_bytes() == before
     else:
         assert not db.exists()
+
+
+def test_notes_update_is_a_new_immutable_version_with_conflict_and_search(tmp_path):
+    client, _ = case_client(tmp_path)
+    first = client.post(BASE + "/cases", json=save_request(client), headers=AUTH).json()
+    url = BASE + "/cases/" + first["case_id"]
+    update = {"title": "更新后的人工标题", "tags": ["海域甲"], "note": "人工复核，科学值未修改", "base_version": 1, "base_version_id": first["version_id"], "intent_id": "b" * 32}
+    response = client.put(url, json=update, headers=AUTH)
+    assert response.status_code == 200
+    second = response.json()
+    assert second["version"] == 2 and second["case_id"] == first["case_id"]
+    assert second["version_id"] != first["version_id"]
+    assert second["report"] == first["report"]
+    assert client.put(url, json=update, headers=AUTH).json() == second
+    assert client.get(url, params={"version": 1}, headers=AUTH).json() == first
+    conflict = client.put(url, json={**update, "intent_id": "c" * 32, "note": "陈旧草稿"}, headers=AUTH)
+    assert conflict.status_code == 409
+    assert client.get(url, headers=AUTH).json() == second
+    assert len(client.get(url + "/versions", headers=AUTH).json()["versions"]) == 2
+    assert len(client.get(BASE + "/cases", params={"q": "海域甲"}, headers=AUTH).json()["cases"]) == 1
+    assert client.get(BASE + "/cases", params={"q": "不匹配"}, headers=AUTH).json()["cases"] == []
+
+
+def test_concurrent_different_edits_cannot_overwrite_or_mutate_science(tmp_path):
+    client, _ = case_client(tmp_path)
+    first = client.post(BASE + "/cases", json=save_request(client), headers=AUTH).json()
+    url = BASE + "/cases/" + first["case_id"]
+    base = {**first["metadata"], "base_version": 1, "base_version_id": first["version_id"]}
+    edits = [{**base, "note": str(i), "intent_id": f"{i+20:032x}"} for i in range(4)]
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        responses = list(pool.map(lambda body: client.put(url, json=body, headers=AUTH), edits))
+    assert sorted(r.status_code for r in responses) == [200, 409, 409, 409]
+    newest = client.get(url, headers=AUTH).json()
+    assert newest["version"] == 2 and newest["report"] == first["report"]
+    assert client.get(url, params={"version": 1}, headers=AUTH).json() == first
+    assert client.put(url, json={**edits[0], "report": {}}, headers=AUTH).status_code == 422
+    assert client.get(url + "/versions").status_code == 401
+    assert client.put(url, json=edits[0]).status_code == 401
+
+
+def test_version_limit_and_noop_leave_all_old_versions_readable(tmp_path):
+    client, _ = case_client(tmp_path)
+    current = client.post(BASE + "/cases", json=save_request(client), headers=AUTH).json()
+    url = BASE + "/cases/" + current["case_id"]
+    for number in range(2, 17):
+        request = {**current["metadata"], "note": f"笔记{number}", "base_version": current["version"], "base_version_id": current["version_id"], "intent_id": f"{number+40:032x}"}
+        response = client.put(url, json=request, headers=AUTH)
+        assert response.status_code == 200
+        current = response.json()
+    extra = {**current["metadata"], "note": "第17版", "base_version": 16, "base_version_id": current["version_id"], "intent_id": "f" * 32}
+    assert client.put(url, json=extra, headers=AUTH).status_code == 409
+    assert client.get(url, headers=AUTH).json() == current
+    unchanged = {**current["metadata"], "base_version": 16, "base_version_id": current["version_id"], "intent_id": "d" * 32}
+    assert client.put(url, json=unchanged, headers=AUTH).json()["detail"] == "Case no_changes"
+    assert len(client.get(url + "/versions", headers=AUTH).json()["versions"]) == 16
+    assert client.get(url, params={"version": 1}, headers=AUTH).json()["version"] == 1
+
+
+def test_case_limit_is_explicit_and_query_is_complete_and_literal(tmp_path):
+    client, _ = case_client(tmp_path)
+    initial = save_request(client)
+    for i in range(64):
+        request = {**initial, "intent_id": f"{i+100:032x}", "title": f"同名案例 {i}", "tags": ["sea_%"]}
+        assert client.post(BASE + "/cases", json=request, headers=AUTH).status_code == 200
+    assert client.post(BASE + "/cases", json={**initial, "intent_id": "e" * 32}, headers=AUTH).status_code == 409
+    data = client.get(BASE + "/cases", params={"q": "sea_%"}, headers=AUTH).json()
+    assert data["total"] == len(data["cases"]) == 64 and data["complete"] is True
+    assert client.get(BASE + "/cases", params={"q": "' OR 1=1 --"}, headers=AUTH).json()["total"] == 0
+
+
+def test_storage_lock_failure_preserves_prior_success_and_old_versions(tmp_path):
+    import sqlite3
+    client, _ = case_client(tmp_path)
+    first = client.post(BASE + "/cases", json=save_request(client), headers=AUTH).json()
+    url = BASE + "/cases/" + first["case_id"]
+    update = {**first["metadata"], "note": "锁期间不能保存", "base_version": 1, "base_version_id": first["version_id"], "intent_id": "c" * 32}
+    with sqlite3.connect(tmp_path / "cases.sqlite3", isolation_level=None) as lock:
+        lock.execute("BEGIN EXCLUSIVE")
+        try:
+            response = client.put(url, json=update, headers=AUTH)
+            assert response.status_code == 503 and str(tmp_path) not in response.text
+        finally:
+            lock.rollback()
+    assert client.get(url, headers=AUTH).json() == first
+    assert len(client.get(url + "/versions", headers=AUTH).json()["versions"]) == 1

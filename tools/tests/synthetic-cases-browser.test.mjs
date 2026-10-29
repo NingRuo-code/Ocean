@@ -100,3 +100,67 @@ for(const action of ["offline","close"]){
     }finally{await browser.close();}
   },{caseOwnerToken:owner,enableCaseStore:true}));
 }
+
+test("owner edits notes as a new immutable version, searches tags and deliberately reopens version one",()=>withService(async base=>{
+  const browser=await launchBrowser(edge),c=browser.cdp;
+  try{
+    await openReport(c,base);await click(c,"#reportSaveCase");await type(c,"caseOwnerToken",owner);await click(c,"#caseSave");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.state==='saved'");
+    const firstId=await c.evaluate("document.getElementById('caseArchive').dataset.caseId");
+    await click(c,"#caseEditFields summary");await type(c,"caseEditNote","人工笔记第二版");await type(c,"caseEditTags","海域甲");
+    await click(c,"#caseEditSave");await waitFor(c,"document.getElementById('caseArchive').dataset.version==='2'");
+    assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/人工笔记第二版/);
+    assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/40.*7.*2.*29/s);
+    await type(c,"caseSearch","海域甲");await click(c,"#caseLoad");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.state==='listed'");
+    assert.equal(await c.evaluate("document.querySelectorAll('#caseItems button').length"),1);
+    await click(c,"#caseItems button");await waitFor(c,"document.getElementById('caseVersion')?.options.length===2&&!document.getElementById('caseVersion').disabled");
+    await c.evaluate("document.getElementById('caseVersion').focus()");
+    await c.send("Input.dispatchKeyEvent",{type:"keyDown",key:"ArrowDown",code:"ArrowDown"});
+    await c.send("Input.dispatchKeyEvent",{type:"keyUp",key:"ArrowDown",code:"ArrowDown"});
+    await c.send("Input.dispatchKeyEvent",{type:"keyDown",key:"Tab",code:"Tab"});
+    await waitFor(c,"document.getElementById('caseArchive').dataset.version==='1'");
+    assert.equal(await c.evaluate("document.getElementById('caseArchive').dataset.caseId"),firstId);
+    assert.equal(await c.evaluate("document.getElementById('caseOriginal').textContent.includes('人工笔记第二版')"),false);
+  }finally{await browser.close();}
+},{caseOwnerToken:owner,enableCaseStore:true}));
+
+test("a concurrent newer version preserves the rejected browser draft until explicit latest reading",()=>withService(async base=>{
+  const browser=await launchBrowser(edge),c=browser.cdp;
+  try{
+    await openReport(c,base);await click(c,"#reportSaveCase");await type(c,"caseOwnerToken",owner);await click(c,"#caseSave");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.state==='saved'");
+    const identity=await c.evaluate("document.getElementById('caseArchive').dataset.caseId"),url=base+"/api/query/monthly-analysis/cases/"+identity;
+    const first=await(await fetch(url,{headers:{Authorization:"Bearer "+owner}})).json();
+    const response=await fetch(url,{method:"PUT",headers:{Authorization:"Bearer "+owner,"Content-Type":"application/json"},body:JSON.stringify({...first.metadata,note:"另一标签页已保存",base_version:1,base_version_id:first.version_id,intent_id:"d".repeat(32)})});
+    assert.equal(response.status,200);
+    await click(c,"#caseEditFields summary");await type(c,"caseEditNote","我尚未提交的草稿");await click(c,"#caseEditSave");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.state==='error'");
+    assert.equal(await c.evaluate("document.getElementById('caseEditNote').value"),"我尚未提交的草稿");
+    assert.equal(await c.evaluate("document.getElementById('caseArchive').dataset.version"),"1");
+    assert.match(await c.evaluate("document.getElementById('caseStatus').textContent"),/草稿未覆盖/);
+    await click(c,"#caseLatest");await waitFor(c,"document.getElementById('caseArchive').dataset.version==='2'");
+    assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/另一标签页已保存/);
+  }finally{await browser.close();}
+},{caseOwnerToken:owner,enableCaseStore:true}));
+
+test("a lost edit response replays the same version and never appends a duplicate",()=>withService(async base=>{
+  const browser=await launchBrowser(edge),c=browser.cdp,pending=[];let failed=false;
+  c.onEvent(m=>{if(m.method==="Fetch.requestPaused"){
+    const p=m.params;if(p.request.method==="PUT"&&!failed){failed=true;pending.push(c.send("Fetch.failRequest",{requestId:p.requestId,errorReason:"Failed"}));}
+    else pending.push(c.send("Fetch.continueRequest",{requestId:p.requestId}));
+  }});
+  try{
+    await openReport(c,base);await click(c,"#reportSaveCase");await type(c,"caseOwnerToken",owner);await click(c,"#caseSave");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.state==='saved'");
+    const identity=await c.evaluate("document.getElementById('caseArchive').dataset.caseId");
+    await click(c,"#caseEditFields summary");await type(c,"caseEditNote","重试不重复版本");
+    await c.send("Fetch.enable",{patterns:[{urlPattern:"*/monthly-analysis/cases/*",requestStage:"Response"}]});
+    await click(c,"#caseEditSave");await waitFor(c,"document.getElementById('caseArchive').dataset.state==='error'");
+    await c.send("Fetch.disable");await Promise.allSettled(pending);await click(c,"#caseEditSave");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.version==='2'&&!document.getElementById('caseVersion').disabled");
+    assert.equal(await c.evaluate("document.getElementById('caseEditSave').disabled"),true);
+    const versions=await(await fetch(base+"/api/query/monthly-analysis/cases/"+identity+"/versions",{headers:{Authorization:"Bearer "+owner}})).json();
+    assert.equal(versions.versions.length,2);
+  }finally{await browser.close();}
+},{caseOwnerToken:owner,enableCaseStore:true}));
