@@ -1,7 +1,10 @@
 """Actual owner API to frozen-version downloaded files, not research qualification."""
 
 import csv
+import hashlib
 import io
+import json
+import zipfile
 
 import pytest
 
@@ -37,7 +40,7 @@ def test_downloads_keep_selected_saved_version_notes_and_evidence_without_source
     assert client.get(BASE + "/cases/" + first["case_id"] + "/versions", headers=AUTH).json()["versions"][0]["version"] == 2
 
 
-@pytest.mark.parametrize("representation", ["markdown", "csv"])
+@pytest.mark.parametrize("representation", ["markdown", "csv", "bundle"])
 def test_download_authorization_identity_and_not_found_fail_without_files(tmp_path, representation):
     client, _ = case_client(tmp_path)
     first = client.post(BASE + "/cases", headers=AUTH, json=save_request(client)).json()
@@ -76,3 +79,34 @@ def test_export_escapes_human_markup_formulas_and_handles_maximum_utf8_fields(tm
         assert response.status_code == 200 and len(response.content) < 1_048_576
         assert "🚢" * 4000 in response.content.decode("utf-8-sig")
         assert large["metadata"]["title"] not in response.headers["content-disposition"]
+
+
+def test_owner_bundle_is_deterministic_and_its_manifest_checks_the_same_version_files(tmp_path):
+    client, published = case_client(tmp_path)
+    first = client.post(BASE + "/cases", headers=AUTH, json=save_request(client)).json()
+    published.unlink()
+    url = BASE + f"/cases/{first['case_id']}/versions/1/exports/"
+    params = {"version_id": first["version_id"], "report_id": first["report"]["report_id"]}
+    response = client.get(url + "bundle", headers=AUTH, params=params)
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/zip"
+    assert response.headers["cache-control"] == "no-store"
+    assert response.content == client.get(url + "bundle", headers=AUTH, params=params).content
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        assert archive.namelist() == ["report.md", "daily.csv", "manifest.json"]
+        assert archive.testzip() is None
+        manifest = json.loads(archive.read("manifest.json"))
+        assert manifest["schema_version"] == "ocean-synthetic-case-bundle/v1"
+        assert manifest["case_id"] == first["case_id"] and manifest["case_version"] == 1
+        assert manifest["case_version_id"] == first["version_id"]
+        assert manifest["report_id"] == first["report"]["report_id"]
+        assert manifest["purpose"] == "owner_local_download" and manifest["research_ready"] is False
+        assert set(manifest["omitted"]) == {"pdf", "png", "database", "original_sources", "task_protection", "production_backup"}
+        for item in manifest["files"]:
+            data = archive.read(item["name"])
+            assert item["bytes"] == len(data) and item["sha256"] == "sha256:" + hashlib.sha256(data).hexdigest()
+            representation = "markdown" if item["name"] == "report.md" else "csv"
+            assert data == client.get(url + representation, headers=AUTH, params=params).content
+        assert len(manifest["files"]) == 2
+    assert client.get(url + "bundle", params=params).status_code == 401
+    assert client.get(url + "bundle", headers=AUTH, params={**params, "version_id": "sha256:" + "0" * 64}).status_code == 409

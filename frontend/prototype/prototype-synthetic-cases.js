@@ -22,7 +22,7 @@
       const disabled=busy||from.kind!=="server"||!$("caseOwnerToken").value;
       $("caseEditSave").disabled=disabled||JSON.stringify(metadata("caseEdit"))===JSON.stringify(selected.metadata);
       for(const key of ["caseEditTitle","caseEditTags","caseEditNote","caseVersion","caseLatest"])$(key).disabled=disabled;
-      for(const key of ["caseExportMarkdown","caseExportCsv"])$(key).disabled=disabled;
+      for(const key of ["caseExportMarkdown","caseExportCsv","caseExportBundle"])$(key).disabled=disabled;
     }
   }
   function clearPrivate(clearToken=true){
@@ -70,7 +70,7 @@
     node(root,"p",value.report.interpretation.boundary);
     node(root,"p","仅证明保存时核验的合成快照；当前源未重查，不代表仍可用或能够原样复算。 "+value.created_at);
     const exports=node(root,"div","");exports.className="monthly-actions";
-    for(const [format,label,key] of [["markdown","下载Markdown报告","caseExportMarkdown"],["csv","下载逐日CSV","caseExportCsv"]]){
+    for(const [format,label,key] of [["markdown","下载Markdown报告","caseExportMarkdown"],["csv","下载逐日CSV","caseExportCsv"],["bundle","下载带清单成果包","caseExportBundle"]]){
       const action=node(exports,"button",label);action.id=key;action.onclick=()=>download(format);
     }
     node(root,"p","导出包含所读已保存版本的人工笔记和合成证据，不包含未保存草稿，也不会自动公开。");
@@ -103,11 +103,11 @@
     if(!frozen)return;
     return perform(async n=>{
       const query="?version_id="+encodeURIComponent(frozen.version_id)+"&report_id="+encodeURIComponent(frozen.report.report_id);
-      const data=await api("/"+frozen.case_id+"/versions/"+frozen.version+"/exports/"+format+query,{},OceanPublicRead.text);
+      const data=await api("/"+frozen.case_id+"/versions/"+frozen.version+"/exports/"+format+query,{},OceanPublicRead.bytes);
       if(n!==generation)return;
       if(!sameSource(from,source()))throw Error("source_changed");
-      const extension=format==="markdown"?"md":"csv";
-      const url=URL.createObjectURL(new Blob([data],{type:format==="markdown"?"text/markdown;charset=utf-8":"text/csv;charset=utf-8"}));downloads.add(url);
+      const [extension,media]={markdown:["md","text/markdown;charset=utf-8"],csv:["csv","text/csv;charset=utf-8"],bundle:["zip","application/zip"]}[format];
+      const url=URL.createObjectURL(new Blob([data],{type:media}));downloads.add(url);
       const link=document.createElement("a");link.href=url;link.download=`Ocean-case-${frozen.case_id}-v${frozen.version}-${frozen.version_id.slice(7,19)}.${extension}`;
       document.body.append(link);link.click();link.remove();
       setTimeout(()=>{URL.revokeObjectURL(url);downloads.delete(url);},1000);
