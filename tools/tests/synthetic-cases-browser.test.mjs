@@ -111,7 +111,7 @@ test("owner edits notes as a new immutable version, searches tags and deliberate
     await click(c,"#caseEditSave");await waitFor(c,"document.getElementById('caseArchive').dataset.version==='2'");
     assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/人工笔记第二版/);
     assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/40.*7.*2.*29/s);
-    await type(c,"caseSearch","海域甲");await click(c,"#caseLoad");
+    await type(c,"caseCatalogQuery","海域甲");await click(c,"#caseLoad");
     await waitFor(c,"document.getElementById('caseArchive').dataset.state==='listed'");
     assert.equal(await c.evaluate("document.querySelectorAll('#caseItems button').length"),1);
     await click(c,"#caseItems button");await waitFor(c,"document.getElementById('caseVersion')?.options.length===2&&!document.getElementById('caseVersion').disabled");
@@ -162,5 +162,45 @@ test("a lost edit response replays the same version and never appends a duplicat
     assert.equal(await c.evaluate("document.getElementById('caseEditSave').disabled"),true);
     const versions=await(await fetch(base+"/api/query/monthly-analysis/cases/"+identity+"/versions",{headers:{Authorization:"Bearer "+owner}})).json();
     assert.equal(versions.versions.length,2);
+  }finally{await browser.close();}
+},{caseOwnerToken:owner,enableCaseStore:true}));
+
+test("editing only a note preserves comma-containing tags loaded through the actual API",()=>withService(async base=>{
+  const browser=await launchBrowser(edge),c=browser.cdp;
+  try{
+    const item=(await(await fetch(base+"/api/query/monthly-analysis/published")).json()).results[0];
+    const report=await(await fetch(base+"/api/query/monthly-analysis/published/"+encodeURIComponent(item.result_id)+"/report?projection_id="+encodeURIComponent(item.projection_id))).json();
+    const response=await fetch(base+"/api/query/monthly-analysis/cases",{method:"POST",headers:{Authorization:"Bearer "+owner,"Content-Type":"application/json"},body:JSON.stringify({result_id:item.result_id,projection_id:item.projection_id,report_id:report.report_id,intent_id:"7".repeat(32),title:"逗号标签",tags:["A,B","甲，乙"],note:"原笔记"})});
+    const saved=await response.json();
+    await c.send("Page.enable");await c.send("Page.navigate",{url:base+"/prototype-fishing.html"});
+    await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
+    await click(c,"#workbenchToggle");await click(c,"#caseArchiveOpen");await type(c,"caseOwnerToken",owner);await click(c,"#caseLoad");
+    await waitFor(c,"document.querySelectorAll('#caseItems button').length===1&&!document.getElementById('caseLoad').disabled");
+    await click(c,"#caseItems button");await waitFor(c,"document.getElementById('caseArchive').dataset.state==='opened'");
+    assert.equal(await c.evaluate("document.getElementById('caseEditSave').disabled"),true);
+    await click(c,"#caseEditFields summary");await type(c,"caseEditNote","只改笔记");await click(c,"#caseEditSave");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.version==='2'");
+    const changed=await(await fetch(base+"/api/query/monthly-analysis/cases/"+saved.case_id,{headers:{Authorization:"Bearer "+owner}})).json();
+    assert.deepEqual(changed.metadata.tags,["A,B","甲，乙"]);
+  }finally{await browser.close();}
+},{caseOwnerToken:owner,enableCaseStore:true}));
+
+test("the complete maximum legal catalog remains readable through the browser byte budget",()=>withService(async base=>{
+  const headers={Authorization:"Bearer "+owner,"Content-Type":"application/json"};
+  const item=(await(await fetch(base+"/api/query/monthly-analysis/published")).json()).results[0];
+  const report=await(await fetch(base+"/api/query/monthly-analysis/published/"+encodeURIComponent(item.result_id)+"/report?projection_id="+encodeURIComponent(item.projection_id))).json();
+  for(let i=0;i<64;i++){
+    const response=await fetch(base+"/api/query/monthly-analysis/cases",{method:"POST",headers,body:JSON.stringify({result_id:item.result_id,projection_id:item.projection_id,report_id:report.report_id,intent_id:(i+100).toString(16).padStart(32,"0"),title:"🚢".repeat(120),tags:Array.from({length:8},(_,k)=>k+"🚢".repeat(39)),note:"🚢".repeat(4000)})});
+    assert.equal(response.status,200);
+  }
+  const browser=await launchBrowser(edge),c=browser.cdp;
+  try{
+    await c.send("Page.enable");await c.send("Page.navigate",{url:base+"/prototype-fishing.html"});
+    await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
+    await click(c,"#workbenchToggle");await click(c,"#caseArchiveOpen");await type(c,"caseOwnerToken",owner);await click(c,"#caseLoad");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.state==='listed'");
+    assert.equal(await c.evaluate("document.querySelectorAll('#caseItems button').length"),64);
+    await click(c,"#caseItems button");await waitFor(c,"document.getElementById('caseArchive').dataset.state==='opened'");
+    assert.equal(await c.evaluate("document.getElementById('caseEditNote').value"),"🚢".repeat(4000));
   }finally{await browser.close();}
 },{caseOwnerToken:owner,enableCaseStore:true}));

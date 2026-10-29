@@ -171,11 +171,14 @@ def test_case_limit_is_explicit_and_query_is_complete_and_literal(tmp_path):
     client, _ = case_client(tmp_path)
     initial = save_request(client)
     for i in range(64):
-        request = {**initial, "intent_id": f"{i+100:032x}", "title": f"同名案例 {i}", "tags": ["sea_%"]}
+        request = {**initial, "intent_id": f"{i+100:032x}", "title": "🚢" * 120, "tags": ["sea_%" + "🚢" * 35] + [str(k) + "🚢" * 39 for k in range(7)], "note": "🚢" * 4000}
         assert client.post(BASE + "/cases", json=request, headers=AUTH).status_code == 200
     assert client.post(BASE + "/cases", json={**initial, "intent_id": "e" * 32}, headers=AUTH).status_code == 409
-    data = client.get(BASE + "/cases", params={"q": "sea_%"}, headers=AUTH).json()
+    response = client.get(BASE + "/cases", params={"q": "sea_%"}, headers=AUTH)
+    data = response.json()
     assert data["total"] == len(data["cases"]) == 64 and data["complete"] is True
+    assert len(response.content) < 1_048_576
+    assert all("note" not in item["metadata"] for item in data["cases"])
     assert client.get(BASE + "/cases", params={"q": "' OR 1=1 --"}, headers=AUTH).json()["total"] == 0
 
 

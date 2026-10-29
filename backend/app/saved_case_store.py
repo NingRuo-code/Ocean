@@ -157,4 +157,6 @@ class CaseStore:
             if len(rows) > 64:
                 raise CaseStoreError("unavailable")
             results = [{k: v for k, v in self.read_version(db, row[0]).items() if k in {"case_id", "version", "version_id", "created_at", "metadata"}} for row in rows]
+            for item in results:
+                item["metadata"] = {k: item["metadata"][k] for k in ("title", "tags")}
             return [r for r in results if query.strip().casefold() in (r["metadata"]["title"] + " " + " ".join(r["metadata"]["tags"])).casefold()]

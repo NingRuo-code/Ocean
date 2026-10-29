@@ -2,21 +2,21 @@
 (function(){
   const {source,sameSource,json}=OceanPublicRead;
   const pane=document.createElement("section");pane.id="caseArchive";pane.className="card";pane.dataset.state="locked";
-  pane.innerHTML='<h3>我的合成案例</h3><p class="result-note">仅保存已核验的 CC0 合成报告。离开此区即清除本页访问令牌和未保存草稿；未完成真实研究或 TASK 保护联动。</p><label>本人访问令牌<input id="caseOwnerToken" type="password" autocomplete="off" spellcheck="false"></label><div class="monthly-actions"><button id="caseLoad">读取我的案例</button><button id="caseLock">锁定并清空草稿</button></div><p id="caseStatus" role="status"></p><details id="caseCreateFields"><summary>保存当前预览报告</summary><p id="caseCandidate" class="result-note"></p><label>标题<input id="caseCreateTitle" maxlength="120"></label><label>标签（以逗号分隔）<input id="caseCreateTags" maxlength="328"></label><label>人工笔记<textarea id="caseCreateNote" maxlength="4000" rows="3"></textarea></label><button id="caseSave" disabled>将这份报告存为新案例</button></details><div id="caseItems" class="case-candidates"></div><div id="caseOriginal"></div>';
+  pane.innerHTML='<h3>我的合成案例</h3><p class="result-note">仅保存已核验的 CC0 合成报告。离开此区即清除本页访问令牌和未保存草稿；未完成真实研究或 TASK 保护联动。</p><label>本人访问令牌<input id="caseOwnerToken" type="password" autocomplete="off" spellcheck="false"></label><div class="monthly-actions"><button id="caseLoad">读取我的案例</button><button id="caseLock">锁定并清空草稿</button></div><p id="caseStatus" role="status"></p><details id="caseCreateFields"><summary>保存当前预览报告</summary><p id="caseCandidate" class="result-note"></p><label>标题<input id="caseCreateTitle" maxlength="120"></label><label>标签（每行一项，最多8项）<textarea id="caseCreateTags" maxlength="648" rows="2"></textarea></label><label>人工笔记<textarea id="caseCreateNote" maxlength="4000" rows="3"></textarea></label><button id="caseSave" disabled>将这份报告存为新案例</button></details><div id="caseItems" class="case-candidates"></div><div id="caseOriginal"></div>';
   const shortcut=document.createElement("button");shortcut.id="caseArchiveOpen";shortcut.textContent="▣　我的合成案例";$("monthlyDraftOpen").after(shortcut);
   const searchLabel=document.createElement("label");searchLabel.textContent="按标题或标签检索";
-  const searchInput=document.createElement("input");searchInput.id="caseSearch";searchInput.maxLength=120;searchLabel.append(searchInput);pane.insertBefore(searchLabel,pane.querySelector("#caseItems"));
+  const searchInput=document.createElement("input");searchInput.id="caseCatalogQuery";searchInput.maxLength=120;searchLabel.append(searchInput);pane.insertBefore(searchLabel,pane.querySelector("#caseItems"));
   let candidate=null,selected=null,sessionSource=null,generation=0,controller=null,busy=false,intent=null,editIntent=null;
   const id=/^[0-9a-f]{32}$/,hash=/^sha256:[0-9a-f]{64}$/;
   function node(parent,tag,value){const e=document.createElement(tag);e.textContent=value;parent.append(e);return e;}
   function describe(r){const p=r.parameters;return `${p.month} · ${fmtCoord(p.longitude,p.latitude)} · ${p.radius_km} km`;}
-  function metadata(prefix){return{title:$(prefix+"Title").value.trim(),tags:[...new Set($(prefix+"Tags").value.split(/[,，]/).map(t=>t.trim()).filter(Boolean))],note:$(prefix+"Note").value};}
+  function metadata(prefix){return{title:$(prefix+"Title").value.trim(),tags:[...new Set($(prefix+"Tags").value.split(/\r?\n/).map(t=>t.trim()).filter(Boolean))],note:$(prefix+"Note").value};}
   function updateSave(){
     const from=source();
     $("caseOwnerToken").disabled=from.kind!=="server";
     $("caseSave").disabled=busy||!candidate||from.kind!=="server"||!sameSource(candidate.from,from)||!$("caseOwnerToken").value;
     $("caseLoad").disabled=busy||from.kind!=="server"||!$("caseOwnerToken").value;
-    $("caseSearch").disabled=busy||from.kind!=="server"||!$("caseOwnerToken").value;
+    $("caseCatalogQuery").disabled=busy||from.kind!=="server"||!$("caseOwnerToken").value;
     if($("caseEditSave")){
       const disabled=busy||from.kind!=="server"||!$("caseOwnerToken").value;
       $("caseEditSave").disabled=disabled||JSON.stringify(metadata("caseEdit"))===JSON.stringify(selected.metadata);
@@ -29,7 +29,7 @@
     $("caseItems").replaceChildren();$("caseOriginal").replaceChildren();
     $("caseCreateTitle").value=candidate?"合成月报告 "+candidate.report.result.parameters.month:"";
     $("caseCreateTags").value="";$("caseCreateNote").value="";
-    $("caseSearch").value="";
+    $("caseCatalogQuery").value="";
     delete pane.dataset.caseId;delete pane.dataset.version;pane.dataset.state="locked";updateSave();
   }
   function verify(value){
@@ -71,9 +71,9 @@
     select.onchange=()=>readCase(value.case_id,Number(select.value));
     const latest=node(root,"button","读取最新版");latest.id="caseLatest";latest.onclick=()=>readCase(value.case_id);
     const editor=node(root,"details","");editor.id="caseEditFields";node(editor,"summary","编辑人工信息（形成新版本）");
-    for(const [key,label,kind,max] of [["Title","标题","input",120],["Tags","标签（逗号分隔，最多8项）","input",328],["Note","人工笔记","textarea",4000]]){
+    for(const [key,label,kind,max] of [["Title","标题","input",120],["Tags","标签（每行一项，最多8项）","textarea",648],["Note","人工笔记","textarea",4000]]){
       const holder=node(editor,"label",label),field=node(holder,kind,"");field.id="caseEdit"+key;field.maxLength=max;
-      field.value=key==="Title"?value.metadata.title:key==="Tags"?value.metadata.tags.join(", "):value.metadata.note;field.addEventListener("input",updateSave);
+      field.value=key==="Title"?value.metadata.title:key==="Tags"?value.metadata.tags.join("\n"):value.metadata.note;field.addEventListener("input",updateSave);
     }
     const save=node(editor,"button","保存笔记新版本");save.id="caseEditSave";save.onclick=()=>perform(async n=>{
       const fields={...metadata("caseEdit"),base_version:selected.version,base_version_id:selected.version_id},signature=JSON.stringify({case_id:selected.case_id,...fields});
@@ -90,7 +90,7 @@
     for(const line of [r.source.id+" / "+r.source.version+" / "+r.source.license,...r.caveats])node(details,"p",line);
     updateSave();
   }
-  async function queryCatalog(){return api("?q="+encodeURIComponent($("caseSearch").value));}
+  async function queryCatalog(){return api("?q="+encodeURIComponent($("caseCatalogQuery").value));}
   async function loadVersions(n){
     const identity=selected.case_id,version=selected.version,data=await api("/"+identity+"/versions");if(n!==generation)return;
     if(data?.schema_version!=="ocean-synthetic-case-versions/v1"||data.case_id!==identity||!Array.isArray(data.versions)||data.versions.length>16||new Set(data.versions.map(v=>v.version)).size!==data.versions.length||data.versions.some(v=>!Number.isInteger(v.version)||v.version<1||v.version>16||!hash.test(v.version_id)))throw Error("contract");
@@ -113,7 +113,7 @@
   $("caseLock").onclick=()=>{clearPrivate();$("caseStatus").textContent="已清除本页令牌与未保存草稿，持久案例保留。";};
   $("caseSave").onclick=()=>perform(async n=>{
     if(!candidate||!sameSource(candidate.from,source()))throw Error("source_changed");
-    const r=candidate.report,fields={result_id:r.result.result_id,projection_id:r.result.projection_id,report_id:r.report_id,title:$("caseCreateTitle").value,tags:$("caseCreateTags").value.split(/[,，]/).map(t=>t.trim()).filter(Boolean),note:$("caseCreateNote").value};
+    const r=candidate.report,fields={result_id:r.result.result_id,projection_id:r.result.projection_id,report_id:r.report_id,...metadata("caseCreate")};
     const signature=JSON.stringify(fields);if(intent?.signature!==signature)intent={signature,id:crypto.randomUUID().replaceAll("-","")};
     const value=await api("",{method:"POST",body:JSON.stringify({...fields,intent_id:intent.id})});if(n!==generation)return;
     show(value);await loadVersions(n);if(n!==generation)return;const data=await queryCatalog();if(n!==generation)return;catalog(data);$("caseStatus").textContent="案例已持久保存；科学内容仍为合成样例。";
