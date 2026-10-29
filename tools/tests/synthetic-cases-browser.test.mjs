@@ -1,0 +1,89 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {launchBrowser,waitFor} from "../lib/browser-driver.mjs";
+import {withService} from "../lib/monthly-test-service.mjs";
+import {mkdir,writeFile} from "node:fs/promises";
+
+const edge=process.env.EDGE??"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+const owner="self-authored-case-owner";
+async function click(c,selector){
+  const point=await c.evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)throw Error('Missing control');e.scrollIntoView({block:'nearest'});const r=e.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};})()`);
+  await c.send("Input.dispatchMouseEvent",{type:"mousePressed",button:"left",clickCount:1,...point});
+  await c.send("Input.dispatchMouseEvent",{type:"mouseReleased",button:"left",clickCount:1,...point});
+}
+async function type(c,id,value){await c.evaluate(`document.getElementById(${JSON.stringify(id)}).focus();document.getElementById(${JSON.stringify(id)}).value=''`);await c.send("Input.insertText",{text:value});}
+async function openReport(c,base){
+  await c.send("Page.enable");await c.send("Page.navigate",{url:base+"/prototype-fishing.html"});
+  await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
+  await click(c,"#workbenchToggle");await click(c,"#monthlyOpen");
+  await waitFor(c,"document.getElementById('monthlyResult').dataset.state==='ready'");
+  await click(c,"#monthlyReportOpen");await waitFor(c,"document.getElementById('monthReport').dataset.state==='ready'");
+}
+
+test("owner saves a real-service case and reopens the same frozen report after browser refresh",()=>withService(async base=>{
+  const browser=await launchBrowser(edge),c=browser.cdp;
+  try{
+    await openReport(c,base);await click(c,"#reportSaveCase");
+    await type(c,"caseOwnerToken",owner);await type(c,"caseCreateTitle","我的固定报告");
+    await click(c,"#caseSave");await waitFor(c,"document.getElementById('caseArchive').dataset.state==='saved'");
+    const id=await c.evaluate("document.getElementById('caseArchive').dataset.caseId");
+    assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/40.*7.*2.*29/s);
+    await c.send("Page.reload");await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
+    await click(c,"#workbenchToggle");await click(c,"#caseArchiveOpen");
+    assert.equal(await c.evaluate("document.getElementById('caseOwnerToken').value"),"");
+    await type(c,"caseOwnerToken",owner);await click(c,"#caseLoad");
+    await waitFor(c,"document.querySelectorAll('#caseItems button').length===1");
+    await click(c,"#caseItems button");
+    await waitFor(c,`document.getElementById('caseArchive').dataset.caseId===${JSON.stringify(id)}`);
+    assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/40.*7.*2.*29/s);
+    assert.equal(await c.evaluate("localStorage.getItem('caseOwnerToken')"),null);
+  }finally{await browser.close();}
+},{caseOwnerToken:owner,enableCaseStore:true}));
+
+test("a lost save response retries the same durable intent without a duplicate case",()=>withService(async base=>{
+  const browser=await launchBrowser(edge),c=browser.cdp,pending=[];let failed=false;
+  c.onEvent(m=>{if(m.method==="Fetch.requestPaused"){
+    const p=m.params;
+    if(p.request.method==="POST"&&!failed){failed=true;pending.push(c.send("Fetch.failRequest",{requestId:p.requestId,errorReason:"Failed"}));}
+    else pending.push(c.send("Fetch.continueRequest",{requestId:p.requestId}));
+  }});
+  try{
+    await openReport(c,base);await click(c,"#reportSaveCase");await type(c,"caseOwnerToken",owner);
+    await c.send("Fetch.enable",{patterns:[{urlPattern:"*/monthly-analysis/cases",requestStage:"Response"}]});
+    await click(c,"#caseSave");await waitFor(c,"document.getElementById('caseArchive').dataset.state==='error'");
+    await c.send("Fetch.disable");await Promise.allSettled(pending);
+    await click(c,"#caseSave");await waitFor(c,"document.getElementById('caseArchive').dataset.state==='saved'");
+    await click(c,"#caseSave");await waitFor(c,"document.getElementById('caseSave').disabled===false");
+    const response=await fetch(base+"/api/query/monthly-analysis/cases",{headers:{Authorization:"Bearer "+owner}});
+    assert.equal((await response.json()).cases.length,1);
+  }finally{await browser.close();}
+},{caseOwnerToken:owner,enableCaseStore:true}));
+
+test("owner case remains a readable small-screen snapshot and clears its secret on leaving",()=>withService(async base=>{
+  const browser=await launchBrowser(edge),c=browser.cdp;
+  try{
+    await c.send("Emulation.setDeviceMetricsOverride",{width:390,height:900,deviceScaleFactor:1,mobile:true});
+    await openReport(c,base);await click(c,"#reportSaveCase");await type(c,"caseOwnerToken",owner);
+    await type(c,"caseCreateNote","<img src=x onerror=window.CASE_XSS=1> 人工笔记");
+    await click(c,"#caseSave");await waitFor(c,"document.getElementById('caseArchive').dataset.state==='saved'");
+    assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/<img src=x/);
+    assert.equal(await c.evaluate("!!window.CASE_XSS"),false);
+    assert.equal(await c.evaluate("document.documentElement.scrollWidth<=innerWidth"),true);
+    await mkdir("docs/reports/screenshots",{recursive:true});
+    await writeFile("docs/reports/screenshots/ocean-synthetic-case-390.png",Buffer.from((await c.send("Page.captureScreenshot",{format:"png"})).data,"base64"));
+    await c.send("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape"});
+    await c.send("Input.dispatchKeyEvent",{type:"keyUp",key:"Escape",code:"Escape"});
+    assert.equal(await c.evaluate("document.getElementById('caseOwnerToken').value"),"");
+    assert.equal(await c.evaluate("document.getElementById('caseOriginal').textContent"),"");
+  }finally{await browser.close();}
+},{caseOwnerToken:owner,enableCaseStore:true}));
+
+test("an unconfigured case store is an error, never a browser-only save",()=>withService(async base=>{
+  const browser=await launchBrowser(edge),c=browser.cdp;
+  try{
+    await openReport(c,base);await click(c,"#reportSaveCase");await type(c,"caseOwnerToken",owner);await click(c,"#caseSave");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.state==='error'");
+    assert.equal(await c.evaluate("document.getElementById('caseArchive').dataset.caseId"),undefined);
+    assert.match(await c.evaluate("document.getElementById('caseStatus').textContent"),/存储暂不可用/);
+  }finally{await browser.close();}
+},{caseOwnerToken:owner}));

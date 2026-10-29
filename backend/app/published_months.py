@@ -155,6 +155,25 @@ def published_month_results(path=PUBLISHED_PATH):
     ]
 
 
+def read_public_month(path, result_id):
+    headers = {"Cache-Control": "no-store"}
+    if not re.fullmatch(r"sha256:[0-9a-f]{64}", result_id):
+        raise HTTPException(404, "Published result unavailable", headers=headers)
+    try:
+        pack, _ = read_controlled_input(path, SnapshotPack)
+    except (OSError, ValueError, TypeError, KeyError, ArithmeticError, AttributeError):
+        raise HTTPException(503, "Published monthly result cannot be verified", headers=headers) from None
+    entry = next((e for e in pack.snapshots if e.result.get("result_id") == result_id), None)
+    if entry is None:
+        raise HTTPException(404, "Published result unavailable", headers=headers)
+    try:
+        return project_public_month(entry)
+    except PermissionError:
+        raise HTTPException(403, "Published source is not public", headers=headers) from None
+    except (ValueError, TypeError, KeyError, ArithmeticError, AttributeError):
+        raise HTTPException(503, "Published monthly result cannot be verified", headers=headers) from None
+
+
 def published_month_reference(result):
     """Only the public identity/conditions needed for deliberate saved-result selection."""
     return {
@@ -210,22 +229,7 @@ def create_published_router(path=PUBLISHED_PATH):
     @router.get("/{result_id}")
     def read(result_id: str, response: Response):
         response.headers["Cache-Control"] = "no-store"
-        if not re.fullmatch(r"sha256:[0-9a-f]{64}", result_id):
-            raise HTTPException(
-                404, "Published result unavailable", headers={"Cache-Control": "no-store"}
-            )
-        entry = next(
-            (e for e in read_pack().snapshots if e.result.get("result_id") == result_id), None
-        )
-        if entry is None:
-            raise HTTPException(
-                404, "Published result unavailable", headers={"Cache-Control": "no-store"}
-            )
-        if entry.access != "public_aggregate" or entry.public_aggregate_allowed is not True:
-            raise HTTPException(
-                403, "Published source is not public", headers={"Cache-Control": "no-store"}
-            )
-        return project(entry)
+        return read_public_month(path, result_id)
 
     @router.get("/{result_id}/report")
     def report(

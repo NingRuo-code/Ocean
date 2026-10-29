@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     local_llm_model: str = "qwen2.5:1.5b-instruct"
     ai_timeout_seconds: float = 3.0
     monthly_execution_token: SecretStr | None = None
+    case_store_path: Path | None = None
 
     model_config = SettingsConfigDict(
         env_prefix="OCEAN_",

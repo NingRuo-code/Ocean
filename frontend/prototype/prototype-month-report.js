@@ -28,6 +28,7 @@
       ? "以下报告保留成果原条件，与当前地图或任务草稿不同。" : "";
   }
   function invalidate(value = null) {
+    window.dispatchEvent(new CustomEvent("ocean-month-report",{detail:null}));
     generation++; controller?.abort(); selection = value; report = null;
     for(const url of downloads) URL.revokeObjectURL(url);
     downloads.clear(); downloadBusy = false;
@@ -79,6 +80,7 @@
     content.append(actions);
     text(content,"p","文件只含本合成成果的允许聚合；未知日留空，真实研究与 PDF 导出尚未验收。","monthReportDownloadStatus");
     content.dataset.state = "ready"; content.dataset.reportId = report.report_id;
+    window.dispatchEvent(new CustomEvent("ocean-month-report",{detail:{report,from:selection.from}}));
   }
   async function download(format) {
     if(!report || !selection || downloadBusy) return;
