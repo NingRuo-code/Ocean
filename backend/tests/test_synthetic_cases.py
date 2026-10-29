@@ -78,7 +78,7 @@ def test_concurrent_same_intent_is_one_case_and_conflicting_payload_is_rejected(
     assert len(client.get(BASE + "/cases", headers=AUTH).json()["cases"]) == 1
 
 
-@pytest.mark.parametrize("mode", ["private", "changed", "corrupt_store", "foreign_store"])
+@pytest.mark.parametrize("mode", ["private", "changed", "corrupt_store", "foreign_store", "empty_unknown_store"])
 def test_failed_saves_never_publish_cases_or_replace_unknown_material(tmp_path, mode):
     client, published = case_client(tmp_path)
     request = save_request(client)
@@ -94,6 +94,9 @@ def test_failed_saves_never_publish_cases_or_replace_unknown_material(tmp_path, 
     elif mode == "corrupt_store":
         db.write_bytes(b"self-authored unknown material; preserve")
         before = db.read_bytes()
+    elif mode == "empty_unknown_store":
+        db.write_bytes(b"")
+        before = b""
     else:
         import sqlite3
         with sqlite3.connect(db) as connection:

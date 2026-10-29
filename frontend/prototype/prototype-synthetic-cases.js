@@ -36,7 +36,7 @@
   }
   async function perform(work,state){
     if(busy)return;
-    controller?.abort();controller=new AbortController();const active=controller,n=++generation,timer=setTimeout(()=>active.abort(),10000);
+    controller?.abort();controller=new AbortController();const active=controller,n=++generation,timer=setTimeout(()=>active.abort(),10000),opener=document.activeElement;
     busy=true;updateSave();$("caseStatus").textContent="正在核对本人权限与案例记录…";
     try{await work(n);if(n!==generation)return;pane.dataset.state=state;}
     catch(error){if(n!==generation)return;
@@ -44,7 +44,7 @@
       else pane.dataset.state="error";
       const messages={http_401:"本人访问未通过，令牌已清除。",http_403:"当前服务不允许案例操作。",http_503:"案例库或本人访问尚未启用，或存储暂不可用。",http_409:"保存意图或报告版本冲突，当前草稿未覆盖。",http_422:"标题、标签或笔记不符合保存限制，请修改后重试。",offline:"离线页面不能读取或保存本人案例。",owner_required:"请输入当前服务配置的本人令牌。",contract:"案例内容无法核实，未显示为成功。",source_changed:"服务来源已改变，请重新输入令牌。"};
       $("caseStatus").textContent=messages[error.message]||"请求未完成；可重试同一保存意图，或读取案例核对。";
-    }finally{clearTimeout(timer);if(n===generation){busy=false;updateSave();}}
+    }finally{clearTimeout(timer);if(n===generation){busy=false;updateSave();if(document.activeElement===document.body&&pane.contains(opener)&&!opener.disabled&&!pane.hidden)opener.focus({preventScroll:true});}}
   }
   function show(value){
     selected=verify(value);const root=$("caseOriginal"),r=value.report.result,m=r.metrics;root.replaceChildren();
