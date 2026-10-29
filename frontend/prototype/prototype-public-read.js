@@ -5,8 +5,8 @@
     return mode.userMode === "offline" || !mode.base ? {kind:"offline",base:null} : {kind:"server",base:mode.base};
   }
   function sameOrigin(a,b) { return a.kind === b.kind && a.base === b.base; }
-  async function text(url, signal) {
-    const response = await fetch(url,{cache:"no-store",credentials:"omit",signal});
+  async function text(url, signal, options = {}) {
+    const response = await fetch(url,{...options,cache:"no-store",credentials:"omit",signal});
     if (!response.ok) throw Error("http_"+response.status);
     // File representations retain a UTF-8 BOM; JSON alone consumes it below.
     const reader = response.body.getReader(), decoder = new TextDecoder("utf-8",{fatal:true,ignoreBOM:true});
@@ -15,6 +15,6 @@
     finally { await reader.cancel().catch(()=>{}); }
     return text;
   }
-  async function json(url, signal) {return JSON.parse((await text(url,signal)).replace(/^\uFEFF/,""));}
+  async function json(url, signal, options) {return JSON.parse((await text(url,signal,options)).replace(/^\uFEFF/,""));}
   window.OceanPublicRead = Object.freeze({source:origin,sameSource:sameOrigin,json,text});
 })();

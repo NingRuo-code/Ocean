@@ -49,6 +49,8 @@ test('fixed release starts original API from an independently installed no-Git p
   assert.equal(statusResponse.headers.get('X-Ocean-Release'),built.release_id);
   assert.equal(status.layers.models.state,'disabled_by_profile');assert.equal(status.layers.analysis_execution.state,'disabled_by_profile');
   assert.equal(status.layers.published_read.state,'readable_example');assert.equal(status.layers.map_index.front.registered_days,62);
+  assert.equal((await fetch(base+'/api/query/monthly-analysis/cases')).status,403);
+  assert.equal((await fetch(base+'/api/query/monthly-analysis/cases',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).status,403);
   const monthCatalog=await(await fetch(base+'/api/query/monthly-analysis/published')).json();
   const month=monthCatalog.results[0],monthPath=base+'/api/query/monthly-analysis/published/'+encodeURIComponent(month.result_id);
   const reportResponse=await fetch(monthPath+'/report?projection_id='+encodeURIComponent(month.projection_id));

@@ -145,6 +145,10 @@
       "target": "backend/app/monthly_models.py"
     },
     {
+      "source": "backend/app/owner_access.py",
+      "target": "backend/app/owner_access.py"
+    },
+    {
       "source": "backend/app/published_months.py",
       "target": "backend/app/published_months.py"
     },
@@ -165,12 +169,20 @@
       "target": "backend/app/reporting.py"
     },
     {
+      "source": "backend/app/saved_case_store.py",
+      "target": "backend/app/saved_case_store.py"
+    },
+    {
       "source": "backend/app/schemas.py",
       "target": "backend/app/schemas.py"
     },
     {
       "source": "backend/app/stratified_validation.py",
       "target": "backend/app/stratified_validation.py"
+    },
+    {
+      "source": "backend/app/synthetic_cases.py",
+      "target": "backend/app/synthetic_cases.py"
     },
     {
       "source": "backend/app/viewport.py",
@@ -839,6 +851,10 @@
     {
       "source": "frontend/prototype/prototype-service-status.js",
       "target": "frontend/prototype/prototype-service-status.js"
+    },
+    {
+      "source": "frontend/prototype/prototype-synthetic-cases.js",
+      "target": "frontend/prototype/prototype-synthetic-cases.js"
     },
     {
       "source": "backend/app/viewport_inputs.py",

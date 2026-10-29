@@ -2,7 +2,6 @@
 
 import calendar
 import copy
-import secrets
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
@@ -10,7 +9,6 @@ from threading import RLock
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import ValidationError
 
 from .analysis_support import (
@@ -22,8 +20,10 @@ from .analysis_support import (
 from .config import Settings
 from .monthly_capability import create_capability_router
 from .monthly_models import KnownCircle, MonthlyExample, MonthlyRequest
+from .owner_access import owner_requirement
 from .published_months import PUBLISHED_PATH, create_published_router
 from .schemas import BasicQueryEvidence
+from .synthetic_cases import create_case_router
 
 EXAMPLE_PATH = Path(__file__).parent / "examples" / "monthly-known-units.json"
 METHOD_VERSION = "monthly-known-support/v1"
@@ -108,21 +108,9 @@ def create_monthly_router(
     router = APIRouter(prefix=f"{settings.api_prefix}/query/monthly-analysis")
     router.include_router(create_published_router(published_path), prefix="/published")
     router.include_router(create_capability_router(published_path))
+    router.include_router(create_case_router(settings, published_path), prefix="/cases")
     records, lock = {}, RLock()
-    bearer = HTTPBearer(auto_error=False)
-
-    owner_credentials = Depends(bearer)
-
-    def require_owner(credentials: HTTPAuthorizationCredentials | None = owner_credentials):
-        token = settings.monthly_execution_token
-        if not token or not token.get_secret_value():
-            raise HTTPException(503, "Controlled execution is disabled")
-        if not credentials or not secrets.compare_digest(
-            credentials.credentials.encode("utf-8"), token.get_secret_value().encode("utf-8")
-        ):
-            raise HTTPException(
-                401, "Owner authorization is required", headers={"WWW-Authenticate": "Bearer"}
-            )
+    require_owner = owner_requirement(settings)
 
     def reserve(request):
         with lock:

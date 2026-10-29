@@ -6,7 +6,7 @@ import {tmpdir} from "node:os";
 import {setTimeout as delay} from "node:timers/promises";
 
 // Actual production app on isolated loopback; no test-only business service.
-export async function withService(work,{collectRuntimeInventory=false}={}) {
+export async function withService(work,{collectRuntimeInventory=false,caseOwnerToken="",enableCaseStore=false}={}) {
   const root=await mkdtemp(join(tmpdir(),"ocean-month-service-"));
   await mkdir(join(root,"raw"));await mkdir(join(root,"cache"));
   const inventoryCode=collectRuntimeInventory?`
@@ -48,7 +48,7 @@ print(json.dumps({'port':s.getsockname()[1],'runtime':runtime}),flush=True)
 uvicorn.Server(uvicorn.Config(app,log_level='error')).run(sockets=[s])`;
   const inherited=Object.fromEntries(Object.entries(process.env).filter(([key])=>!key.toUpperCase().startsWith('OCEAN_')));
   const child=spawn(process.env.OCEAN_EXPERIMENT_PYTHON || "python",["-c",code],{cwd:resolve("backend"),windowsHide:true,
-    env:{...inherited,OCEAN_TEST_FRONTEND:resolve("frontend/prototype"),OCEAN_PROTOTYPE_DATA_DIR:resolve("frontend/prototype/data"),OCEAN_API_PREFIX:'/api',OCEAN_AI_PROVIDER:"rules",OCEAN_MONTHLY_EXECUTION_TOKEN:"",OCEAN_RAW_DATA_DIR:join(root,"raw"),OCEAN_CACHE_DIR:join(root,"cache")},stdio:["ignore","pipe","pipe"]});
+    env:{...inherited,OCEAN_TEST_FRONTEND:resolve("frontend/prototype"),OCEAN_PROTOTYPE_DATA_DIR:resolve("frontend/prototype/data"),OCEAN_API_PREFIX:'/api',OCEAN_AI_PROVIDER:"rules",OCEAN_MONTHLY_EXECUTION_TOKEN:caseOwnerToken,...(enableCaseStore?{OCEAN_CASE_STORE_PATH:join(root,"cases.sqlite3")}:{}),OCEAN_RAW_DATA_DIR:join(root,"raw"),OCEAN_CACHE_DIR:join(root,"cache")},stdio:["ignore","pipe","pipe"]});
   let output="",port,runtime,startError=null;
   child.on('error',()=>{startError=true;});
   child.stdout.on("data",b=>{output+=b.toString();try{const info=JSON.parse(output.split("\n")[0]);port=info.port;runtime=info.runtime;}catch{}});
