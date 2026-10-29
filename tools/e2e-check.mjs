@@ -605,7 +605,7 @@ check("历史默认月份入口，只把已导出归档作为样例，不宣称�
   /样例/.test(monthEntry.summary) && /整月研究汇总未接入/.test(monthEntry.summary) && /\d{4}-\d{2}/.test(monthEntry.month), monthEntry.summary);
 await evalJS(`document.querySelector('#climPeriod button[data-period="day"]').click(); return 1;`);
 const clim = await evalJS(`var data = OFData.clim;
-  return { inputs: document.querySelectorAll("#pane-clim input").length,
+  return { inputs: document.querySelectorAll("#pane-clim input:not(#caseArchive input)").length,
     btns: [].map.call(document.querySelectorAll("#climPeriod button"), function(b){ return b.textContent.trim(); }),
     bars: document.querySelectorAll("#climBars i").length,
     hint: document.getElementById("climHint").textContent,

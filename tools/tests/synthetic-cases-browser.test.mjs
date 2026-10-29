@@ -84,9 +84,30 @@ test("an unconfigured case store is an error, never a browser-only save",()=>wit
     await openReport(c,base);await click(c,"#reportSaveCase");await type(c,"caseOwnerToken",owner);await click(c,"#caseSave");
     await waitFor(c,"document.getElementById('caseArchive').dataset.state==='error'");
     assert.equal(await c.evaluate("document.getElementById('caseArchive').dataset.caseId"),undefined);
-    assert.match(await c.evaluate("document.getElementById('caseStatus').textContent"),/存储暂不可用/);
+    assert.match(await c.evaluate("document.querySelector('#caseArchive [role=status]').textContent"),/存储暂不可用/);
+    assert.equal(await c.evaluate("document.getElementById('caseArchive').hidden"),false);
   }finally{await browser.close();}
 },{caseOwnerToken:owner}));
+
+test("private denial status is visible without writing into the public case view",()=>withService(async base=>{
+  const browser=await launchBrowser(edge),c=browser.cdp,pending=[];
+  c.onEvent(m=>{if(m.method==="Fetch.requestPaused")pending.push(c.send("Fetch.fulfillRequest",{requestId:m.params.requestId,responseCode:403,responseHeaders:[{name:"Content-Type",value:"application/json"}],body:Buffer.from("{}").toString("base64")}));});
+  try{
+    await openReport(c,base);await click(c,"#reportSaveCase");
+    assert.equal(await c.evaluate("[...document.querySelectorAll('#caseArchive [id]')].every(e=>document.querySelectorAll('[id='+e.id+']').length===1)"),true);
+    const before=await c.evaluate("document.querySelector('#knownCasesPane #caseStatus').textContent");
+    await type(c,"caseOwnerToken",owner);
+    await c.send("Fetch.enable",{patterns:[{urlPattern:"*/monthly-analysis/cases?*",requestStage:"Request"}]});
+    await click(c,"#caseLoad");await waitFor(c,"document.querySelector('#caseArchive [role=status]').textContent.includes('不允许案例操作')");
+    assert.match(await c.evaluate("document.querySelector('#caseArchive [role=status]').textContent"),/不允许案例操作/);
+    assert.equal(await c.evaluate("document.getElementById('caseArchive').hidden"),false);
+    assert.equal(await c.evaluate("document.querySelector('#knownCasesPane #caseStatus').textContent"),before);
+    await c.send("Fetch.disable");await Promise.allSettled(pending);
+    await click(c,"#knownCaseOpen");await waitFor(c,"document.getElementById('knownCasesPane').dataset.state==='ready'");
+    assert.match(await c.evaluate("document.querySelector('#caseArchive [role=status]').textContent"),/不允许案例操作/);
+    assert.equal(await c.evaluate("document.querySelector('#knownCasesPane #caseStatus').textContent.includes('不允许案例操作')"),false);
+  }finally{await browser.close();}
+},{caseOwnerToken:owner,enableCaseStore:true}));
 
 for(const action of ["offline","close"]){
   test(`an unsubmitted token is cleared when switching ${action}`,()=>withService(async base=>{
@@ -138,7 +159,7 @@ test("a concurrent newer version preserves the rejected browser draft until expl
     await waitFor(c,"document.getElementById('caseArchive').dataset.state==='error'");
     assert.equal(await c.evaluate("document.getElementById('caseEditNote').value"),"我尚未提交的草稿");
     assert.equal(await c.evaluate("document.getElementById('caseArchive').dataset.version"),"1");
-    assert.match(await c.evaluate("document.getElementById('caseStatus').textContent"),/草稿未覆盖/);
+    assert.match(await c.evaluate("document.querySelector('#caseArchive [role=status]').textContent"),/草稿未覆盖/);
     await click(c,"#caseLatest");await waitFor(c,"document.getElementById('caseArchive').dataset.version==='2'");
     assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/另一标签页已保存/);
   }finally{await browser.close();}
