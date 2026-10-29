@@ -1,0 +1,129 @@
+{
+  "date": "2026-10-29",
+  "baseline": "03f0992960a5bcda95c57908caa5bf35e0f9b60a",
+  "implementation": "a66d10256ac511ffabbfa000f4e173a6aceccc42",
+  "pull_request": "https://github.com/NingRuo-code/Ocean/pull/317",
+  "spec": 314,
+  "software_tickets": [
+    315,
+    316
+  ],
+  "evidence_kind": "owner_download_of_authored_CC0_synthetic_saved_versions",
+  "research_qualification_passed": false,
+  "production_deployed": false,
+  "checks": [
+    {
+      "name": "backend",
+      "passed": 284,
+      "failed": 0,
+      "log_sha256": "09d52dd8929160ef9af31185edeffe42de608849b3981b3b6f3cafd122708683"
+    },
+    {
+      "name": "python_tools",
+      "passed": 63,
+      "failed": 0,
+      "log_sha256": "6d38fa9fd9e1877b1a77e4cf02be1496340ea1ae63b3884e7702c6f37773d6c5"
+    },
+    {
+      "name": "node_tools",
+      "passed": 178,
+      "failed": 0,
+      "log_sha256": "63ca4863a99aec7be26e3a60445c6058fd434a7d35911a246ccb6ce714e4b148"
+    },
+    {
+      "name": "data",
+      "passed": 922,
+      "failed": 0,
+      "log_sha256": "f3cdace6a1bdba27962689a4819d7a2046f37906ac6928f5404cdc97d61ffa79"
+    },
+    {
+      "name": "map_e2e",
+      "passed": 129,
+      "failed": 0,
+      "log_sha256": "56be59bbb72426860283fd5c0ef2245312d62f1ded22a0c94962cfab321aa94e"
+    },
+    {
+      "name": "layout",
+      "passed": 4,
+      "failed": 0,
+      "log_sha256": "029b6cb057a5831081da6edbd9b4ead544eaacf4ab55574a0d360417eacd51f5"
+    }
+  ],
+  "targeted": {
+    "case_export_api": 6,
+    "case_month_report_api_compatibility_total": 52,
+    "case_export_browser": 9
+  },
+  "reviews": {
+    "standards_unresolved": 0,
+    "spec_unresolved": 0,
+    "fixed_range": "03f0992...a66d102"
+  },
+  "source_audit_snapshot_id": "sha256:653f86c7d75726ec9e5b3b677784d15b92ec765d54735197317bba077d5f1755",
+  "original_execution_tickets": {
+    "closed": 29,
+    "total": 252,
+    "open": 223
+  },
+  "prior_report_software": {
+    "closed": 2,
+    "total": 2
+  },
+  "prior_case_software": {
+    "closed": 2,
+    "total": 2
+  },
+  "this_export_software": {
+    "closed": 2,
+    "total": 2
+  },
+  "retained_native_dependencies": {
+    "39": [
+      37,
+      38
+    ],
+    "99": [
+      97,
+      70
+    ],
+    "126": [
+      30,
+      69
+    ],
+    "127": [
+      126,
+      120
+    ],
+    "128": [
+      127
+    ],
+    "120": [
+      119
+    ],
+    "130": [
+      127
+    ],
+    "134": [
+      128,
+      130,
+      132,
+      133,
+      71
+    ],
+    "138": [
+      134,
+      136
+    ],
+    "139": [
+      133,
+      122
+    ]
+  },
+  "earlier_failed_or_unexecuted_runs": [
+    "initial_file_API_404_and_browser_missing_action",
+    "initial_bundle_API_422_and_browser_missing_action",
+    "independent_review_usage_limit_then_successful_retry",
+    "hidden_history_control_test_did_not_leave_view_then_corrected_to_visible_tab"
+  ],
+  "private_paths_or_source_records_included": false
+}
