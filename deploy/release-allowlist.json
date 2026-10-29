@@ -181,6 +181,10 @@
       "target": "backend/app/stratified_validation.py"
     },
     {
+      "source": "backend/app/case_export.py",
+      "target": "backend/app/case_export.py"
+    },
+    {
       "source": "backend/app/synthetic_cases.py",
       "target": "backend/app/synthetic_cases.py"
     },

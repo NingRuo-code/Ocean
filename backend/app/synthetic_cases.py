@@ -1,11 +1,12 @@
 """Owner-only software archive of verified public CC0 synthetic month reports."""
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import Field, field_validator
 
 from .analysis_support import content_id
+from .case_export import case_filename, render_case_file
 from .comparison_models import Identity
 from .known_month_report import build_known_month_report
 from .monthly_models import ClosedModel
@@ -100,5 +101,19 @@ def create_case_router(settings, published_path):
     def read(case_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response, version: Annotated[int | None, Query(ge=1, le=16)] = None):
         response.headers["Cache-Control"] = "no-store"
         return guarded(lambda: store.read(case_id, version))
+
+    @router.get("/{case_id}/versions/{version}/exports/{representation}")
+    def export(case_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")],
+               version: Annotated[int, Field(ge=1, le=16)],
+               representation: Literal["markdown", "csv"], version_id: Identity, report_id: Identity):
+        case = guarded(lambda: store.read(case_id, version))
+        if case["version_id"] != version_id or case["report"]["report_id"] != report_id:
+            raise HTTPException(409, "Saved version identity mismatch", headers={"Cache-Control": "no-store"})
+        try:
+            body = render_case_file(case, representation)
+        except (ValueError, KeyError, TypeError):
+            raise HTTPException(503, "Saved report unavailable", headers={"Cache-Control": "no-store"}) from None
+        extension, media = ("md", "text/markdown") if representation == "markdown" else ("csv", "text/csv")
+        return Response(body, media_type=media, headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "Content-Disposition": f'attachment; filename="{case_filename(case, extension)}"'})
 
     return router
