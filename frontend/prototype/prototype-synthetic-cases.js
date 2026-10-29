@@ -10,6 +10,7 @@
   function describe(r){const p=r.parameters;return `${p.month} · ${fmtCoord(p.longitude,p.latitude)} · ${p.radius_km} km`;}
   function updateSave(){
     const from=source();
+    $("caseOwnerToken").disabled=from.kind!=="server";
     $("caseSave").disabled=busy||!candidate||from.kind!=="server"||!sameSource(candidate.from,from)||!$("caseOwnerToken").value;
     $("caseLoad").disabled=busy||from.kind!=="server"||!$("caseOwnerToken").value;
   }
@@ -74,7 +75,7 @@
     $("caseStatus").textContent=source().kind==="server"?"请输入当前服务配置的本人令牌；保存仅限已核验的合成报告。":"离线页面不能读取或保存本人案例。";updateSave();
   }});
   shortcut.onclick=open;
-  $("caseOwnerToken").addEventListener("input",()=>clearPrivate(false));
+  $("caseOwnerToken").addEventListener("input",()=>{clearPrivate(false);if($("caseOwnerToken").value)sessionSource=source();});
   $("caseLoad").onclick=()=>perform(async n=>{const data=await api("");if(n!==generation)return;catalog(data);$("caseStatus").textContent="已读取本人案例。";},"listed");
   $("caseLock").onclick=()=>{clearPrivate();$("caseStatus").textContent="已清除本页令牌与未保存草稿，持久案例保留。";};
   $("caseSave").onclick=()=>perform(async n=>{
@@ -91,10 +92,10 @@
     intent=null;updateSave();
   });
   window.addEventListener("ocean-history-view",e=>{if(e.detail!=="private-cases")clearPrivate();});
-  window.addEventListener("ocean-load-state",()=>{if(sessionSource&&!sameSource(sessionSource,source())){clearPrivate();$("caseStatus").textContent="服务来源已改变，已清除本页令牌；离线不能读取或保存本人案例。";}updateSave();});
+  window.addEventListener("ocean-load-state",()=>{if((sessionSource&&!sameSource(sessionSource,source()))||(source().kind!=="server"&&$("caseOwnerToken").value)){clearPrivate();$("caseStatus").textContent="服务来源已改变，已清除本页令牌；离线不能读取或保存本人案例。";}updateSave();});
   window.addEventListener("ocean-workbench-task",clearPrivate);
   $("tabs").addEventListener("click",e=>{if(e.target.closest("[data-pane]")?.dataset.pane!=="clim")clearPrivate();});
-  $("resultClose").addEventListener("click",clearPrivate);
+  window.addEventListener("ocean-result-closed",clearPrivate);
   pane.addEventListener("keydown",e=>{if(e.key==="Escape"){e.stopPropagation();e.preventDefault();clearPrivate();$("resultClose").click();$("workbenchToggle").focus();}});
   updateSave();
 })();

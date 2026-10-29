@@ -112,6 +112,7 @@
   function closeResult() {
     const restore = side.contains(document.activeElement);
     side.hidden = true;
+    window.dispatchEvent(new Event("ocean-result-closed"));
     $("resultToggle").setAttribute("aria-expanded", "false");
     resizeMap();
     if (restore) $("resultToggle").focus();

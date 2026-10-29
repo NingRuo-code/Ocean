@@ -87,3 +87,16 @@ test("an unconfigured case store is an error, never a browser-only save",()=>wit
     assert.match(await c.evaluate("document.getElementById('caseStatus').textContent"),/存储暂不可用/);
   }finally{await browser.close();}
 },{caseOwnerToken:owner}));
+
+for(const action of ["offline","close"]){
+  test(`an unsubmitted token is cleared when switching ${action}`,()=>withService(async base=>{
+    const browser=await launchBrowser(edge),c=browser.cdp;
+    try{
+      await openReport(c,base);await click(c,"#reportSaveCase");await type(c,"caseOwnerToken",owner);
+      await click(c,action==="offline"?"#serverModeToggle":"#resultToggle");
+      if(action==="offline")await waitFor(c,"OFData.serverMode().userMode==='offline'");
+      assert.equal(await c.evaluate("document.getElementById('caseOwnerToken').value"),"");
+      assert.equal(await c.evaluate("document.getElementById('caseOriginal').textContent"),"");
+    }finally{await browser.close();}
+  },{caseOwnerToken:owner,enableCaseStore:true}));
+}
