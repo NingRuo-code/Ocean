@@ -1,8 +1,10 @@
 # Ocean 项目规划入口
 
-最近整理：2026-10-28。
+最近整理：2026-10-29。
 
-本次连续实施批次：[补充规格#306](../specs/ocean-known-month-report-software-spec-2026-10-28.md)将已公开CC0合成A成果的报告软件单列为#307→#308，贯通同源预览和Markdown/逐日CSV下载。[交付、验证与保留关口](../reports/ocean-known-month-report-implementation-2026-10-28.md)，[PR #309](https://github.com/NingRuo-code/Ocean/pull/309)。原#126/#69及其他真实研究/生产依赖保留，几何与持久任务等其他建议本批未实施；原252项与补充2项分账。
+本次连续实施：[案例软件规格#310](../specs/ocean-synthetic-case-software-spec-2026-10-29.md)，按#311→#312交付单一配置本人合成报告持久案例、检索与不可变人工信息版本。[交付及不足](../reports/ocean-synthetic-case-implementation-2026-10-29.md)、[本日进度](../reports/ocean-progress-snapshot-2026-10-29-case-software.md)、[PR #313](https://github.com/NingRuo-code/Ocean/pull/313)。原252项仍29/252；前批报告2/2与本批案例2/2另计，原真实研究、通用权限/TASK与生产依赖保留。
+
+前批连续实施：[补充规格#306](../specs/ocean-known-month-report-software-spec-2026-10-28.md)将已公开CC0合成A成果的报告软件单列为#307→#308，贯通同源预览和Markdown/逐日CSV下载。[交付、验证与保留关口](../reports/ocean-known-month-report-implementation-2026-10-28.md)，[PR #309](https://github.com/NingRuo-code/Ocean/pull/309)。原#126/#69及其他真实研究/生产依赖保留，几何与持久任务等其他建议本批未实施；原252项与补充2项分账。
 
 新对话或跨会话接续：先读[项目交接入口](../agents/project-handoff.md)，再核对GitHub实时状态。[2026-10-28量化进度快照](../reports/ocean-progress-snapshot-2026-10-28.md)区分已结项、部分软件实现和真实前置；它不替代实时任务账。
 

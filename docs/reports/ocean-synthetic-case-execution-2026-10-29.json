@@ -1,0 +1,104 @@
+{
+  "date": "2026-10-29",
+  "baseline": "d5f95c3123e1b7f75a0925b1d894b9406444e177",
+  "implementation": "83c6f1b",
+  "pull_request": "https://github.com/NingRuo-code/Ocean/pull/313",
+  "spec": 310,
+  "software_tickets": [
+    311,
+    312
+  ],
+  "evidence_kind": "authored_CC0_synthetic_report_snapshots",
+  "research_qualification_passed": false,
+  "production_deployed": false,
+  "checks": [
+    {
+      "name": "backend",
+      "passed": 278,
+      "failed": 0,
+      "log_sha256": "ded500903de73dab5c1dfaefba5115b36aee9023c8bdcc0ff6670863077e7032"
+    },
+    {
+      "name": "python_tools",
+      "passed": 63,
+      "failed": 0,
+      "log_sha256": "ed8fb0bc915c9335dd212ec49780380391ad42c3893f88e2dc859031bc11b3dd"
+    },
+    {
+      "name": "node_tools",
+      "passed": 169,
+      "failed": 0,
+      "log_sha256": "36819ced58aa9f916c8c9fadea9855ace6a49b6ba6627a2d81e2033bec0d4d20"
+    },
+    {
+      "name": "data",
+      "passed": 922,
+      "failed": 0,
+      "log_sha256": "f3cdace6a1bdba27962689a4819d7a2046f37906ac6928f5404cdc97d61ffa79"
+    },
+    {
+      "name": "map_e2e",
+      "passed": 129,
+      "failed": 0,
+      "log_sha256": "56be59bbb72426860283fd5c0ef2245312d62f1ded22a0c94962cfab321aa94e"
+    },
+    {
+      "name": "layout",
+      "passed": 4,
+      "failed": 0,
+      "log_sha256": "029b6cb057a5831081da6edbd9b4ead544eaacf4ab55574a0d360417eacd51f5"
+    }
+  ],
+  "reviews": {
+    "standards_unresolved": 0,
+    "spec_unresolved": 0,
+    "fixed_range": "d5f95c3...83c6f1b"
+  },
+  "original_execution_tickets": {
+    "closed": 29,
+    "total": 252,
+    "open": 223
+  },
+  "prior_report_software": {
+    "closed": 2,
+    "total": 2
+  },
+  "this_case_software": {
+    "closed": 2,
+    "total": 2
+  },
+  "source_audit_snapshot_id": "sha256:653f86c7d75726ec9e5b3b677784d15b92ec765d54735197317bba077d5f1755",
+  "retained_native_dependencies": {
+    "39": [
+      37,
+      38
+    ],
+    "99": [
+      97,
+      70
+    ],
+    "126": [
+      30,
+      69
+    ],
+    "127": [
+      126,
+      120
+    ],
+    "128": [
+      127
+    ],
+    "120": [
+      119
+    ]
+  },
+  "earlier_incomplete_or_failed_runs": [
+    "initial_API_and_browser_red",
+    "catalog_maximum_unicode_over_1MiB",
+    "comma_tags_note_only_edit_changes_tags",
+    "full_node_163_of_166_duplicate_search_ID",
+    "map_128_of_129_old_check_counts_new_private_inputs",
+    "status_ID_collision_found_in_independent_review"
+  ],
+  "private_paths_or_source_records_included": false
+}
