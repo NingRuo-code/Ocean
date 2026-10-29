@@ -55,10 +55,28 @@ test("a denied owner file download clears private evidence and never falls back 
   c.onEvent(m=>{if(m.method==="Fetch.requestPaused")pending.push(c.send("Fetch.fulfillRequest",{requestId:m.params.requestId,responseCode:401,responseHeaders:[{name:"Content-Type",value:"application/json"}],body:Buffer.from("{}").toString("base64")}));});
   try{
     await c.send("Browser.setDownloadBehavior",{behavior:"allow",downloadPath:directory});await openCase(c,base);
+    await click(c,"#caseEditFields summary");await type(c,"caseEditNote","鉴权失效按原安全规则清除本草稿");
     await c.send("Fetch.enable",{patterns:[{urlPattern:"*/exports/csv?*",requestStage:"Request"}]});await click(c,"#caseExportCsv");
     await waitFor(c,"document.querySelector('#caseArchive [role=status]').textContent.includes('令牌已清除')");
     assert.equal(await c.evaluate("document.getElementById('caseOwnerToken').value"),"");assert.equal(await c.evaluate("document.getElementById('caseOriginal').textContent"),"");
+    assert.match(await c.evaluate("document.querySelector('#caseArchive [role=status]').textContent"),/未保存草稿已清除/);
     assert.deepEqual(await readdir(directory),[]);await Promise.allSettled(pending);await c.send("Fetch.disable");
+  }finally{await browser.close();await rm(directory,{recursive:true,force:true});}
+},{caseOwnerToken:owner,enableCaseStore:true}));
+
+test("an ordinary failed download retains the draft and explicitly retries the same saved version",()=>withService(async base=>{
+  const first=await savedCase(base),browser=await launchBrowser(edge),c=browser.cdp,directory=await mkdtemp(join(tmpdir(),"ocean-case-retry-")),pending=[];
+  c.onEvent(m=>{if(m.method==="Fetch.requestPaused")pending.push(c.send("Fetch.fulfillRequest",{requestId:m.params.requestId,responseCode:503,responseHeaders:[{name:"Content-Type",value:"application/json"}],body:Buffer.from("{}").toString("base64")}));});
+  try{
+    await c.send("Browser.setDownloadBehavior",{behavior:"allow",downloadPath:directory});await openCase(c,base);
+    await click(c,"#caseEditFields summary");await type(c,"caseEditNote","保留普通失败草稿");
+    await c.send("Fetch.enable",{patterns:[{urlPattern:"*/exports/csv?*",requestStage:"Request"}]});await click(c,"#caseExportCsv");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.state==='error'&&!document.getElementById('caseExportCsv').disabled");
+    assert.equal(await c.evaluate("document.getElementById('caseEditNote').value"),"保留普通失败草稿");assert.deepEqual(await readdir(directory),[]);
+    await c.send("Fetch.disable");await Promise.allSettled(pending);await click(c,"#caseExportCsv");
+    const bytes=await readFile(await downloaded(directory,".csv"));assert.match(bytes.toString("utf8"),/第一版人工笔记/);assert.doesNotMatch(bytes.toString("utf8"),/保留普通失败草稿/);
+    assert.equal(await c.evaluate("document.getElementById('caseEditNote').value"),"保留普通失败草稿");
+    const versions=await(await fetch(base+"/api/query/monthly-analysis/cases/"+first.case_id+"/versions",{headers})).json();assert.equal(versions.versions.length,1);
   }finally{await browser.close();await rm(directory,{recursive:true,force:true});}
 },{caseOwnerToken:owner,enableCaseStore:true}));
 

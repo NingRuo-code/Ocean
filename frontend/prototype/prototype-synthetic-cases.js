@@ -56,7 +56,7 @@
     catch(error){if(n!==generation)return;
       if(["http_401","http_403","source_changed"].includes(error.message))clearPrivate();
       else pane.dataset.state="error";
-      const messages={http_401:"本人访问未通过，令牌已清除。",http_403:"当前服务不允许案例操作。",http_503:"案例库或本人访问尚未启用，或存储暂不可用。",http_409:"存在版本或意图冲突，或已达64案例/16版本上限；草稿未覆盖，可读取最新版核对。",http_422:"标题、标签或笔记不符合保存限制，请修改后重试。",offline:"离线页面不能读取或保存本人案例。",owner_required:"请输入当前服务配置的本人令牌。",contract:"案例内容无法核实，未显示为成功。",source_changed:"服务来源已改变，请重新输入令牌。"};
+      const messages={http_401:"本人访问未通过，令牌已清除；未保存草稿已清除。",http_403:"当前服务不允许案例操作；令牌与未保存草稿已清除。",http_503:"案例库或本人访问尚未启用，或存储暂不可用。",http_409:"存在版本或意图冲突，或已达64案例/16版本上限；草稿未覆盖，可读取最新版核对。",http_422:"标题、标签或笔记不符合保存限制，请修改后重试。",offline:"离线页面不能读取或保存本人案例。",owner_required:"请输入当前服务配置的本人令牌。",contract:"案例内容无法核实，未显示为成功。",source_changed:"服务来源已改变，请重新输入令牌。"};
       $("caseArchiveStatus").textContent=messages[error.message]||"请求未完成；可重试同一保存意图，或读取案例核对。";
     }finally{clearTimeout(timer);if(n===generation){busy=false;updateSave();if(document.activeElement===document.body&&!pane.hidden){const target=pane.contains(opener)&&!opener.disabled?opener:$("caseVersion");target?.focus({preventScroll:true});}}}
   }
