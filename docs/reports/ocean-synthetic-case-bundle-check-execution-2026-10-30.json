@@ -1,0 +1,139 @@
+{
+  "date": "2026-10-30",
+  "baseline": "069b6587f60064238de6cc30d8c78246326a7251",
+  "implementation": "82011f3",
+  "spec": 321,
+  "software_tickets": [
+    322
+  ],
+  "evidence_kind": "browser_local_bytes_against_authenticated_saved_authored_CC0_bundle",
+  "research_qualification_passed": false,
+  "production_deployed": false,
+  "checks": [
+    {
+      "name": "backend",
+      "passed": 289,
+      "failed": 0,
+      "log_sha256": "8e14df89de56b719ecbb768281f25b519ea3b0c00e4fd760dec90551cf2327e0"
+    },
+    {
+      "name": "python-tools",
+      "passed": 63,
+      "failed": 0,
+      "log_sha256": "fbf3fff3c9f857f6974418a1a45a367cd4f502314dd3fbbf601718d1747b8e2e"
+    },
+    {
+      "name": "node",
+      "passed": 198,
+      "failed": 0,
+      "log_sha256": "bc2c4c5f5f46d7088d5260ef0a0b6a6bcc08dc0fb4947bfb55433e3ab90d077c"
+    },
+    {
+      "name": "data",
+      "passed": 922,
+      "failed": 0,
+      "log_sha256": "5f7d7dc0b203b04de104fad1e4ba69e6a49a9265b137ce34d2bf1b9242bf3929"
+    },
+    {
+      "name": "e2e",
+      "passed": 129,
+      "failed": 0,
+      "log_sha256": "04f1cfe65ae3d833de75de28035056bed1b5b268fd036c260b2175c1384d0206"
+    },
+    {
+      "name": "layout",
+      "passed": 4,
+      "failed": 0,
+      "log_sha256": "0cefd7dc74d57d20516f9445cc4928c061267a1992a37ec55f9a060813caf933"
+    }
+  ],
+  "targeted": {
+    "bundle_check_browser": 13,
+    "original_case_browser_compatibility": 28
+  },
+  "reviews": {
+    "standards_unresolved": 0,
+    "spec_unresolved": 0,
+    "fixed_range": "069b658...82011f3",
+    "documentation_fixed_range": "82011f3...4b1f550",
+    "spec_documentation_unresolved": 0,
+    "standards_documentation_unresolved": 0
+  },
+  "source_audit_snapshot_id": "sha256:653f86c7d75726ec9e5b3b677784d15b92ec765d54735197317bba077d5f1755",
+  "original_execution_tickets": {
+    "closed": 29,
+    "total": 252,
+    "open": 223
+  },
+  "prior_software_batches": {
+    "report": [
+      2,
+      2
+    ],
+    "case": [
+      2,
+      2
+    ],
+    "export": [
+      2,
+      2
+    ],
+    "chart": [
+      1,
+      1
+    ]
+  },
+  "this_bundle_check_software": {
+    "total": 1,
+    "validation_complete": 1
+  },
+  "retained_native_dependencies": {
+    "39": [
+      37,
+      38
+    ],
+    "99": [
+      97,
+      70
+    ],
+    "126": [
+      30,
+      69
+    ],
+    "127": [
+      126,
+      120
+    ],
+    "128": [
+      127
+    ],
+    "129": [
+      127
+    ],
+    "130": [
+      127
+    ],
+    "131": [
+      129
+    ],
+    "134": [
+      128,
+      130,
+      132,
+      133,
+      71
+    ],
+    "138": [
+      134,
+      136
+    ],
+    "139": [
+      133,
+      122
+    ],
+    "120": [
+      119
+    ]
+  },
+  "pull_request": "https://github.com/NingRuo-code/Ocean/pull/323"
+}

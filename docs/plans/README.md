@@ -2,7 +2,9 @@
 
 最近整理：2026-10-30。
 
-本次连续实施：[逐日PNG规格#318](../specs/ocean-synthetic-case-chart-software-spec-2026-10-29.md)与#319，承接已关闭#316，仅交付所读本人合成案例版本的逐日证据图。[验收及真实边界](../reports/ocean-synthetic-case-chart-implementation-2026-10-30.md)、[进度接续](../reports/ocean-progress-snapshot-2026-10-30-case-chart.md)。本批软件验收1/1，[PR #320](https://github.com/NingRuo-code/Ocean/pull/320)合并以实时记录为准，与原29/252及前三批各2/2另账，原#129/#127/#131与其他真实前置保留。
+本次连续实施：[本地成果包核对规格#321](../specs/ocean-synthetic-case-bundle-check-software-spec-2026-10-30.md)与#322，在所读本人合成案例版本中本地选择ZIP，与重新鉴权的精确版本原文件核对，无上传/解压/恢复。[交付与边界](../reports/ocean-synthetic-case-bundle-check-implementation-2026-10-30.md)、[分账快照](../reports/ocean-progress-snapshot-2026-10-30-bundle-check.md)。本批软件验收1/1，[PR #323](https://github.com/NingRuo-code/Ocean/pull/323)关闭/合并以实时记录为准，与原29/252、前三批各2/2及前PNG1/1分账，其他建议及真实阻塞保留。
+
+前批连续实施：[逐日PNG规格#318](../specs/ocean-synthetic-case-chart-software-spec-2026-10-29.md)与#319，承接已关闭#316，仅交付所读本人合成案例版本的逐日证据图。[验收及真实边界](../reports/ocean-synthetic-case-chart-implementation-2026-10-30.md)、[进度接续](../reports/ocean-progress-snapshot-2026-10-30-case-chart.md)。本批软件验收1/1，[PR #320](https://github.com/NingRuo-code/Ocean/pull/320)合并以实时记录为准，与原29/252及前三批各2/2另账，原#129/#127/#131与其他真实前置保留。
 
 前批连续实施：[版本导出规格#314](../specs/ocean-synthetic-case-export-software-spec-2026-10-29.md)，按#315→#316交付本人所读合成案例版本的Markdown/CSV与带校验清单ZIP。[实际验收与保留关口](../reports/ocean-synthetic-case-export-implementation-2026-10-29.md)、[本日进度](../reports/ocean-progress-snapshot-2026-10-29-case-export.md)、[PR #317](https://github.com/NingRuo-code/Ocean/pull/317)。原252项仍29/252；报告/案例/导出三批各2/2另账，未放行真实研究、TASK/权限、PDF或生产前置。
 

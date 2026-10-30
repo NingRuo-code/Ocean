@@ -22,7 +22,7 @@
       const disabled=busy||from.kind!=="server"||!$("caseOwnerToken").value;
       $("caseEditSave").disabled=disabled||JSON.stringify(metadata("caseEdit"))===JSON.stringify(selected.metadata);
       for(const key of ["caseEditTitle","caseEditTags","caseEditNote","caseVersion","caseLatest"])$(key).disabled=disabled;
-      for(const key of ["caseExportMarkdown","caseExportCsv","caseExportBundle","caseExportChart"])$(key).disabled=disabled;
+      for(const key of ["caseExportMarkdown","caseExportCsv","caseExportBundle","caseExportChart","caseCheckBundle"])$(key).disabled=disabled;
     }
   }
   function clearPrivate(clearToken=true){
@@ -54,12 +54,13 @@
     busy=true;updateSave();const parkedFocus=pane.contains(opener)&&opener.disabled;
     if(parkedFocus)$("caseLock").focus({preventScroll:true});
     $("caseArchiveStatus").textContent="正在核对本人权限与案例记录…";
-    try{await work(n);if(n!==generation)return;pane.dataset.state=state;}
+    try{await work(n);if(n!==generation)return;if(active.signal.aborted)throw Error("cancelled");pane.dataset.state=state;}
     catch(error){if(n!==generation)return;
       if(["http_401","http_403","source_changed"].includes(error.message))clearPrivate();
       else pane.dataset.state="error";
-      const messages={chart_render_failed:"图像未生成；请重试，未保存草稿保留。",http_401:"本人访问未通过，令牌已清除；未保存草稿已清除。",http_403:"当前服务不允许案例操作；令牌与未保存草稿已清除。",http_503:"案例库或本人访问尚未启用，或存储暂不可用。",http_409:"存在版本或意图冲突，或已达64案例/16版本上限；草稿未覆盖，可读取最新版核对。",http_422:"标题、标签或笔记不符合保存限制，请修改后重试。",offline:"离线页面不能读取或保存本人案例。",owner_required:"请输入当前服务配置的本人令牌。",contract:"案例内容无法核实，未显示为成功。",source_changed:"服务来源已改变，请重新输入令牌。"};
-      $("caseArchiveStatus").textContent=messages[error.message]||"请求未完成；可重试同一保存意图，或读取案例核对。";
+      const messages={bundle_mismatch:"成果包与所读版本不一致，未确认；请检查文件或阅读版本。未保存草稿保留。",bundle_file:"文件为空或无法读取，未完成核对；未保存草稿保留。",bundle_budget:"文件超过1MiB，未完成核对；未保存草稿保留。",chart_render_failed:"图像未生成；请重试，未保存草稿保留。",http_401:"本人访问未通过，令牌已清除；未保存草稿已清除。",http_403:"当前服务不允许案例操作；令牌与未保存草稿已清除。",http_503:"案例库或本人访问尚未启用，或存储暂不可用。",http_409:"存在版本或意图冲突，或已达64案例/16版本上限；草稿未覆盖，可读取最新版核对。",http_422:"标题、标签或笔记不符合保存限制，请修改后重试。",offline:"离线页面不能读取或保存本人案例。",owner_required:"请输入当前服务配置的本人令牌。",contract:"案例内容无法核实，未显示为成功。",source_changed:"服务来源已改变，请重新输入令牌。"};
+      messages.cancelled="请求已取消或超时，未完成本次操作；可重试，未保存草稿保留。";
+      $("caseArchiveStatus").textContent=messages[error.message]||(active.signal.aborted?messages.cancelled:"请求未完成；可重试同一保存意图，或读取案例核对。");
     }finally{clearTimeout(timer);if(n===generation){busy=false;updateSave();if((document.activeElement===document.body||(parkedFocus&&document.activeElement===$("caseLock")))&&!pane.hidden){const target=pane.contains(opener)&&!opener.disabled?opener:$("caseVersion");target?.focus({preventScroll:true});}}}
   }
   function show(value){
@@ -76,6 +77,12 @@
       const action=node(exports,"button",label);action.id=key;action.onclick=()=>download(format);
     }
     node(root,"p","报告、逐日表和成果包包含所读已保存版本的人工笔记；PNG仅含冻结科学证据。均不包含未保存草稿或当前地图，也不会自动公开。");
+    const checking=node(root,"details","");checking.id="caseBundleCheckFields";node(checking,"summary","核对本地成果包");
+    node(checking,"p","选择已下载的三成员ZIP（最多1MiB）。只在本地读取文件，不上传文件、文件名或路径；需联网重新核对本人及所读版本。重新压缩的包不视为完全一致，可重新选择同一文件重试。");
+    const fileLabel=node(checking,"label","选择成果包并核对"),fileInput=node(fileLabel,"input","");fileInput.id="caseCheckBundle";fileInput.type="file";fileInput.accept=".zip,application/zip";
+    fileInput.onchange=()=>{const file=fileInput.files?.[0];fileInput.value="";if(file&&selected===value)checkBundle(file,value);};
+    const checkStatus=node(checking,"p","未核对文件。");checkStatus.id="caseBundleCheckStatus";
+    fileInput.oncancel=()=>{if(!busy&&selected===value){pane.dataset.state="bundle-unchecked";checkStatus.textContent=$("caseArchiveStatus").textContent="已取消选择，未执行核对；未保存草稿保留。";}};
     const versions=node(root,"label","阅读版本（切换会替换未保存草稿）"),select=node(versions,"select","");select.id="caseVersion";
     const option=node(select,"option","版本 "+value.version);option.value=String(value.version);
     select.onchange=()=>readCase(value.case_id,Number(select.value));
@@ -118,6 +125,31 @@
       setTimeout(()=>{URL.revokeObjectURL(url);downloads.delete(url);},1000);
       $("caseArchiveStatus").textContent="已将所读案例版本交给浏览器下载；未保存草稿保留。";
     },"downloaded");
+  }
+  async function checkBundle(file,frozen){
+    const from=source();
+    await perform(async n=>{
+      $("caseBundleCheckStatus").textContent=$("caseArchiveStatus").textContent="正在本地读取并核对所读版本成果包…";
+      if(file.size>1048576)throw Error("bundle_budget");
+      if(!file.size)throw Error("bundle_file");
+      const reader=new FileReader(),signal=controller.signal;
+      const abort=()=>reader.abort();
+      let local;
+      try{
+        local=new Uint8Array(await new Promise((resolve,reject)=>{
+          reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error("bundle_file"));reader.onabort=()=>reject(Error("cancelled"));
+          signal.addEventListener("abort",abort,{once:true});reader.readAsArrayBuffer(file);
+        }));
+      }finally{signal.removeEventListener("abort",abort);reader.onload=reader.onerror=reader.onabort=null;}
+      if(n!==generation||signal.aborted)return;
+      const query="?version_id="+encodeURIComponent(frozen.version_id)+"&report_id="+encodeURIComponent(frozen.report.report_id);
+      const expected=await api("/"+frozen.case_id+"/versions/"+frozen.version+"/exports/bundle"+query,{},OceanPublicRead.bytes);
+      if(n!==generation||signal.aborted)return;
+      if(!sameSource(from,source()))throw Error("source_changed");
+      if(local.length!==expected.length||!local.every((byte,index)=>byte===expected[index]))throw Error("bundle_mismatch");
+      $("caseArchiveStatus").textContent="已核对：本地成果包与所读保存版本完全一致（版本 "+frozen.version+"）。仅核对文件一致性，不证明来源签名、研究资格或备份可恢复；未保存草稿保留。";
+    },"bundle-checked");
+    if(selected===frozen)$("caseBundleCheckStatus").textContent=$("caseArchiveStatus").textContent;
   }
   async function queryCatalog(){return api("?q="+encodeURIComponent($("caseCatalogQuery").value));}
   async function loadVersions(n){

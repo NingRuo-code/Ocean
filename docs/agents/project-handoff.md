@@ -1,11 +1,11 @@
 # Ocean 跨对话交接入口
 
-核对日期：2026-10-30。当前接续[逐日PNG规格#318](../specs/ocean-synthetic-case-chart-software-spec-2026-10-29.md)及执行#319，基线`main@e7bc63e`，功能`659d3a8`，[PR #320](https://github.com/NingRuo-code/Ocean/pull/320)；[本批交付记录](../reports/ocean-synthetic-case-chart-implementation-2026-10-30.md)和[量化接续](../reports/ocean-progress-snapshot-2026-10-30-case-chart.md)区分软件、实证及生产。前批版本导出PR #317、案例PR #313、公开报告PR #309及U1 PR #304已合并。未部署生产。实际进度须重新读取GitHub。
+核对日期：2026-10-30。当前接续[本地成果包核对规格#321](../specs/ocean-synthetic-case-bundle-check-software-spec-2026-10-30.md)与执行#322，基线`main@069b658`，功能`82011f3`，[PR #323](https://github.com/NingRuo-code/Ocean/pull/323)；[本批交付](../reports/ocean-synthetic-case-bundle-check-implementation-2026-10-30.md)和[量化接续](../reports/ocean-progress-snapshot-2026-10-30-bundle-check.md)分别记录软件、实证和生产。前PNG PR #320已合并，#318/#319关闭；版本导出PR #317、案例PR #313、公开报告PR #309及U1 PR #304已合并。未部署生产。实际进度须重新读取GitHub。
 
 ## 开始接续
 
 1. 检查当前仓库、分支、提交、远端及工作区改动，保留用户的未提交/未跟踪材料。完成条件：知道本次实际从哪个版本、哪些本地改动继续。
-2. 阅读[本日量化接续](../reports/ocean-progress-snapshot-2026-10-30-case-chart.md)、[规划入口](../plans/README.md)及本任务适用的领域/协作文档。按需读取具体规格和票据，无需每次遍历全部旧汇报。
+2. 阅读[本日量化接续](../reports/ocean-progress-snapshot-2026-10-30-bundle-check.md)、[规划入口](../plans/README.md)及本任务适用的领域/协作文档。按需读取具体规格和票据，无需每次遍历全部旧汇报。
 3. 按[Issue tracker](issue-tracker.md)使用GitHub CLI读取目标Issue正文、评论、原生阻塞及相关PR。原生依赖与正文中的事实前置均须满足；快照日期、标签ready或文件存在本身不能证明就绪。完成条件：明确可交付范围、直接前置和验收证据。
 4. 用户要求继续实施时，按已批准规格选择可执行切片。若整个候选前沿都缺资料/访问条件，先报告缺项；拟改拆分则先形成可审查规格/票据调整，保留真实关口。完成条件：选中的工作确实可执行，或阻塞已准确说明。
 5. 按适用skill在已确认的原API、CLI或真实浏览器入口实现和验证；记录实际测试、范围和不足。纯交接文档只需检查事实、链接、差异及敏感内容，不重复运行业务全套测试。
@@ -29,6 +29,7 @@
 
 ## 已完成与当前前沿
 
+- 本轮新增#321/#322独立软件票：本人在所读版本详情选择本地三成员ZIP，与重新鉴权取得的精确版本文件逐字节核对，不上传、解压或恢复。普通失败保留草稿，鉴权例外清除；退出无晚成功。[实际验证与边界](../reports/ocean-synthetic-case-bundle-check-implementation-2026-10-30.md)。原29/252、前三批各2/2、前PNG1/1与本批核对软件验收1/1分账，[PR #323](https://github.com/NingRuo-code/Ocean/pull/323)关闭/合并以实时记录为准。
 - 本轮按连续实施授权接续#318/#319：所读本人CC0合成案例版本的逐日证据图PNG。图保留正值/零/未知、全部来源/局限和身份；人工笔记、草稿、当前地图不参与。原文件/三成员ZIP合同不变，原#129/#127/#131及真实前置不关闭。[本批软件验证与关口](../reports/ocean-synthetic-case-chart-implementation-2026-10-30.md)。原252项29/252、前三批软件各2/2，本批PNG软件验收1/1单列，[PR #320](https://github.com/NingRuo-code/Ocean/pull/320)关闭/合并以实时记录为准。
 - 本轮用户继续授权规划可完整执行票并持续实施，发布补充规格#314，顺序交付#315→#316：所读本人合成案例版本的Markdown/CSV及带身份/字节数/SHA256清单ZIP。只读冻结版本，未保存草稿/当前地图不混入；普通失败保留草稿，401/403沿原安全锁定例外清除并提示。原252项29/252、报告软件2/2、案例软件2/2和本批导出2/2分账。[本批验收及真实边界](../reports/ocean-synthetic-case-export-implementation-2026-10-29.md)。
 - 前批按用户连续实施授权发布补充规格#310，顺序交付#311→#312：单一配置本人持久保存已公开CC0合成报告、检索、不可变人工信息版本及并发/重试。独立SQLite库默认关闭，原私有源、多用户、PDF和TASK保护未因此完成；原252项29/252、前批报告2/2、本批案例2/2分账。[实际验证与边界](../reports/ocean-synthetic-case-implementation-2026-10-29.md)。
@@ -43,7 +44,9 @@
 
 用户已授权规划当前可完整执行票并持续实施：前批[报告规格#306](../specs/ocean-known-month-report-software-spec-2026-10-28.md)及#307/#308、[案例规格#310](../specs/ocean-synthetic-case-software-spec-2026-10-29.md)及#311/#312；本轮[导出规格#314](../specs/ocean-synthetic-case-export-software-spec-2026-10-29.md)及#315/#316，只对既有自有CC0合成案例所读版本的本人文件和校验成果包分账。新增#316→#315→已关闭#312原生依赖，原边保留。ZIP不含PDF/PNG/数据库/原档，不等同备份恢复或来源签名。
 
-本轮[PNG规格#318](../specs/ocean-synthetic-case-chart-software-spec-2026-10-29.md)及#319只扩展所读本人合成版本的逐日证据图，承接已关闭#316；原ZIP仍未含PNG，本批PNG单独下载。地图截图、PDF与真实REPORT保留。
+前批[PNG规格#318](../specs/ocean-synthetic-case-chart-software-spec-2026-10-29.md)及#319只扩展所读本人合成版本的逐日证据图，承接已关闭#316；原ZIP仍未含PNG，本批PNG单独下载。地图截图、PDF与真实REPORT保留。
+
+本轮[本地成果包核对规格#321](../specs/ocean-synthetic-case-bundle-check-software-spec-2026-10-30.md)及#322只补充原三成员ZIP与所读本人版本的本地核对，承接已关闭#316。未改变ZIP合同，也不等于独立验签、恢复或真实REPORT。
 
 **其他几何、通用最小权限/持久任务拆分仍是建议，未发布或实施。** #39仍受#37/#38阻塞，#99仍依赖#70，#126仍依赖#69，#127仍依赖#126/#120，#128仍依赖#127；已交付的单一配置本人库与文件导出不能放行真实资料、多人/私人源权限、完整TASK保护、PDF或完整REPORT。后续按实际批准范围与实时任务选择工作。
 
@@ -52,7 +55,7 @@
 - GitHub操作使用CLI。优先现有`gh`及已有认证；当前机器曾在`tmp/tooling/github-cli/bin/gh.exe`提供临时CLI，先检查存在性。新检出不能依赖该路径、`tmp`中的脚本、私有定位或本地加工产物；缺认证时报告远端未核实，不输出令牌、口令或环境变量。
 - 进度重算方法、任务范围及分母见量化快照。规格、父工作包和PR不计入执行任务分母；部分实现仍属于未结项。
 - 工作区有用户的PPT、构建目录、历史输出等未跟踪材料。显式暂存本批文件，保留无关内容；原始AIS、细网格、凭据、真实主机地址和私有定位按[治理规则](../data-governance-gfw-ais.md)处理。
-- 浏览器全套检查会重写`docs/reports/screenshots/ocean-workbench-{1280,1440,390}.png`、`ocean-operational-status-{1440,390}.png`及`ocean-known-month-report-{1440,390,download-390}.png`及`ocean-synthetic-case-390.png`。仅在确认它们运行前未修改且确为本轮生成时恢复；保留本批特意新增的截图及用户改动。
+- 浏览器全套检查会重写`docs/reports/screenshots/ocean-workbench-{1280,1440,390}.png`、`ocean-operational-status-{1440,390}.png`及`ocean-known-month-report-{1440,390,download-390}.png`及`ocean-synthetic-case-390.png`；PNG测试还会重写`ocean-case-daily-evidence{,-unknown}.png`。仅在确认它们运行前未修改且确为本轮生成时恢复；保留本批特意新增的截图及用户改动。
 - 各批实际检查见对应交付记录；PR #304的历史通过数不是后续每次运行的预定数值。按改动运行适当检查，失败/中止不计通过；远端没有CI检查不等于CI通过。
 
 ## 更新交接
