@@ -24,6 +24,7 @@ from .owner_access import owner_requirement
 from .published_months import PUBLISHED_PATH, create_published_router
 from .schemas import BasicQueryEvidence
 from .synthetic_cases import create_case_router
+from .synthetic_runs import create_synthetic_run_router
 
 EXAMPLE_PATH = Path(__file__).parent / "examples" / "monthly-known-units.json"
 METHOD_VERSION = "monthly-known-support/v1"
@@ -109,6 +110,7 @@ def create_monthly_router(
     router.include_router(create_published_router(published_path), prefix="/published")
     router.include_router(create_capability_router(published_path))
     router.include_router(create_case_router(settings, published_path), prefix="/cases")
+    router.include_router(create_synthetic_run_router(settings, example_path, _calculate, METHOD_VERSION, PARAMETER_VERSION))
     records, lock = {}, RLock()
     require_owner = owner_requirement(settings)
 

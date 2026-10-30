@@ -871,6 +871,18 @@
     {
       "source": "backend/app/viewport_inputs.py",
       "target": "backend/app/viewport_inputs.py"
+    },
+    {
+      "source": "backend/app/synthetic_run_store.py",
+      "target": "backend/app/synthetic_run_store.py"
+    },
+    {
+      "source": "backend/app/synthetic_runs.py",
+      "target": "backend/app/synthetic_runs.py"
+    },
+    {
+      "source": "frontend/prototype/prototype-synthetic-runs.js",
+      "target": "frontend/prototype/prototype-synthetic-runs.js"
     }
   ]
 }

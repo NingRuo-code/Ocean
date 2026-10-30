@@ -13,7 +13,7 @@
     </div>
     <p id="monthDraftDirty" role="status"></p>
     <div class="month-draft-actions"><button id="monthDraftSync">使用已应用筛选</button><button id="monthDraftCheck">检查可用性</button></div>
-    <p id="monthDraftStatus" role="status">尚未提交；请先检查可用性。</p><div id="monthDraftMatches"></div>
+    <p id="monthDraftStatus" role="status">正式月研究尚未提交；请先检查可用性。</p><div id="monthDraftMatches"></div>
     <details><summary>主方案与缺项</summary><p>仅主方案；实际输入、方法、参数及资格版本待正式交接，尚不开放变体。</p><p id="monthDraftQualification">真实整月资格待接入，不能据日资料或合成样例认定合格。</p><p id="monthDraftCheckIdentity"></p></details>
     <button id="monthDraftSubmit" disabled>提交分析（待接入）</button>`;
   document.querySelector(".main").append(panel);
@@ -53,7 +53,7 @@
     generation++;controller?.abort();checkedSource=null;
     panel.dataset.state="draft";delete panel.dataset.errorCode;delete panel.dataset.requestId;delete panel.dataset.capabilityId;
     $("monthDraftMatches").replaceChildren();$("monthDraftCheckIdentity").textContent="";
-    $("monthDraftStatus").textContent=announce()?"条件尚未核对；尚未提交。":"缺少有效条件，请修正标注项。";
+    $("monthDraftStatus").textContent=announce()?"正式月研究条件尚未核对；尚未提交。":"缺少有效条件，请修正标注项。";
   }
   function initialize() {
     const current=applied();
@@ -61,7 +61,8 @@
     initialized=true;appliedAtInit=current;invalidate();
   }
   function close(restore=true) {
-    const focus=restore&&panel.contains(document.activeElement);panel.hidden=true;
+    const visible=!panel.hidden,focus=restore&&panel.contains(document.activeElement);panel.hidden=true;
+    if(visible)window.dispatchEvent(new Event("ocean-month-draft-closed"));
     $("monthlyDraftOpen").setAttribute("aria-expanded","false");
     if(focus)($("monthlyDraftOpen").getClientRects().length?$("monthlyDraftOpen"):$("workbenchToggle")).focus({preventScroll:true});
   }
@@ -101,7 +102,7 @@
       if(token!==generation)return;
       if(!sameSource(from,source()))throw Error("source_changed");
       panel.dataset.state="checked";$("monthDraftCheckIdentity").textContent=identity;
-      $("monthDraftStatus").textContent=(from.kind==="offline"?"离线：":"已核对：")+(matches.length?"有可查看的合成成果。":"没有匹配的公开成果。")+" 在线任务能力待接入，当前不能提交。";
+      $("monthDraftStatus").textContent=(from.kind==="offline"?"离线：":"已核对：")+(matches.length?"有可查看的合成成果。":"没有匹配的公开成果。")+" 正式月研究任务待接入，当前不能提交正式研究。合成小例在下方本人区域单独核对。";
       for(const item of matches){const button=document.createElement("button");button.textContent="查看匹配成果 · 合成样例";button.onclick=()=>{close(false);OceanMonthlyReader.openSavedResult(item.result_id);};$("monthDraftMatches").append(button);}
     }catch(error){
       if(token!==generation)return;

@@ -1,8 +1,12 @@
 # Ocean 项目规划入口
 
+本轮#325已按#326→#327完成软件验收2/2，[实际交付/完整回归](../reports/ocean-synthetic-run-implementation-2026-10-30.md)及[最新分账接续](../reports/ocean-progress-snapshot-2026-10-30-synthetic-runs.md)。PR/Issue终态核对GitHub；下列旧空队列记录保留为新补充前快照。
+
 最近整理：2026-10-30。
 
-本次接续核对：[当前可完整执行票与解阻顺序](ocean-current-executable-plan-2026-10-30.md)。已完整核对290个Issue及223项开放执行票依赖，当前可完整验收票为0；原29/252及8张已完成补充软件票分账。PR #323已合并，其他几何/权限/持久任务拆分仍为建议，未据此新增实施票。
+本次自主规划实施：[合成任务软件规格#325](../specs/ocean-synthetic-run-software-spec-2026-10-30.md)，按#326→#327交付本人小型同步任务的原子持久受理、历史与原意图找回。原合成计算/私有配置/真实资格分开；#99/#100/#70及原TASK依赖保留，其他未选拆分仍为建议。
+
+前次接续核对：[当前可完整执行票与解阻顺序](ocean-current-executable-plan-2026-10-30.md)。已完整核对290个Issue及223项开放执行票依赖，当前可完整验收票为0；原29/252及8张已完成补充软件票分账。PR #323已合并，其他几何/权限/持久任务拆分仍为建议，未据此新增实施票。
 
 前批连续实施：[本地成果包核对规格#321](../specs/ocean-synthetic-case-bundle-check-software-spec-2026-10-30.md)与#322，在所读本人合成案例版本中本地选择ZIP，与重新鉴权的精确版本原文件核对，无上传/解压/恢复。[交付与边界](../reports/ocean-synthetic-case-bundle-check-implementation-2026-10-30.md)、[分账快照](../reports/ocean-progress-snapshot-2026-10-30-bundle-check.md)。本批软件验收1/1，[PR #323](https://github.com/NingRuo-code/Ocean/pull/323)关闭/合并以实时记录为准，与原29/252、前三批各2/2及前PNG1/1分账，其他建议及真实阻塞保留。
 
