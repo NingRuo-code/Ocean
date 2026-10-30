@@ -6,4 +6,4 @@
 
 沿已确认真实浏览器/实际服务/最终文件接缝验证，做桌面/390视觉检查、完整回归及双轴审查。仅文件一致性，不证明研究资格、来源签名或备份恢复；其他建议和原实证关口保留。
 
-状态：软件验收完成，待PR验证后合并。新浏览器13项、原浏览器兼容28项通过；完整后端289、Python工具63、Node工具198、data922、地图129及四档布局通过，失败/取消/跳过均0。固定基线069b658的Standards/Spec代码评审各0未解决。[实际记录与边界](../../reports/ocean-synthetic-case-bundle-check-implementation-2026-10-30.md)。
+状态：软件验收完成，交付[PR #323](https://github.com/NingRuo-code/Ocean/pull/323)，关闭/合并以实时记录为准。新浏览器13项、原浏览器兼容28项通过；完整后端289、Python工具63、Node工具198、data922、地图129及四档布局通过，失败/取消/跳过均0。固定基线069b658的Standards/Spec代码评审各0未解决。[实际记录与边界](../../reports/ocean-synthetic-case-bundle-check-implementation-2026-10-30.md)。

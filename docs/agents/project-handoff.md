@@ -1,6 +1,6 @@
 # Ocean 跨对话交接入口
 
-核对日期：2026-10-30。当前接续[本地成果包核对规格#321](../specs/ocean-synthetic-case-bundle-check-software-spec-2026-10-30.md)与执行#322，基线`main@069b658`，功能`82011f3`；[本批交付](../reports/ocean-synthetic-case-bundle-check-implementation-2026-10-30.md)和[量化接续](../reports/ocean-progress-snapshot-2026-10-30-bundle-check.md)分别记录软件、实证和生产。前PNG PR #320已合并，#318/#319关闭；版本导出PR #317、案例PR #313、公开报告PR #309及U1 PR #304已合并。未部署生产。实际进度须重新读取GitHub。
+核对日期：2026-10-30。当前接续[本地成果包核对规格#321](../specs/ocean-synthetic-case-bundle-check-software-spec-2026-10-30.md)与执行#322，基线`main@069b658`，功能`82011f3`，[PR #323](https://github.com/NingRuo-code/Ocean/pull/323)；[本批交付](../reports/ocean-synthetic-case-bundle-check-implementation-2026-10-30.md)和[量化接续](../reports/ocean-progress-snapshot-2026-10-30-bundle-check.md)分别记录软件、实证和生产。前PNG PR #320已合并，#318/#319关闭；版本导出PR #317、案例PR #313、公开报告PR #309及U1 PR #304已合并。未部署生产。实际进度须重新读取GitHub。
 
 ## 开始接续
 
@@ -29,7 +29,7 @@
 
 ## 已完成与当前前沿
 
-- 本轮新增#321/#322独立软件票：本人在所读版本详情选择本地三成员ZIP，与重新鉴权取得的精确版本文件逐字节核对，不上传、解压或恢复。普通失败保留草稿，鉴权例外清除；退出无晚成功。[实际验证与边界](../reports/ocean-synthetic-case-bundle-check-implementation-2026-10-30.md)。原29/252、前三批各2/2、前PNG1/1与本批1项分账，关闭/合并以实时记录为准。
+- 本轮新增#321/#322独立软件票：本人在所读版本详情选择本地三成员ZIP，与重新鉴权取得的精确版本文件逐字节核对，不上传、解压或恢复。普通失败保留草稿，鉴权例外清除；退出无晚成功。[实际验证与边界](../reports/ocean-synthetic-case-bundle-check-implementation-2026-10-30.md)。原29/252、前三批各2/2、前PNG1/1与本批核对软件验收1/1分账，[PR #323](https://github.com/NingRuo-code/Ocean/pull/323)关闭/合并以实时记录为准。
 - 本轮按连续实施授权接续#318/#319：所读本人CC0合成案例版本的逐日证据图PNG。图保留正值/零/未知、全部来源/局限和身份；人工笔记、草稿、当前地图不参与。原文件/三成员ZIP合同不变，原#129/#127/#131及真实前置不关闭。[本批软件验证与关口](../reports/ocean-synthetic-case-chart-implementation-2026-10-30.md)。原252项29/252、前三批软件各2/2，本批PNG软件验收1/1单列，[PR #320](https://github.com/NingRuo-code/Ocean/pull/320)关闭/合并以实时记录为准。
 - 本轮用户继续授权规划可完整执行票并持续实施，发布补充规格#314，顺序交付#315→#316：所读本人合成案例版本的Markdown/CSV及带身份/字节数/SHA256清单ZIP。只读冻结版本，未保存草稿/当前地图不混入；普通失败保留草稿，401/403沿原安全锁定例外清除并提示。原252项29/252、报告软件2/2、案例软件2/2和本批导出2/2分账。[本批验收及真实边界](../reports/ocean-synthetic-case-export-implementation-2026-10-29.md)。
 - 前批按用户连续实施授权发布补充规格#310，顺序交付#311→#312：单一配置本人持久保存已公开CC0合成报告、检索、不可变人工信息版本及并发/重试。独立SQLite库默认关闭，原私有源、多用户、PDF和TASK保护未因此完成；原252项29/252、前批报告2/2、本批案例2/2分账。[实际验证与边界](../reports/ocean-synthetic-case-implementation-2026-10-29.md)。
