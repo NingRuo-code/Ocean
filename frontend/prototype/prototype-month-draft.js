@@ -61,7 +61,8 @@
     initialized=true;appliedAtInit=current;invalidate();
   }
   function close(restore=true) {
-    const focus=restore&&panel.contains(document.activeElement);panel.hidden=true;
+    const visible=!panel.hidden,focus=restore&&panel.contains(document.activeElement);panel.hidden=true;
+    if(visible)window.dispatchEvent(new Event("ocean-month-draft-closed"));
     $("monthlyDraftOpen").setAttribute("aria-expanded","false");
     if(focus)($("monthlyDraftOpen").getClientRects().length?$("monthlyDraftOpen"):$("workbenchToggle")).focus({preventScroll:true});
   }

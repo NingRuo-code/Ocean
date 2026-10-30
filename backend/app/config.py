@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     ai_timeout_seconds: float = 3.0
     monthly_execution_token: SecretStr | None = None
     case_store_path: Path | None = None
+    synthetic_run_store_path: Path | None = None
 
     model_config = SettingsConfigDict(
         env_prefix="OCEAN_",
