@@ -1,6 +1,6 @@
 # Ocean 跨对话交接入口
 
-核对日期：2026-10-30。当前接续[逐日PNG规格#318](../specs/ocean-synthetic-case-chart-software-spec-2026-10-29.md)及执行#319，基线`main@e7bc63e`，功能`659d3a8`；[本批交付记录](../reports/ocean-synthetic-case-chart-implementation-2026-10-30.md)和[量化接续](../reports/ocean-progress-snapshot-2026-10-30-case-chart.md)区分软件、实证及生产。前批版本导出PR #317、案例PR #313、公开报告PR #309及U1 PR #304已合并。未部署生产。实际进度须重新读取GitHub。
+核对日期：2026-10-30。当前接续[逐日PNG规格#318](../specs/ocean-synthetic-case-chart-software-spec-2026-10-29.md)及执行#319，基线`main@e7bc63e`，功能`659d3a8`，[PR #320](https://github.com/NingRuo-code/Ocean/pull/320)；[本批交付记录](../reports/ocean-synthetic-case-chart-implementation-2026-10-30.md)和[量化接续](../reports/ocean-progress-snapshot-2026-10-30-case-chart.md)区分软件、实证及生产。前批版本导出PR #317、案例PR #313、公开报告PR #309及U1 PR #304已合并。未部署生产。实际进度须重新读取GitHub。
 
 ## 开始接续
 
@@ -29,7 +29,7 @@
 
 ## 已完成与当前前沿
 
-- 本轮按连续实施授权接续#318/#319：所读本人CC0合成案例版本的逐日证据图PNG。图保留正值/零/未知、全部来源/局限和身份；人工笔记、草稿、当前地图不参与。原文件/三成员ZIP合同不变，原#129/#127/#131及真实前置不关闭。[本批软件验证与关口](../reports/ocean-synthetic-case-chart-implementation-2026-10-30.md)。原252项29/252、前三批软件各2/2，本批PNG1项单列，关闭/合并以实时Issue/PR为准。
+- 本轮按连续实施授权接续#318/#319：所读本人CC0合成案例版本的逐日证据图PNG。图保留正值/零/未知、全部来源/局限和身份；人工笔记、草稿、当前地图不参与。原文件/三成员ZIP合同不变，原#129/#127/#131及真实前置不关闭。[本批软件验证与关口](../reports/ocean-synthetic-case-chart-implementation-2026-10-30.md)。原252项29/252、前三批软件各2/2，本批PNG软件验收1/1单列，[PR #320](https://github.com/NingRuo-code/Ocean/pull/320)关闭/合并以实时记录为准。
 - 本轮用户继续授权规划可完整执行票并持续实施，发布补充规格#314，顺序交付#315→#316：所读本人合成案例版本的Markdown/CSV及带身份/字节数/SHA256清单ZIP。只读冻结版本，未保存草稿/当前地图不混入；普通失败保留草稿，401/403沿原安全锁定例外清除并提示。原252项29/252、报告软件2/2、案例软件2/2和本批导出2/2分账。[本批验收及真实边界](../reports/ocean-synthetic-case-export-implementation-2026-10-29.md)。
 - 前批按用户连续实施授权发布补充规格#310，顺序交付#311→#312：单一配置本人持久保存已公开CC0合成报告、检索、不可变人工信息版本及并发/重试。独立SQLite库默认关闭，原私有源、多用户、PDF和TASK保护未因此完成；原252项29/252、前批报告2/2、本批案例2/2分账。[实际验证与边界](../reports/ocean-synthetic-case-implementation-2026-10-29.md)。
 - 此前用户授权规划当前可完整执行票并连续实施：补充规格#306下#307→#308，交付已有公开CC0合成A成果的同源报告预览、Markdown与逐日CSV。复用原月结果/底部证据及公开读取边界；不依赖真实原档，不关闭#126/#69等原真实验收。[本批软件与实证边界](../reports/ocean-known-month-report-implementation-2026-10-28.md)、[最新进度接续](../reports/ocean-progress-snapshot-2026-10-28-report-software.md)。原252项与补充2项分开统计。

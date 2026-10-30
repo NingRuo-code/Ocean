@@ -57,7 +57,10 @@
   "reviews": {
     "standards_unresolved": 0,
     "spec_unresolved": 0,
-    "fixed_range": "e7bc63e...9b796d7"
+    "fixed_range": "e7bc63e...9b796d7",
+    "documentation_fixed_range": "9b796d7...77020b5",
+    "spec_documentation_unresolved": 0,
+    "standards_documentation_unresolved": 0
   },
   "source_audit_snapshot_id": "sha256:653f86c7d75726ec9e5b3b677784d15b92ec765d54735197317bba077d5f1755",
   "original_execution_tickets": {
@@ -127,5 +130,6 @@
     "120": [
       119
     ]
-  }
+  },
+  "pull_request": "https://github.com/NingRuo-code/Ocean/pull/320"
 }

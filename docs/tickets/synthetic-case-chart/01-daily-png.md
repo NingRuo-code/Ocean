@@ -6,4 +6,4 @@
 
 真实浏览器落盘PNG独立检查尺寸、像素/中文及科学语义，覆盖权限、旧版、全未知/有效零、长文本、失败、超限与取消；原文件/ZIP/案例兼容后做完整回归和双轴评审。
 
-状态：实现、定向验收及独立双轴代码评审完成，最终完整检查通过，待PR验证后合并。图示API4项及原案例/月报告兼容57项、新旧浏览器28项通过；完整后端289、Python工具63、Node工具185、data922、地图129、四档布局通过。Standards/Spec固定范围`e7bc63e...9b796d7`未解决项各0。实际最终结果见[交付记录](../../reports/ocean-synthetic-case-chart-implementation-2026-10-30.md)。
+状态：实现、定向验收及独立双轴代码评审完成，最终完整检查通过，交付[PR #320](https://github.com/NingRuo-code/Ocean/pull/320)，关闭及合并以实时记录为准。图示API4项及原案例/月报告兼容57项、新旧浏览器28项通过；完整后端289、Python工具63、Node工具185、data922、地图129、四档布局通过。Standards/Spec固定范围`e7bc63e...9b796d7`未解决项各0。实际最终结果见[交付记录](../../reports/ocean-synthetic-case-chart-implementation-2026-10-30.md)。
