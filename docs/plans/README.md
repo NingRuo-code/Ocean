@@ -1,5 +1,7 @@
 # Ocean 项目规划入口
 
+本轮#325已按#326→#327完成软件验收2/2，[实际交付/完整回归](../reports/ocean-synthetic-run-implementation-2026-10-30.md)及[最新分账接续](../reports/ocean-progress-snapshot-2026-10-30-synthetic-runs.md)。PR/Issue终态核对GitHub；下列旧空队列记录保留为新补充前快照。
+
 最近整理：2026-10-30。
 
 本次自主规划实施：[合成任务软件规格#325](../specs/ocean-synthetic-run-software-spec-2026-10-30.md)，按#326→#327交付本人小型同步任务的原子持久受理、历史与原意图找回。原合成计算/私有配置/真实资格分开；#99/#100/#70及原TASK依赖保留，其他未选拆分仍为建议。

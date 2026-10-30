@@ -1,0 +1,128 @@
+{
+  "date": "2026-10-30",
+  "baseline": "438b844cb474ccb0f3ea57e3a277a54313072865",
+  "implementation_commits": [
+    "38a76b4",
+    "cfe8835",
+    "b5d2609",
+    "be5d230"
+  ],
+  "spec": 325,
+  "software_tickets": [
+    326,
+    327
+  ],
+  "evidence_kind": "authenticated_atomic_terminal_records_for_authored_CC0_synthetic_months",
+  "research_qualification_passed": false,
+  "production_deployed": false,
+  "checks": [
+    {
+      "name": "backend",
+      "passed": 304,
+      "failed": 0,
+      "log_sha256": "0ab96a1242b9b5d604833bbcdf5415b3f07a2b316d48d05583e2173ff74117af"
+    },
+    {
+      "name": "python-tools",
+      "passed": 63,
+      "failed": 0,
+      "log_sha256": "002e010a99abe68b26089431b99d69e49c71eb73d4f98130704fded1502d816d"
+    },
+    {
+      "name": "node",
+      "passed": 217,
+      "failed": 0,
+      "log_sha256": "a9895bf96ab21043fe7554179e88c624605dabf26f9897444fa79566b149601d"
+    },
+    {
+      "name": "data",
+      "passed": 922,
+      "failed": 0,
+      "log_sha256": "5f7d7dc0b203b04de104fad1e4ba69e6a49a9265b137ce34d2bf1b9242bf3929"
+    },
+    {
+      "name": "e2e",
+      "passed": 129,
+      "failed": 0,
+      "log_sha256": "04f1cfe65ae3d833de75de28035056bed1b5b268fd036c260b2175c1384d0206"
+    },
+    {
+      "name": "layout",
+      "passed": 4,
+      "failed": 0,
+      "log_sha256": "0cefd7dc74d57d20516f9445cc4928c061267a1992a37ec55f9a060813caf933"
+    }
+  ],
+  "targeted": {
+    "task_api": 15,
+    "task_browser": 19,
+    "s01_original_monthly_api": 30,
+    "original_month_draft_browser": 6,
+    "original_month_reading_browser": 7
+  },
+  "reviews": {
+    "code_range": "438b844...be5d230",
+    "standards_unresolved": 0,
+    "spec_unresolved": 0,
+    "initial_spec_p2": "stale preparation response after draft edit; fixed cfe8835",
+    "documentation_review": "recorded separately in delivery PR after final evidence commit"
+  },
+  "source_audit_snapshot_id": "sha256:653f86c7d75726ec9e5b3b677784d15b92ec765d54735197317bba077d5f1755",
+  "original_execution_tickets": {
+    "closed": 29,
+    "total": 252,
+    "open": 223
+  },
+  "prior_supplemental_software_tickets": {
+    "validated": 8,
+    "total": 8
+  },
+  "this_synthetic_run_software": {
+    "validated": 2,
+    "total": 2
+  },
+  "github_pre_merge_snapshot": {
+    "all_issues": 293,
+    "closed": 44,
+    "open": 249,
+    "s01_closed": true,
+    "s02_open": true,
+    "spec_open": true
+  },
+  "retained_native_dependencies": {
+    "39": [
+      37,
+      38
+    ],
+    "99": [
+      97,
+      70
+    ],
+    "100": [
+      99,
+      31
+    ],
+    "70": [
+      64,
+      43
+    ],
+    "119": [
+      110,
+      112
+    ],
+    "120": [
+      119
+    ],
+    "122": [
+      120
+    ]
+  },
+  "not_proven": [
+    "real_research_qualification",
+    "production_deployment",
+    "generic_task_queue_or_resume",
+    "multiuser_private_source_permissions",
+    "TASK_protection_cleanup_backup_recovery",
+    "timed_process_power_loss_during_sqlite_commit"
+  ]
+}

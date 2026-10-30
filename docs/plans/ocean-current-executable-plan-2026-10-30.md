@@ -1,5 +1,7 @@
 # 当前可完整执行票与接续顺序 — 2026-10-30
 
+本轮#325已按#326→#327完成软件验收2/2，[实际交付/完整回归](../reports/ocean-synthetic-run-implementation-2026-10-30.md)及[最新分账接续](../reports/ocean-progress-snapshot-2026-10-30-synthetic-runs.md)。PR/Issue终态核对GitHub；下列旧空队列记录保留为新补充前快照。
+
 同日后续：用户再次明确授权自主规划实现顺序，已发布[补充软件规格#325](../specs/ocean-synthetic-run-software-spec-2026-10-30.md)及#326/#327。下文保留新规格发布前的全量核对快照，不代表新补充任务不存在；原真实任务与事实阻塞仍保留。
 
 本次从`main@30f0e8a`重新读取GitHub全部290个Issue的正文、评论、状态和标签，并逐项查询223个开放原执行票的原生依赖。前批[PR #323](https://github.com/NingRuo-code/Ocean/pull/323)已合并，#321/#322已关闭；当前仅有历史PR #23开放。用户未提供新的研究原档或服务器条件。
