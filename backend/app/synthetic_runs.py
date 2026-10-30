@@ -85,6 +85,16 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
 
         return guarded(lambda: store.submit(body, execute))
 
+    @router.get("")
+    def history(response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        return {"schema_version": "ocean-owner-synthetic-history/v1", "runs": guarded(store.catalog)}
+
+    @router.get("/intents/{intent_id}")
+    def read_intent(intent_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        return guarded(lambda: store.read_intent(intent_id))
+
     @router.get("/{run_id}")
     def read(run_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response):
         response.headers["Cache-Control"] = "no-store"

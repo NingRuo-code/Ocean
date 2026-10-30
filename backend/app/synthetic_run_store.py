@@ -145,3 +145,19 @@ class RunStore:
         with self.connection() as db:
             row = db.execute("SELECT id,intent,fingerprint,payload FROM runs WHERE id=?", (identity,)).fetchone() if db else None
             return self.checked(row)
+
+    def read_intent(self, intent):
+        with self.connection() as db:
+            row = db.execute("SELECT id,intent,fingerprint,payload FROM runs WHERE intent=?", (intent,)).fetchone() if db else None
+            return self.checked(row)
+
+    def catalog(self):
+        with self.connection() as db:
+            if db is None:
+                return []
+            rows = db.execute("SELECT id,intent,fingerprint,payload FROM runs ORDER BY rowid DESC LIMIT 65").fetchall()
+            if len(rows) > 64:
+                raise RunStoreError("unavailable")
+            return [{key: value for key, value in self.checked(row).items() if key in {
+                "id", "intent_id", "record_id", "submission_id", "request", "input_sha256", "state", "submitted_at", "finished_at", "error"
+            }} for row in rows]

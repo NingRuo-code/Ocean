@@ -134,6 +134,9 @@ def test_capacity_preserves_old_records_and_allows_replay_after_source_loss(tmp_
         first = first or response.json()
     original = submission(source, "0" * 32)
     assert client.post(BASE, headers=AUTH, json=submission(source, "f" * 32)).status_code == 409
+    history = client.get(BASE, headers=AUTH)
+    assert len(history.json()["runs"]) == 64
+    assert len(history.content) <= 1_048_576
     source.unlink()
     assert client.post(BASE, headers=AUTH, json=original).json() == first
     assert client.get(BASE + "/" + first["id"], headers=AUTH).json() == first
@@ -174,4 +177,53 @@ def test_write_lock_failure_keeps_old_readable_record_and_can_explicitly_retry(t
         assert client.post(BASE, headers=AUTH, json=body).status_code == 503
         assert client.get(BASE + "/" + original["id"], headers=AUTH).json() == original
         db.rollback()
+    assert client.post(BASE, headers=AUTH, json=body).status_code == 200
+
+
+def test_authorized_history_and_intent_recover_the_original_record_after_service_restart(tmp_path):
+    client, source = run_client(tmp_path)
+    assert client.get(BASE, headers=AUTH).json()["runs"] == []
+    assert not (tmp_path / "runs.sqlite3").exists()
+    first_body = submission(source, "1" * 32)
+    first = client.post(BASE, headers=AUTH, json=first_body).json()
+    second = client.post(BASE, headers=AUTH, json=submission(source, "2" * 32)).json()
+    other, _ = run_client(tmp_path, source)
+    source.unlink()
+    history = other.get(BASE, headers=AUTH).json()
+    assert history["schema_version"] == "ocean-owner-synthetic-history/v1"
+    assert [r["id"] for r in history["runs"]] == [second["id"], first["id"]]
+    assert all("result" not in r for r in history["runs"])
+    assert other.get(BASE + "/intents/" + first_body["intent_id"], headers=AUTH).json() == first
+    assert other.get(BASE + "/intents/" + "f" * 32, headers=AUTH).status_code == 404
+    assert other.get(BASE).status_code == 401
+    assert other.get(BASE + "/intents/" + first_body["intent_id"]).status_code == 401
+
+
+def test_currently_missing_intent_can_later_commit_and_is_not_negative_acceptance_proof(tmp_path):
+    client, source = run_client(tmp_path)
+    client.post(BASE, headers=AUTH, json=submission(source))
+    body = submission(source, "c" * 32)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        with sqlite3.connect(tmp_path / "runs.sqlite3", isolation_level=None) as db:
+            db.execute("BEGIN IMMEDIATE")
+            future = pool.submit(client.post, BASE, headers=AUTH, json=body)
+            assert client.get(BASE + "/intents/" + body["intent_id"], headers=AUTH).status_code == 404
+            db.rollback()
+        response = future.result()
+    assert response.status_code == 200
+    assert client.get(BASE + "/intents/" + body["intent_id"], headers=AUTH).json() == response.json()
+
+
+def test_actual_storage_write_failure_rolls_back_acceptance_and_preserves_old_results(tmp_path):
+    client, source = run_client(tmp_path)
+    old = client.post(BASE, headers=AUTH, json=submission(source)).json()
+    body = submission(source, "d" * 32)
+    with sqlite3.connect(tmp_path / "runs.sqlite3") as db:
+        db.execute("CREATE TRIGGER controlled_failure BEFORE INSERT ON runs BEGIN SELECT RAISE(ABORT,'self-authored write failure'); END")
+    response = client.post(BASE, headers=AUTH, json=body)
+    assert response.status_code == 503
+    assert client.get(BASE + "/intents/" + body["intent_id"], headers=AUTH).status_code == 404
+    assert client.get(BASE + "/" + old["id"], headers=AUTH).json() == old
+    with sqlite3.connect(tmp_path / "runs.sqlite3") as db:
+        db.execute("DROP TRIGGER controlled_failure")
     assert client.post(BASE, headers=AUTH, json=body).status_code == 200
