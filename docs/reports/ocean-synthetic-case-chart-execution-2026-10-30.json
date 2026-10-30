@@ -1,0 +1,131 @@
+{
+  "date": "2026-10-30",
+  "baseline": "e7bc63e4780f33d0e8e61f7f2b89be80a8a8d302",
+  "implementation": "659d3a8",
+  "review_head": "9b796d7",
+  "spec": 318,
+  "software_tickets": [
+    319
+  ],
+  "evidence_kind": "owner_download_of_authored_CC0_frozen_daily_evidence_PNG",
+  "research_qualification_passed": false,
+  "production_deployed": false,
+  "checks": [
+    {
+      "name": "backend",
+      "passed": 289,
+      "failed": 0,
+      "log_sha256": "98ea82769eecfcc153e973e3b8b404190f1f5083343a98aadb8519d7162c377d"
+    },
+    {
+      "name": "python-tools",
+      "passed": 63,
+      "failed": 0,
+      "log_sha256": "aba04ca7108943b0b5ebc736f9653890aafd4c1e643b45b96b7e39ca12e5b38f"
+    },
+    {
+      "name": "node",
+      "passed": 185,
+      "failed": 0,
+      "log_sha256": "ccfe85c8ee281c08b711d9e2a49c32040617d75f951bd5fcd6c59ffd9f3d3bc9"
+    },
+    {
+      "name": "data",
+      "passed": 922,
+      "failed": 0,
+      "log_sha256": "5f7d7dc0b203b04de104fad1e4ba69e6a49a9265b137ce34d2bf1b9242bf3929"
+    },
+    {
+      "name": "e2e",
+      "passed": 129,
+      "failed": 0,
+      "log_sha256": "04f1cfe65ae3d833de75de28035056bed1b5b268fd036c260b2175c1384d0206"
+    },
+    {
+      "name": "layout",
+      "passed": 4,
+      "failed": 0,
+      "log_sha256": "0cefd7dc74d57d20516f9445cc4928c061267a1992a37ec55f9a060813caf933"
+    }
+  ],
+  "targeted": {
+    "chart_api": 4,
+    "case_month_report_api_compatibility_total": 57,
+    "chart_browser": 7,
+    "all_case_browser_compatibility_total": 28
+  },
+  "reviews": {
+    "standards_unresolved": 0,
+    "spec_unresolved": 0,
+    "fixed_range": "e7bc63e...9b796d7"
+  },
+  "source_audit_snapshot_id": "sha256:653f86c7d75726ec9e5b3b677784d15b92ec765d54735197317bba077d5f1755",
+  "original_execution_tickets": {
+    "closed": 29,
+    "total": 252,
+    "open": 223
+  },
+  "prior_software_batches": {
+    "report": [
+      2,
+      2
+    ],
+    "case": [
+      2,
+      2
+    ],
+    "export": [
+      2,
+      2
+    ]
+  },
+  "this_chart_software": {
+    "total": 1,
+    "validation_complete": 1
+  },
+  "retained_native_dependencies": {
+    "39": [
+      37,
+      38
+    ],
+    "99": [
+      97,
+      70
+    ],
+    "126": [
+      30,
+      69
+    ],
+    "127": [
+      126,
+      120
+    ],
+    "128": [
+      127
+    ],
+    "129": [
+      127
+    ],
+    "130": [
+      127
+    ],
+    "134": [
+      128,
+      130,
+      132,
+      133,
+      71
+    ],
+    "138": [
+      134,
+      136
+    ],
+    "139": [
+      133,
+      122
+    ],
+    "120": [
+      119
+    ]
+  }
+}

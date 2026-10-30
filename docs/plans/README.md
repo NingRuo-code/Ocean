@@ -1,8 +1,10 @@
 # Ocean 项目规划入口
 
-最近整理：2026-10-29。
+最近整理：2026-10-30。
 
-本次连续实施：[版本导出规格#314](../specs/ocean-synthetic-case-export-software-spec-2026-10-29.md)，按#315→#316交付本人所读合成案例版本的Markdown/CSV与带校验清单ZIP。[实际验收与保留关口](../reports/ocean-synthetic-case-export-implementation-2026-10-29.md)、[本日进度](../reports/ocean-progress-snapshot-2026-10-29-case-export.md)、[PR #317](https://github.com/NingRuo-code/Ocean/pull/317)。原252项仍29/252；报告/案例/导出三批各2/2另账，未放行真实研究、TASK/权限、PDF或生产前置。
+本次连续实施：[逐日PNG规格#318](../specs/ocean-synthetic-case-chart-software-spec-2026-10-29.md)与#319，承接已关闭#316，仅交付所读本人合成案例版本的逐日证据图。[验收及真实边界](../reports/ocean-synthetic-case-chart-implementation-2026-10-30.md)、[进度接续](../reports/ocean-progress-snapshot-2026-10-30-case-chart.md)。本批1项与原29/252及前三批各2/2另账，原#129/#127/#131与其他真实前置保留。
+
+前批连续实施：[版本导出规格#314](../specs/ocean-synthetic-case-export-software-spec-2026-10-29.md)，按#315→#316交付本人所读合成案例版本的Markdown/CSV与带校验清单ZIP。[实际验收与保留关口](../reports/ocean-synthetic-case-export-implementation-2026-10-29.md)、[本日进度](../reports/ocean-progress-snapshot-2026-10-29-case-export.md)、[PR #317](https://github.com/NingRuo-code/Ocean/pull/317)。原252项仍29/252；报告/案例/导出三批各2/2另账，未放行真实研究、TASK/权限、PDF或生产前置。
 
 前批案例实施：[案例软件规格#310](../specs/ocean-synthetic-case-software-spec-2026-10-29.md)，按#311→#312交付单一配置本人合成报告持久案例、检索与不可变人工信息版本。[交付及不足](../reports/ocean-synthetic-case-implementation-2026-10-29.md)、[本日进度](../reports/ocean-progress-snapshot-2026-10-29-case-software.md)、[PR #313](https://github.com/NingRuo-code/Ocean/pull/313)。原252项仍29/252；前批报告2/2与本批案例2/2另计，原真实研究、通用权限/TASK与生产依赖保留。
 
