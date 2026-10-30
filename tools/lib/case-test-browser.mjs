@@ -28,4 +28,3 @@ export async function downloaded(directory,extension){
   for(let n=0;n<200;n++){const file=(await readdir(directory)).find(name=>name.endsWith(extension));if(file)return join(directory,file);await delay(50);}
   assert.fail("Browser did not download "+extension);
 }
-
