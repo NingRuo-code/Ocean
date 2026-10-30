@@ -160,5 +160,11 @@
       "number": 23,
       "title": "新增按钮呼出的任务工作台并明确观测与实验性趋势"
     }
-  ]
+  ],
+  "reviews": {
+    "fixed_range": "30f0e8a...900089d",
+    "standards_unresolved": 0,
+    "spec_unresolved": 0
+  },
+  "pull_request": "https://github.com/NingRuo-code/Ocean/pull/324"
 }
