@@ -108,3 +108,19 @@ test("a changed echoed request cannot be shown as the submitted task even if its
     assert.equal(await c.evaluate("document.getElementById('ownerRunResult').textContent"),'');
   }finally{await browser.close();}
 },{caseOwnerToken:owner,enableSyntheticRuns:true}));
+
+test("editing conditions discards a pending preparation without discarding a sent submission intent",()=>withService(async base=>{
+  const browser=await launchBrowser(edge),c=browser.cdp;let held;
+  c.onEvent(m=>{if(m.method==='Fetch.requestPaused')held=m.params.requestId;});
+  try{
+    await open(c,base);await c.send('Fetch.enable',{patterns:[{urlPattern:'*/owner-runs/options',requestStage:'Request'}]});await click(c,'#ownerRunPrepare');
+    for(let n=0;n<100&&!held;n++)await new Promise(r=>setTimeout(r,25));assert.ok(held);
+    await c.evaluate("document.getElementById('monthDraftMonth').value='2024-03';document.getElementById('monthDraftMonth').dispatchEvent(new Event('input',{bubbles:true}))");
+    await c.send('Fetch.continueRequest',{requestId:held}).catch(()=>{});await c.send('Fetch.disable');
+    await waitFor(c,"!document.getElementById('ownerRunPrepare').disabled");
+    assert.equal(await c.evaluate("document.getElementById('ownerRunSubmit').disabled"),true);
+    assert.equal(await c.evaluate("document.getElementById('ownerRunPrepared').textContent"),'');
+    await click(c,'#ownerRunPrepare');await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='prepared'");
+    assert.match(await c.evaluate("document.getElementById('ownerRunPrepared').textContent"),/2024-03/);
+  }finally{await browser.close();}
+},{caseOwnerToken:owner,enableSyntheticRuns:true}));

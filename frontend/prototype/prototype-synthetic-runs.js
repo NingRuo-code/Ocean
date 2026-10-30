@@ -82,7 +82,7 @@
   $('ownerRunRead').onclick=()=>perform(async n=>{const identity=selected.id;const value=await net('/'+identity);if(n!==generation)return;show(value,{id:identity});});
   $('ownerRunNew').onclick=()=>{pending=null;prepared=null;set('draft','已清除本页提交引用；服务任务没有取消或删除，可重新核对条件以明确创建新意图。');update();};
   $('ownerRunLock').onclick=()=>clearPrivate();$('ownerRunToken').oninput=()=>{clearPrivate(false);sessionSource=source();};
-  window.addEventListener('ocean-month-draft',e=>{draft=e.detail?.longitude===null?null:e.detail;prepared=null;$('ownerRunPrepared').textContent='';if(!busy&&!pending)set('draft','条件已改变；请重新核对。');update();});
+  window.addEventListener('ocean-month-draft',e=>{if(root.dataset.state==='checking'){generation++;controller?.abort();busy=false;}draft=e.detail?.longitude===null?null:e.detail;prepared=null;$('ownerRunPrepared').textContent='';if(!busy&&!pending)set('draft','条件已改变；请重新核对。');update();});
   window.addEventListener('ocean-month-draft-closed',()=>clearPrivate());
   window.addEventListener('ocean-load-state',()=>{if(sessionSource&&!sameSource(sessionSource,source()))clearPrivate();update();});
   update();
