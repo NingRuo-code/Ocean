@@ -82,14 +82,18 @@ def render_aggregate_table(metadata, header, rows, representation, *, title="Oce
             return "未知"
         return str(value).replace("\r", " ").replace("\n", " ").translate(escapes)
 
+    labels = {"date": "日期", "state": "状态", "fishing_hours": "小时 (h)",
+              "effective_area_km2": "有效面积 (km²)", "area_time_km2_days": "面积时间 (km²·d)",
+              "excluded_units": "排除单位数"}
+
     lines = [
         "# " + title, "", "合成样例；真实研究资格未通过。", "",
         "## 条件、指标与来源", "", "| 字段 | 值 |", "| --- | --- |",
         *[f"| {plain(key)} | {plain(value)} |" for key, value in metadata],
         "", "## 逐日聚合", "",
         "单位：活动小时 h；有效面积 km²；面积时间 km²·d。未知日未补零。", "",
-        "| 日期 | 状态 | 小时 (h) | 有效面积 (km²) | 面积时间 (km²·d) |" + (" 排除单位数 |" if len(header) == 6 else ""),
-        "| --- | --- | ---: | ---: | ---: |" + (" ---: |" if len(header) == 6 else ""),
+        "| " + " | ".join(labels[key] for key in header) + " |",
+        "| " + " | ".join("---" if key in {"date", "state"} else "---:" for key in header) + " |",
         *["| " + " | ".join(plain(value) for value in row) + " |" for row in rows], "",
     ]
     return "\n".join(lines)
