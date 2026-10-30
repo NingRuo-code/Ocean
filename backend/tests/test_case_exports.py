@@ -40,7 +40,7 @@ def test_downloads_keep_selected_saved_version_notes_and_evidence_without_source
     assert client.get(BASE + "/cases/" + first["case_id"] + "/versions", headers=AUTH).json()["versions"][0]["version"] == 2
 
 
-@pytest.mark.parametrize("representation", ["markdown", "csv", "bundle"])
+@pytest.mark.parametrize("representation", ["markdown", "csv", "bundle", "chart"])
 def test_download_authorization_identity_and_not_found_fail_without_files(tmp_path, representation):
     client, _ = case_client(tmp_path)
     first = client.post(BASE + "/cases", headers=AUTH, json=save_request(client)).json()

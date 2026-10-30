@@ -22,7 +22,7 @@
       const disabled=busy||from.kind!=="server"||!$("caseOwnerToken").value;
       $("caseEditSave").disabled=disabled||JSON.stringify(metadata("caseEdit"))===JSON.stringify(selected.metadata);
       for(const key of ["caseEditTitle","caseEditTags","caseEditNote","caseVersion","caseLatest"])$(key).disabled=disabled;
-      for(const key of ["caseExportMarkdown","caseExportCsv","caseExportBundle"])$(key).disabled=disabled;
+      for(const key of ["caseExportMarkdown","caseExportCsv","caseExportBundle","caseExportChart"])$(key).disabled=disabled;
     }
   }
   function clearPrivate(clearToken=true){
@@ -51,14 +51,16 @@
   async function perform(work,state){
     if(busy)return;
     controller?.abort();controller=new AbortController();const active=controller,n=++generation,timer=setTimeout(()=>active.abort(),10000),opener=document.activeElement;
-    busy=true;updateSave();$("caseArchiveStatus").textContent="正在核对本人权限与案例记录…";
+    busy=true;updateSave();const parkedFocus=pane.contains(opener)&&opener.disabled;
+    if(parkedFocus)$("caseLock").focus({preventScroll:true});
+    $("caseArchiveStatus").textContent="正在核对本人权限与案例记录…";
     try{await work(n);if(n!==generation)return;pane.dataset.state=state;}
     catch(error){if(n!==generation)return;
       if(["http_401","http_403","source_changed"].includes(error.message))clearPrivate();
       else pane.dataset.state="error";
-      const messages={http_401:"本人访问未通过，令牌已清除；未保存草稿已清除。",http_403:"当前服务不允许案例操作；令牌与未保存草稿已清除。",http_503:"案例库或本人访问尚未启用，或存储暂不可用。",http_409:"存在版本或意图冲突，或已达64案例/16版本上限；草稿未覆盖，可读取最新版核对。",http_422:"标题、标签或笔记不符合保存限制，请修改后重试。",offline:"离线页面不能读取或保存本人案例。",owner_required:"请输入当前服务配置的本人令牌。",contract:"案例内容无法核实，未显示为成功。",source_changed:"服务来源已改变，请重新输入令牌。"};
+      const messages={chart_render_failed:"图像未生成；请重试，未保存草稿保留。",http_401:"本人访问未通过，令牌已清除；未保存草稿已清除。",http_403:"当前服务不允许案例操作；令牌与未保存草稿已清除。",http_503:"案例库或本人访问尚未启用，或存储暂不可用。",http_409:"存在版本或意图冲突，或已达64案例/16版本上限；草稿未覆盖，可读取最新版核对。",http_422:"标题、标签或笔记不符合保存限制，请修改后重试。",offline:"离线页面不能读取或保存本人案例。",owner_required:"请输入当前服务配置的本人令牌。",contract:"案例内容无法核实，未显示为成功。",source_changed:"服务来源已改变，请重新输入令牌。"};
       $("caseArchiveStatus").textContent=messages[error.message]||"请求未完成；可重试同一保存意图，或读取案例核对。";
-    }finally{clearTimeout(timer);if(n===generation){busy=false;updateSave();if(document.activeElement===document.body&&!pane.hidden){const target=pane.contains(opener)&&!opener.disabled?opener:$("caseVersion");target?.focus({preventScroll:true});}}}
+    }finally{clearTimeout(timer);if(n===generation){busy=false;updateSave();if((document.activeElement===document.body||(parkedFocus&&document.activeElement===$("caseLock")))&&!pane.hidden){const target=pane.contains(opener)&&!opener.disabled?opener:$("caseVersion");target?.focus({preventScroll:true});}}}
   }
   function show(value){
     selected=verify(value);const root=$("caseOriginal"),r=value.report.result,m=r.metrics;root.replaceChildren();
@@ -70,10 +72,10 @@
     node(root,"p",value.report.interpretation.boundary);
     node(root,"p","仅证明保存时核验的合成快照；当前源未重查，不代表仍可用或能够原样复算。 "+value.created_at);
     const exports=node(root,"div","");exports.className="monthly-actions";
-    for(const [format,label,key] of [["markdown","下载Markdown报告","caseExportMarkdown"],["csv","下载逐日CSV","caseExportCsv"],["bundle","下载带清单成果包","caseExportBundle"]]){
+    for(const [format,label,key] of [["markdown","下载Markdown报告","caseExportMarkdown"],["csv","下载逐日CSV","caseExportCsv"],["bundle","下载带清单成果包","caseExportBundle"],["chart","下载逐日证据图PNG","caseExportChart"]]){
       const action=node(exports,"button",label);action.id=key;action.onclick=()=>download(format);
     }
-    node(root,"p","导出包含所读已保存版本的人工笔记和合成证据，不包含未保存草稿，也不会自动公开。");
+    node(root,"p","报告、逐日表和成果包包含所读已保存版本的人工笔记；PNG仅含冻结科学证据。均不包含未保存草稿或当前地图，也不会自动公开。");
     const versions=node(root,"label","阅读版本（切换会替换未保存草稿）"),select=node(versions,"select","");select.id="caseVersion";
     const option=node(select,"option","版本 "+value.version);option.value=String(value.version);
     select.onchange=()=>readCase(value.case_id,Number(select.value));
@@ -106,8 +108,11 @@
       const data=await api("/"+frozen.case_id+"/versions/"+frozen.version+"/exports/"+format+query,{},OceanPublicRead.bytes);
       if(n!==generation)return;
       if(!sameSource(from,source()))throw Error("source_changed");
-      const [extension,media]={markdown:["md","text/markdown;charset=utf-8"],csv:["csv","text/csv;charset=utf-8"],bundle:["zip","application/zip"]}[format];
-      const url=URL.createObjectURL(new Blob([data],{type:media}));downloads.add(url);
+      const [extension,media]={markdown:["md","text/markdown;charset=utf-8"],csv:["csv","text/csv;charset=utf-8"],bundle:["zip","application/zip"],chart:["chart-v1.png","image/png"]}[format];
+      const blob=format==="chart"?await OceanCaseChart.png(data,frozen,controller.signal):new Blob([data],{type:media});
+      if(n!==generation)return;
+      if(!sameSource(from,source()))throw Error("source_changed");
+      const url=URL.createObjectURL(blob);downloads.add(url);
       const link=document.createElement("a");link.href=url;link.download=`Ocean-case-${frozen.case_id}-v${frozen.version}-${frozen.version_id.slice(7,19)}.${extension}`;
       document.body.append(link);link.click();link.remove();
       setTimeout(()=>{URL.revokeObjectURL(url);downloads.delete(url);},1000);
