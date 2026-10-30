@@ -8,7 +8,9 @@
   let draft=null,prepared=null,pending=null,selected=null,sessionSource=null,busy=false,generation=0,controller=null,reference=null,referenceError='';
   const referenceKey='ocean-owner-synthetic-run-ref/v1';
   const actions=root.querySelector('.monthly-actions');
+  const downloads=new Set();
   node(actions,'button','读取我的合成任务').id='ownerRunHistory';node(actions,'button','核对原意图').id='ownerRunFindIntent';
+  node(actions,'button','下载所读任务 Markdown').id='ownerRunExportMarkdown';node(actions,'button','下载所读任务 CSV').id='ownerRunExportCsv';
   const referenceStatus=node(root,'p','');referenceStatus.id='ownerRunReferenceStatus';
   const items=node(root,'div','');items.id='ownerRunItems';items.className='case-candidates';
   function activePending(){return pending&&sameSource(pending.from,source())?pending:null;}
@@ -42,21 +44,23 @@
     $('ownerRunNew').disabled=busy;
     $('ownerRunHistory').disabled=locked||busy;
     $('ownerRunFindIntent').disabled=locked||busy||!(activePending()||activeReference());
-    for(const button of items.querySelectorAll('button'))button.disabled=locked||(busy&&root.dataset.state!=='reading');
+    for(const key of ['ownerRunExportMarkdown','ownerRunExportCsv'])$(key).disabled=locked||busy||selected?.state!=='completed';
+    for(const button of items.querySelectorAll('button'))button.disabled=locked||(busy&&!['reading','downloading'].includes(root.dataset.state));
     referenceMessage();
   }
   function clearPrivate(clearToken=true){
     generation++;controller?.abort();busy=false;prepared=null;selected=null;sessionSource=null;
+    for(const url of downloads)URL.revokeObjectURL(url);downloads.clear();
     if(clearToken)$('ownerRunToken').value='';
     $('ownerRunPrepared').textContent='';$('ownerRunResult').replaceChildren();delete root.dataset.runId;
     items.replaceChildren();
     set('locked',pending?'观察已停止，令牌与私有显示已清除；原提交仍可能已受理，重新认证后核对原意图。':'已锁定；服务持久记录保留。');update();
   }
-  async function net(suffix,method='GET',body){
+  async function net(suffix,method='GET',body,read=json){
     const from=source(),token=$('ownerRunToken').value;
     if(from.kind!=='server')throw Error('offline');if(!token)throw Error('owner_required');
     if(sessionSource&&!sameSource(sessionSource,from))throw Error('source_changed');sessionSource=from;
-    return json(from.base+'/query/monthly-analysis/owner-runs'+suffix,controller.signal,{method,redirect:'error',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
+    return read(from.base+'/query/monthly-analysis/owner-runs'+suffix,controller.signal,{method,redirect:'error',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
   }
   async function perform(work){
     if(busy)return;
@@ -65,6 +69,8 @@
     try{await work(n,from);if(n!==generation)return;if(active.signal.aborted)throw Error('cancelled');if(!sameSource(from,source()))throw Error('source_changed');}
     catch(error){if(n!==generation)return;
       if(['http_401','http_403','source_changed'].includes(error.message))clearPrivate();
+      if(active.signal.aborted&&root.dataset.state==='downloading'){set('error','文件读取10秒等待超时；所读冻结结果和草稿保留，可明确重试同一文件。');return;}
+      if(error.message==='budget'){set('error','文件或响应超过1MiB读取预算，未下载；所读冻结结果和草稿保留。');return;}
       const message={http_401:'本人访问未通过；令牌和私有显示已清除。',http_403:'当前服务不允许本人合成任务；令牌和私有显示已清除。',http_503:'本人持久任务或合成输入不可用，请检查服务配置或稍后核对。',http_409:'版本、意图或容量冲突；请核对原意图或明确清除本页引用后重新准备。',http_422:'当前条件或版本没有登记合成支持，未显示受理成功。',http_404:'本次未查到记录或接口；原请求仍可能稍后提交，不能判断从未受理。可稍后核对或读取本人历史。',contract:'任务身份或内容无法核实，未显示成功。',source_changed:'服务来源已改变，请重新认证；旧服务意图只向原服务核对。',offline:'离线不能核对或提交本人任务。',owner_required:'请输入当前服务的本人令牌。'}[error.message]||'请求结果暂不可核实；保留上次核实的记录和原条件。';
       if(!['http_401','http_403','source_changed'].includes(error.message))set(activePending()||root.dataset.state==='looking-up'?'uncertain':'error',message+(activePending()?' 原提交可能已受理；可明确核对/重发同一意图，不会自动新建任务。':''));
       else $('ownerRunStatus').textContent=message;
@@ -112,10 +118,25 @@
     const body=pending.body,intent=body.intent_id;set('submitting','正在等待服务受理结果；关闭观察不取消已送达提交。');const result=await net('','POST',body);if(n!==generation)return;show(result,{intent,body});
   });
   function readRecord(identity){
-    if(busy&&root.dataset.state==='reading'){generation++;controller?.abort();busy=false;}
+    if(busy&&['reading','downloading'].includes(root.dataset.state)){generation++;controller?.abort();busy=false;}
     return perform(async n=>{set('reading','正在核对所选持久记录；不会重新计算。');update();const value=await net('/'+identity);if(n!==generation)return;show(value,{id:identity});});
   }
   $('ownerRunRead').onclick=()=>readRecord(selected.id);
+  function download(format){
+    const frozen=selected;if(frozen?.state!=='completed')return;
+    return perform(async(n,from)=>{
+      set('downloading','正在重新核本人及所读冻结记录；尚未交给浏览器下载。');update();
+      const expected={record_id:frozen.record_id,result_id:frozen.result.result_id},query=new URLSearchParams(expected);
+      const bytes=await net('/'+frozen.id+'/exports/'+format+'?'+query,'GET',null,(url,signal,options)=>OceanPublicRead.bytes(url,signal,options,expected));
+      if(n!==generation)return;if(controller.signal.aborted)throw Error('cancelled');if(!sameSource(from,source()))throw Error('source_changed');
+      const extension=format==='csv'?'csv':'md',media=format==='csv'?'text/csv;charset=utf-8':'text/markdown;charset=utf-8';
+      const url=URL.createObjectURL(new Blob([bytes],{type:media}));downloads.add(url);
+      const link=document.createElement('a');link.href=url;link.download=`Ocean-run-${frozen.id}-${frozen.record_id.slice(7,19)}.${extension}`;document.body.append(link);link.click();link.remove();
+      setTimeout(()=>{URL.revokeObjectURL(url);downloads.delete(url);},1000);
+      set('downloaded','已核对所读任务身份与文件字节，交给浏览器下载；原草稿保留，未自动公开或保存为案例。');
+    });
+  }
+  $('ownerRunExportMarkdown').onclick=()=>download('markdown');$('ownerRunExportCsv').onclick=()=>download('csv');
   $('ownerRunHistory').onclick=()=>perform(async n=>{
     set('loading-history','正在读取本人服务目录；原有显示保留为上次核实内容。');const data=await net('');if(n!==generation)return;
     if(data?.schema_version!=='ocean-owner-synthetic-history/v1'||!Array.isArray(data.runs)||data.runs.length>64||new Set(data.runs.map(r=>r.id)).size!==data.runs.length||data.runs.some(r=>!id.test(r.id)||!id.test(r.intent_id)||!hash.test(r.record_id)||!['completed','failed'].includes(r.state)||!validRequest(r.request)||!Number.isFinite(Date.parse(r.finished_at))))throw Error('contract');

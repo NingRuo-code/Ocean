@@ -52,6 +52,7 @@ test('fixed release starts original API from an independently installed no-Git p
   assert.equal((await fetch(base+'/api/query/monthly-analysis/cases')).status,403);
   for(const suffix of ['', '/options', '/'+ 'a'.repeat(32), '/intents/'+ 'a'.repeat(32)])assert.equal((await fetch(base+'/api/query/monthly-analysis/owner-runs'+suffix)).status,403);
   assert.equal((await fetch(base+'/api/query/monthly-analysis/owner-runs',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).status,403);
+  for(const format of ['markdown','csv'])assert.equal((await fetch(base+'/api/query/monthly-analysis/owner-runs/'+'a'.repeat(32)+'/exports/'+format+'?record_id=sha256:'+'0'.repeat(64)+'&result_id=sha256:'+'0'.repeat(64))).status,403);
   assert.equal((await fetch(base+'/api/query/monthly-analysis/cases',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).status,403);
   for(const format of ['markdown','csv','bundle','chart'])assert.equal((await fetch(base+'/api/query/monthly-analysis/cases/'+'a'.repeat(32)+'/versions/1/exports/'+format+'?version_id=sha256%3A'+'a'.repeat(64)+'&report_id=sha256%3A'+'a'.repeat(64))).status,403);
   const monthCatalog=await(await fetch(base+'/api/query/monthly-analysis/published')).json();
