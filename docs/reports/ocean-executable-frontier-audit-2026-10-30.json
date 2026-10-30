@@ -1,0 +1,170 @@
+{
+  "date": "2026-10-30",
+  "baseline": "30f0e8a7dec8147b40c7802899a6a660be514e85",
+  "scope": "readiness_of_existing_published_execution_tickets",
+  "all_issues": {
+    "total": 290,
+    "closed": 43,
+    "open": 247
+  },
+  "original_execution": {
+    "total": 252,
+    "closed": 29,
+    "open": 223,
+    "with_open_native_blockers": 215,
+    "without_open_native_blockers": [
+      9,
+      11,
+      12,
+      34,
+      37,
+      38,
+      46,
+      47
+    ],
+    "fully_executable": 0
+  },
+  "completed_supplementary_execution_tickets": [
+    307,
+    308,
+    311,
+    312,
+    315,
+    316,
+    319,
+    322
+  ],
+  "new_implementation_tickets_created": 0,
+  "business_code_changed": false,
+  "business_full_suite_rerun": false,
+  "research_qualification_passed": false,
+  "production_deployed": false,
+  "source_audit_snapshot_id": "sha256:653f86c7d75726ec9e5b3b677784d15b92ec765d54735197317bba077d5f1755",
+  "read_evidence": {
+    "all_issue_bodies_comments_states_labels": 290,
+    "open_execution_native_dependency_lists": 223,
+    "issues_json_sha256": "59629abca42b28bb5fb1f1b3d13a2d833984e87fc3d854cdc7da99803ef098e0",
+    "dependencies_json_sha256": "b23579559fb8ff098cf223366fdc59b933e94da2833e4381bb75a73d681bec76"
+  },
+  "retained_native_dependencies": {
+    "139": [
+      {
+        "number": 133,
+        "state": "open"
+      },
+      {
+        "number": 122,
+        "state": "open"
+      }
+    ],
+    "138": [
+      {
+        "number": 134,
+        "state": "open"
+      },
+      {
+        "number": 136,
+        "state": "open"
+      }
+    ],
+    "134": [
+      {
+        "number": 128,
+        "state": "open"
+      },
+      {
+        "number": 130,
+        "state": "open"
+      },
+      {
+        "number": 132,
+        "state": "open"
+      },
+      {
+        "number": 133,
+        "state": "open"
+      },
+      {
+        "number": 71,
+        "state": "open"
+      }
+    ],
+    "131": [
+      {
+        "number": 129,
+        "state": "open"
+      }
+    ],
+    "129": [
+      {
+        "number": 127,
+        "state": "open"
+      }
+    ],
+    "128": [
+      {
+        "number": 127,
+        "state": "open"
+      }
+    ],
+    "127": [
+      {
+        "number": 126,
+        "state": "open"
+      },
+      {
+        "number": 120,
+        "state": "open"
+      }
+    ],
+    "126": [
+      {
+        "number": 30,
+        "state": "closed"
+      },
+      {
+        "number": 69,
+        "state": "open"
+      }
+    ],
+    "120": [
+      {
+        "number": 119,
+        "state": "open"
+      }
+    ],
+    "99": [
+      {
+        "number": 97,
+        "state": "closed"
+      },
+      {
+        "number": 70,
+        "state": "open"
+      }
+    ],
+    "39": [
+      {
+        "number": 37,
+        "state": "open"
+      },
+      {
+        "number": 38,
+        "state": "open"
+      }
+    ]
+  },
+  "open_pull_requests": [
+    {
+      "headRefName": "codex/task-workbench",
+      "number": 23,
+      "title": "新增按钮呼出的任务工作台并明确观测与实验性趋势"
+    }
+  ],
+  "reviews": {
+    "fixed_range": "30f0e8a...900089d",
+    "standards_unresolved": 0,
+    "spec_unresolved": 0
+  },
+  "pull_request": "https://github.com/NingRuo-code/Ocean/pull/324"
+}
