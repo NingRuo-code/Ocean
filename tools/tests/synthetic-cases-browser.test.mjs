@@ -129,7 +129,7 @@ test("owner edits notes as a new immutable version, searches tags and deliberate
     await waitFor(c,"document.getElementById('caseArchive').dataset.state==='saved'");
     const firstId=await c.evaluate("document.getElementById('caseArchive').dataset.caseId");
     await click(c,"#caseEditFields summary");await type(c,"caseEditNote","人工笔记第二版");await type(c,"caseEditTags","海域甲");
-    await click(c,"#caseEditSave");await waitFor(c,"document.getElementById('caseArchive').dataset.version==='2'");
+    await click(c,"#caseEditSave");await waitFor(c,"document.getElementById('caseArchive').dataset.version==='2'&&!document.getElementById('caseLoad').disabled");
     assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/人工笔记第二版/);
     assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/40.*7.*2.*29/s);
     await type(c,"caseCatalogQuery","海域甲");await click(c,"#caseLoad");

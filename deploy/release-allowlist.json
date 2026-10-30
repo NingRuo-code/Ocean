@@ -181,6 +181,10 @@
       "target": "backend/app/stratified_validation.py"
     },
     {
+      "source": "backend/app/case_chart.py",
+      "target": "backend/app/case_chart.py"
+    },
+    {
       "source": "backend/app/case_export.py",
       "target": "backend/app/case_export.py"
     },
@@ -855,6 +859,10 @@
     {
       "source": "frontend/prototype/prototype-service-status.js",
       "target": "frontend/prototype/prototype-service-status.js"
+    },
+    {
+      "source": "frontend/prototype/prototype-case-chart.js",
+      "target": "frontend/prototype/prototype-case-chart.js"
     },
     {
       "source": "frontend/prototype/prototype-synthetic-cases.js",

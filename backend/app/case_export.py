@@ -10,7 +10,7 @@ from .known_month_report import build_known_month_report, render_report_file
 EXPORT_VERSION = "synthetic-case-export/v1"
 
 
-def render_case_file(case, representation):
+def checked_case_report(case):
     report = case["report"]
     result = report["result"]
     if (report != build_known_month_report(result)
@@ -20,6 +20,11 @@ def render_case_file(case, representation):
             or result.get("public_aggregate_allowed") is not True
             or not result.get("source", {}).get("license", "").startswith("CC0-1.0")):
         raise ValueError("Unsupported saved report")
+    return report
+
+
+def render_case_file(case, representation):
+    report = checked_case_report(case)
     metadata = case["metadata"]
     prefix = [
         ("export_version", EXPORT_VERSION), ("case_id", case["case_id"]),
