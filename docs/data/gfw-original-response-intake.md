@@ -12,6 +12,10 @@ python tools/pipeline/fetch_gfw_effort.py --start 2024-08-05 --end 2024-08-08 --
 
 获得令牌后只在本机设置 `GFW_TOKEN` 或使用受保护的 `--token-file`。移除 `--dry-run` 才会联网；不要把令牌贴入聊天或写入命令行历史。当前 `latest` 是浮动标识，正式研究前仍须通过官方目录取得可复现版本与日期可用性，并核对归档内的说明；工具不会把 `latest` 自动标为固定版本。[认证说明](https://globalfishingwatch.org/our-apis/documentation/docs/authentication)
 
+续接已增加 `--dataset-version`：仅在 `--archive-only` 下指定官方的明确v版本标识，实际POST、预演和归档清单使用同一选择。显式传入空值、latest或非法标识会拒绝；不传仍是旧的浮动latest预演/诊断行为。此参数不证明版本存在、日期可用或冻结，清单的 `dataset_version_verified` 仍为false。测试中的 `v20990101` 是合成标识，不能用于真实下载。禁止将版本选项混入旧展示转换，避免清单与展示文件的来源版本不一致。
+
+当前入口保留空间格点，不能按 `VESSEL_ID/MMSI` 分组，已在联网前拒绝；官方仅允许这两种船舶分组与 `spatial-aggregation=true` 一起使用。试验沿用 `GEARTYPE`。[官方分组约束](https://globalfishingwatch.org/our-apis/documentation/docs/v3/4wings/report)
+
 ## 留存合同
 
 每次成功 HTTP 响应在输出目录的 `archives/<UTC时间与随机身份>/` 留存：

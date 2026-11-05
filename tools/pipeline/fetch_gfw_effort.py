@@ -143,9 +143,11 @@ def build_request(
     resolution: str,
     temporal: str,
     group_by: str | None = None,
+    dataset_version: str | None = None,
 ) -> tuple[str, dict[str, str], dict[str, object]]:
     params = {
-        "datasets[0]": DATASETS[dataset],
+        "datasets[0]": DATASETS[dataset].split(":")[0] + ":" + dataset_version
+        if dataset_version else DATASETS[dataset],
         "spatial-resolution": resolution,
         "temporal-resolution": temporal,
         "date-range": f"{start.isoformat()},{end.isoformat()}",
@@ -185,10 +187,11 @@ def fetch_range(
     archive_dir: Path,
     group_by: str | None = None,
     archive_only: bool = False,
+    dataset_version: str | None = None,
 ) -> list[dict[str, float | str]]:
     url, params, body = build_request(
         bbox=bbox, start=start, end=end, dataset=dataset, resolution=resolution,
-        temporal=temporal, group_by=group_by,
+        temporal=temporal, group_by=group_by, dataset_version=dataset_version,
     )
     headers = {
         "Authorization": f"Bearer {token}",
@@ -527,6 +530,7 @@ def main() -> int:
     parser.add_argument("--retries", type=int, default=4)
     parser.add_argument("--dry-run", action="store_true", help="只打印将发出的请求，不调用 API（无需 token）")
     parser.add_argument("--archive-only", action="store_true", help="仅保留原始响应与请求清单，不执行旧版展示转换")
+    parser.add_argument("--dataset-version", help="归档模式下指定官方版本标识（如v加版本号）；不证明该版本存在或已核实")
     parser.add_argument(
         "--rebuild-manifest",
         action="store_true",
@@ -535,6 +539,13 @@ def main() -> int:
     args = parser.parse_args()
     if args.archive_only and (args.skip_existing or args.rebuild_manifest):
         parser.error("--archive-only 不能用展示文件跳过原包或重建展示索引")
+    if args.dataset_version is not None and (
+        not args.archive_only
+        or not re.fullmatch(r"v[0-9][A-Za-z0-9._-]{0,63}", args.dataset_version)
+    ):
+        parser.error("--dataset-version 仅用于归档模式，须为官方v开头的明确版本标识，不能使用latest")
+    if not args.rebuild_manifest and args.group_by in {"VESSEL_ID", "MMSI"}:
+        parser.error("spatial-aggregation=false 的格点请求不能按 VESSEL_ID/MMSI 分组；请使用 GEARTYPE 或 FLAG")
 
     existing: dict[str, object] | None = read_existing_manifest(args.out_dir)
     if args.rebuild_manifest:
@@ -593,7 +604,9 @@ def main() -> int:
         )
         return 2
 
-    print(f"数据集 {DATASETS[args.dataset]} · 分辨率 {args.resolution} · 粒度 {args.temporal}")
+    selected_dataset = (DATASETS[args.dataset].split(":")[0] + ":" + args.dataset_version
+                        if args.dataset_version else DATASETS[args.dataset])
+    print(f"数据集 {selected_dataset} · 分辨率 {args.resolution} · 粒度 {args.temporal}")
     print(f"窗口 bbox={args.bbox} · 需要 {len(ranges)} 次请求")
 
     summaries: list[dict[str, object]] = []
@@ -608,6 +621,7 @@ def main() -> int:
         url, params, body = build_request(
             bbox=args.bbox, start=start, end=end, dataset=args.dataset,
             resolution=args.resolution, temporal=args.temporal, group_by=args.group_by,
+            dataset_version=args.dataset_version,
         )
         print(f"[{index}/{len(ranges)}] {start} ~ {end}")
         if args.dry_run:
@@ -620,6 +634,7 @@ def main() -> int:
             resolution=args.resolution, temporal=args.temporal,
             token=token, timeout=args.timeout, retries=args.retries, group_by=args.group_by,
             archive_dir=args.out_dir / "archives", archive_only=args.archive_only,
+            dataset_version=args.dataset_version,
         )
         if args.archive_only:
             print("  已留存原始响应与请求；版本、字段和覆盖仍待核实。")
