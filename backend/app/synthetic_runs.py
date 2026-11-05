@@ -1,6 +1,7 @@
 """Owner-only adapter over the same small synthetic month calculation."""
 
-from typing import Annotated
+import hashlib
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import Field
@@ -10,6 +11,7 @@ from .comparison_models import Identity
 from .monthly_models import ClosedModel, MonthlyExample, MonthlyRequest
 from .owner_access import owner_requirement
 from .synthetic_run_store import RunStore, RunStoreError
+from .synthetic_run_export import render_run_file
 
 
 class SyntheticSubmission(ClosedModel):
@@ -99,5 +101,24 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
     def read(run_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response):
         response.headers["Cache-Control"] = "no-store"
         return guarded(lambda: store.read(run_id))
+
+    @router.get("/{run_id}/exports/{representation}")
+    def export(run_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")],
+               representation: Literal["markdown", "csv"], record_id: Identity, result_id: Identity):
+        run = guarded(lambda: store.read(run_id))
+        if run["record_id"] != record_id or run["state"] != "completed" or run["result"]["result_id"] != result_id:
+            raise HTTPException(409, "Completed synthetic record identity mismatch", headers={"Cache-Control": "no-store"})
+        try:
+            data = render_run_file(run, representation)
+        except (ValueError, KeyError, TypeError, ArithmeticError, AttributeError):
+            raise HTTPException(503, "Synthetic file unavailable", headers={"Cache-Control": "no-store"}) from None
+        extension, media = {"markdown": ("md", "text/markdown"), "csv": ("csv", "text/csv")}[representation]
+        filename = f"Ocean-run-{run_id}-{record_id[7:19]}.{extension}"
+        return Response(data, media_type=media, headers={
+            "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Ocean-Record-Id": record_id, "X-Ocean-Result-Id": result_id,
+            "X-Content-Sha256": "sha256:" + hashlib.sha256(data).hexdigest(),
+        })
 
     return router

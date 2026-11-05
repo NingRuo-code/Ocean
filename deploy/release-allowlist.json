@@ -877,6 +877,10 @@
       "target": "backend/app/synthetic_run_store.py"
     },
     {
+      "source": "backend/app/synthetic_run_export.py",
+      "target": "backend/app/synthetic_run_export.py"
+    },
+    {
       "source": "backend/app/synthetic_runs.py",
       "target": "backend/app/synthetic_runs.py"
     },
