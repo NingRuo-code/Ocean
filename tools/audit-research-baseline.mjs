@@ -6,7 +6,11 @@ import { runSourceAudit } from "./lib/source-audit.mjs";
 import { spawnSync } from "node:child_process";
 import { runEnvironmentComparison } from "./lib/environment-lineage.mjs";
 
-if (process.argv.includes("--compare-environments") || process.argv.includes("--read-environment-comparison")) {
+if (process.argv.includes("--regional-request") || process.argv.includes("--read-regional-snapshot")) {
+  const result = spawnSync(process.env.OCEAN_AUDIT_PYTHON || "python", [join(dirname(fileURLToPath(import.meta.url)), "audit_regional_support.py"), ...process.argv.slice(2)], { stdio: "inherit" });
+  if (result.error) console.error("Regional audit runtime unavailable; configure OCEAN_AUDIT_PYTHON.");
+  process.exitCode = result.status ?? 1;
+} else if (process.argv.includes("--compare-environments") || process.argv.includes("--read-environment-comparison")) {
   try { await runEnvironmentComparison(process.argv.slice(2)); }
   catch { console.error("Environment comparison failed (invalid or unavailable evidence)."); process.exitCode = 1; }
 } else if (process.argv.includes("--daily-registry") || process.argv.includes("--read-daily-snapshot")) {
