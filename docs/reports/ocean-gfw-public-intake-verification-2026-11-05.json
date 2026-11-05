@@ -18,7 +18,7 @@
     128,
     34
   ],
-  "daily_snapshot_id": "sha256:00bc5cf2e9ffdea81374e35a1d35d79f42d4a71f89bcd5af862938cef5df1bf5",
+  "daily_snapshot_id": "sha256:af7f09bca76231b9c947a8eca4bad646d4b5f30ed23debdc3d2c7c2f4e43e9ea",
   "research_ready": false,
   "public_release_approved": false,
   "days": [
@@ -54,12 +54,14 @@
         "bbox_selection": "lower_left_in_half_open_bbox",
         "version": "3.0.0",
         "year_2024_status": "provisional",
+        "source_category_max_diagnostic_hours": 71282.1459,
         "source_valid_hours_sum": 78720.1626,
         "hours_conservation": "verified_selected_records",
         "day_boundary": "unverified_in_official_documentation"
       },
       "coverage_status": "unknown",
-      "time_verified": false
+      "time_verified": false,
+      "legacy_max_diagnostic_hours": 71282.1459
     },
     {
       "date": "2024-08-06",
@@ -93,12 +95,14 @@
         "bbox_selection": "lower_left_in_half_open_bbox",
         "version": "3.0.0",
         "year_2024_status": "provisional",
+        "source_category_max_diagnostic_hours": 69620.3648,
         "source_valid_hours_sum": 77437.5473,
         "hours_conservation": "verified_selected_records",
         "day_boundary": "unverified_in_official_documentation"
       },
       "coverage_status": "unknown",
-      "time_verified": false
+      "time_verified": false,
+      "legacy_max_diagnostic_hours": 69620.3648
     },
     {
       "date": "2024-08-07",
@@ -132,12 +136,14 @@
         "bbox_selection": "lower_left_in_half_open_bbox",
         "version": "3.0.0",
         "year_2024_status": "provisional",
+        "source_category_max_diagnostic_hours": 80759.0175,
         "source_valid_hours_sum": 89772.4624,
         "hours_conservation": "verified_selected_records",
         "day_boundary": "unverified_in_official_documentation"
       },
       "coverage_status": "unknown",
-      "time_verified": false
+      "time_verified": false,
+      "legacy_max_diagnostic_hours": 80759.0175
     }
   ]
 }

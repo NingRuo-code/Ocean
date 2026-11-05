@@ -365,6 +365,7 @@ def test_official_gfw_fleet_profile_sums_categories_without_using_presence_hours
     assert row["state"] == "unverified"
     assert row["time_verified"] is False
     assert row["unique_cell_hours_sum"] == 30
+    assert row["legacy_max_diagnostic_hours"] == 20
     assert row["duplicate_cell_groups"] == 0
     assert row["record_counts"]["zero"] == 1
     assert row["record_counts"]["above_24"] == 1

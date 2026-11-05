@@ -199,7 +199,7 @@ def gfw_fleet_payload(path, entry, source):
     west, south, east, north = bounds
     grouped, categories = {}, set()
     selected, scanned, duplicates, invalid = 0, 0, 0, 0
-    source_values = []
+    source_values, source_maxima = [], {}
     with path.open(encoding="utf-8-sig", newline="") as stream:
         reader = csv.DictReader(stream)
         expected = {
@@ -253,6 +253,9 @@ def gfw_fleet_payload(path, entry, source):
             values.append(hours if valid else None)
             if valid:
                 source_values.append(hours)
+                source_maxima[(lon, lat)] = max(
+                    source_maxima.get((lon, lat), hours), hours
+                )
     cells = [
         {
             "date": day,
@@ -286,6 +289,9 @@ def gfw_fleet_payload(path, entry, source):
             "bbox_selection": "lower_left_in_half_open_bbox",
             "version": "3.0.0",
             "year_2024_status": "provisional",
+            "source_category_max_diagnostic_hours": math.fsum(source_maxima.values())
+            if source_maxima
+            else None,
             "source_valid_hours_sum": math.fsum(source_values)
             if source_values
             else None,
@@ -524,6 +530,9 @@ def activity_rows(path, entry, file, source, support):
             info = payload["fleet_source"]
             row["fleet_source"] = info
             row["unit_status"] = "official_product_schema"
+            row["legacy_max_diagnostic_hours"] = info[
+                "source_category_max_diagnostic_hours"
+            ]
             row["time_verified"] = False
             row["content_date_verified"] = info["scanned_records"] > 0
             row["state"] = "unverified"
