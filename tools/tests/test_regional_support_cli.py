@@ -510,3 +510,52 @@ def test_regional_outputs_cannot_replace_inputs_and_far_cells_are_rejected(tmp_p
         failed.returncode != 0
         and "source_outside_local_projection_domain" in failed.stderr
     )
+
+
+def test_equal_fractional_durations_do_not_prove_same_temporal_support(tmp_path):
+    b = [0, 0, 0.01, 0.01]
+    data = report(
+        tmp_path,
+        request({"id": "day", "type": "bbox", "bounds": b}),
+        [
+            {
+                "date": "2024-08-05",
+                "layers": [
+                    layer("front", [cell(b)], duration_days=0.5),
+                    layer("activity", [cell(b, 10)], duration_days=0.5),
+                ],
+            }
+        ],
+    )
+    row = data["regions"][0]["days"][0]
+    assert row["hours"] is None and row["area_time_km2_days"] is None
+    assert "activity_full_day_support_required" in row["reasons"]
+
+
+def test_changing_daily_support_cannot_claim_a_fixed_support_daily_mean(tmp_path):
+    b = [0, 0, 0.02, 0.01]
+    data = report(
+        tmp_path,
+        request({"id": "area", "type": "bbox", "bounds": b}, end="2024-08-06"),
+        [
+            {
+                "date": "2024-08-05",
+                "layers": [layer("front", [cell(b)]), layer("activity", [cell(b, 20)])],
+            },
+            {
+                "date": "2024-08-06",
+                "layers": [
+                    layer("front", [cell([0, 0, 0.01, 0.01])]),
+                    layer("activity", [cell(b, 20)]),
+                ],
+            },
+        ],
+    )
+    summary = data["regions"][0]["summary"]
+    assert summary["mean_hours_per_supported_day"] is None
+    assert summary["mean_hours_per_requested_day"] is None
+    assert summary["daily_mean_reason"] == "daily_spatial_support_changes"
+    assert summary["supported_subset"][
+        "arithmetic_mean_hours_over_varying_support"
+    ] == pytest.approx(15)
+    assert summary["total_hours"] == pytest.approx(30)

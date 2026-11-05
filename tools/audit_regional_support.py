@@ -323,6 +323,20 @@ def validate_cells(value):
             raise ValueError("invalid_layer_budget")
         kinds = set()
         for layer in layers:
+            if set(layer) - {
+                "id",
+                "kind",
+                "role",
+                "unit",
+                "time_verified",
+                "bounds_verified",
+                "support_verified",
+                "duration_days",
+                "cells",
+                "source_day_state",
+                "source_cells_unprepared",
+            }:
+                raise ValueError("unknown_layer_fields")
             kind = layer["kind"]
             if kind not in {"front", "activity", "sst"} or kind in kinds:
                 raise ValueError("duplicate_or_unknown_layer")
@@ -365,6 +379,7 @@ def regional_day(day, layers, required, region, plane, allocation, source_ids):
         "known_excluded_area_km2": None,
         "outside_request_selected_area_km2": None,
         "side_hours": {"cold": None, "warm": None, "unknown": None},
+        "common_support_id": None,
         "reasons": [],
     }
     by_kind = {layer["kind"]: layer for layer in layers}
@@ -399,6 +414,8 @@ def regional_day(day, layers, required, region, plane, allocation, source_ids):
         duration = layer.get("duration_days")
         if not finite(duration) or not 0 < duration <= 1:
             row["reasons"].append(f"{kind}_duration_unknown")
+        elif duration != 1:
+            row["reasons"].append(f"{kind}_full_day_support_required")
         selected.append(layer)
     if row["reasons"]:
         return row
@@ -465,6 +482,7 @@ def regional_day(day, layers, required, region, plane, allocation, source_ids):
     }
     row.update(
         state="partial" if abs(area - joint_area) > AREA_TOL else "computed",
+        common_support_id="sha256:" + digest(joint.normalize().wkb_hex),
         hours=hours,
         effective_area_km2=joint_area,
         area_time_km2_days=joint_area * durations[0],
@@ -492,18 +510,29 @@ def summarize_period(rows, baseline=None):
     hours = math.fsum(r["hours"] for r in supported) if count else None
     exposure = math.fsum(r["area_time_km2_days"] for r in supported) if count else None
     complete = count == len(rows)
+    fixed_support = count > 0 and len({r["common_support_id"] for r in supported}) == 1
     total = hours if complete else None
     return {
         "requested_days": len(rows),
         "supported_days": count,
         "excluded_days": len(rows) - count,
         "total_hours": total,
-        "mean_hours_per_supported_day": hours / count if count else None,
-        "mean_hours_per_requested_day": total / len(rows) if complete else None,
+        "mean_hours_per_supported_day": hours / count if fixed_support else None,
+        "mean_hours_per_requested_day": total / len(rows)
+        if complete and fixed_support
+        else None,
+        "daily_mean_reason": None
+        if fixed_support
+        else "daily_spatial_support_changes"
+        if count
+        else "no_supported_days",
         "area_time_km2_days": exposure if complete else None,
         "density_hours_per_km2_day": hours / exposure if complete else None,
         "supported_subset": {
             "hours": hours,
+            "arithmetic_mean_hours_over_varying_support": hours / count
+            if count
+            else None,
             "area_time_km2_days": exposure,
             "density_hours_per_km2_day": hours / exposure if count else None,
         },

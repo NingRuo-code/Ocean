@@ -1,5 +1,7 @@
 # 区域共同支持审计（#39）
 
+独立规格审查后的v1限制：只接受所有必需层均已核实的完整日（duration_days=1），等长半日不能证明共同时间区间；未知层字段拒绝，不静默忽略区间提示。固定支持日均只在所纳入各日共同区域身份完全相同时输出；区域变化时该日均为null并给daily_spatial_support_changes，仅另列明确命名的变支持算术平均。逐日同支持小时/面积时间累积仍可描述变化支持，但不将其日均冒充固定区域日均。
+
 复用 `node tools/audit-research-baseline.mjs`，显式消费已核实的逐日区域单元；它是支持与算术审计，不产出正式A/B/C关系结论。安装 `backend/pyproject.toml` 中的依赖后运行，无网络服务或GFW令牌要求。
 
 ```powershell
@@ -18,7 +20,7 @@ node tools/audit-research-baseline.mjs --read-regional-snapshot regional.json
 
 用途 `front_effort` 必需front/activity；`front_effort_sst` 另需sst。默认ID为front-original/effort-original/sst-original；可用 `source_ids` 显式绑定，ID不符返回未知。输出保留原条件、方法及运行库版本、输入/读取器/计算器SHA256与快照身份。冻结读取只验身份，不重新计算，原输入移除后仍可读；身份是完整性校验，不是签名。JSON/Markdown单文件原子替换；计算失败不写输出，不承诺两个输出跨文件事务。
 
-单元输入为 `ocean-regional-cells/v1`：`evidence_kind` 为synthetic或audited_cells，`days` 数组每项含date/layers。每层含id、kind、role=analysis_source、unit、time_verified/bounds_verified/support_verified三项布尔声明、duration_days、cells；front/activity/sst单位分别classification_code/fishing_hours/degree_C。三项必须真，时长须同一天一致且在(0,1]。每格 `bounds=[west,south,east,north]` 是WGS84明确格边，`support` 为valid/land/missing/unknown，活动有效格必须有有限非负hours，front侧别cold/warm/unknown。未列区域未知，不能当海洋零值；同层重叠超过1平方米拒绝，非同层求共同支持。
+单元输入为 `ocean-regional-cells/v1`：`evidence_kind` 为synthetic或audited_cells，`days` 数组每项含date/layers。每层含id、kind、role=analysis_source、unit、time_verified/bounds_verified/support_verified三项布尔声明、duration_days、cells；front/activity/sst单位分别classification_code/fishing_hours/degree_C。三项必须真，时长须为该日期已核实完整1日。每格 `bounds=[west,south,east,north]` 是WGS84明确格边，`support` 为valid/land/missing/unknown，活动有效格必须有有限非负hours，front侧别cold/warm/unknown。未列区域未知，不能当海洋零值；同层重叠超过1平方米拒绝，非同层求共同支持。
 
 几何分别支持bbox、10/20/30km测地圆、同半径锋线缓冲。圆以WGS84测地正算、0.5°方位采样；各格恒纬边0.002°加密，投影到请求中心的WGS84局部Lambert等积平面求面积/相交。纬度限±80°、不跨日期变更线、矩形跨度≤12°，所有单元须在投影中心经纬各±6°内；锋线跨度≤2°。锋线缓冲是局部投影距离近似，重叠先并集；不宣称长线全球测地精确。超范围明确拒绝。绝对面积容差1e-6km²，格心边界距离容差0.001m，格心法包含边界。
 
