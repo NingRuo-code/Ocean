@@ -1,5 +1,7 @@
 # 按用途的完整月与事件窗口资格（#41）
 
+来源冲突优先：显式source_day_state为conflict/missing/unverified/unprepared时，该层不能参与计算，即使同时给了verified=true也不能覆盖。source_day_state仅允许已定义状态，source_cells_unprepared必须布尔值；来源状态与数值声明矛盾不放行。
+
 复用原审计入口与[区域共同支持引擎](regional-support-audit.md)，不另建统计引擎、不计算锋面关系效果。
 
 ```powershell

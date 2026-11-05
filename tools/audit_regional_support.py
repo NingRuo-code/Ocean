@@ -341,7 +341,20 @@ def validate_cells(value):
             if kind not in {"front", "activity", "sst"} or kind in kinds:
                 raise ValueError("duplicate_or_unknown_layer")
             kinds.add(kind)
-            for flag in ["time_verified", "bounds_verified", "support_verified"]:
+            if "source_day_state" in layer and layer["source_day_state"] not in {
+                "parsed",
+                "unverified",
+                "missing",
+                "conflict",
+                "unprepared",
+            }:
+                raise ValueError("invalid_source_day_state")
+            for flag in [
+                "time_verified",
+                "bounds_verified",
+                "support_verified",
+                "source_cells_unprepared",
+            ]:
                 if flag in layer and type(layer[flag]) is not bool:
                     raise ValueError("invalid_verification_flag")
             cells = layer["cells"]
@@ -436,6 +449,8 @@ def regional_day(day, layers, required, region, plane, allocation, source_ids):
             row["reasons"].append(f"{kind}_source_identity_mismatch")
         if layer.get("source_cells_unprepared"):
             row["reasons"].append(f"{kind}_verified_cells_unprepared")
+        if layer.get("source_day_state", "parsed") != "parsed":
+            row["reasons"].append(f"{kind}_source_day_{layer['source_day_state']}")
         if layer.get("role") != "analysis_source":
             row["reasons"].append(f"{kind}_is_not_analysis_source")
         for flag in ["time_verified", "bounds_verified", "support_verified"]:

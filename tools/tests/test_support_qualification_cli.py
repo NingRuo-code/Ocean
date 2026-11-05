@@ -431,3 +431,19 @@ def test_leap_month_event_windows_keep_different_time_denominators(tmp_path):
     event_day = next(row for row in region["days"] if row["date"] == "2024-02-29")
     assert event_day["periods"] == ["month"]
     assert region["month"]["scope"] == "month_calendar_only_not_event_eligibility"
+
+
+@pytest.mark.parametrize("state", ["conflict", "missing", "unverified"])
+def test_source_day_failures_cannot_be_overridden_by_verified_value_flags(
+    tmp_path, state
+):
+    days = known_days()
+    days[16]["layers"][1]["source_day_state"] = state
+    data = support(tmp_path, conditions(), days, evidence=verified_evidence())
+    region = data["regions"][0]
+    row = region["days"][16]
+    assert row["hours"] is None and row["effective_area_km2"] is None
+    assert f"activity_source_day_{state}" in row["exclusion_reasons"]
+    assert region["month"]["included_days"] == 30
+    assert region["month"]["support_level"] == "limited"
+    assert region["month"]["data_gate_passed"] is False
