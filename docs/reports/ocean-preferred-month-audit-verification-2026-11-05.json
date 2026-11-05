@@ -1,0 +1,308 @@
+{
+  "schema": "ocean-preferred-month-audit/v1",
+  "candidate": {
+    "region": "East China Sea",
+    "month": "2024-08"
+  },
+  "scope": "registered readable local inputs only; no server claim, new download, or expanded archive scan",
+  "source_snapshot_id": "sha256:3bb82868cea5a0b4f12a76851d727d7860534e714e5dceb29276705beb14b143",
+  "daily_snapshot_id": "sha256:8131c32402d308b4e22b8b4912e3b56dd540302ff2431d3c54b1d13f56b50c24",
+  "daily_range": [
+    "2024-07-25",
+    "2024-09-07"
+  ],
+  "source_parse_errors": {
+    "front-original": 0,
+    "front-display": 0,
+    "sst-original": 0,
+    "sst-display": 0,
+    "effort-original": 0,
+    "effort-display": 0
+  },
+  "source_state_summary": {
+    "front-original": {
+      "role": "analysis_source",
+      "states": {
+        "unverified": 3,
+        "missing": 42
+      }
+    },
+    "front-display": {
+      "role": "display",
+      "states": {
+        "parsed": 38,
+        "missing": 7
+      }
+    },
+    "sst-original": {
+      "role": "analysis_source",
+      "states": {
+        "parsed": 3,
+        "missing": 42
+      }
+    },
+    "sst-display": {
+      "role": "display",
+      "states": {
+        "parsed": 38,
+        "missing": 7
+      }
+    },
+    "effort-original": {
+      "role": "analysis_source",
+      "states": {
+        "unverified": 3,
+        "missing": 42
+      }
+    },
+    "effort-display": {
+      "role": "display",
+      "states": {
+        "missing": 45
+      }
+    }
+  },
+  "source_products_and_license_claims": [
+    {
+      "id": "front-original",
+      "kind": "front",
+      "role": "analysis_source",
+      "product": {
+        "id": "zenodo-20356239",
+        "channel": "Zenodo front_location.zip; selected original members",
+        "version": "record-20356239",
+        "unit": "classification_code"
+      },
+      "license": {
+        "status": "unverified",
+        "claims": [
+          {
+            "value": "CC BY 4.0",
+            "evidence": "https://zenodo.org/records/20356239"
+          }
+        ],
+        "public_release_approved": false
+      }
+    },
+    {
+      "id": "front-display",
+      "kind": "front",
+      "role": "display",
+      "product": {
+        "id": "zenodo-20356239-prototype-export",
+        "channel": "committed display export",
+        "version": "V1.0-declared",
+        "unit": "classification_code"
+      },
+      "license": {
+        "status": "unverified",
+        "claims": [
+          {
+            "value": "CC BY 4.0",
+            "evidence": "frontend/prototype/data/meta.js:product.license"
+          }
+        ],
+        "public_release_approved": false
+      }
+    },
+    {
+      "id": "sst-original",
+      "kind": "sst",
+      "role": "analysis_source",
+      "product": {
+        "id": "noaacwBLENDEDCsstDaily",
+        "channel": "NOAA CoastWatch ERDDAP; supplemental SST, not the Zenodo front algorithm input",
+        "version": null,
+        "unit": "degree_C"
+      },
+      "license": {
+        "status": "unknown",
+        "claims": [],
+        "public_release_approved": false
+      }
+    },
+    {
+      "id": "sst-display",
+      "kind": "sst",
+      "role": "display",
+      "product": {
+        "id": "noaacwBLENDEDCsstDaily",
+        "channel": "NOAA ERDDAP, declared by display metadata",
+        "version": "v1.0-declared",
+        "unit": "degree_C"
+      },
+      "license": {
+        "status": "unverified",
+        "claims": [
+          {
+            "value": "GHRSST free and open declaration; product terms pending verification",
+            "evidence": "frontend/prototype/data/meta.js:availability.sst.product.license"
+          }
+        ],
+        "public_release_approved": false
+      }
+    },
+    {
+      "id": "effort-original",
+      "kind": "activity",
+      "role": "analysis_source",
+      "product": {
+        "id": "gfw-fleet-daily-v3",
+        "channel": "GFW official Zenodo 14982712; fleet daily 0.01 degree; 2024 provisional",
+        "version": "3.0.0",
+        "unit": "fishing_hours"
+      },
+      "license": {
+        "status": "unverified",
+        "claims": [
+          {
+            "value": "CC BY-NC 4.0",
+            "evidence": "https://zenodo.org/records/14982712"
+          }
+        ],
+        "public_release_approved": false
+      }
+    },
+    {
+      "id": "effort-display",
+      "kind": "activity",
+      "role": "display",
+      "product": {
+        "id": "GFW-derived-display-declared",
+        "channel": "daily display export",
+        "version": null,
+        "unit": "fishing_hours"
+      },
+      "license": {
+        "status": "unknown",
+        "claims": [],
+        "public_release_approved": false
+      }
+    },
+    {
+      "id": "response-input",
+      "kind": "response",
+      "role": "precomputed",
+      "product": {
+        "id": "legacy-buffer-aggregate",
+        "channel": "committed aggregate input",
+        "version": "front-response-input/v1-declared",
+        "unit": "fishing_hours"
+      },
+      "license": {
+        "status": "unverified",
+        "claims": [
+          {
+            "value": "CC BY-NC 4.0",
+            "evidence": "frontend/prototype/data/front_response/real-effort-input.json:source.license"
+          }
+        ],
+        "public_release_approved": false
+      }
+    },
+    {
+      "id": "response-table",
+      "kind": "response",
+      "role": "precomputed",
+      "product": {
+        "id": "legacy-front-response-table",
+        "channel": "precomputed event table; not arbitrary fixed-region evidence",
+        "version": "front-response/v1-declared",
+        "unit": "fishing_hours"
+      },
+      "license": {
+        "status": "unverified",
+        "claims": [
+          {
+            "value": "CC BY-NC 4.0",
+            "evidence": "frontend/prototype/data/front_response/events.js:source.license"
+          }
+        ],
+        "public_release_approved": false
+      }
+    }
+  ],
+  "qualification_projection": {
+    "file": "docs/reports/ocean-candidate-support-verification-2026-11-05.json",
+    "sha256": "5c8308b48ba95108eb778e459af364cf403952c42748c9c63a89c71850b01691",
+    "runs": 9,
+    "support_snapshot_ids": [
+      "sha256:ae906cfcafe699d054409eeb9279d89c9403ffed990df3ba71d2c56d4adb1a6f",
+      "sha256:eaa0e5c3847e2b1fd8e0149c06a4b16a115712cbf27d32bed2c3eec52b057e4e",
+      "sha256:84c771b7f011bcc7b91ef46bb7b8bf8293498a891d138713a0067c7c9f6494b7",
+      "sha256:bab2ebac380eee9a58dba56b0efe67c9ea978b507a3b92836c1d942b295784e1",
+      "sha256:d9fd85735326ab40ab9f1b0f922f183b6ca92e2b2ffdc6c5475e7356a29e3386",
+      "sha256:5c48ab50e9097eb7da624ac051e462a5703b02c438291b12f5765725ac9e11e7",
+      "sha256:bdca37215c0a1a78cc78fca6ac1268ea16459b0bc812b880489044e41afa1b07",
+      "sha256:c01e3c7ae8fda3eaf49df8c10817acee09c39743278dad941e128b34a9a82554",
+      "sha256:5549dee6db8efba6037a7f696a6f17e932a899c458048de1d581878c7fbd203d"
+    ]
+  },
+  "legacy_comparison": {
+    "schema": "ocean-legacy-response-inspection/v1",
+    "file_sha256": "107e3096191e5c480866766f3164e33fc0acaf6fa70eed49fb65b7118bdbd388",
+    "row_key": "events",
+    "rows": 186,
+    "days": 62,
+    "post7_finite_rows": 0,
+    "declared_time_window": {
+      "sample_start": "2024-07-01",
+      "sample_end": "2024-08-31",
+      "pre_window_days": 7,
+      "post_window_days": [
+        1,
+        3
+      ],
+      "exploratory_window_days": [
+        -7,
+        7
+      ]
+    },
+    "caveat": "Existing precomputed aggregate inspection only; not source coverage, fixed-region B evidence, or current license verification."
+  },
+  "residuals": [
+    {
+      "id": "front_time_origin",
+      "state": "unverified",
+      "reason": "invalid CF time origin; filename/MATLAB candidate is not direct product confirmation",
+      "resolution": "Obtain direct original-product author or processing provenance; rerun original date audit without filename substitution."
+    },
+    {
+      "id": "gfw_date_and_support",
+      "state": "unverified",
+      "reason": "v3 date allocation and unlisted-cell support/zero meaning not directly established",
+      "resolution": "Verify official v3 processing/day allocation and coverage semantics; do not assume strict 24h or zero unlisted cells."
+    },
+    {
+      "id": "missing_registered_dates",
+      "state": "not_prepared_in_registered_inputs",
+      "reason": "Only three original days registered across the 45-day audit range",
+      "resolution": "Locate or obtain authorized remaining August and required adjacent dates, register fixed identities, rerun; no auto-expanded download in this audit."
+    },
+    {
+      "id": "verified_regional_cells",
+      "state": "unprepared",
+      "reason": "Daily audit has diagnostics/private support references but no fully verified regional-cell input",
+      "resolution": "After time/bounds/support verification, prepare bounded cells with same-source hours, masks and provenance; never invent circles from whole-ECS totals."
+    },
+    {
+      "id": "license_geometry_quality",
+      "state": "unverified",
+      "reason": "Source license claims, geometry eligibility and research use of quality rule lack attached verification pack",
+      "resolution": "Record product-specific use evidence, source/processing identities and approved geometry/quality references; coarse alternatives require ADR review."
+    },
+    {
+      "id": "server_offline_scope",
+      "state": "not_checked",
+      "reason": "This run covers registered readable local paths only",
+      "resolution": "Inspect actual authorized offline/server inputs when target and access are established; do not infer their absence from local missing rows."
+    }
+  ],
+  "audit_process_completed": true,
+  "gd_research_gate": "unverified",
+  "a_research_unblocked": false,
+  "b_research_unblocked": false,
+  "public_release_approved": false,
+  "production_deployed": false,
+  "audit_bundle_id": "sha256:d1a9424030abbf37e8c6408296fc70a19426a0b357a9cbb536d9de66fda7ac9e"
+}
