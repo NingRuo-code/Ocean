@@ -5,9 +5,9 @@
     {
       "id": "front-original", "kind": "front", "role": "analysis_source",
       "locations": ["data/raw/front"],
-      "product": {"id": "zenodo-20356239-declared", "channel": "Zenodo archive; local availability unverified", "version": "V1.0-declared", "unit": "classification_code"},
+      "product": {"id": "zenodo-20356239", "channel": "Zenodo front_location.zip; selected original members", "version": "record-20356239", "unit": "classification_code"},
       "derived_from": [],
-      "license_claims": [{"value": "CC BY 4.0", "evidence": "frontend/prototype/data/meta.js:product.license"}]
+      "license_claims": [{"value": "CC BY 4.0", "evidence": "https://zenodo.org/records/20356239"}]
     },
     {
       "id": "front-display", "kind": "front", "role": "display",
@@ -19,7 +19,7 @@
     {
       "id": "sst-original", "kind": "sst", "role": "analysis_source",
       "locations": ["data/raw/sst"],
-      "product": {"id": null, "channel": "local original; exact product pending audit", "version": null, "unit": null},
+      "product": {"id": "noaacwBLENDEDCsstDaily", "channel": "NOAA CoastWatch ERDDAP; supplemental SST, not the Zenodo front algorithm input", "version": null, "unit": "degree_C"},
       "derived_from": [], "license_claims": []
     },
     {
@@ -31,12 +31,11 @@
     },
     {
       "id": "effort-original", "kind": "activity", "role": "analysis_source",
-      "locations": ["data/raw/fishing"],
-      "product": {"id": "public-global-fishing-effort:latest", "channel": "GFW 4Wings API, source registration only", "version": null, "unit": "fishing_hours"},
+      "locations": ["data/raw/fishing-source/v3-zenodo-14982712"],
+      "product": {"id": "gfw-fleet-daily-v3", "channel": "GFW official Zenodo 14982712; fleet daily 0.01 degree; 2024 provisional", "version": "3.0.0", "unit": "fishing_hours"},
       "derived_from": [],
       "license_claims": [
-        {"value": "CC BY-SA 4.0; API non-commercial terms", "evidence": "tools/pipeline/fetch_gfw_effort.py:8,426"},
-        {"value": "CC BY-NC 4.0", "evidence": "docs/data-governance-gfw-ais.md:42"}
+        {"value": "CC BY-NC 4.0", "evidence": "https://zenodo.org/records/14982712"}
       ]
     },
     {

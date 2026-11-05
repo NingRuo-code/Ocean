@@ -5,7 +5,7 @@
 - 数据集：public-global-fishing-effort:latest（表观捕捞努力量，小时）
           public-global-presence:latest（全部船舶存在时长，--dataset presence）
 - 覆盖：2017 年至今（约 5 天前）；分辨率 LOW=0.1° / HIGH=0.01°；粒度 HOURLY/DAILY/MONTHLY/YEARLY
-- 许可：GFW 公开数据 CC BY-SA 4.0；**API 使用条款限定非商业用途**（课程/科研可用，页面必须标注来源）
+- 许可：GFW API 默认 CC BY-NC 4.0；保留来源和全部 caveats，公开范围另行核验。
 
 契约要点（照抄官方 R 客户端 gfwr 源码，避免猜错）
 - 认证：`Authorization: Bearer <token>`；`Content-Type: application/json`
@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import io
 import json
 import os
@@ -35,10 +36,15 @@ import re
 import sys
 import time
 import zipfile
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from uuid import uuid4
 
 import requests
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 # 服务器上数据在 /srv/ocean/data/raw（由 systemd 的 OCEAN_RAW_DATA_DIR 指定），本地则是 <仓根>/data/raw；
@@ -137,13 +143,16 @@ def build_request(
     resolution: str,
     temporal: str,
     group_by: str | None = None,
+    dataset_version: str | None = None,
 ) -> tuple[str, dict[str, str], dict[str, object]]:
     params = {
-        "datasets[0]": DATASETS[dataset],
+        "datasets[0]": DATASETS[dataset].split(":")[0] + ":" + dataset_version
+        if dataset_version else DATASETS[dataset],
         "spatial-resolution": resolution,
         "temporal-resolution": temporal,
         "date-range": f"{start.isoformat()},{end.isoformat()}",
         "format": "CSV",
+        "spatial-aggregation": "false",
     }
     if group_by:
         # 不分组时返回的是「每船·每格·每天」明细（实测 1 天 19488 行），
@@ -175,11 +184,14 @@ def fetch_range(
     token: str,
     timeout: float,
     retries: int,
+    archive_dir: Path,
     group_by: str | None = None,
+    archive_only: bool = False,
+    dataset_version: str | None = None,
 ) -> list[dict[str, float | str]]:
     url, params, body = build_request(
         bbox=bbox, start=start, end=end, dataset=dataset, resolution=resolution,
-        temporal=temporal, group_by=group_by,
+        temporal=temporal, group_by=group_by, dataset_version=dataset_version,
     )
     headers = {
         "Authorization": f"Bearer {token}",
@@ -204,7 +216,7 @@ def fetch_range(
                 time.sleep(wait)
                 continue
             response.raise_for_status()
-            return parse_response(response.content, dataset)
+            break
         except SystemExit:
             raise
         except Exception as exc:  # noqa: BLE001 - 网络/解析异常统一转重试
@@ -212,7 +224,46 @@ def fetch_range(
             wait = 5 * attempt
             print(f"  第 {attempt} 次请求失败（{exc}），{wait}s 后重试", file=sys.stderr)
             time.sleep(wait)
-    raise RuntimeError(f"{start}~{end} 取数失败：{last_error}")
+    else:
+        raise RuntimeError(f"{start}~{end} 取数失败：{last_error}")
+    # Archive before parsing. A parser/disk failure must not repeat a successful request.
+    archive_response(archive_dir, url, params, body, response)
+    return [] if archive_only else parse_response(response.content, dataset)
+
+
+def archive_response(directory, url, params, body, response):
+    retrieved = datetime.now(timezone.utc)
+    target = directory / (retrieved.strftime("%Y%m%dT%H%M%S%fZ-") + uuid4().hex)
+    target.mkdir(parents=True, exist_ok=False)
+    payload = response.content
+    (target / "response.bin").write_bytes(payload)
+    record = {
+        "schema": "ocean-gfw-response-archive/v1",
+        "retrieved_at": retrieved.isoformat(),
+        "request": {"method": "POST", "url": url, "params": params, "body": body},
+        "response": {
+            "file": "response.bin",
+            "bytes": len(payload),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+            "status": response.status_code,
+            "content_type": response.headers.get("Content-Type"),
+        },
+        "license": "CC BY-NC 4.0",
+        "license_evidence": "https://globalfishingwatch.org/our-apis/documentation/docs/license-rate-limits",
+        "dataset_version_verified": False,
+        "research_ready": False,
+        "public_release_approved": False,
+        "state": "http_response_archived; content_and_coverage_unverified",
+        "caveats": [
+            "Original bytes retain every ZIP member; no extraction or field inference performed.",
+            "latest is mutable; obtain and verify the dataset version before research use.",
+            "No records or an empty response do not establish zero apparent fishing effort.",
+        ],
+    }
+    # A manifest is the completion marker; partial response files are never claimed as complete.
+    temporary = target / "request.json.tmp"
+    temporary.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary.replace(target / "request.json")
 
 
 def parse_response(payload: bytes, dataset: str) -> list[dict[str, float | str]]:
@@ -331,7 +382,7 @@ def build_manifest(
         "skipped_days": sorted(
             set(skipped) | set(existing.get("skipped_days") or [] if isinstance(existing, dict) else [])
         ),
-        "generated_at": date.today().isoformat(),
+        "generated_at": datetime.now(timezone.utc).date().isoformat(),
     }
 
 
@@ -423,8 +474,8 @@ def write_day(
             "api": "4Wings report v3",
             "dataset": DATASETS[dataset],
             "citation": "Kroodsma et al. 2018, Science, doi:10.1126/science.aao5646",
-            "license": "CC BY-SA 4.0（API 条款：仅限非商业用途）",
-            "retrieved_at": date.today().isoformat(),
+            "license": "CC BY-NC 4.0",
+            "retrieved_at": datetime.now(timezone.utc).date().isoformat(),
         },
         "spatial_resolution": resolution,
         "spatial_resolution_deg": resolution_deg,
@@ -478,14 +529,24 @@ def main() -> int:
     parser.add_argument("--timeout", type=float, default=180.0)
     parser.add_argument("--retries", type=int, default=4)
     parser.add_argument("--dry-run", action="store_true", help="只打印将发出的请求，不调用 API（无需 token）")
+    parser.add_argument("--archive-only", action="store_true", help="仅保留原始响应与请求清单，不执行旧版展示转换")
+    parser.add_argument("--dataset-version", help="归档模式下指定官方版本标识（如v加版本号）；不证明该版本存在或已核实")
     parser.add_argument(
         "--rebuild-manifest",
         action="store_true",
         help="按已落盘的 effort-*.json 重建 manifest.json（不联网、不需要 token）",
     )
     args = parser.parse_args()
+    if args.archive_only and (args.skip_existing or args.rebuild_manifest):
+        parser.error("--archive-only 不能用展示文件跳过原包或重建展示索引")
+    if args.dataset_version is not None and (
+        not args.archive_only
+        or not re.fullmatch(r"v[0-9][A-Za-z0-9._-]{0,63}", args.dataset_version)
+    ):
+        parser.error("--dataset-version 仅用于归档模式，须为官方v开头的明确版本标识，不能使用latest")
+    if not args.rebuild_manifest and args.group_by in {"VESSEL_ID", "MMSI"}:
+        parser.error("spatial-aggregation=false 的格点请求不能按 VESSEL_ID/MMSI 分组；请使用 GEARTYPE 或 FLAG")
 
-    manifest_path = args.out_dir / "manifest.json"
     existing: dict[str, object] | None = read_existing_manifest(args.out_dir)
     if args.rebuild_manifest:
         summaries = rebuild_summaries(args.out_dir)
@@ -543,7 +604,9 @@ def main() -> int:
         )
         return 2
 
-    print(f"数据集 {DATASETS[args.dataset]} · 分辨率 {args.resolution} · 粒度 {args.temporal}")
+    selected_dataset = (DATASETS[args.dataset].split(":")[0] + ":" + args.dataset_version
+                        if args.dataset_version else DATASETS[args.dataset])
+    print(f"数据集 {selected_dataset} · 分辨率 {args.resolution} · 粒度 {args.temporal}")
     print(f"窗口 bbox={args.bbox} · 需要 {len(ranges)} 次请求")
 
     summaries: list[dict[str, object]] = []
@@ -558,6 +621,7 @@ def main() -> int:
         url, params, body = build_request(
             bbox=args.bbox, start=start, end=end, dataset=args.dataset,
             resolution=args.resolution, temporal=args.temporal, group_by=args.group_by,
+            dataset_version=args.dataset_version,
         )
         print(f"[{index}/{len(ranges)}] {start} ~ {end}")
         if args.dry_run:
@@ -569,10 +633,15 @@ def main() -> int:
             bbox=args.bbox, start=start, end=end, dataset=args.dataset,
             resolution=args.resolution, temporal=args.temporal,
             token=token, timeout=args.timeout, retries=args.retries, group_by=args.group_by,
+            archive_dir=args.out_dir / "archives", archive_only=args.archive_only,
+            dataset_version=args.dataset_version,
         )
+        if args.archive_only:
+            print("  已留存原始响应与请求；版本、字段和覆盖仍待核实。")
+            continue
         grouped = group_by_date(rows)
         if not grouped:
-            print("  该区间没有返回任何格点（可能这几天海域内无 AIS 捕捞活动）")
+            print("  未解析出格点；覆盖及活动状态未知，不能解释为零活动。")
         for iso in sorted(grouped):
             summary = write_day(
                 out_dir=args.out_dir, iso=iso, rows=grouped[iso],
@@ -595,6 +664,9 @@ def main() -> int:
 
     if args.dry_run:
         print("\n--dry-run 结束：未调用 API、未写文件。")
+        return 0
+    if args.archive_only:
+        print("原始响应归档完成；尚未转换或取得研究资格。")
         return 0
 
     manifest = build_manifest(

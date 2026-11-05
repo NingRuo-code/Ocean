@@ -1,0 +1,5500 @@
+{
+  "date": "2026-11-04",
+  "status": "proposal_only_no_remote_mutations",
+  "repository": "NingRuo-code/Ocean",
+  "local_baseline": "baa3f25",
+  "scope": "all_issues_projected; original_execution_triage; no_raw_source_data",
+  "source_snapshot_sha256": "2b052e09c5c47b744f481a35a26f58a50797f5249b0ac520f1c476968e83a163",
+  "context_snapshot_sha256": "00995102800d752199880a7f8b0c57d244efa33ed89bbbba847f6865f6a97aeb",
+  "read_method": "GitHub CLI with existing repository credential; credentials not persisted",
+  "context_requests_succeeded": 27,
+  "context_requests_total": 28,
+  "context_read_failures": [
+    "71:comments"
+  ],
+  "comments_note": "Issue #71 comments fetch failed; issue listing reports its current comment count separately; no claim to have read missing comments.",
+  "issue_71_comment_count_from_listing": 0,
+  "counts": {
+    "all": 295,
+    "open": 249,
+    "closed": 46,
+    "original_execution": 252,
+    "original_execution_closed": 29,
+    "original_execution_open": 223,
+    "original_open_with_open_native_blockers": 215,
+    "blocked_original_still_ready_for_agent": 215,
+    "first_real_A_scope": 18,
+    "other_original_open_outside_first_A": 205,
+    "next_batch": 2
+  },
+  "original_open_by_disposition": {
+    "conditional_supersession_candidate": 2,
+    "deployment_gate": 24,
+    "real_data_display_gate": 2,
+    "first_real_A_milestone": 18,
+    "measured_load_gate": 8,
+    "consolidate_conditional_performance_pool": 6,
+    "next_research_milestone": 11,
+    "defer_comparison_product": 7,
+    "defer_online_execution": 9,
+    "defer_task_platform": 15,
+    "reuse_then_extend_reports": 15,
+    "retain_later_scientific_validation": 16,
+    "defer_similar_cases": 15,
+    "defer_prediction_experiment": 22,
+    "defer_ai": 26,
+    "defer_report_extensions": 27
+  },
+  "original_open_by_group": {
+    "legacy_backend": 3,
+    "UI": 1,
+    "P0": 7,
+    "performance": 14,
+    "A": 10,
+    "B": 11,
+    "C": 7,
+    "workbench": 11,
+    "TASK": 15,
+    "REPORT": 15,
+    "validation": 16,
+    "similar_cases": 15,
+    "prediction": 22,
+    "AI": 26,
+    "OPS": 23,
+    "report_extension": 27
+  },
+  "issues": [
+    {
+      "number": 1,
+      "title": "Spec: Server / Basic backend phase",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/1",
+      "state_at_read": "open",
+      "updated_at": "2026-10-27T12:05:51Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 2,
+      "title": "Backend Health Probe And Local Run Path",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/2",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-12T02:01:21Z",
+      "kind": "original_execution",
+      "group": "legacy_backend",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 3,
+      "title": "Fixture-Backed Viewport Happy Path",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/3",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-12T02:01:32Z",
+      "kind": "original_execution",
+      "group": "legacy_backend",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 4,
+      "title": "Viewport Validation And Honest Coverage States",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/4",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-12T06:59:12Z",
+      "kind": "original_execution",
+      "group": "legacy_backend",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 5,
+      "title": "Versioned Viewport Cache",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/5",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-12T07:17:02Z",
+      "kind": "original_execution",
+      "group": "legacy_backend",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 6,
+      "title": "Static Prototype Data Adapter For Viewport",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/6",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-27T07:50:49Z",
+      "kind": "original_execution",
+      "group": "legacy_backend",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 7,
+      "title": "Frontend Server Health Detection And Offline Fallback",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/7",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-13T01:32:18Z",
+      "kind": "original_execution",
+      "group": "legacy_backend",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 8,
+      "title": "Frontend Viewport Request Path For Large Map And Globe",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/8",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-27T11:21:21Z",
+      "kind": "original_execution",
+      "group": "legacy_backend",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 9,
+      "title": "Response Analysis Experiment Package",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/9",
+      "state_at_read": "open",
+      "updated_at": "2026-10-27T12:07:24Z",
+      "kind": "original_execution",
+      "group": "legacy_backend",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "conditional_supersession_candidate",
+      "reactivation_or_completion_condition": "先逐条迁移仍有效验收；被替代关闭不计研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 10,
+      "title": "Existing Server Sync Runbook",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/10",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-27T12:05:49Z",
+      "kind": "original_execution",
+      "group": "legacy_backend",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 11,
+      "title": "Deployed Server Smoke Sync",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/11",
+      "state_at_read": "open",
+      "updated_at": "2026-10-27T12:06:00Z",
+      "kind": "original_execution",
+      "group": "legacy_backend",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、访问和发布范围具备后按部署验收推进",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 12,
+      "title": "Basic Backend Completion Review",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/12",
+      "state_at_read": "open",
+      "updated_at": "2026-10-12T01:33:13Z",
+      "kind": "original_execution",
+      "group": "legacy_backend",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "conditional_supersession_candidate",
+      "reactivation_or_completion_condition": "先逐条迁移仍有效验收；被替代关闭不计研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 13,
+      "title": "执行总纲：可信历史分析 A→B→C 与界面、任务工作台改进",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/13",
+      "state_at_read": "open",
+      "updated_at": "2026-10-30T09:50:32Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 14,
+      "title": "[P0] 数据基线、分析条件与计算口径核对",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/14",
+      "state_at_read": "open",
+      "updated_at": "2026-10-22T06:36:38Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 15,
+      "title": "[U1] 地图操作说明与按钮呼出任务工作台首版",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/15",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-28T09:01:34Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 16,
+      "title": "[U2] 图例配色、时间入口与范围交互完善",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/16",
+      "state_at_read": "open",
+      "updated_at": "2026-10-22T06:13:47Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 17,
+      "title": "[P1] 性能基线与实测瓶颈优化",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/17",
+      "state_at_read": "open",
+      "updated_at": "2026-10-22T06:13:51Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 18,
+      "title": "[A] 完整单月任意覆盖内位置的空间关系分析",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/18",
+      "state_at_read": "open",
+      "updated_at": "2026-10-22T06:13:56Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 19,
+      "title": "[B] 固定海域锋面经过事件与前后响应分析",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/19",
+      "state_at_read": "open",
+      "updated_at": "2026-10-22T06:13:59Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 20,
+      "title": "[C] 候选区域的同条件证据比较",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/20",
+      "state_at_read": "open",
+      "updated_at": "2026-10-22T06:14:02Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 21,
+      "title": "[W] 工作台接入已验证的 A/B/C 分析任务",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/21",
+      "state_at_read": "open",
+      "updated_at": "2026-10-22T06:14:06Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 24,
+      "title": "[Spec] U1/U2 首批界面迁移：工作台、统一筛选与可信结果展示",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/24",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T01:58:47Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 25,
+      "title": "[U1/U2 T01] 附近锋面快捷入口与双侧结果联动",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/25",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-25T06:59:58Z",
+      "kind": "original_execution",
+      "group": "UI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 26,
+      "title": "[U1/U2 T02] 统一筛选完成日期、坐标和公里范围选择",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/26",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-25T08:05:16Z",
+      "kind": "original_execution",
+      "group": "UI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 27,
+      "title": "[U1/U2 T03] 左侧图层浮层与快捷任务搭配",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/27",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-25T08:05:17Z",
+      "kind": "original_execution",
+      "group": "UI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 28,
+      "title": "[U1/U2 T04] 切日与快速拖缩不串结果，失败可恢复",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/28",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-25T07:00:04Z",
+      "kind": "original_execution",
+      "group": "UI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 29,
+      "title": "[U1/U2 T05] 捕捞活动入口给出同范围真实概况",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/29",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-25T12:38:14Z",
+      "kind": "original_execution",
+      "group": "UI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 30,
+      "title": "[U1/U2 T06] 历史、预测与底部证据按需阅读",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/30",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-25T12:38:14Z",
+      "kind": "original_execution",
+      "group": "UI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 31,
+      "title": "[U1/U2 T07] 重新打开恢复已应用条件与图层",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/31",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-25T08:05:17Z",
+      "kind": "original_execution",
+      "group": "UI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 32,
+      "title": "[U1/U2 T08] 逐日播放遇到缺日暂停并可继续",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/32",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-25T08:05:17Z",
+      "kind": "original_execution",
+      "group": "UI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 33,
+      "title": "[U1/U2 T09] 海温同源色带、局部增强与锋面可读性",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/33",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-25T13:29:28Z",
+      "kind": "original_execution",
+      "group": "UI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 34,
+      "title": "[U1/U2 T10] 浅紫活动图与真实小时数一致呈现",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/34",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T13:37:01Z",
+      "kind": "original_execution",
+      "group": "UI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "real_data_display_gate",
+      "reactivation_or_completion_condition": "真实活动域和显示语义核实后收尾",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 35,
+      "title": "[Spec] P0 数据审计与分析条件合同：覆盖、粒度、零值、版本与支持范围",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/35",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T02:15:38Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 36,
+      "title": "[P0 P01] 运行首份可追溯的数据审计快照",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/36",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-25T05:47:20Z",
+      "kind": "original_execution",
+      "group": "P0",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 37,
+      "title": "[P0 P02] 逐日核实锋面与海温内容及有效支持",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/37",
+      "state_at_read": "open",
+      "updated_at": "2026-10-28T02:37:50Z",
+      "kind": "original_execution",
+      "group": "P0",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "first_real_A_milestone",
+      "reactivation_or_completion_condition": "保持原依赖和真实验收，下一批先 #37/#38",
+      "first_real_A_scope": true,
+      "next_batch": true,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 38,
+      "title": "[P0 P03] 逐日核实AIS零值、粒度与小时守恒",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/38",
+      "state_at_read": "open",
+      "updated_at": "2026-10-28T02:38:03Z",
+      "kind": "original_execution",
+      "group": "P0",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "first_real_A_milestone",
+      "reactivation_or_completion_condition": "保持原依赖和真实验收，下一批先 #37/#38",
+      "first_real_A_scope": true,
+      "next_batch": true,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 39,
+      "title": "[P0 P04] 对公里圆给出可复算的面积与分母",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/39",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T02:27:40Z",
+      "kind": "original_execution",
+      "group": "P0",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "first_real_A_milestone",
+      "reactivation_or_completion_condition": "保持原依赖和真实验收，下一批先 #37/#38",
+      "first_real_A_scope": true,
+      "next_batch": false,
+      "remote_mutation_applied": false,
+      "direct_blockers_read": [
+        {
+          "number": 37,
+          "state": "open"
+        },
+        {
+          "number": 38,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 40,
+      "title": "[P0 P05] 核对本地、离线与服务器资料身份",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/40",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-26T00:31:06Z",
+      "kind": "original_execution",
+      "group": "P0",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 41,
+      "title": "[P0 P06] 判断完整月与事件窗口的数据资格",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/41",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T02:27:45Z",
+      "kind": "original_execution",
+      "group": "P0",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "first_real_A_milestone",
+      "reactivation_or_completion_condition": "保持原依赖和真实验收，下一批先 #37/#38",
+      "first_real_A_scope": true,
+      "next_batch": false,
+      "remote_mutation_applied": false,
+      "direct_blockers_read": [
+        {
+          "number": 39,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 42,
+      "title": "[P0 P07] 现有查询读取同一份轻量支持结论",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/42",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T02:27:47Z",
+      "kind": "original_execution",
+      "group": "P0",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "first_real_A_milestone",
+      "reactivation_or_completion_condition": "保持原依赖和真实验收，下一批先 #37/#38",
+      "first_real_A_scope": true,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 43,
+      "title": "[P0 P08] 源数据变化后旧资格不被误用",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/43",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T02:27:50Z",
+      "kind": "original_execution",
+      "group": "P0",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "first_real_A_milestone",
+      "reactivation_or_completion_condition": "保持原依赖和真实验收，下一批先 #37/#38",
+      "first_real_A_scope": true,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 44,
+      "title": "[P0 P09] 交付东海2024年8月真实审计与研究关口证据",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/44",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T02:27:53Z",
+      "kind": "original_execution",
+      "group": "P0",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "first_real_A_milestone",
+      "reactivation_or_completion_condition": "保持原依赖和真实验收，下一批先 #37/#38",
+      "first_real_A_scope": true,
+      "next_batch": false,
+      "remote_mutation_applied": false,
+      "direct_blockers_read": [
+        {
+          "number": 40,
+          "state": "closed"
+        },
+        {
+          "number": 41,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 45,
+      "title": "[Spec] P1 性能基线与瓶颈优化：地图加载、算法对照和服务器容量",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/45",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T03:02:50Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 46,
+      "title": "[P1 F01] 复跑真实地图操作并输出端到端基线",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/46",
+      "state_at_read": "open",
+      "updated_at": "2026-10-28T03:13:40Z",
+      "kind": "original_execution",
+      "group": "performance",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "measured_load_gate",
+      "reactivation_or_completion_condition": "取得代表性真实负载与基线后选择修复",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 47,
+      "title": "[P1 F02] 盘点实际服务链与分层资源工作集",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/47",
+      "state_at_read": "open",
+      "updated_at": "2026-10-28T05:04:31Z",
+      "kind": "original_execution",
+      "group": "performance",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "measured_load_gate",
+      "reactivation_or_completion_condition": "取得代表性真实负载与基线后选择修复",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 48,
+      "title": "[P1 F03] 先概览后明细且当前操作优先",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/48",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:03:49Z",
+      "kind": "original_execution",
+      "group": "performance",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "measured_load_gate",
+      "reactivation_or_completion_condition": "取得代表性真实负载与基线后选择修复",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 49,
+      "title": "[P1 F04] 长播放缓存有界并有限预取邻日概览",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/49",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:03:52Z",
+      "kind": "original_execution",
+      "group": "performance",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "measured_load_gate",
+      "reactivation_or_completion_condition": "取得代表性真实负载与基线后选择修复",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 50,
+      "title": "[P1 F05] 重复窗口读取的服务缓存与清理有界",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/50",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:03:55Z",
+      "kind": "original_execution",
+      "group": "performance",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "measured_load_gate",
+      "reactivation_or_completion_condition": "取得代表性真实负载与基线后选择修复",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 51,
+      "title": "[P1 F06] 减少地图重绘与隐藏面板的重复工作",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/51",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:03:57Z",
+      "kind": "original_execution",
+      "group": "performance",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "measured_load_gate",
+      "reactivation_or_completion_condition": "取得代表性真实负载与基线后选择修复",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 52,
+      "title": "[P1 F07] 活动远景聚合守恒、近景显示完整有效格",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/52",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:03:59Z",
+      "kind": "original_execution",
+      "group": "performance",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "measured_load_gate",
+      "reactivation_or_completion_condition": "取得代表性真实负载与基线后选择修复",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 53,
+      "title": "[P1 F08] 首轮同负载复测与服务器容量决策",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/53",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:04:02Z",
+      "kind": "original_execution",
+      "group": "performance",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 4,
+      "proposed_disposition": "measured_load_gate",
+      "reactivation_or_completion_condition": "取得代表性真实负载与基线后选择修复",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 54,
+      "title": "[P1 F09] PNG图像层进入判断与最小端到端对照",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/54",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:04:04Z",
+      "kind": "original_execution",
+      "group": "performance",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "consolidate_conditional_performance_pool",
+      "reactivation_or_completion_condition": "由已测瓶颈触发一个候选；保留不采用决定",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 55,
+      "title": "[P1 F10] COG窗口读取进入判断与小切片对照",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/55",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:04:07Z",
+      "kind": "original_execution",
+      "group": "performance",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "consolidate_conditional_performance_pool",
+      "reactivation_or_completion_condition": "由已测瓶颈触发一个候选；保留不采用决定",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 56,
+      "title": "[P1 F11] 多年Zarr读取进入判断与两种分块对照",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/56",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:04:10Z",
+      "kind": "original_execution",
+      "group": "performance",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "consolidate_conditional_performance_pool",
+      "reactivation_or_completion_condition": "由已测瓶颈触发一个候选；保留不采用决定",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 57,
+      "title": "[P1 F12] 冻结月度聚合普通参照与成本基线",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/57",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:04:12Z",
+      "kind": "original_execution",
+      "group": "performance",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "consolidate_conditional_performance_pool",
+      "reactivation_or_completion_condition": "由已测瓶颈触发一个候选；保留不采用决定",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 58,
+      "title": "[P1 F13] Mosaic Selections进入判断与开关对照",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/58",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:04:15Z",
+      "kind": "original_execution",
+      "group": "performance",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "consolidate_conditional_performance_pool",
+      "reactivation_or_completion_condition": "由已测瓶颈触发一个候选；保留不采用决定",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 59,
+      "title": "[P1 F14] 剩余绘制瓶颈的单一替代方案对照",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/59",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:04:17Z",
+      "kind": "original_execution",
+      "group": "performance",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "consolidate_conditional_performance_pool",
+      "reactivation_or_completion_condition": "由已测瓶颈触发一个候选；保留不采用决定",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 60,
+      "title": "[Spec] A 完整月空间关系分析：公里范围、锋面距离、侧别与捕捞活动证据",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/60",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:25:06Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 61,
+      "title": "[A A01] 显式运行并读取可手算的月分析样例",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/61",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-26T00:31:32Z",
+      "kind": "original_execution",
+      "group": "A",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 62,
+      "title": "[A A02] 按最近锋面距离计算同日配对与月度密度",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/62",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:44:08Z",
+      "kind": "original_execution",
+      "group": "A",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "first_real_A_milestone",
+      "reactivation_or_completion_condition": "保持原依赖和真实验收，下一批先 #37/#38",
+      "first_real_A_scope": true,
+      "next_batch": false,
+      "remote_mutation_applied": false,
+      "direct_blockers_read": [
+        {
+          "number": 61,
+          "state": "closed"
+        },
+        {
+          "number": 39,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 63,
+      "title": "[A A03] 在可判定支持上比较冷暖侧与环境条件",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/63",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:44:11Z",
+      "kind": "original_execution",
+      "group": "A",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "first_real_A_milestone",
+      "reactivation_or_completion_condition": "保持原依赖和真实验收，下一批先 #37/#38",
+      "first_real_A_scope": true,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 64,
+      "title": "[A A04] 月分析按P0资格放行并解释真实缺口",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/64",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:44:18Z",
+      "kind": "original_execution",
+      "group": "A",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "first_real_A_milestone",
+      "reactivation_or_completion_condition": "保持原依赖和真实验收，下一批先 #37/#38",
+      "first_real_A_scope": true,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 65,
+      "title": "[A A05] 给出同月可比距离参照和匹配失败说明",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/65",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:44:20Z",
+      "kind": "original_execution",
+      "group": "A",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "first_real_A_milestone",
+      "reactivation_or_completion_condition": "保持原依赖和真实验收，下一批先 #37/#38",
+      "first_real_A_scope": true,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 66,
+      "title": "[A A06] 按相关日组估计效应区间并正确降级",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/66",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:44:23Z",
+      "kind": "original_execution",
+      "group": "A",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "first_real_A_milestone",
+      "reactivation_or_completion_condition": "保持原依赖和真实验收，下一批先 #37/#38",
+      "first_real_A_scope": true,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 67,
+      "title": "[A A07] 冻结主方案并运行可追溯敏感性比较",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/67",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:44:25Z",
+      "kind": "original_execution",
+      "group": "A",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "first_real_A_milestone",
+      "reactivation_or_completion_condition": "保持原依赖和真实验收，下一批先 #37/#38",
+      "first_real_A_scope": true,
+      "next_batch": false,
+      "remote_mutation_applied": false,
+      "direct_blockers_read": [
+        {
+          "number": 63,
+          "state": "open"
+        },
+        {
+          "number": 64,
+          "state": "open"
+        },
+        {
+          "number": 66,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 68,
+      "title": "[A A08] 运行首个合格真实整月并交付直接计算证据",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/68",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:44:27Z",
+      "kind": "original_execution",
+      "group": "A",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "first_real_A_milestone",
+      "reactivation_or_completion_condition": "保持原依赖和真实验收，下一批先 #37/#38",
+      "first_real_A_scope": true,
+      "next_batch": false,
+      "remote_mutation_applied": false,
+      "direct_blockers_read": [
+        {
+          "number": 67,
+          "state": "open"
+        },
+        {
+          "number": 44,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 69,
+      "title": "[A A09] 将同一月结果呈现为主图、解释和证据包",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/69",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:44:30Z",
+      "kind": "original_execution",
+      "group": "A",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "first_real_A_milestone",
+      "reactivation_or_completion_condition": "保持原依赖和真实验收，下一批先 #37/#38",
+      "first_real_A_scope": true,
+      "next_batch": false,
+      "remote_mutation_applied": false,
+      "direct_blockers_read": [
+        {
+          "number": 63,
+          "state": "open"
+        },
+        {
+          "number": 66,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 70,
+      "title": "[A A10] 重复读取复用正确结果且版本变化不串用",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/70",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:44:32Z",
+      "kind": "original_execution",
+      "group": "A",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "first_real_A_milestone",
+      "reactivation_or_completion_condition": "保持原依赖和真实验收，下一批先 #37/#38",
+      "first_real_A_scope": true,
+      "next_batch": false,
+      "remote_mutation_applied": false,
+      "direct_blockers_read": [
+        {
+          "number": 64,
+          "state": "open"
+        },
+        {
+          "number": 43,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 71,
+      "title": "[A A11] 复算真实月成果并交接可消费的A结果合同",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/71",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T04:44:34Z",
+      "kind": "original_execution",
+      "group": "A",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "first_real_A_milestone",
+      "reactivation_or_completion_condition": "保持原依赖和真实验收，下一批先 #37/#38",
+      "first_real_A_scope": true,
+      "next_batch": false,
+      "remote_mutation_applied": false,
+      "direct_blockers_read": [
+        {
+          "number": 68,
+          "state": "open"
+        },
+        {
+          "number": 69,
+          "state": "open"
+        },
+        {
+          "number": 70,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 72,
+      "title": "[Spec] B 固定海域事件响应：真实前后窗口、可比对照与相关事件推断",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/72",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T05:08:54Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 73,
+      "title": "[B B01] 运行固定海域事件响应的可手算样例",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/73",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-26T01:07:15Z",
+      "kind": "original_execution",
+      "group": "B",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 74,
+      "title": "[B B02] 从逐日锋面识别固定区域事件并保留断档边界",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/74",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T06:18:53Z",
+      "kind": "original_execution",
+      "group": "B",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "next_research_milestone",
+      "reactivation_or_completion_condition": "真实日级量、事件窗口与对照资料可用",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 75,
+      "title": "[B B03] 逐事件核实跨月前后窗口与研究准入",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/75",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T06:18:56Z",
+      "kind": "original_execution",
+      "group": "B",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "next_research_milestone",
+      "reactivation_or_completion_condition": "真实日级量、事件窗口与对照资料可用",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 76,
+      "title": "[B B04] 在前后可比支持上计算归一化活动变化",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/76",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T06:18:58Z",
+      "kind": "original_execution",
+      "group": "B",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "next_research_milestone",
+      "reactivation_or_completion_condition": "真实日级量、事件窗口与对照资料可用",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 77,
+      "title": "[B B05] 匹配固定同日对照并解释无法匹配的事件",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/77",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T06:19:06Z",
+      "kind": "original_execution",
+      "group": "B",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "next_research_milestone",
+      "reactivation_or_completion_condition": "真实日级量、事件窗口与对照资料可用",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 78,
+      "title": "[B B06] 按相关事件组估计效应区间并正确降级",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/78",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T06:19:09Z",
+      "kind": "original_execution",
+      "group": "B",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "next_research_milestone",
+      "reactivation_or_completion_condition": "真实日级量、事件窗口与对照资料可用",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 79,
+      "title": "[B B07] 提供逐日时滞与一致事件队列的比较",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/79",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T06:19:11Z",
+      "kind": "original_execution",
+      "group": "B",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "next_research_milestone",
+      "reactivation_or_completion_condition": "真实日级量、事件窗口与对照资料可用",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 80,
+      "title": "[B B08] 冻结事件主方案并运行有界敏感性比较",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/80",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T06:19:14Z",
+      "kind": "original_execution",
+      "group": "B",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "next_research_milestone",
+      "reactivation_or_completion_condition": "真实日级量、事件窗口与对照资料可用",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false,
+      "direct_blockers_read": [
+        {
+          "number": 78,
+          "state": "open"
+        },
+        {
+          "number": 79,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 81,
+      "title": "[B B09] 将事件结果呈现为主图、解释和同源证据包",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/81",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T06:19:16Z",
+      "kind": "original_execution",
+      "group": "B",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "next_research_milestone",
+      "reactivation_or_completion_condition": "真实日级量、事件窗口与对照资料可用",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 82,
+      "title": "[B B10] 复用正确事件结果并隔离规则和输入变化",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/82",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T06:19:24Z",
+      "kind": "original_execution",
+      "group": "B",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "next_research_milestone",
+      "reactivation_or_completion_condition": "真实日级量、事件窗口与对照资料可用",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 83,
+      "title": "[B B11] 运行真实固定区域事件和完整前后窗口案例",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/83",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T06:19:26Z",
+      "kind": "original_execution",
+      "group": "B",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "next_research_milestone",
+      "reactivation_or_completion_condition": "真实日级量、事件窗口与对照资料可用",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false,
+      "direct_blockers_read": [
+        {
+          "number": 80,
+          "state": "open"
+        },
+        {
+          "number": 71,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 84,
+      "title": "[B B12] 复算真实事件成果并交接C与工作台合同",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/84",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T06:19:29Z",
+      "kind": "original_execution",
+      "group": "B",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "next_research_milestone",
+      "reactivation_or_completion_condition": "真实日级量、事件窗口与对照资料可用",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 85,
+      "title": "[Spec] C 区域证据比较：同条件兼容判定、并列差异与不可比说明",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/85",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T06:40:06Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 86,
+      "title": "[C C01] 运行两区域已知快照的比较样例",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/86",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-26T01:36:35Z",
+      "kind": "original_execution",
+      "group": "C",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 87,
+      "title": "[C C02] 逐指标和区域对判断可比性并保留部分结果",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/87",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-26T05:59:37Z",
+      "kind": "original_execution",
+      "group": "C",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 88,
+      "title": "[C C03] 消费A交接结果形成同月区域证据板",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/88",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T06:54:14Z",
+      "kind": "original_execution",
+      "group": "C",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_comparison_product",
+      "reactivation_or_completion_condition": "至少两份真实可比成果及具体比较问题",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 89,
+      "title": "[C C04] 消费B交接结果形成分窗口区域事件证据板",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/89",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T06:54:16Z",
+      "kind": "original_execution",
+      "group": "C",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_comparison_product",
+      "reactivation_or_completion_condition": "至少两份真实可比成果及具体比较问题",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 90,
+      "title": "[C C05] 显式限定月度支持并给出描述差值",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/90",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T06:54:20Z",
+      "kind": "original_execution",
+      "group": "C",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_comparison_product",
+      "reactivation_or_completion_condition": "至少两份真实可比成果及具体比较问题",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 91,
+      "title": "[C C06] 按已登记事件队列并列描述差异",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/91",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T06:54:22Z",
+      "kind": "original_execution",
+      "group": "C",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_comparison_product",
+      "reactivation_or_completion_condition": "至少两份真实可比成果及具体比较问题",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 92,
+      "title": "[C C07] 呈现同标尺比较图与同源证据包",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/92",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T06:54:25Z",
+      "kind": "original_execution",
+      "group": "C",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_comparison_product",
+      "reactivation_or_completion_condition": "至少两份真实可比成果及具体比较问题",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 93,
+      "title": "[C C08] 比较版本隔离与逐源权限一致的结果复用",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/93",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T06:54:28Z",
+      "kind": "original_execution",
+      "group": "C",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_comparison_product",
+      "reactivation_or_completion_condition": "至少两份真实可比成果及具体比较问题",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 94,
+      "title": "[C C09] 复算真实多区域A/B比较并交接工作台",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/94",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T06:54:35Z",
+      "kind": "original_execution",
+      "group": "C",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_comparison_product",
+      "reactivation_or_completion_condition": "至少两份真实可比成果及具体比较问题",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 95,
+      "title": "[Spec] W 分析工作台：A/B/C 引导提交、任务状态与同源结果联动",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/95",
+      "state_at_read": "open",
+      "updated_at": "2026-10-30T09:50:34Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 96,
+      "title": "[W W01] 从工作台打开已有月结果并展开同源证据",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/96",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-26T07:29:08Z",
+      "kind": "original_execution",
+      "group": "workbench",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 97,
+      "title": "[W W02] 引导月任务条件并隔离未提交编辑与旧结果",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/97",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-26T08:10:05Z",
+      "kind": "original_execution",
+      "group": "workbench",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 98,
+      "title": "[W W03] 接入真实A成果及P0资格说明",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/98",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:20:09Z",
+      "kind": "original_execution",
+      "group": "workbench",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "first_real_A_milestone",
+      "reactivation_or_completion_condition": "保持原依赖和真实验收，下一批先 #37/#38",
+      "first_real_A_scope": true,
+      "next_batch": false,
+      "remote_mutation_applied": false,
+      "direct_blockers_read": [
+        {
+          "number": 97,
+          "state": "closed"
+        },
+        {
+          "number": 71,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 99,
+      "title": "[W W04] 本人显式提交A任务并取得持久受理记录",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/99",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:20:13Z",
+      "kind": "original_execution",
+      "group": "workbench",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_online_execution",
+      "reactivation_or_completion_condition": "真实计算稳定且浏览器提交或长任务需求明确",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 100,
+      "title": "[W W05] 关闭刷新或断网后继续查询原任务",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/100",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:20:16Z",
+      "kind": "original_execution",
+      "group": "workbench",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_online_execution",
+      "reactivation_or_completion_condition": "真实计算稳定且浏览器提交或长任务需求明确",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 101,
+      "title": "[W W06] 取消真实运行任务且不混入迟到成果",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/101",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:20:18Z",
+      "kind": "original_execution",
+      "group": "workbench",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_online_execution",
+      "reactivation_or_completion_condition": "真实计算稳定且浏览器提交或长任务需求明确",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 102,
+      "title": "[W W07] 失败后明确重试并区分原条件与新请求",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/102",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:20:21Z",
+      "kind": "original_execution",
+      "group": "workbench",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_online_execution",
+      "reactivation_or_completion_condition": "真实计算稳定且浏览器提交或长任务需求明确",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 103,
+      "title": "[W W08] 贯通真实整月A提交到可复核结果",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/103",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:20:24Z",
+      "kind": "original_execution",
+      "group": "workbench",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "defer_online_execution",
+      "reactivation_or_completion_condition": "真实计算稳定且浏览器提交或长任务需求明确",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 104,
+      "title": "[W W09] 接入真实B事件任务与分窗口证据",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/104",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:20:26Z",
+      "kind": "original_execution",
+      "group": "workbench",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "defer_online_execution",
+      "reactivation_or_completion_condition": "真实计算稳定且浏览器提交或长任务需求明确",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 105,
+      "title": "[W W10] 先开放C月度区域比较与逐源结果读取",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/105",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:20:30Z",
+      "kind": "original_execution",
+      "group": "workbench",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 4,
+      "proposed_disposition": "defer_online_execution",
+      "reactivation_or_completion_condition": "真实计算稳定且浏览器提交或长任务需求明确",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 106,
+      "title": "[W W11] 完成C事件分板与完整比较证据联动",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/106",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:20:35Z",
+      "kind": "original_execution",
+      "group": "workbench",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_online_execution",
+      "reactivation_or_completion_condition": "真实计算稳定且浏览器提交或长任务需求明确",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 107,
+      "title": "[W W12] 按原条件定位结果且保持地图与精简阅读",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/107",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:20:37Z",
+      "kind": "original_execution",
+      "group": "workbench",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "real_data_display_gate",
+      "reactivation_or_completion_condition": "真实 A 条件与位置已交接",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 108,
+      "title": "[W W13] 回放真实A/B/C工作台并交接后续公共模块",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/108",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:20:39Z",
+      "kind": "original_execution",
+      "group": "workbench",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 4,
+      "proposed_disposition": "defer_online_execution",
+      "reactivation_or_completion_condition": "真实计算稳定且浏览器提交或长任务需求明确",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 109,
+      "title": "[Spec] TASK 公共任务中心：安全恢复、归档准备与分层保存",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/109",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:41:17Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 110,
+      "title": "[TASK T01] 在工作台查找原身份的任务历史",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/110",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:54:00Z",
+      "kind": "original_execution",
+      "group": "TASK",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_task_platform",
+      "reactivation_or_completion_condition": "实测任务时长、复跑成本或容量触发；清理需保护合同",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 111,
+      "title": "[TASK T02] 选择登记归档并核对可执行准备范围",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/111",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:54:03Z",
+      "kind": "original_execution",
+      "group": "TASK",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_task_platform",
+      "reactivation_or_completion_condition": "实测任务时长、复跑成本或容量触发；清理需保护合同",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 112,
+      "title": "[TASK T03] 一键准备一个真实小范围资料单元",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/112",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:54:06Z",
+      "kind": "original_execution",
+      "group": "TASK",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_task_platform",
+      "reactivation_or_completion_condition": "实测任务时长、复跑成本或容量触发；清理需保护合同",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false,
+      "direct_blockers_read": [
+        {
+          "number": 111,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 113,
+      "title": "[TASK T04] 后台任务按资源排队并显示真实步骤进度",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/113",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:54:12Z",
+      "kind": "original_execution",
+      "group": "TASK",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_task_platform",
+      "reactivation_or_completion_condition": "实测任务时长、复跑成本或容量触发；清理需保护合同",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 114,
+      "title": "[TASK T05] 重启后从可靠检查点继续原任务",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/114",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:54:14Z",
+      "kind": "original_execution",
+      "group": "TASK",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_task_platform",
+      "reactivation_or_completion_condition": "实测任务时长、复跑成本或容量触发；清理需保护合同",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 115,
+      "title": "[TASK T06] 恢复时识别已提交结果并拒绝旧进程写入",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/115",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:54:17Z",
+      "kind": "original_execution",
+      "group": "TASK",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_task_platform",
+      "reactivation_or_completion_condition": "实测任务时长、复跑成本或容量触发；清理需保护合同",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 116,
+      "title": "[TASK T07] 不安全恢复明确中断并按原记录重试",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/116",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:54:20Z",
+      "kind": "original_execution",
+      "group": "TASK",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_task_platform",
+      "reactivation_or_completion_condition": "实测任务时长、复跑成本或容量触发；清理需保护合同",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 117,
+      "title": "[TASK T08] 取消意图跨重启保留且不与恢复竞争",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/117",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:54:30Z",
+      "kind": "original_execution",
+      "group": "TASK",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_task_platform",
+      "reactivation_or_completion_condition": "实测任务时长、复跑成本或容量触发；清理需保护合同",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 118,
+      "title": "[TASK T09] 多日多层准备保留缺口并正确发布就绪范围",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/118",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:54:32Z",
+      "kind": "original_execution",
+      "group": "TASK",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_task_platform",
+      "reactivation_or_completion_condition": "实测任务时长、复跑成本或容量触发；清理需保护合同",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 119,
+      "title": "[TASK T10] 保留轻量证据并说明大产物与复算状态",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/119",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:54:35Z",
+      "kind": "original_execution",
+      "group": "TASK",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_task_platform",
+      "reactivation_or_completion_condition": "实测任务时长、复跑成本或容量触发；清理需保护合同",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 120,
+      "title": "[TASK T11] 保护已保存成果及活动共享引用",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/120",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:54:37Z",
+      "kind": "original_execution",
+      "group": "TASK",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_task_platform",
+      "reactivation_or_completion_condition": "实测任务时长、复跑成本或容量触发；清理需保护合同",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 121,
+      "title": "[TASK T12] 并发准备复用同版本产物且不互相破坏",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/121",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:54:45Z",
+      "kind": "original_execution",
+      "group": "TASK",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "defer_task_platform",
+      "reactivation_or_completion_condition": "实测任务时长、复跑成本或容量触发；清理需保护合同",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 122,
+      "title": "[TASK T13] 按保护规则清理普通大产物并保留复算说明",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/122",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:54:48Z",
+      "kind": "original_execution",
+      "group": "TASK",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_task_platform",
+      "reactivation_or_completion_condition": "实测任务时长、复跑成本或容量触发；清理需保护合同",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 123,
+      "title": "[TASK T14] 据混合负载实测冻结任务与保存限额",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/123",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:54:50Z",
+      "kind": "original_execution",
+      "group": "TASK",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "defer_task_platform",
+      "reactivation_or_completion_condition": "实测任务时长、复跑成本或容量触发；清理需保护合同",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 124,
+      "title": "[TASK T15] 回放真实恢复准备与保护保存并交接",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/124",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T07:54:53Z",
+      "kind": "original_execution",
+      "group": "TASK",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 4,
+      "proposed_disposition": "defer_task_platform",
+      "reactivation_or_completion_condition": "实测任务时长、复跑成本或容量触发；清理需保护合同",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 125,
+      "title": "[Spec] REPORT 案例与研究成果：版本快照、统一报告与同源导出",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/125",
+      "state_at_read": "open",
+      "updated_at": "2026-10-30T02:13:24Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 126,
+      "title": "[REPORT R01] 从已有月结果预览同源研究报告",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/126",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T08:28:35Z",
+      "kind": "original_execution",
+      "group": "REPORT",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "reuse_then_extend_reports",
+      "reactivation_or_completion_condition": "真实结果稳定，复用既有软件并列明差额",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 127,
+      "title": "[REPORT R02] 保存并保护案例后按原版本重新打开",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/127",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T08:28:43Z",
+      "kind": "original_execution",
+      "group": "REPORT",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "reuse_then_extend_reports",
+      "reactivation_or_completion_condition": "真实结果稳定，复用既有软件并列明差额",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false,
+      "direct_blockers_read": [
+        {
+          "number": 126,
+          "state": "open"
+        },
+        {
+          "number": 120,
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "number": 128,
+      "title": "[REPORT R03] 检索案例并以新版本修改笔记和关联结果",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/128",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T08:28:47Z",
+      "kind": "original_execution",
+      "group": "REPORT",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "reuse_then_extend_reports",
+      "reactivation_or_completion_condition": "真实结果稳定，复用既有软件并列明差额",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 129,
+      "title": "[REPORT R04] 从冻结上下文导出地图和图表PNG",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/129",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T08:28:52Z",
+      "kind": "original_execution",
+      "group": "REPORT",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "reuse_then_extend_reports",
+      "reactivation_or_completion_condition": "真实结果稳定，复用既有软件并列明差额",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 130,
+      "title": "[REPORT R05] 下载带单位和缺失状态的聚合CSV",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/130",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T08:28:54Z",
+      "kind": "original_execution",
+      "group": "REPORT",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "reuse_then_extend_reports",
+      "reactivation_or_completion_condition": "真实结果稳定，复用既有软件并列明差额",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 131,
+      "title": "[REPORT R06] 生成可下载的同源中文PDF报告",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/131",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T08:28:56Z",
+      "kind": "original_execution",
+      "group": "REPORT",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "reuse_then_extend_reports",
+      "reactivation_or_completion_condition": "真实结果稳定，复用既有软件并列明差额",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 132,
+      "title": "[REPORT R07] 长表和多页报告保持清晰可读",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/132",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T08:28:58Z",
+      "kind": "original_execution",
+      "group": "REPORT",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "reuse_then_extend_reports",
+      "reactivation_or_completion_condition": "真实结果稳定，复用既有软件并列明差额",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 133,
+      "title": "[REPORT R08] 导出任务可查询取消重试且版本不串用",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/133",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T08:29:01Z",
+      "kind": "original_execution",
+      "group": "REPORT",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "reuse_then_extend_reports",
+      "reactivation_or_completion_condition": "真实结果稳定，复用既有软件并列明差额",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 134,
+      "title": "[REPORT R09] 交付真实A案例及PDF图片表格成果包",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/134",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T08:29:03Z",
+      "kind": "original_execution",
+      "group": "REPORT",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 5,
+      "proposed_disposition": "reuse_then_extend_reports",
+      "reactivation_or_completion_condition": "真实结果稳定，复用既有软件并列明差额",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 135,
+      "title": "[REPORT R10] 接入真实B事件案例和分窗口报告",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/135",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T08:29:09Z",
+      "kind": "original_execution",
+      "group": "REPORT",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 4,
+      "proposed_disposition": "reuse_then_extend_reports",
+      "reactivation_or_completion_condition": "真实结果稳定，复用既有软件并列明差额",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 136,
+      "title": "[REPORT R11] 接入真实C比较案例并保留全部候选与理由",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/136",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T08:29:11Z",
+      "kind": "original_execution",
+      "group": "REPORT",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 4,
+      "proposed_disposition": "reuse_then_extend_reports",
+      "reactivation_or_completion_condition": "真实结果稳定，复用既有软件并列明差额",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 137,
+      "title": "[REPORT R12] 选择A/B/C章节形成可追溯组合成果包",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/137",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T08:29:13Z",
+      "kind": "original_execution",
+      "group": "REPORT",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "reuse_then_extend_reports",
+      "reactivation_or_completion_condition": "真实结果稳定，复用既有软件并列明差额",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 138,
+      "title": "[REPORT R13] 按导出用途投影字段并核对文件元信息",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/138",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T08:29:16Z",
+      "kind": "original_execution",
+      "group": "REPORT",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "reuse_then_extend_reports",
+      "reactivation_or_completion_condition": "真实结果稳定，复用既有软件并列明差额",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 139,
+      "title": "[REPORT R14] 案例及报告保存与真实清理保持一致",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/139",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T08:29:24Z",
+      "kind": "original_execution",
+      "group": "REPORT",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "reuse_then_extend_reports",
+      "reactivation_or_completion_condition": "真实结果稳定，复用既有软件并列明差额",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 140,
+      "title": "[REPORT R15] 回放真实成果导出并交接后续研究与AI",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/140",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T08:29:26Z",
+      "kind": "original_execution",
+      "group": "REPORT",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "reuse_then_extend_reports",
+      "reactivation_or_completion_condition": "真实结果稳定，复用既有软件并列明差额",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 141,
+      "title": "[Spec] G3 独立复核：跨年季节与海域的关系稳健性",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/141",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T11:26:45Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 142,
+      "title": "[G3 V01] 显式运行并读取可手算的分层复核样例",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/142",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-26T12:45:52Z",
+      "kind": "original_execution",
+      "group": "validation",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 143,
+      "title": "[G3 V02] 列出真实跨年季节候选及联合资料缺口",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/143",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T11:39:37Z",
+      "kind": "original_execution",
+      "group": "validation",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "retain_later_scientific_validation",
+      "reactivation_or_completion_condition": "主方案冻结且独立样本可用，跨期优先",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 144,
+      "title": "[G3 V03] 登记资料接触并冻结可审查复核方案",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/144",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T11:39:39Z",
+      "kind": "original_execution",
+      "group": "validation",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "retain_later_scientific_validation",
+      "reactivation_or_completion_condition": "主方案冻结且独立样本可用，跨期优先",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 145,
+      "title": "[G3 V04] 阻止重叠样本和相关事件跨入独立复核",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/145",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T11:39:41Z",
+      "kind": "original_execution",
+      "group": "validation",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "retain_later_scientific_validation",
+      "reactivation_or_completion_condition": "主方案冻结且独立样本可用，跨期优先",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 146,
+      "title": "[G3 V05] 用原A引擎逐层执行冻结月度复核",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/146",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T11:39:44Z",
+      "kind": "original_execution",
+      "group": "validation",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "retain_later_scientific_validation",
+      "reactivation_or_completion_condition": "主方案冻结且独立样本可用，跨期优先",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 147,
+      "title": "[G3 V06] 复用正确G3结果并保留旧版本和失败状态",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/147",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T11:39:46Z",
+      "kind": "original_execution",
+      "group": "validation",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "retain_later_scientific_validation",
+      "reactivation_or_completion_condition": "主方案冻结且独立样本可用，跨期优先",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 148,
+      "title": "[G3 V07] 给出A分层效应及有依据的跨层汇总",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/148",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T11:39:48Z",
+      "kind": "original_execution",
+      "group": "validation",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "retain_later_scientific_validation",
+      "reactivation_or_completion_condition": "主方案冻结且独立样本可用，跨期优先",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 149,
+      "title": "[G3 V08] 读取A跨期敏感性图表和失效证据",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/149",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T11:39:51Z",
+      "kind": "original_execution",
+      "group": "validation",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "retain_later_scientific_validation",
+      "reactivation_or_completion_condition": "主方案冻结且独立样本可用，跨期优先",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 150,
+      "title": "[G3 V09] 完成东海A真实跨年与季节独立复核",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/150",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T11:39:53Z",
+      "kind": "original_execution",
+      "group": "validation",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "retain_later_scientific_validation",
+      "reactivation_or_completion_condition": "主方案冻结且独立样本可用，跨期优先",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 151,
+      "title": "[G3 V10] 用原B引擎逐层执行固定区域事件复核",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/151",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T11:40:00Z",
+      "kind": "original_execution",
+      "group": "validation",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "retain_later_scientific_validation",
+      "reactivation_or_completion_condition": "主方案冻结且独立样本可用，跨期优先",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 152,
+      "title": "[G3 V11] 给出B跨期效应与敏感性同源证据",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/152",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T11:40:02Z",
+      "kind": "original_execution",
+      "group": "validation",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "retain_later_scientific_validation",
+      "reactivation_or_completion_condition": "主方案冻结且独立样本可用，跨期优先",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 153,
+      "title": "[G3 V12] 完成东海B真实跨期独立复核",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/153",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T11:40:04Z",
+      "kind": "original_execution",
+      "group": "validation",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "retain_later_scientific_validation",
+      "reactivation_or_completion_condition": "主方案冻结且独立样本可用，跨期优先",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 154,
+      "title": "[G3 V13] 在合格外海域独立复核A关系",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/154",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T11:40:07Z",
+      "kind": "original_execution",
+      "group": "validation",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "retain_later_scientific_validation",
+      "reactivation_or_completion_condition": "主方案冻结且独立样本可用，跨期优先",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 155,
+      "title": "[G3 V14] 在合格外海域独立复核B响应",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/155",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T11:40:09Z",
+      "kind": "original_execution",
+      "group": "validation",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "retain_later_scientific_validation",
+      "reactivation_or_completion_condition": "主方案冻结且独立样本可用，跨期优先",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 156,
+      "title": "[G3 V15] 诊断资料并冻结必要的条件解释模型",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/156",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T11:40:12Z",
+      "kind": "original_execution",
+      "group": "validation",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "retain_later_scientific_validation",
+      "reactivation_or_completion_condition": "主方案冻结且独立样本可用，跨期优先",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 157,
+      "title": "[G3 V16] 独立评价冻结条件模型并报告解释边界",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/157",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T11:40:14Z",
+      "kind": "original_execution",
+      "group": "validation",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "retain_later_scientific_validation",
+      "reactivation_or_completion_condition": "主方案冻结且独立样本可用，跨期优先",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 158,
+      "title": "[G3 V17] 复算东海A/B复核成果并交接适用范围",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/158",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T11:40:16Z",
+      "kind": "original_execution",
+      "group": "validation",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "retain_later_scientific_validation",
+      "reactivation_or_completion_condition": "主方案冻结且独立样本可用，跨期优先",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 159,
+      "title": "[Spec] G3 相似案例与辅助匹配：可解释检索、响应对照与断档说明",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/159",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T11:55:40Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 160,
+      "title": "[G3 S01] 从工作台检索并展开合法已知历史案例",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/160",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-26T13:42:42Z",
+      "kind": "original_execution",
+      "group": "similar_cases",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 161,
+      "title": "[G3 S02] 按真实支持和许可构建可检索候选目录",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/161",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T12:11:43Z",
+      "kind": "original_execution",
+      "group": "similar_cases",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_similar_cases",
+      "reactivation_or_completion_condition": "真实案例规模与检索评估问题具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 162,
+      "title": "[G3 S03] 按同海域季节精确筛选并稳定分页",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/162",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T12:11:49Z",
+      "kind": "original_execution",
+      "group": "similar_cases",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_similar_cases",
+      "reactivation_or_completion_condition": "真实案例规模与检索评估问题具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 163,
+      "title": "[G3 S04] 按有据环境特征解释相似与差异",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/163",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T12:11:51Z",
+      "kind": "original_execution",
+      "group": "similar_cases",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_similar_cases",
+      "reactivation_or_completion_condition": "真实案例规模与检索评估问题具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 164,
+      "title": "[G3 S05] 使用事前活动特征并标明历史可知边界",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/164",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T12:11:54Z",
+      "kind": "original_execution",
+      "group": "similar_cases",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_similar_cases",
+      "reactivation_or_completion_condition": "真实案例规模与检索评估问题具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 165,
+      "title": "[G3 S06] 展开原B响应并识别重复事件变体",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/165",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T12:11:56Z",
+      "kind": "original_execution",
+      "group": "similar_cases",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_similar_cases",
+      "reactivation_or_completion_condition": "真实案例规模与检索评估问题具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 166,
+      "title": "[G3 S07] 并列A背景与B响应并说明不可比项",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/166",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T12:11:59Z",
+      "kind": "original_execution",
+      "group": "similar_cases",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_similar_cases",
+      "reactivation_or_completion_condition": "真实案例规模与检索评估问题具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 167,
+      "title": "[G3 S08] 隔离验证保留资料并登记实际检索接触",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/167",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T12:12:01Z",
+      "kind": "original_execution",
+      "group": "similar_cases",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_similar_cases",
+      "reactivation_or_completion_condition": "真实案例规模与检索评估问题具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 168,
+      "title": "[G3 S09] 明确定位历史候选并保持原地图操作",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/168",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T12:12:03Z",
+      "kind": "original_execution",
+      "group": "similar_cases",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_similar_cases",
+      "reactivation_or_completion_condition": "真实案例规模与检索评估问题具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 169,
+      "title": "[G3 S10] 短窗匹配遇到缺日或重置时明确分段",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/169",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T12:12:06Z",
+      "kind": "original_execution",
+      "group": "similar_cases",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_similar_cases",
+      "reactivation_or_completion_condition": "真实案例规模与检索评估问题具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 170,
+      "title": "[G3 S11] 展示短窗匹配备选、代理依据与歧义",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/170",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T12:12:08Z",
+      "kind": "original_execution",
+      "group": "similar_cases",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_similar_cases",
+      "reactivation_or_completion_condition": "真实案例规模与检索评估问题具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 171,
+      "title": "[G3 S12] 在案例地图中按段核对短窗候选关系",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/171",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T12:12:11Z",
+      "kind": "original_execution",
+      "group": "similar_cases",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "defer_similar_cases",
+      "reactivation_or_completion_condition": "真实案例规模与检索评估问题具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 172,
+      "title": "[G3 S13] 库更新后复用正确检索并保留合法旧证据",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/172",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T12:12:14Z",
+      "kind": "original_execution",
+      "group": "similar_cases",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_similar_cases",
+      "reactivation_or_completion_condition": "真实案例规模与检索评估问题具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 173,
+      "title": "[G3 S14] 回放真实历史检索与不同案例响应证据",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/173",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T12:12:16Z",
+      "kind": "original_execution",
+      "group": "similar_cases",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 5,
+      "proposed_disposition": "defer_similar_cases",
+      "reactivation_or_completion_condition": "真实案例规模与检索评估问题具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 174,
+      "title": "[G3 S15] 运行真实短窗并逐日核查匹配质量",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/174",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T12:12:19Z",
+      "kind": "original_execution",
+      "group": "similar_cases",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_similar_cases",
+      "reactivation_or_completion_condition": "真实案例规模与检索评估问题具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 175,
+      "title": "[G3 S16] 交接真实检索与辅助匹配成果合同",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/175",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T12:12:21Z",
+      "kind": "original_execution",
+      "group": "similar_cases",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_similar_cases",
+      "reactivation_or_completion_condition": "真实案例规模与检索评估问题具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 176,
+      "title": "[Spec] PRED 活动预测：可知输入、简单基线与锋面增量独立回测",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/176",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T12:33:08Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 177,
+      "title": "[PRED P01] 从工作台运行可手算活动预测基线",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/177",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:02:59Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 178,
+      "title": "[PRED P02] 核实预测用途资料与独立样本可行性",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/178",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:03:02Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 179,
+      "title": "[PRED P03] 生成不受未来锋面筛选的逐日活动标签",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/179",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:03:05Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 180,
+      "title": "[PRED P04] 按签发时刻构建可知输入与时效记录",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/180",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:03:12Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 181,
+      "title": "[PRED P05] 登记预测分区并阻止窗口和目标泄漏",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/181",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:03:14Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 182,
+      "title": "[PRED P06] 运行持续性与近期日历均值基线",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/182",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:03:17Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 183,
+      "title": "[PRED P07] 按真实支持加入季节常态与相对变化",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/183",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:03:24Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 184,
+      "title": "[PRED P08] 交付真实训练验证时段的基线参照",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/184",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:03:27Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 185,
+      "title": "[PRED P09] 受控比较可解释的无锋面与有锋面模型",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/185",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:03:30Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 186,
+      "title": "[PRED P10] 以同等预算比较一类成熟树模型",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/186",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:03:34Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 187,
+      "title": "[PRED P11] 读取同样本配对误差与预测覆盖",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/187",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:03:39Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 188,
+      "title": "[PRED P12] 按相关组估计增量区间并正确降级",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/188",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:03:41Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 189,
+      "title": "[PRED P13] 保存并保护实验模型和预测评价版本",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/189",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:03:44Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 190,
+      "title": "[PRED P14] 完成真实时间验证选择并封存最终模型",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/190",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:03:47Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 4,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 191,
+      "title": "[PRED P15] 完成真实1–3日锋面增量独立回测",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/191",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:03:50Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 192,
+      "title": "[PRED P16] 按原条件阅读预测并区分观测图层",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/192",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:03:52Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 193,
+      "title": "[PRED P17] 贯通真实局部回测阅读并交接核心成果",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/193",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:03:55Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 194,
+      "title": "[PRED P18] 按原生预测单元生成局部分布样例",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/194",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:03:57Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 195,
+      "title": "[PRED P19] 独立验证原生局部分布与空间留出",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/195",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:03:59Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 196,
+      "title": "[PRED P20] 按冻结范围复核预测跨年份与季节表现",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/196",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:04:02Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 197,
+      "title": "[PRED P21] 在已验证支持与实测预算内扩展东海分布",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/197",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:04:07Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 198,
+      "title": "[PRED P22] 汇合预测实证与空间扩展并交接完整范围",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/198",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:04:10Z",
+      "kind": "original_execution",
+      "group": "prediction",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "defer_prediction_experiment",
+      "reactivation_or_completion_condition": "可知输入、标签、切分及独立评估资料具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 199,
+      "title": "[Spec] AI 多轮分析：同条件任务执行、证据解释与有界在线模型",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/199",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:19:32Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 200,
+      "title": "[AI AI01] 从工作台用明确指令运行已知A小例",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/200",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:41:32Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 201,
+      "title": "[AI AI02] 问清当前锋面和历史频次的真实含义",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/201",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:41:34Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 202,
+      "title": "[AI AI03] 多轮改条件并澄清后继续原明确意图",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/202",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:41:36Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 203,
+      "title": "[AI AI04] 发布能核对具体指标与限定的证据回答",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/203",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:41:39Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 204,
+      "title": "[AI AI05] 刷新后重开原轮次和证据且不再次调用",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/204",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:41:42Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 205,
+      "title": "[AI AI06] 分清停止回答与取消重试真实任务",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/205",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:41:49Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 206,
+      "title": "[AI AI07] 在AI阅读前落实保留集隔离与接触登记",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/206",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:41:51Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 207,
+      "title": "[AI AI08] 按发送用途投影证据并拒绝非法外发",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/207",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:41:54Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 208,
+      "title": "[AI AI09] 配置并实际运行有费用上限的在线单轮分析",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/208",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:41:56Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 209,
+      "title": "[AI AI10] 按有限计划执行明确的多步骤分析请求",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/209",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:42:00Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 210,
+      "title": "[AI AI11] 交付真实整月A的在线多轮核心流程",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/210",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:42:05Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 4,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 211,
+      "title": "[AI AI12] 用多轮请求分析B事件并解释真实窗口",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/211",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:42:07Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 212,
+      "title": "[AI AI13] 先用自然语言比较已有A月度区域证据",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/212",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:42:09Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 213,
+      "title": "[AI AI14] 解释C事件分板及真实两域比较",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/213",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:42:12Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 214,
+      "title": "[AI AI15] 检索相似历史并解释原响应而不制造成功率",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/214",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:42:14Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 215,
+      "title": "[AI AI16] 按真实分段解释短窗匹配与歧义",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/215",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:42:16Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 216,
+      "title": "[AI AI17] 按冻结协议解释并运行G3月度复核",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/216",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:42:18Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 217,
+      "title": "[AI AI18] 按冻结协议解释并运行G3事件复核",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/217",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:42:21Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 218,
+      "title": "[AI AI19] 解释并显式运行已登记预测实验",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/218",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:42:24Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 219,
+      "title": "[AI AI20] 从缺资料说明明确提交归档准备",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/219",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:42:26Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 220,
+      "title": "[AI AI21] 保存选定结果和独立AI注释版本",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/220",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:42:30Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 221,
+      "title": "[AI AI22] 导出带明确AI注释的同源内部报告",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/221",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:42:35Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 222,
+      "title": "[AI AI23] 按原报告用途安全导出AI注释",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/222",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:42:37Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 223,
+      "title": "[AI AI24] 按预算清理会话且保护主动保存解释",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/223",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:42:40Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 224,
+      "title": "[AI AI25] 用冻结用例验证在线多步骤与降级",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/224",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:42:42Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 225,
+      "title": "[AI AI26] 汇合各工具真实AI能力并交接完整范围",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/225",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T13:42:45Z",
+      "kind": "original_execution",
+      "group": "AI",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 11,
+      "proposed_disposition": "defer_ai",
+      "reactivation_or_completion_condition": "真实确定性证据稳定且明确需要语言入口",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 226,
+      "title": "[Spec] OPS 系统交付：版本化发布、运行监测与可验证备份恢复",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/226",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:03:17Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 227,
+      "title": "[OPS O01] 从固定发布包启动隔离地图与已知查询",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/227",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-27T01:23:51Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 228,
+      "title": "[OPS O02] 按实际目标清单核对候选发布准入",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/228",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:32:20Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 229,
+      "title": "[OPS O03] 经实际入口隔离公开读取与本人私有操作",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/229",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:32:22Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 230,
+      "title": "[OPS O04] 切换兼容发布并处理旧页面与资产缓存",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/230",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:32:27Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 231,
+      "title": "[OPS O05] 发布时保留任务并拒绝旧执行者提交",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/231",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:32:29Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 232,
+      "title": "[OPS O06] 失败后回退兼容发布且保留新旧成果",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/232",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:32:33Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 233,
+      "title": "[OPS O07] 按层查看服务和资料真实就绪状态",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/233",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-27T05:25:59Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 234,
+      "title": "[OPS O08] 对真实故障生成有界且可恢复的告警",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/234",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:32:38Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 235,
+      "title": "[OPS O09] 更新合法资料后保持旧资格与结果版本",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/235",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:32:41Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 236,
+      "title": "[OPS O10] 按权威引用预览可恢复范围与缺口",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/236",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:32:43Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 237,
+      "title": "[OPS O11] 实际生成一致备份并保留上一可用副本",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/237",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:32:45Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 238,
+      "title": "[OPS O12] 在空白隔离环境恢复原任务和合法文件",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/238",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:32:49Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 239,
+      "title": "[OPS O13] 取回独立副本并恢复真实A案例成果",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/239",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:32:56Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 240,
+      "title": "[OPS O14] 清理备份候选时保护最后可用恢复链",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/240",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:32:58Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 241,
+      "title": "[OPS O15] 恢复后核撤权、科研接触和模型费用未知",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/241",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:33:00Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 242,
+      "title": "[OPS O16] 恢复后对账任务并隔离旧运行代际",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/242",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:33:03Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 243,
+      "title": "[OPS O17] 备份恢复与真实报告及AI保护清理保持一致",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/243",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:33:06Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 4,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 244,
+      "title": "[OPS O18] 将真实A/B/C纳入候选发布与恢复范围",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/244",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:33:09Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 4,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 245,
+      "title": "[OPS O19] 整合真实G3复核与案例并保留接触边界",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/245",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:33:11Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 4,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 246,
+      "title": "[OPS O20] 将真实局部预测纳入发布及恢复验证",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/246",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:33:13Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 247,
+      "title": "[OPS O21] 整合真实AI模式并验证恢复后不重复发送",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/247",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:33:19Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 248,
+      "title": "[OPS O22] 按实际混合负载冻结OPS资源与备份限额",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/248",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:33:21Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 6,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 249,
+      "title": "[OPS O23] 按单独安排发布并验证真实A生产范围",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/249",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:33:24Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 250,
+      "title": "[OPS O24] 查看完整候选能力账并验证扩展恢复范围",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/250",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:33:27Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 6,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 251,
+      "title": "[OPS O25] 按实际声明范围完成生产OPS交付与跟进",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/251",
+      "state_at_read": "open",
+      "updated_at": "2026-10-24T14:33:29Z",
+      "kind": "original_execution",
+      "group": "OPS",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "deployment_gate",
+      "reactivation_or_completion_condition": "实际目标、权限、资源和发布安排具备",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 252,
+      "title": "[Spec] REPORT扩展：G3复核、相似案例与预测回测成果同源导出",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/252",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T00:49:31Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 253,
+      "title": "[REPORT扩展 RX01] 从既有G3结果预览分层复核报告",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/253",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:08:33Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 254,
+      "title": "[REPORT扩展 RX02] 保存G3案例并按原版本重开",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/254",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:08:35Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 255,
+      "title": "[REPORT扩展 RX03] 下载G3同源PDF图片表格成果包",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/255",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:08:37Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 256,
+      "title": "[REPORT扩展 RX04] 交付真实G3 A跨年季节报告",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/256",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:08:40Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 257,
+      "title": "[REPORT扩展 RX05] 保存并导出真实G3 B分窗口复核",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/257",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:08:43Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 258,
+      "title": "[REPORT扩展 RX06] 按真实外海域支持导出G3 B复核",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/258",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:08:45Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 259,
+      "title": "[REPORT扩展 RX07] 在G3报告中附原条件模型证据",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/259",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:08:48Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 260,
+      "title": "[REPORT扩展 RX08] 预览固定检索快照与选中案例范围",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/260",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:08:50Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 4,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 261,
+      "title": "[REPORT扩展 RX09] 保存检索案例并导出同源成果包",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/261",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:08:53Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 4,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 262,
+      "title": "[REPORT扩展 RX10] 按原库版本导出有界完整候选或明确子集",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/262",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:08:55Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 1,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 263,
+      "title": "[REPORT扩展 RX11] 交付真实历史检索与B响应报告",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/263",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:08:58Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 264,
+      "title": "[REPORT扩展 RX12] 保存按段核对的短窗案例",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/264",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:09:00Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 265,
+      "title": "[REPORT扩展 RX13] 导出保留断档歧义的短窗成果包",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/265",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:09:02Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 266,
+      "title": "[REPORT扩展 RX14] 交付真实短窗逐日核对报告",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/266",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:09:05Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 267,
+      "title": "[REPORT扩展 RX15] 预览原预测回测及逐提前量评价",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/267",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:09:08Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 268,
+      "title": "[REPORT扩展 RX16] 保存预测案例并导出公平回测成果包",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/268",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:09:10Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 4,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 269,
+      "title": "[REPORT扩展 RX17] 交付真实局部1至3日独立回测报告",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/269",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:09:12Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 270,
+      "title": "[REPORT扩展 RX18] 导出有原生空间支持的局部分布报告",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/270",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:09:15Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 271,
+      "title": "[REPORT扩展 RX19] 导出预测跨年与季节独立复核报告",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/271",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:09:17Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 272,
+      "title": "[REPORT扩展 RX20] 按已验证东海范围导出分布成果",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/272",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:09:19Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 273,
+      "title": "[REPORT扩展 RX21] 组合新研究章节并保留各自证据身份",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/273",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:09:22Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 5,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 274,
+      "title": "[REPORT扩展 RX22] 按当前用途导出新类型并阻止封存旁路",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/274",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:09:24Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 275,
+      "title": "[REPORT扩展 RX23] 按实测限额生成长候选与混合报告",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/275",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:09:26Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 276,
+      "title": "[REPORT扩展 RX24] 保护新报告实际依赖并对账清理竞争",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/276",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:09:28Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 277,
+      "title": "[REPORT扩展 RX25] 按原注释合同导出新类型AI说明",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/277",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:09:30Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 3,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 278,
+      "title": "[REPORT扩展 RX26] 查看新报告能力账与原文件及交付缺口",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/278",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:09:33Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 6,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 279,
+      "title": "[REPORT扩展 RX27] 独立导出真实外海域A复核报告",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/279",
+      "state_at_read": "open",
+      "updated_at": "2026-10-25T01:09:35Z",
+      "kind": "original_execution",
+      "group": "report_extension",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 2,
+      "proposed_disposition": "defer_report_extensions",
+      "reactivation_or_completion_condition": "相应真实成果类型已验收",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 306,
+      "title": "[Spec] 已知公开合成A成果的报告预览与同源下载软件交付",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/306",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-28T14:14:01Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 307,
+      "title": "[REPORT SW01] 预览已有公开合成月成果的同源研究报告",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/307",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-28T14:08:33Z",
+      "kind": "supplementary_execution",
+      "group": "supplementary",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 308,
+      "title": "[REPORT SW02] 从同源报告下载Markdown与逐日汇总CSV",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/308",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-28T14:08:36Z",
+      "kind": "supplementary_execution",
+      "group": "supplementary",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 310,
+      "title": "[Spec] 自有合成报告的本人持久案例与人工笔记版本软件交付",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/310",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-29T08:50:04Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 311,
+      "title": "[REPORT CS01] 本人保存并重开已有合成报告案例",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/311",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-29T07:38:51Z",
+      "kind": "supplementary_execution",
+      "group": "supplementary",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 312,
+      "title": "[REPORT CS02] 检索案例并以新版本修改人工笔记",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/312",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-29T08:40:19Z",
+      "kind": "supplementary_execution",
+      "group": "supplementary",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 314,
+      "title": "[Spec] 本人合成案例版本的文件导出与校验成果包软件交付",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/314",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-29T11:53:10Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 315,
+      "title": "[REPORT CE01] 下载所读本人案例版本的Markdown报告和CSV",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/315",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-29T11:46:09Z",
+      "kind": "supplementary_execution",
+      "group": "supplementary",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 316,
+      "title": "[REPORT CE02] 下载同版本的带校验清单成果包",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/316",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-29T11:46:15Z",
+      "kind": "supplementary_execution",
+      "group": "supplementary",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 318,
+      "title": "[Spec] 本人合成案例所读版本的逐日证据图PNG软件交付",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/318",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-30T01:41:23Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 319,
+      "title": "[REPORT CG01] 下载所读本人案例版本的逐日证据图PNG",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/319",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-30T01:41:23Z",
+      "kind": "supplementary_execution",
+      "group": "supplementary",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 321,
+      "title": "[Spec] 本人合成案例所读版本的本地成果包核对软件",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/321",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-30T02:12:33Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 322,
+      "title": "[REPORT BC01] 核对本地成果包与所读本人案例版本",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/322",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-30T02:12:32Z",
+      "kind": "supplementary_execution",
+      "group": "supplementary",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 325,
+      "title": "[Spec] 本人合成月任务的持久受理与授权找回软件",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/325",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-30T09:50:21Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 326,
+      "title": "[W S01] 显式提交并读取持久本人合成月任务",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/326",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-30T09:15:55Z",
+      "kind": "supplementary_execution",
+      "group": "supplementary",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 327,
+      "title": "[W S02] 刷新后授权找回合成任务与原意图",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/327",
+      "state_at_read": "closed",
+      "updated_at": "2026-10-30T09:50:22Z",
+      "kind": "supplementary_execution",
+      "group": "supplementary",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "preserve_completed_history",
+      "reactivation_or_completion_condition": "保留已关闭记录；不重复开发，不推定真实研究完成",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 329,
+      "title": "[Spec] 本人合成任务冻结证据Markdown/CSV软件",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/329",
+      "state_at_read": "open",
+      "updated_at": "2026-10-30T11:19:47Z",
+      "kind": "navigation_or_spec",
+      "group": "navigation_or_spec",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "retain_navigation_update_scope",
+      "reactivation_or_completion_condition": "父规格保留；采纳本建议后更新本期范围",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    },
+    {
+      "number": 330,
+      "title": "[REPORT E01] 从所读本人合成任务下载冻结证据文件（软件补充）",
+      "url": "https://github.com/NingRuo-code/Ocean/issues/330",
+      "state_at_read": "open",
+      "updated_at": "2026-10-30T11:19:53Z",
+      "kind": "supplementary_execution",
+      "group": "supplementary",
+      "labels_at_read": [
+        "ready-for-agent"
+      ],
+      "open_native_blockers_at_read": 0,
+      "proposed_disposition": "finish_existing_local_delivery_only",
+      "reactivation_or_completion_condition": "核实本地实现和验证后收尾，停止新增合成扩展",
+      "first_real_A_scope": false,
+      "next_batch": false,
+      "remote_mutation_applied": false
+    }
+  ]
+}

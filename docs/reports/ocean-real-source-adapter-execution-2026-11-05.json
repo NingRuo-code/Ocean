@@ -1,0 +1,69 @@
+{
+  "date": "2026-11-05",
+  "baseline": "baa3f25",
+  "planning_commit": "bfe680d",
+  "implementation_commit": "1dc537d",
+  "published": false,
+  "deployed": false,
+  "checks": {
+    "python_tools": {
+      "passed": 75
+    },
+    "backend": {
+      "passed": 310
+    },
+    "source_node": {
+      "passed": 6
+    },
+    "data_check": {
+      "passed": 922
+    },
+    "ruff": "passed",
+    "python_compile": "passed",
+    "frozen_replay": "passed",
+    "browser_full": "incomplete; resource failure and interrupted serial retry"
+  },
+  "backend_retry": "Earlier WinError10055 failures; isolated retries passed; final full suite passed with BLAS/OMP threads=1.",
+  "review": {
+    "range": "bfe680d...1dc537d",
+    "standards_unresolved": 0,
+    "spec_unresolved": 0
+  },
+  "logs": {
+    "intake-tools-final.log": {
+      "sha256": "e84a233105b6aea18b8acb1c385f37823b4a38ef2abc48b055cfe86eb323f3ab"
+    },
+    "intake-backend-bounded.log": {
+      "sha256": "163041cf6589c43da07fcab7d71bb7fbc4b732e43fbd735e6f2dec4717bb8e6a"
+    },
+    "intake-source-node-final.log": {
+      "sha256": "7de03ae995290758e82376897c002a940b046ee38a40f85a291b48f136bfdb59"
+    }
+  },
+  "issues": {
+    "37": {
+      "state": "open",
+      "labels": [
+        "needs-info"
+      ],
+      "url": "https://github.com/NingRuo-code/Ocean/issues/37"
+    },
+    "38": {
+      "state": "open",
+      "labels": [
+        "needs-info"
+      ],
+      "url": "https://github.com/NingRuo-code/Ocean/issues/38"
+    },
+    "13": {
+      "state": "open",
+      "labels": [],
+      "url": "https://github.com/NingRuo-code/Ocean/issues/13"
+    }
+  },
+  "remaining": [
+    "front time origin not verified by author evidence",
+    "user has no GFW token; real intake and fixed dataset version pending"
+  ],
+  "daily_snapshot_id": "sha256:f99f0b13c6b2e6f2ea28817556ef1ee64eb9e07c8512aefe25a34cc826fd95c6"
+}
