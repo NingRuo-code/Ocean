@@ -1,0 +1,843 @@
+{
+  "schema": "ocean-candidate-support-verification/v1",
+  "source_daily_snapshot_id": "sha256:8131c32402d308b4e22b8b4912e3b56dd540302ff2431d3c54b1d13f56b50c24",
+  "scope": "registered readable local inputs only; no server/offline archive expansion or download",
+  "source_range": [
+    "2024-07-25",
+    "2024-09-07"
+  ],
+  "source_states": {
+    "front-original": {
+      "role": "analysis_source",
+      "states": {
+        "unverified": 3,
+        "missing": 42
+      }
+    },
+    "front-display": {
+      "role": "display",
+      "states": {
+        "parsed": 38,
+        "missing": 7
+      }
+    },
+    "sst-original": {
+      "role": "analysis_source",
+      "states": {
+        "parsed": 3,
+        "missing": 42
+      }
+    },
+    "sst-display": {
+      "role": "display",
+      "states": {
+        "parsed": 38,
+        "missing": 7
+      }
+    },
+    "effort-original": {
+      "role": "analysis_source",
+      "states": {
+        "unverified": 3,
+        "missing": 42
+      }
+    },
+    "effort-display": {
+      "role": "display",
+      "states": {
+        "missing": 45
+      }
+    }
+  },
+  "runs": [
+    {
+      "place": "central",
+      "purpose": "A_month",
+      "event_date": null,
+      "support_snapshot_id": "sha256:ae906cfcafe699d054409eeb9279d89c9403ffed990df3ba71d2c56d4adb1a6f",
+      "input_sha256": "e0a8842dae18ebad4435f4ce2dd518993c9b76f30ab44fcb955b4341b74db189",
+      "regional_engine_sha256": "b0117c532908e33de61a698f1c4c52551a29fdfde6423766debf01b8a0b7d98b",
+      "auditor_sha256": "3ddb062b9ddb2498aaa793bacffaf28accb2c7d50e6bacf7b38cd0b338d5357b",
+      "regions": [
+        {
+          "geometry": {
+            "id": "central10",
+            "type": "circle",
+            "center": [
+              124,
+              30
+            ],
+            "radius_km": 10
+          },
+          "requested_area_km2": 314.1552133704499,
+          "outcome_id": "sha256:d31bc1a0c31cbd1a4115d1be496c27c6b356ae9f3298314a39d3aca63cf6fd29"
+        },
+        {
+          "geometry": {
+            "id": "central20",
+            "type": "circle",
+            "center": [
+              124,
+              30
+            ],
+            "radius_km": 20
+          },
+          "requested_area_km2": 1256.620078629863,
+          "outcome_id": "sha256:d31bc1a0c31cbd1a4115d1be496c27c6b356ae9f3298314a39d3aca63cf6fd29"
+        },
+        {
+          "geometry": {
+            "id": "central30",
+            "type": "circle",
+            "center": [
+              124,
+              30
+            ],
+            "radius_km": 30
+          },
+          "requested_area_km2": 2827.392271224401,
+          "outcome_id": "sha256:d31bc1a0c31cbd1a4115d1be496c27c6b356ae9f3298314a39d3aca63cf6fd29"
+        }
+      ]
+    },
+    {
+      "place": "central",
+      "purpose": "B_event",
+      "event_date": "2024-08-01",
+      "support_snapshot_id": "sha256:eaa0e5c3847e2b1fd8e0149c06a4b16a115712cbf27d32bed2c3eec52b057e4e",
+      "input_sha256": "e0a8842dae18ebad4435f4ce2dd518993c9b76f30ab44fcb955b4341b74db189",
+      "regional_engine_sha256": "b0117c532908e33de61a698f1c4c52551a29fdfde6423766debf01b8a0b7d98b",
+      "auditor_sha256": "3ddb062b9ddb2498aaa793bacffaf28accb2c7d50e6bacf7b38cd0b338d5357b",
+      "regions": [
+        {
+          "geometry": {
+            "id": "central10",
+            "type": "circle",
+            "center": [
+              124,
+              30
+            ],
+            "radius_km": 10
+          },
+          "requested_area_km2": 314.1552133704499,
+          "outcome_id": "sha256:b7bc2848b26d0b6948ea52fe57815cd236bfb3baf2dad3070980ed262cf9a8fd"
+        },
+        {
+          "geometry": {
+            "id": "central20",
+            "type": "circle",
+            "center": [
+              124,
+              30
+            ],
+            "radius_km": 20
+          },
+          "requested_area_km2": 1256.620078629863,
+          "outcome_id": "sha256:b7bc2848b26d0b6948ea52fe57815cd236bfb3baf2dad3070980ed262cf9a8fd"
+        },
+        {
+          "geometry": {
+            "id": "central30",
+            "type": "circle",
+            "center": [
+              124,
+              30
+            ],
+            "radius_km": 30
+          },
+          "requested_area_km2": 2827.392271224401,
+          "outcome_id": "sha256:b7bc2848b26d0b6948ea52fe57815cd236bfb3baf2dad3070980ed262cf9a8fd"
+        }
+      ]
+    },
+    {
+      "place": "central",
+      "purpose": "B_event",
+      "event_date": "2024-08-31",
+      "support_snapshot_id": "sha256:84c771b7f011bcc7b91ef46bb7b8bf8293498a891d138713a0067c7c9f6494b7",
+      "input_sha256": "e0a8842dae18ebad4435f4ce2dd518993c9b76f30ab44fcb955b4341b74db189",
+      "regional_engine_sha256": "b0117c532908e33de61a698f1c4c52551a29fdfde6423766debf01b8a0b7d98b",
+      "auditor_sha256": "3ddb062b9ddb2498aaa793bacffaf28accb2c7d50e6bacf7b38cd0b338d5357b",
+      "regions": [
+        {
+          "geometry": {
+            "id": "central10",
+            "type": "circle",
+            "center": [
+              124,
+              30
+            ],
+            "radius_km": 10
+          },
+          "requested_area_km2": 314.1552133704499,
+          "outcome_id": "sha256:b29cc5eaea590404c581804be77818f4398b81a66d7bf259787fcc0a106b71f1"
+        },
+        {
+          "geometry": {
+            "id": "central20",
+            "type": "circle",
+            "center": [
+              124,
+              30
+            ],
+            "radius_km": 20
+          },
+          "requested_area_km2": 1256.620078629863,
+          "outcome_id": "sha256:b29cc5eaea590404c581804be77818f4398b81a66d7bf259787fcc0a106b71f1"
+        },
+        {
+          "geometry": {
+            "id": "central30",
+            "type": "circle",
+            "center": [
+              124,
+              30
+            ],
+            "radius_km": 30
+          },
+          "requested_area_km2": 2827.392271224401,
+          "outcome_id": "sha256:b29cc5eaea590404c581804be77818f4398b81a66d7bf259787fcc0a106b71f1"
+        }
+      ]
+    },
+    {
+      "place": "coastal_request",
+      "purpose": "A_month",
+      "event_date": null,
+      "support_snapshot_id": "sha256:bab2ebac380eee9a58dba56b0efe67c9ea978b507a3b92836c1d942b295784e1",
+      "input_sha256": "e0a8842dae18ebad4435f4ce2dd518993c9b76f30ab44fcb955b4341b74db189",
+      "regional_engine_sha256": "b0117c532908e33de61a698f1c4c52551a29fdfde6423766debf01b8a0b7d98b",
+      "auditor_sha256": "3ddb062b9ddb2498aaa793bacffaf28accb2c7d50e6bacf7b38cd0b338d5357b",
+      "regions": [
+        {
+          "geometry": {
+            "id": "coastal_request10",
+            "type": "circle",
+            "center": [
+              121.6,
+              30.6
+            ],
+            "radius_km": 10
+          },
+          "requested_area_km2": 314.1552133783501,
+          "outcome_id": "sha256:d31bc1a0c31cbd1a4115d1be496c27c6b356ae9f3298314a39d3aca63cf6fd29"
+        },
+        {
+          "geometry": {
+            "id": "coastal_request20",
+            "type": "circle",
+            "center": [
+              121.6,
+              30.6
+            ],
+            "radius_km": 20
+          },
+          "requested_area_km2": 1256.6200787562566,
+          "outcome_id": "sha256:d31bc1a0c31cbd1a4115d1be496c27c6b356ae9f3298314a39d3aca63cf6fd29"
+        },
+        {
+          "geometry": {
+            "id": "coastal_request30",
+            "type": "circle",
+            "center": [
+              121.6,
+              30.6
+            ],
+            "radius_km": 30
+          },
+          "requested_area_km2": 2827.392271864301,
+          "outcome_id": "sha256:d31bc1a0c31cbd1a4115d1be496c27c6b356ae9f3298314a39d3aca63cf6fd29"
+        }
+      ]
+    },
+    {
+      "place": "coastal_request",
+      "purpose": "B_event",
+      "event_date": "2024-08-01",
+      "support_snapshot_id": "sha256:d9fd85735326ab40ab9f1b0f922f183b6ca92e2b2ffdc6c5475e7356a29e3386",
+      "input_sha256": "e0a8842dae18ebad4435f4ce2dd518993c9b76f30ab44fcb955b4341b74db189",
+      "regional_engine_sha256": "b0117c532908e33de61a698f1c4c52551a29fdfde6423766debf01b8a0b7d98b",
+      "auditor_sha256": "3ddb062b9ddb2498aaa793bacffaf28accb2c7d50e6bacf7b38cd0b338d5357b",
+      "regions": [
+        {
+          "geometry": {
+            "id": "coastal_request10",
+            "type": "circle",
+            "center": [
+              121.6,
+              30.6
+            ],
+            "radius_km": 10
+          },
+          "requested_area_km2": 314.1552133783501,
+          "outcome_id": "sha256:b7bc2848b26d0b6948ea52fe57815cd236bfb3baf2dad3070980ed262cf9a8fd"
+        },
+        {
+          "geometry": {
+            "id": "coastal_request20",
+            "type": "circle",
+            "center": [
+              121.6,
+              30.6
+            ],
+            "radius_km": 20
+          },
+          "requested_area_km2": 1256.6200787562566,
+          "outcome_id": "sha256:b7bc2848b26d0b6948ea52fe57815cd236bfb3baf2dad3070980ed262cf9a8fd"
+        },
+        {
+          "geometry": {
+            "id": "coastal_request30",
+            "type": "circle",
+            "center": [
+              121.6,
+              30.6
+            ],
+            "radius_km": 30
+          },
+          "requested_area_km2": 2827.392271864301,
+          "outcome_id": "sha256:b7bc2848b26d0b6948ea52fe57815cd236bfb3baf2dad3070980ed262cf9a8fd"
+        }
+      ]
+    },
+    {
+      "place": "coastal_request",
+      "purpose": "B_event",
+      "event_date": "2024-08-31",
+      "support_snapshot_id": "sha256:5c48ab50e9097eb7da624ac051e462a5703b02c438291b12f5765725ac9e11e7",
+      "input_sha256": "e0a8842dae18ebad4435f4ce2dd518993c9b76f30ab44fcb955b4341b74db189",
+      "regional_engine_sha256": "b0117c532908e33de61a698f1c4c52551a29fdfde6423766debf01b8a0b7d98b",
+      "auditor_sha256": "3ddb062b9ddb2498aaa793bacffaf28accb2c7d50e6bacf7b38cd0b338d5357b",
+      "regions": [
+        {
+          "geometry": {
+            "id": "coastal_request10",
+            "type": "circle",
+            "center": [
+              121.6,
+              30.6
+            ],
+            "radius_km": 10
+          },
+          "requested_area_km2": 314.1552133783501,
+          "outcome_id": "sha256:b29cc5eaea590404c581804be77818f4398b81a66d7bf259787fcc0a106b71f1"
+        },
+        {
+          "geometry": {
+            "id": "coastal_request20",
+            "type": "circle",
+            "center": [
+              121.6,
+              30.6
+            ],
+            "radius_km": 20
+          },
+          "requested_area_km2": 1256.6200787562566,
+          "outcome_id": "sha256:b29cc5eaea590404c581804be77818f4398b81a66d7bf259787fcc0a106b71f1"
+        },
+        {
+          "geometry": {
+            "id": "coastal_request30",
+            "type": "circle",
+            "center": [
+              121.6,
+              30.6
+            ],
+            "radius_km": 30
+          },
+          "requested_area_km2": 2827.392271864301,
+          "outcome_id": "sha256:b29cc5eaea590404c581804be77818f4398b81a66d7bf259787fcc0a106b71f1"
+        }
+      ]
+    },
+    {
+      "place": "edge_request",
+      "purpose": "A_month",
+      "event_date": null,
+      "support_snapshot_id": "sha256:bdca37215c0a1a78cc78fca6ac1268ea16459b0bc812b880489044e41afa1b07",
+      "input_sha256": "e0a8842dae18ebad4435f4ce2dd518993c9b76f30ab44fcb955b4341b74db189",
+      "regional_engine_sha256": "b0117c532908e33de61a698f1c4c52551a29fdfde6423766debf01b8a0b7d98b",
+      "auditor_sha256": "3ddb062b9ddb2498aaa793bacffaf28accb2c7d50e6bacf7b38cd0b338d5357b",
+      "regions": [
+        {
+          "geometry": {
+            "id": "edge_request10",
+            "type": "circle",
+            "center": [
+              127.9,
+              33.9
+            ],
+            "radius_km": 10
+          },
+          "requested_area_km2": 314.155213423329,
+          "outcome_id": "sha256:d31bc1a0c31cbd1a4115d1be496c27c6b356ae9f3298314a39d3aca63cf6fd29"
+        },
+        {
+          "geometry": {
+            "id": "edge_request20",
+            "type": "circle",
+            "center": [
+              127.9,
+              33.9
+            ],
+            "radius_km": 20
+          },
+          "requested_area_km2": 1256.6200794759807,
+          "outcome_id": "sha256:d31bc1a0c31cbd1a4115d1be496c27c6b356ae9f3298314a39d3aca63cf6fd29"
+        },
+        {
+          "geometry": {
+            "id": "edge_request30",
+            "type": "circle",
+            "center": [
+              127.9,
+              33.9
+            ],
+            "radius_km": 30
+          },
+          "requested_area_km2": 2827.3922755078456,
+          "outcome_id": "sha256:d31bc1a0c31cbd1a4115d1be496c27c6b356ae9f3298314a39d3aca63cf6fd29"
+        }
+      ]
+    },
+    {
+      "place": "edge_request",
+      "purpose": "B_event",
+      "event_date": "2024-08-01",
+      "support_snapshot_id": "sha256:c01e3c7ae8fda3eaf49df8c10817acee09c39743278dad941e128b34a9a82554",
+      "input_sha256": "e0a8842dae18ebad4435f4ce2dd518993c9b76f30ab44fcb955b4341b74db189",
+      "regional_engine_sha256": "b0117c532908e33de61a698f1c4c52551a29fdfde6423766debf01b8a0b7d98b",
+      "auditor_sha256": "3ddb062b9ddb2498aaa793bacffaf28accb2c7d50e6bacf7b38cd0b338d5357b",
+      "regions": [
+        {
+          "geometry": {
+            "id": "edge_request10",
+            "type": "circle",
+            "center": [
+              127.9,
+              33.9
+            ],
+            "radius_km": 10
+          },
+          "requested_area_km2": 314.155213423329,
+          "outcome_id": "sha256:b7bc2848b26d0b6948ea52fe57815cd236bfb3baf2dad3070980ed262cf9a8fd"
+        },
+        {
+          "geometry": {
+            "id": "edge_request20",
+            "type": "circle",
+            "center": [
+              127.9,
+              33.9
+            ],
+            "radius_km": 20
+          },
+          "requested_area_km2": 1256.6200794759807,
+          "outcome_id": "sha256:b7bc2848b26d0b6948ea52fe57815cd236bfb3baf2dad3070980ed262cf9a8fd"
+        },
+        {
+          "geometry": {
+            "id": "edge_request30",
+            "type": "circle",
+            "center": [
+              127.9,
+              33.9
+            ],
+            "radius_km": 30
+          },
+          "requested_area_km2": 2827.3922755078456,
+          "outcome_id": "sha256:b7bc2848b26d0b6948ea52fe57815cd236bfb3baf2dad3070980ed262cf9a8fd"
+        }
+      ]
+    },
+    {
+      "place": "edge_request",
+      "purpose": "B_event",
+      "event_date": "2024-08-31",
+      "support_snapshot_id": "sha256:5549dee6db8efba6037a7f696a6f17e932a899c458048de1d581878c7fbd203d",
+      "input_sha256": "e0a8842dae18ebad4435f4ce2dd518993c9b76f30ab44fcb955b4341b74db189",
+      "regional_engine_sha256": "b0117c532908e33de61a698f1c4c52551a29fdfde6423766debf01b8a0b7d98b",
+      "auditor_sha256": "3ddb062b9ddb2498aaa793bacffaf28accb2c7d50e6bacf7b38cd0b338d5357b",
+      "regions": [
+        {
+          "geometry": {
+            "id": "edge_request10",
+            "type": "circle",
+            "center": [
+              127.9,
+              33.9
+            ],
+            "radius_km": 10
+          },
+          "requested_area_km2": 314.155213423329,
+          "outcome_id": "sha256:b29cc5eaea590404c581804be77818f4398b81a66d7bf259787fcc0a106b71f1"
+        },
+        {
+          "geometry": {
+            "id": "edge_request20",
+            "type": "circle",
+            "center": [
+              127.9,
+              33.9
+            ],
+            "radius_km": 20
+          },
+          "requested_area_km2": 1256.6200794759807,
+          "outcome_id": "sha256:b29cc5eaea590404c581804be77818f4398b81a66d7bf259787fcc0a106b71f1"
+        },
+        {
+          "geometry": {
+            "id": "edge_request30",
+            "type": "circle",
+            "center": [
+              127.9,
+              33.9
+            ],
+            "radius_km": 30
+          },
+          "requested_area_km2": 2827.3922755078456,
+          "outcome_id": "sha256:b29cc5eaea590404c581804be77818f4398b81a66d7bf259787fcc0a106b71f1"
+        }
+      ]
+    }
+  ],
+  "outcomes": {
+    "sha256:d31bc1a0c31cbd1a4115d1be496c27c6b356ae9f3298314a39d3aca63cf6fd29": {
+      "month": {
+        "expected_days": 31,
+        "included_days": 0,
+        "excluded_days": 31,
+        "computational_support": "unverified",
+        "support_level": "unverified",
+        "missing_prerequisites": [
+          "granularity_evidence_unverified",
+          "incomplete_common_support",
+          "license_evidence_unverified",
+          "processing_version_unverified",
+          "quality_rule_approval_unverified",
+          "source_versions_unverified"
+        ],
+        "layer_material_states": {
+          "front": {
+            "missing": 28,
+            "unverified": 3
+          },
+          "activity": {
+            "missing": 28,
+            "unverified": 3
+          }
+        },
+        "data_gate_passed": false,
+        "formal_research_permitted": false,
+        "total_hours": null,
+        "mean_hours_per_requested_day": null,
+        "area_time_km2_days": null,
+        "density_hours_per_km2_day": null
+      },
+      "windows": {},
+      "event_data_gate_passed": null
+    },
+    "sha256:b7bc2848b26d0b6948ea52fe57815cd236bfb3baf2dad3070980ed262cf9a8fd": {
+      "month": {
+        "expected_days": 31,
+        "included_days": 0,
+        "excluded_days": 31,
+        "computational_support": "unverified",
+        "support_level": "unverified",
+        "missing_prerequisites": [
+          "granularity_evidence_unverified",
+          "incomplete_common_support",
+          "license_evidence_unverified",
+          "processing_version_unverified",
+          "quality_rule_approval_unverified",
+          "source_versions_unverified"
+        ],
+        "layer_material_states": {
+          "front": {
+            "missing": 28,
+            "unverified": 3
+          },
+          "activity": {
+            "missing": 28,
+            "unverified": 3
+          }
+        },
+        "data_gate_passed": false,
+        "formal_research_permitted": false,
+        "total_hours": null,
+        "mean_hours_per_requested_day": null,
+        "area_time_km2_days": null,
+        "density_hours_per_km2_day": null
+      },
+      "windows": {
+        "pre7": {
+          "expected_days": 7,
+          "included_days": 0,
+          "excluded_days": 7,
+          "computational_support": "unverified",
+          "support_level": "unverified",
+          "missing_prerequisites": [
+            "granularity_evidence_unverified",
+            "incomplete_common_support",
+            "license_evidence_unverified",
+            "processing_version_unverified",
+            "quality_rule_approval_unverified",
+            "source_versions_unverified"
+          ],
+          "layer_material_states": {
+            "front": {
+              "missing": 7
+            },
+            "activity": {
+              "missing": 7
+            }
+          },
+          "data_gate_passed": false,
+          "formal_research_permitted": false,
+          "dates": [
+            "2024-07-25",
+            "2024-07-26",
+            "2024-07-27",
+            "2024-07-28",
+            "2024-07-29",
+            "2024-07-30",
+            "2024-07-31"
+          ],
+          "total_hours": null,
+          "mean_hours_per_requested_day": null,
+          "area_time_km2_days": null,
+          "density_hours_per_km2_day": null
+        },
+        "post3": {
+          "expected_days": 3,
+          "included_days": 0,
+          "excluded_days": 3,
+          "computational_support": "unverified",
+          "support_level": "unverified",
+          "missing_prerequisites": [
+            "granularity_evidence_unverified",
+            "incomplete_common_support",
+            "license_evidence_unverified",
+            "processing_version_unverified",
+            "quality_rule_approval_unverified",
+            "source_versions_unverified"
+          ],
+          "layer_material_states": {
+            "front": {
+              "missing": 3
+            },
+            "activity": {
+              "missing": 3
+            }
+          },
+          "data_gate_passed": false,
+          "formal_research_permitted": false,
+          "dates": [
+            "2024-08-02",
+            "2024-08-03",
+            "2024-08-04"
+          ],
+          "total_hours": null,
+          "mean_hours_per_requested_day": null,
+          "area_time_km2_days": null,
+          "density_hours_per_km2_day": null
+        },
+        "post7": {
+          "expected_days": 7,
+          "included_days": 0,
+          "excluded_days": 7,
+          "computational_support": "unverified",
+          "support_level": "unverified",
+          "missing_prerequisites": [
+            "granularity_evidence_unverified",
+            "incomplete_common_support",
+            "license_evidence_unverified",
+            "processing_version_unverified",
+            "quality_rule_approval_unverified",
+            "source_versions_unverified"
+          ],
+          "layer_material_states": {
+            "front": {
+              "missing": 4,
+              "unverified": 3
+            },
+            "activity": {
+              "missing": 4,
+              "unverified": 3
+            }
+          },
+          "data_gate_passed": false,
+          "formal_research_permitted": false,
+          "dates": [
+            "2024-08-02",
+            "2024-08-03",
+            "2024-08-04",
+            "2024-08-05",
+            "2024-08-06",
+            "2024-08-07",
+            "2024-08-08"
+          ],
+          "total_hours": null,
+          "mean_hours_per_requested_day": null,
+          "area_time_km2_days": null,
+          "density_hours_per_km2_day": null
+        }
+      },
+      "event_data_gate_passed": {
+        "post3": false,
+        "post7": false
+      }
+    },
+    "sha256:b29cc5eaea590404c581804be77818f4398b81a66d7bf259787fcc0a106b71f1": {
+      "month": {
+        "expected_days": 31,
+        "included_days": 0,
+        "excluded_days": 31,
+        "computational_support": "unverified",
+        "support_level": "unverified",
+        "missing_prerequisites": [
+          "granularity_evidence_unverified",
+          "incomplete_common_support",
+          "license_evidence_unverified",
+          "processing_version_unverified",
+          "quality_rule_approval_unverified",
+          "source_versions_unverified"
+        ],
+        "layer_material_states": {
+          "front": {
+            "missing": 28,
+            "unverified": 3
+          },
+          "activity": {
+            "missing": 28,
+            "unverified": 3
+          }
+        },
+        "data_gate_passed": false,
+        "formal_research_permitted": false,
+        "total_hours": null,
+        "mean_hours_per_requested_day": null,
+        "area_time_km2_days": null,
+        "density_hours_per_km2_day": null
+      },
+      "windows": {
+        "pre7": {
+          "expected_days": 7,
+          "included_days": 0,
+          "excluded_days": 7,
+          "computational_support": "unverified",
+          "support_level": "unverified",
+          "missing_prerequisites": [
+            "granularity_evidence_unverified",
+            "incomplete_common_support",
+            "license_evidence_unverified",
+            "processing_version_unverified",
+            "quality_rule_approval_unverified",
+            "source_versions_unverified"
+          ],
+          "layer_material_states": {
+            "front": {
+              "missing": 7
+            },
+            "activity": {
+              "missing": 7
+            }
+          },
+          "data_gate_passed": false,
+          "formal_research_permitted": false,
+          "dates": [
+            "2024-08-24",
+            "2024-08-25",
+            "2024-08-26",
+            "2024-08-27",
+            "2024-08-28",
+            "2024-08-29",
+            "2024-08-30"
+          ],
+          "total_hours": null,
+          "mean_hours_per_requested_day": null,
+          "area_time_km2_days": null,
+          "density_hours_per_km2_day": null
+        },
+        "post3": {
+          "expected_days": 3,
+          "included_days": 0,
+          "excluded_days": 3,
+          "computational_support": "unverified",
+          "support_level": "unverified",
+          "missing_prerequisites": [
+            "granularity_evidence_unverified",
+            "incomplete_common_support",
+            "license_evidence_unverified",
+            "processing_version_unverified",
+            "quality_rule_approval_unverified",
+            "source_versions_unverified"
+          ],
+          "layer_material_states": {
+            "front": {
+              "missing": 3
+            },
+            "activity": {
+              "missing": 3
+            }
+          },
+          "data_gate_passed": false,
+          "formal_research_permitted": false,
+          "dates": [
+            "2024-09-01",
+            "2024-09-02",
+            "2024-09-03"
+          ],
+          "total_hours": null,
+          "mean_hours_per_requested_day": null,
+          "area_time_km2_days": null,
+          "density_hours_per_km2_day": null
+        },
+        "post7": {
+          "expected_days": 7,
+          "included_days": 0,
+          "excluded_days": 7,
+          "computational_support": "unverified",
+          "support_level": "unverified",
+          "missing_prerequisites": [
+            "granularity_evidence_unverified",
+            "incomplete_common_support",
+            "license_evidence_unverified",
+            "processing_version_unverified",
+            "quality_rule_approval_unverified",
+            "source_versions_unverified"
+          ],
+          "layer_material_states": {
+            "front": {
+              "missing": 7
+            },
+            "activity": {
+              "missing": 7
+            }
+          },
+          "data_gate_passed": false,
+          "formal_research_permitted": false,
+          "dates": [
+            "2024-09-01",
+            "2024-09-02",
+            "2024-09-03",
+            "2024-09-04",
+            "2024-09-05",
+            "2024-09-06",
+            "2024-09-07"
+          ],
+          "total_hours": null,
+          "mean_hours_per_requested_day": null,
+          "area_time_km2_days": null,
+          "density_hours_per_km2_day": null
+        }
+      },
+      "event_data_gate_passed": {
+        "post3": false,
+        "post7": false
+      }
+    }
+  },
+  "research_ready": false,
+  "public_release_approved": false
+}
