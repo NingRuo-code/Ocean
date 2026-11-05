@@ -1,5 +1,7 @@
 # Ocean 跨对话交接入口
 
+2026-11-05 公开真源接通：已找到GFW官方Zenodo14982712 / 3.0.0并取得2024-08-05至07三个0.01°fleet原成员（约31.92MB下载，177,381,513字节CSV，CRC/大小/SHA核对）。不再将API令牌当全部数据路线的阻塞。原审计CLI新增限定产品的流式适配，真实小时与独立Decimal逐日相等，原档留本地忽略目录。[公开路线](../research/ocean-public-gfw-access-2026-11-05.md)、[实施证据](../reports/ocean-gfw-public-intake-implementation-2026-11-05.md)。仍缺锋面时间起点的直接作者依据，以及GFW v3的UTC日界和有效支持语义；#37/#38继续OPEN，#39不放行。下方“等待令牌”均属旧路线快照。
+
 2026-11-05 续接：#38归档模式已支持显式官方v版本选择，拒绝空间格点与VESSEL_ID/MMSI的非法组合；新增验证重跑不覆盖和本地失败不重复网络。实现`243624b`，双轴审查均无待修复项。[续接验证](../reports/ocean-gfw-intake-followup-2026-11-05.md)。版本存在/日期可用仍未核实，用户暂无令牌；#37时间依据、#38实际数据和#39下游门槛保留。未推送、未部署。
 
 2026-11-05 实施更新：已按当前顺序完成#37可执行的软件适配与三日真实复跑，并完成#38原始响应归档准备；实现提交`1dc537d`，规划记忆提交`bfe680d`。SST三日parsed，锋面分类/缺失值已核对、每日19,102有效格，时间原点仍无作者依据，保持unverified。用户明确暂无GFW令牌，未发送真实取数请求。#37/#38继续OPEN并标needs-info，#37移除ready-for-agent；#39及下游仍等待真实前置。接续先解决作者时间约定与GFW访问/固定版本，勿用新增合成业务填充队列。[实施记录](../reports/ocean-real-source-adapter-implementation-2026-11-05.md)、[归档入口](../data/gfw-original-response-intake.md)、[时间编码调查](../research/ocean-front-product-encoding-2026-11-04.md)。下方11月4日“仅#37就绪”为历史快照。
