@@ -31,11 +31,11 @@
     },
     {
       "id": "effort-original", "kind": "activity", "role": "analysis_source",
-      "locations": ["data/raw/fishing"],
-      "product": {"id": "public-global-fishing-effort:latest", "channel": "GFW 4Wings API, source registration only", "version": null, "unit": "fishing_hours"},
+      "locations": ["data/raw/fishing-source/v3-zenodo-14982712"],
+      "product": {"id": "gfw-fleet-daily-v3", "channel": "GFW official Zenodo 14982712; fleet daily 0.01 degree; 2024 provisional", "version": "3.0.0", "unit": "fishing_hours"},
       "derived_from": [],
       "license_claims": [
-        {"value": "CC BY-NC 4.0", "evidence": "https://globalfishingwatch.org/our-apis/documentation/docs/license-rate-limits"}
+        {"value": "CC BY-NC 4.0", "evidence": "https://zenodo.org/records/14982712"}
       ]
     },
     {

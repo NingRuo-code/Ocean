@@ -250,6 +250,7 @@ def prepare(tmp_path, sources):
                     "channel": "synthetic",
                     "version": "v1",
                     "unit": "declared",
+                    **options.get("product", {}),
                 },
             }
         )
@@ -331,6 +332,139 @@ def front_file(path, values=None, times=None, units="hours since 2024-08-05 00:0
         flag_meanings="missing cold_side cold_line background warm_line warm_side front_line",
     )
     ds.to_netcdf(path, engine="h5netcdf")
+
+
+def test_official_gfw_fleet_profile_sums_categories_without_using_presence_hours(
+    tmp_path,
+):
+    source = tmp_path / "fleet-daily-csvs-100-v3-2024-08-05.csv"
+    source.write_text(
+        "date,cell_ll_lat,cell_ll_lon,flag,geartype,hours,fishing_hours,mmsi_present\n"
+        "2024-08-05,30,124,CHN,trawlers,999,10,2\n"
+        "2024-08-05,30,124,JPN,trawlers,999,20,3\n"
+        "2024-08-05,30.01,124,CHN,trawlers,5,0,1\n"
+        "2024-08-05,40,140,CHN,trawlers,999,99,1\n",
+        encoding="utf-8",
+    )
+    prepare(
+        tmp_path,
+        [
+            (
+                "gfw-fleet-daily-v3",
+                "activity",
+                source,
+                {
+                    "format": "activity-gfw-fleet-v3",
+                    "bbox": [123, 29, 125, 31],
+                    "product": {"version": "3.0.0"},
+                },
+            )
+        ],
+    )
+    row = audit(tmp_path)["sources"][0]["days"][0]
+    assert row["state"] == "unverified"
+    assert row["time_verified"] is False
+    assert row["unique_cell_hours_sum"] == 30
+    assert row["duplicate_cell_groups"] == 0
+    assert row["record_counts"]["zero"] == 1
+    assert row["record_counts"]["above_24"] == 1
+    assert row["coverage_status"] == "unknown"
+    assert row["unit_status"] == "official_product_schema"
+    assert row["fleet_source"]["selected_records"] == 3
+    assert row["fleet_source"]["coordinate_convention"] == "lower_left"
+    assert row["fleet_source"]["hours_conservation"] == "verified_selected_records"
+    support = np.load(tmp_path / "support" / row["support_artifact"])
+    assert support["lon"].tolist() == [124, 124]
+    assert support["lat"].tolist() == [30, 30.01]
+
+
+@pytest.mark.parametrize(
+    "second,expected_state,invalid,duplicate",
+    [
+        ("CHN,trawlers,999,15,1", "conflict", 0, 1),
+        ("JPN,trawlers,999,,1", "unverified", 1, 0),
+        ("JPN,trawlers,999,-1,1", "unverified", 1, 0),
+        ("JPN,trawlers,999,NaN,1", "unverified", 1, 0),
+    ],
+)
+def test_fleet_duplicate_categories_and_unknown_hours_do_not_become_cell_totals(
+    tmp_path,
+    second,
+    expected_state,
+    invalid,
+    duplicate,
+):
+    source = tmp_path / "fleet-daily-csvs-100-v3-2024-08-05.csv"
+    source.write_text(
+        "date,cell_ll_lat,cell_ll_lon,flag,geartype,hours,fishing_hours,mmsi_present\n"
+        "2024-08-05,30,124,CHN,trawlers,999,15,1\n"
+        f"2024-08-05,30,124,{second}\n",
+        encoding="utf-8",
+    )
+    prepare(
+        tmp_path,
+        [
+            (
+                "gfw-fleet-daily-v3",
+                "activity",
+                source,
+                {
+                    "format": "activity-gfw-fleet-v3",
+                    "bbox": [123, 29, 125, 31],
+                    "product": {"version": "3.0.0"},
+                },
+            )
+        ],
+    )
+    row = audit(tmp_path)["sources"][0]["days"][0]
+    assert row["state"] == expected_state
+    assert row["unique_cell_hours_sum"] is None
+    assert row["fleet_source"]["invalid_hour_records"] == invalid
+    assert row["fleet_source"]["duplicate_category_records"] == duplicate
+    assert row["fleet_source"]["hours_conservation"] == "not_verified"
+    assert row["unlisted_cell_value"] == "unknown"
+
+
+@pytest.mark.parametrize(
+    "change,reason",
+    [
+        ("schema", "gfw_fleet_schema_mismatch"),
+        ("date", "gfw_fleet_content_date_mismatch"),
+        ("product", "gfw_fleet_product_mismatch"),
+    ],
+)
+def test_fleet_schema_date_and_product_mismatches_are_not_accepted(
+    tmp_path, change, reason
+):
+    source = tmp_path / "fleet-daily-csvs-100-v3-2024-08-05.csv"
+    header = (
+        "date,cell_ll_lat,cell_ll_lon,flag,geartype,hours,fishing_hours,mmsi_present\n"
+    )
+    content = "2024-08-05,30,124,CHN,trawlers,100,5,1\n"
+    if change == "schema":
+        header = header.replace("fishing_hours", "effort")
+    if change == "date":
+        content = content.replace("2024-08-05", "2024-08-06")
+    source.write_text(header + content, encoding="utf-8")
+    prepare(
+        tmp_path,
+        [
+            (
+                "gfw-fleet-daily-v3",
+                "activity",
+                source,
+                {
+                    "format": "activity-gfw-fleet-v3",
+                    "bbox": [123, 29, 125, 31],
+                    "product": {"version": "other" if change == "product" else "3.0.0"},
+                },
+            )
+        ],
+    )
+    result = audit(tmp_path)["sources"][0]
+    assert result["errors"][0]["reason"] == reason
+    assert result["days"][0]["state"] == "missing"
+    assert not list((tmp_path / "support").glob("*.npz"))
 
 
 def test_front_cli_separates_nondetection_from_fill_and_exports_actual_support(

@@ -180,13 +180,134 @@ def object_field(payload, key):
     return value
 
 
+def gfw_fleet_payload(path, entry, source):
+    product = source.get("product", {})
+    if product.get("id") != "gfw-fleet-daily-v3" or product.get("version") != "3.0.0":
+        raise ValueError("gfw_fleet_product_mismatch")
+    bounds = entry.get("bbox")
+    if (
+        not isinstance(bounds, list)
+        or len(bounds) != 4
+        or any(number(v) is None or not math.isfinite(number(v)) for v in bounds)
+        or not -180 <= bounds[0] < bounds[2] <= 180
+        or not -90 <= bounds[1] < bounds[3] <= 90
+    ):
+        raise ValueError("invalid_fleet_bbox")
+    day = file_date(path)
+    if day is None:
+        raise ValueError("gfw_fleet_date_unknown")
+    west, south, east, north = bounds
+    grouped, categories = {}, set()
+    selected, scanned, duplicates, invalid = 0, 0, 0, 0
+    source_values = []
+    with path.open(encoding="utf-8-sig", newline="") as stream:
+        reader = csv.DictReader(stream)
+        expected = {
+            "date",
+            "cell_ll_lat",
+            "cell_ll_lon",
+            "flag",
+            "geartype",
+            "hours",
+            "fishing_hours",
+            "mmsi_present",
+        }
+        if (
+            reader.fieldnames is None
+            or len(reader.fieldnames) != 8
+            or set(reader.fieldnames) != expected
+        ):
+            raise ValueError("gfw_fleet_schema_mismatch")
+        for record in reader:
+            scanned += 1
+            if scanned > 5_000_000:
+                raise ValueError("fleet_scan_budget_exceeded")
+            if None in record or any(v is None for v in record.values()):
+                raise ValueError("gfw_fleet_row_shape_mismatch")
+            if record["date"] != day:
+                raise ValueError("gfw_fleet_content_date_mismatch")
+            lon, lat = (
+                number(record["cell_ll_lon"], True),
+                number(record["cell_ll_lat"], True),
+            )
+            if (
+                lon is None
+                or lat is None
+                or not np.isfinite([lon, lat]).all()
+                or not -180 <= lon < 180
+                or not -90 <= lat < 90
+            ):
+                raise ValueError("gfw_fleet_invalid_coordinate")
+            if not (west <= lon < east and south <= lat < north):
+                continue
+            selected += 1
+            if selected > MAX_SAMPLES:
+                raise ValueError("invalid_record_budget")
+            category = (lon, lat, record["flag"], record["geartype"])
+            duplicates += int(category in categories)
+            categories.add(category)
+            hours = number(record["fishing_hours"], True)
+            valid = hours is not None and math.isfinite(hours) and hours >= 0
+            invalid += int(not valid)
+            values = grouped.setdefault((lon, lat), [])
+            values.append(hours if valid else None)
+            if valid:
+                source_values.append(hours)
+    cells = [
+        {
+            "date": day,
+            "lon": lon,
+            "lat": lat,
+            "hours": math.fsum(values) if all(v is not None for v in values) else None,
+        }
+        for (lon, lat), values in sorted(grouped.items())
+    ]
+    aggregate = math.fsum(cell["hours"] for cell in cells if cell["hours"] is not None)
+    conserved = (
+        not duplicates
+        and not invalid
+        and bool(cells)
+        and math.isclose(
+            math.fsum(source_values), aggregate, rel_tol=1e-12, abs_tol=1e-12
+        )
+    )
+    return {
+        "date": day,
+        "unit": "fishing_hours",
+        "spatial_resolution_deg": 0.01,
+        "cells": cells,
+        "fleet_source": {
+            "evidence": "https://zenodo.org/records/14982712",
+            "scanned_records": scanned,
+            "selected_records": selected,
+            "duplicate_category_records": duplicates,
+            "invalid_hour_records": invalid,
+            "coordinate_convention": "lower_left",
+            "bbox_selection": "lower_left_in_half_open_bbox",
+            "version": "3.0.0",
+            "year_2024_status": "provisional",
+            "source_valid_hours_sum": math.fsum(source_values)
+            if source_values
+            else None,
+            "hours_conservation": "verified_selected_records"
+            if conserved
+            else "not_verified",
+            "day_boundary": "unverified_in_official_documentation",
+        },
+    }
+
+
 def activity_rows(path, entry, file, source, support):
+    fleet = entry["format"] == "activity-gfw-fleet-v3"
     csv_input = (
         entry["format"] == "activity-csv"
         or entry["format"] == "activity-files"
         and path.suffix.lower() == ".csv"
     )
-    if csv_input:
+    if fleet:
+        payload = gfw_fleet_payload(path, entry, source)
+        cells = payload["cells"]
+    elif csv_input:
         with path.open(encoding="utf-8-sig", newline="") as stream:
             reader = csv.DictReader(stream)
             columns = reader.fieldnames
@@ -399,6 +520,20 @@ def activity_rows(path, entry, file, source, support):
             ),
             "lineage_comparison": "not_performed",
         }
+        if fleet:
+            info = payload["fleet_source"]
+            row["fleet_source"] = info
+            row["unit_status"] = "official_product_schema"
+            row["time_verified"] = False
+            row["content_date_verified"] = True
+            row["state"] = "unverified"
+            row["reasons"].append("gfw_fleet_utc_boundary_unverified")
+            if info["duplicate_category_records"] or info["invalid_hour_records"]:
+                row["unique_cell_hours_sum"] = None
+                row["state"] = (
+                    "conflict" if info["duplicate_category_records"] else "unverified"
+                )
+                row["reasons"].append("gfw_fleet_duplicate_or_invalid_records")
         rows.append(row)
     return rows
 
@@ -946,6 +1081,7 @@ def main():
             "activity-json",
             "activity-csv",
             "activity-files",
+            "activity-gfw-fleet-v3",
         ]:
             raise ValueError("unsupported_source_reader")
         kind = registered[entry["id"]]["kind"]
@@ -1005,7 +1141,12 @@ def main():
             try:
                 if path.stat().st_size != file["bytes"]:
                     raise ValueError("snapshot_content_changed")
-                if entry["format"] != "netcdf" and file["bytes"] > 16 * 1024 * 1024:
+                limit = (
+                    256 * 1024 * 1024
+                    if entry["format"] == "activity-gfw-fleet-v3"
+                    else 16 * 1024 * 1024
+                )
+                if entry["format"] != "netcdf" and file["bytes"] > limit:
                     raise ValueError("text_budget_exceeded")
                 if file_digest(path) != file["sha256"]:
                     raise ValueError("snapshot_content_changed")
@@ -1013,6 +1154,7 @@ def main():
                     "activity-json",
                     "activity-csv",
                     "activity-files",
+                    "activity-gfw-fleet-v3",
                 ]:
                     parsed = activity_rows(path, entry, file, source, args.support_out)
                 elif entry["format"] in ["front-display", "sst-display"]:

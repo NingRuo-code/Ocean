@@ -61,3 +61,9 @@
 本地三日原档的下载来源、成员 CRC32 与 SHA256 见同目录 `front-download-manifest.json`；逐日检查见 `front-inspection.json`。这里只验证已取得的成员，不声称验证过整个约 19.7 GB ZIP 的 MD5。[前次接入调查](ocean-data-intake-feasibility-2026-11-04.md)
 
 时间关口解除所需的新证据应是：作者发布的新版时间字段说明、实际 NetCDF 生成代码或作者明确确认的换算约定，并与样本验证一致。当前已充分支持分类适配，尚不足以让日期审计通过；继续扩大下载或增加推测换算不会补齐该证据缺口。
+
+## 11月5日续查：作者2026年分析代码
+
+进一步查阅作者新论文关联的[代码记录17218778](https://zenodo.org/records/17218778)，取得两份MATLAB分析脚本，原字节与SHA256留存于本地`author-2026-code-manifest.json`。FRAD脚本将`front_cca_warm_cold.nc`的time直接与fish_data第一列取整后比较；RDFPA脚本还对该鱼业日期调用`datestr`提取月份。这给出了作者分析链使用MATLAB日期序号的实际线索，比纯数值巧合更强。
+
+但该输入是不同布局的合并NetCDF（longitude/latitude），脚本不含当前逐日`front_location*.nc`的时间写出过程。这里仍无法直接证明新版原文件沿用了相同编码，故只记为候选解释的新证据，不将time_verified改为true，不修改原档。[作者代码来源](https://zenodo.org/records/17218778)

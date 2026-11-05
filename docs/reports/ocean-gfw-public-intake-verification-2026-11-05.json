@@ -1,0 +1,133 @@
+{
+  "schema": "ocean-gfw-public-intake-verification/v1",
+  "source_record": "https://zenodo.org/records/14982712",
+  "version": "3.0.0",
+  "bbox": [
+    120,
+    27,
+    128,
+    34
+  ],
+  "daily_snapshot_id": "sha256:00bc5cf2e9ffdea81374e35a1d35d79f42d4a71f89bcd5af862938cef5df1bf5",
+  "research_ready": false,
+  "public_release_approved": false,
+  "days": [
+    {
+      "date": "2024-08-05",
+      "file_sha256": "862505ca565ee8829e4fe58bbb068417ca41db61c74b78fbb8a82f2dff79d783",
+      "state": "unverified",
+      "reasons": [
+        "day_boundary_or_content_date_unverified",
+        "gfw_fleet_utc_boundary_unverified"
+      ],
+      "reported_cell_counts": {
+        "total": 74483,
+        "valid": 74483,
+        "zero": 31023,
+        "missing": 0,
+        "nonfinite": 0,
+        "negative": 0,
+        "invalid_coordinate": 0,
+        "invalid_type": 0,
+        "above_24": 127
+      },
+      "unique_cell_hours_sum": 78720.1626,
+      "independent_decimal_sum": "78720.1626",
+      "independent_comparison": "equal",
+      "fleet_source": {
+        "evidence": "https://zenodo.org/records/14982712",
+        "scanned_records": 1095213,
+        "selected_records": 104832,
+        "duplicate_category_records": 0,
+        "invalid_hour_records": 0,
+        "coordinate_convention": "lower_left",
+        "bbox_selection": "lower_left_in_half_open_bbox",
+        "version": "3.0.0",
+        "year_2024_status": "provisional",
+        "source_valid_hours_sum": 78720.1626,
+        "hours_conservation": "verified_selected_records",
+        "day_boundary": "unverified_in_official_documentation"
+      },
+      "coverage_status": "unknown",
+      "time_verified": false
+    },
+    {
+      "date": "2024-08-06",
+      "file_sha256": "055f1d7d88720be6cb4d9f9bdb683588b2ee88d54785ab95417fefccbe180c96",
+      "state": "unverified",
+      "reasons": [
+        "day_boundary_or_content_date_unverified",
+        "gfw_fleet_utc_boundary_unverified"
+      ],
+      "reported_cell_counts": {
+        "total": 76965,
+        "valid": 76965,
+        "zero": 31510,
+        "missing": 0,
+        "nonfinite": 0,
+        "negative": 0,
+        "invalid_coordinate": 0,
+        "invalid_type": 0,
+        "above_24": 136
+      },
+      "unique_cell_hours_sum": 77437.5473,
+      "independent_decimal_sum": "77437.5473",
+      "independent_comparison": "equal",
+      "fleet_source": {
+        "evidence": "https://zenodo.org/records/14982712",
+        "scanned_records": 1130171,
+        "selected_records": 109266,
+        "duplicate_category_records": 0,
+        "invalid_hour_records": 0,
+        "coordinate_convention": "lower_left",
+        "bbox_selection": "lower_left_in_half_open_bbox",
+        "version": "3.0.0",
+        "year_2024_status": "provisional",
+        "source_valid_hours_sum": 77437.5473,
+        "hours_conservation": "verified_selected_records",
+        "day_boundary": "unverified_in_official_documentation"
+      },
+      "coverage_status": "unknown",
+      "time_verified": false
+    },
+    {
+      "date": "2024-08-07",
+      "file_sha256": "4a4093ae9907176536def1a555235a228fffd19e421e40cc058fd775f3899970",
+      "state": "unverified",
+      "reasons": [
+        "day_boundary_or_content_date_unverified",
+        "gfw_fleet_utc_boundary_unverified"
+      ],
+      "reported_cell_counts": {
+        "total": 80627,
+        "valid": 80627,
+        "zero": 32033,
+        "missing": 0,
+        "nonfinite": 0,
+        "negative": 0,
+        "invalid_coordinate": 0,
+        "invalid_type": 0,
+        "above_24": 196
+      },
+      "unique_cell_hours_sum": 89772.4624,
+      "independent_decimal_sum": "89772.4624",
+      "independent_comparison": "equal",
+      "fleet_source": {
+        "evidence": "https://zenodo.org/records/14982712",
+        "scanned_records": 1109772,
+        "selected_records": 113686,
+        "duplicate_category_records": 0,
+        "invalid_hour_records": 0,
+        "coordinate_convention": "lower_left",
+        "bbox_selection": "lower_left_in_half_open_bbox",
+        "version": "3.0.0",
+        "year_2024_status": "provisional",
+        "source_valid_hours_sum": 89772.4624,
+        "hours_conservation": "verified_selected_records",
+        "day_boundary": "unverified_in_official_documentation"
+      },
+      "coverage_status": "unknown",
+      "time_verified": false
+    }
+  ]
+}
