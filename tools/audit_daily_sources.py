@@ -200,6 +200,18 @@ def gfw_fleet_payload(path, entry, source):
     grouped, categories = {}, set()
     selected, scanned, duplicates, invalid = 0, 0, 0, 0
     source_values, source_maxima = [], {}
+    hour_counts = dict.fromkeys(
+        [
+            "zero",
+            "positive",
+            "missing",
+            "invalid_type",
+            "nonfinite",
+            "negative",
+            "above_24",
+        ],
+        0,
+    )
     with path.open(encoding="utf-8-sig", newline="") as stream:
         reader = csv.DictReader(stream)
         expected = {
@@ -247,6 +259,17 @@ def gfw_fleet_payload(path, entry, source):
             duplicates += int(category in categories)
             categories.add(category)
             hours = number(record["fishing_hours"], True)
+            if record["fishing_hours"] == "":
+                hour_counts["missing"] += 1
+            elif hours is None:
+                hour_counts["invalid_type"] += 1
+            elif not math.isfinite(hours):
+                hour_counts["nonfinite"] += 1
+            elif hours < 0:
+                hour_counts["negative"] += 1
+            else:
+                hour_counts["zero" if hours == 0 else "positive"] += 1
+                hour_counts["above_24"] += int(hours > 24)
             valid = hours is not None and math.isfinite(hours) and hours >= 0
             invalid += int(not valid)
             values = grouped.setdefault((lon, lat), [])
@@ -285,6 +308,7 @@ def gfw_fleet_payload(path, entry, source):
             "selected_records": selected,
             "duplicate_category_records": duplicates,
             "invalid_hour_records": invalid,
+            "source_hour_counts": hour_counts,
             "coordinate_convention": "lower_left",
             "bbox_selection": "lower_left_in_half_open_bbox",
             "version": "3.0.0",

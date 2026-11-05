@@ -372,6 +372,15 @@ def test_official_gfw_fleet_profile_sums_categories_without_using_presence_hours
     assert row["coverage_status"] == "unknown"
     assert row["unit_status"] == "official_product_schema"
     assert row["fleet_source"]["selected_records"] == 3
+    assert row["fleet_source"]["source_hour_counts"] == {
+        "zero": 1,
+        "positive": 2,
+        "missing": 0,
+        "invalid_type": 0,
+        "nonfinite": 0,
+        "negative": 0,
+        "above_24": 0,
+    }
     assert row["fleet_source"]["coordinate_convention"] == "lower_left"
     assert row["fleet_source"]["hours_conservation"] == "verified_selected_records"
     support = np.load(tmp_path / "support" / row["support_artifact"])
@@ -380,12 +389,12 @@ def test_official_gfw_fleet_profile_sums_categories_without_using_presence_hours
 
 
 @pytest.mark.parametrize(
-    "second,expected_state,invalid,duplicate",
+    "second,expected_state,invalid,duplicate,anomaly",
     [
-        ("CHN,trawlers,999,15,1", "conflict", 0, 1),
-        ("JPN,trawlers,999,,1", "unverified", 1, 0),
-        ("JPN,trawlers,999,-1,1", "unverified", 1, 0),
-        ("JPN,trawlers,999,NaN,1", "unverified", 1, 0),
+        ("CHN,trawlers,999,15,1", "conflict", 0, 1, None),
+        ("JPN,trawlers,999,,1", "unverified", 1, 0, "missing"),
+        ("JPN,trawlers,999,-1,1", "unverified", 1, 0, "negative"),
+        ("JPN,trawlers,999,NaN,1", "unverified", 1, 0, "nonfinite"),
     ],
 )
 def test_fleet_duplicate_categories_and_unknown_hours_do_not_become_cell_totals(
@@ -394,6 +403,7 @@ def test_fleet_duplicate_categories_and_unknown_hours_do_not_become_cell_totals(
     expected_state,
     invalid,
     duplicate,
+    anomaly,
 ):
     source = tmp_path / "fleet-daily-csvs-100-v3-2024-08-05.csv"
     source.write_text(
@@ -421,6 +431,8 @@ def test_fleet_duplicate_categories_and_unknown_hours_do_not_become_cell_totals(
     assert row["state"] == expected_state
     assert row["unique_cell_hours_sum"] is None
     assert row["fleet_source"]["invalid_hour_records"] == invalid
+    if anomaly:
+        assert row["fleet_source"]["source_hour_counts"][anomaly] == 1
     assert row["fleet_source"]["duplicate_category_records"] == duplicate
     assert row["fleet_source"]["hours_conservation"] == "not_verified"
     assert row["unlisted_cell_value"] == "unknown"
