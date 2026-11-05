@@ -112,12 +112,18 @@ def test_mixed_csv_units_cannot_be_verified_by_registry_fallback(tmp_path):
 @pytest.mark.parametrize(
     "content",
     [
-        '{"date":"2024-08-05","unit":"minutes","unit":"fishing_hours",'
-        '"cells":[{"lon":122,"lat":30,"hours":0}]}',
-        '{"date":"2024-08-05","unit":"fishing_hours",'
-        '"cells":[{"lon":122,"lat":30,"hours":12,"hours":0}]}',
-        '{"date":"2024-08-05","unit":"fishing_hours",'
-        '"cells":[{"lon":122,"lat":30,"hours":12,"\\u0068ours":0}]}',
+        (
+            '{"date":"2024-08-05","unit":"minutes","unit":"fishing_hours",'
+            '"cells":[{"lon":122,"lat":30,"hours":0}]}'
+        ),
+        (
+            '{"date":"2024-08-05","unit":"fishing_hours",'
+            '"cells":[{"lon":122,"lat":30,"hours":12,"hours":0}]}'
+        ),
+        (
+            '{"date":"2024-08-05","unit":"fishing_hours",'
+            '"cells":[{"lon":122,"lat":30,"hours":12,"\\u0068ours":0}]}'
+        ),
     ],
 )
 def test_duplicate_activity_json_fields_never_choose_a_value_or_drop_other_sources(
@@ -181,29 +187,40 @@ def test_display_audit_rejects_hidden_prefix_program_instead_of_selecting_later_
         prefix + 'window.OF_DATA_SST["2024-08-05"] = ' + json.dumps(payload) + ";",
         encoding="utf-8",
     )
-    prepare(tmp_path, [("sst", "sst", source, {"format": "sst-display", "role": "display"})])
+    prepare(
+        tmp_path, [("sst", "sst", source, {"format": "sst-display", "role": "display"})]
+    )
     row = audit(tmp_path)["sources"][0]
     assert row["errors"][0]["reason"] == "invalid_display_program"
     assert row["days"][0]["state"] == "missing"
 
 
 @pytest.mark.parametrize("ending", ["", "\n", "\r\n", "\u2028", "\u2029", "block"])
-def test_commented_export_is_not_an_observation_and_other_source_still_audits(tmp_path, ending):
+def test_commented_export_is_not_an_observation_and_other_source_still_audits(
+    tmp_path, ending
+):
     source = tmp_path / "sst20240805.js"
     payload = {
         "date": "2024-08-05",
         "grid": {"lon0": 122, "lat0": 30, "dlon": 0.05, "dlat": 0.05, "nx": 1, "ny": 1},
-        "product": {"unit": "degree_C"}, "bin_c": 0.5, "runs": [[0, 0, 1, 60]],
+        "product": {"unit": "degree_C"},
+        "bin_c": 0.5,
+        "runs": [[0, 0, 1, 60]],
     }
     assignment = 'window.OF_DATA_SST["2024-08-05"] = ' + json.dumps(payload) + ";"
-    text = "/* " + assignment + " */" if ending == "block" else "// " + assignment + ending
+    text = (
+        "/* " + assignment + " */" if ending == "block" else "// " + assignment + ending
+    )
     source.write_text(text, encoding="utf-8")
     good = tmp_path / "front20240805.nc"
     front_file(good)
-    prepare(tmp_path, [
-        ("sst", "sst", source, {"format": "sst-display", "role": "display"}),
-        ("front", "front", good, {"format": "netcdf", "variable": "front"}),
-    ])
+    prepare(
+        tmp_path,
+        [
+            ("sst", "sst", source, {"format": "sst-display", "role": "display"}),
+            ("front", "front", good, {"format": "netcdf", "variable": "front"}),
+        ],
+    )
     sources = audit(tmp_path)["sources"]
     assert sources[0]["errors"][0]["reason"] == "invalid_display_assignment"
     assert sources[0]["days"][0]["state"] == "missing"
@@ -349,6 +366,156 @@ def test_front_cli_separates_nondetection_from_fill_and_exports_actual_support(
     assert str(tmp_path) not in json.dumps(report)
 
 
+def test_string_missing_value_is_masked_without_assigning_unknown_front_codes(tmp_path):
+    source = tmp_path / "front20240805.nc"
+    ds = xr.Dataset(
+        {"front": (("time", "lat", "lon"), np.array([[[-128, 0, 10]]], dtype="int8"))},
+        coords={"time": [0], "lat": [30.0], "lon": [122.0, 123.0, 124.0]},
+    )
+    ds.time.attrs["units"] = "hours since 2024-08-05"
+    ds.front.attrs["missing_value"] = "-128"
+    ds.to_netcdf(source, engine="h5netcdf")
+    prepare(
+        tmp_path,
+        [
+            (
+                "front-original",
+                "front",
+                source,
+                {"format": "netcdf", "variable": "front"},
+            )
+        ],
+    )
+    row = audit(tmp_path)["sources"][0]["days"][0]
+    assert row["valid_samples"] == 2
+    assert row["raw_missing_samples"] == 1
+    assert row["code_basis"] == "unverified"
+    assert row["front_detected_samples"] is None
+    assert row["mask_attributes"]["missing_value"] == "-128"
+    support = np.load(tmp_path / "support" / row["support_artifact"])
+    assert support["valid"].tolist() == [[False, True, True]]
+
+
+@pytest.mark.parametrize("missing", ["unknown", "128", "-128.5"])
+def test_invalid_string_missing_value_cannot_produce_valid_support(tmp_path, missing):
+    source = tmp_path / "front20240805.nc"
+    ds = xr.Dataset(
+        {"front": (("time", "lat", "lon"), np.array([[[-128, 0]]], dtype="int8"))},
+        coords={"time": [0], "lat": [30.0], "lon": [122.0, 123.0]},
+    )
+    ds.time.attrs["units"] = "hours since 2024-08-05"
+    ds.front.attrs["missing_value"] = missing
+    ds.to_netcdf(source, engine="h5netcdf")
+    prepare(
+        tmp_path,
+        [
+            (
+                "front-original",
+                "front",
+                source,
+                {"format": "netcdf", "variable": "front"},
+            )
+        ],
+    )
+    result = audit(tmp_path)["sources"][0]
+    assert result["errors"][0]["reason"] == "invalid_missing_value_attribute"
+    assert result["days"][0]["state"] == "missing"
+    assert not list((tmp_path / "support").glob("*.npz"))
+
+
+def test_explicit_zenodo_front_profile_reports_codes_without_inventing_time(tmp_path):
+    source = tmp_path / "front_location20240805.nc"
+    ds = xr.Dataset(
+        {
+            "front": (
+                ("time", "lat", "lon"),
+                np.array([[[-128, 0, -20, -10, 10, 20, 30, 99]]], dtype="int8"),
+            )
+        },
+        coords={"time": [739469], "lat": [30.0], "lon": list(range(120, 128))},
+    )
+    ds.time.attrs.update(units="days since 0000-00-00", time_zone="UTC")
+    ds.front.attrs.update(missing_value="-128", units="none")
+    ds.to_netcdf(source, engine="h5netcdf")
+    prepare(
+        tmp_path,
+        [
+            (
+                "zenodo-20356239",
+                "front",
+                source,
+                {
+                    "format": "netcdf",
+                    "variable": "front",
+                    "front_encoding": "zenodo-20356239/v1",
+                },
+            )
+        ],
+    )
+    report = audit(tmp_path)
+    row = report["sources"][0]["days"][0]
+    assert row["code_basis"] == "zenodo-20356239/v1"
+    assert row["front_detected_samples"] == 3
+    assert row["cold_samples"] == 2
+    assert row["warm_samples"] == 3
+    assert row["valid_samples"] == 6
+    assert row["raw_missing_samples"] == 1
+    assert row["missing_samples"] == 2
+    assert "unrecognized_front_codes" in row["reasons"]
+    assert row["classification"]["side_basis"] == "sign; includes_line_cells"
+    assert row["classification"]["evidence"] == "https://zenodo.org/records/20356239"
+    assert row["time_metadata"]["raw_value"] == 739469
+    assert row["time_verified"] is False
+    assert row["state"] == "unverified"
+    assert report["research_ready"] is False
+    support = np.load(tmp_path / "support" / row["support_artifact"])
+    assert support["valid"].tolist() == [
+        [False, True, True, True, True, True, True, False]
+    ]
+
+
+@pytest.mark.parametrize(
+    "product_id,encoding",
+    [
+        ("other-product", "zenodo-20356239/v1"),
+        ("zenodo-20356239", "unknown-profile"),
+    ],
+)
+def test_front_profile_cannot_be_applied_to_another_product(
+    tmp_path, product_id, encoding
+):
+    source = tmp_path / "front20240805.nc"
+    ds = xr.Dataset(
+        {"front": (("time", "lat", "lon"), np.array([[[0, 10]]], dtype="int8"))},
+        coords={"time": [0], "lat": [30.0], "lon": [122.0, 123.0]},
+    )
+    ds.time.attrs["units"] = "hours since 2024-08-05"
+    ds.front.attrs.update(missing_value="-128", units="none")
+    ds.to_netcdf(source, engine="h5netcdf")
+    prepare(
+        tmp_path,
+        [
+            (
+                product_id,
+                "front",
+                source,
+                {
+                    "format": "netcdf",
+                    "variable": "front",
+                    "front_encoding": encoding,
+                },
+            )
+        ],
+    )
+    result = audit(tmp_path)["sources"][0]
+    assert result["errors"][0]["reason"] in {
+        "front_profile_metadata_mismatch",
+        "unsupported_front_encoding",
+    }
+    assert result["days"][0]["valid_samples"] is None
+    assert not list((tmp_path / "support").glob("*.npz"))
+
+
 def test_sst_packed_kelvin_is_decoded_with_fill_and_raw_valid_range(tmp_path):
     source = tmp_path / "sst20240805.nc"
     ds = xr.Dataset(
@@ -380,6 +547,30 @@ def test_sst_packed_kelvin_is_decoded_with_fill_and_raw_valid_range(tmp_path):
     assert row["temperature_c"]["max"] == 26.85
     assert row["decoding"]["scale_factor"] == 0.01
     assert row["decoding"]["unit_basis"] == "file_attribute"
+
+
+def test_calendar_case_uses_content_date_and_retains_original_metadata(tmp_path):
+    source = tmp_path / "sst20240805.nc"
+    ds = xr.Dataset(
+        {"sst": (("time", "lat", "lon"), [[[29.0, 30.0]]])},
+        coords={"time": [36], "lat": [30.0], "lon": [122.0, 123.0]},
+    )
+    ds.time.attrs.update(units="hours since 2024-08-05", calendar="Gregorian")
+    ds.sst.attrs["units"] = "degree_C"
+    ds.to_netcdf(source, engine="h5netcdf")
+    prepare(
+        tmp_path,
+        [("sst-original", "sst", source, {"format": "netcdf", "variable": "sst"})],
+    )
+    report = audit(tmp_path, end="2024-08-06")
+    by_date = {row["date"]: row for row in report["sources"][0]["days"]}
+    first, second = by_date["2024-08-05"], by_date["2024-08-06"]
+    assert first["state"] == "missing"
+    assert second["date"] == "2024-08-06"
+    assert second["time_verified"] is True
+    assert second["time_metadata"]["calendar"] == "Gregorian"
+    assert "filename_content_date_mismatch" in second["reasons"]
+    assert second["valid_samples"] == 2
 
 
 def test_multiday_and_duplicate_files_are_not_silently_selected_or_summed(tmp_path):
@@ -602,10 +793,15 @@ def test_daily_snapshot_replays_without_reopening_sources_and_detects_drift(tmp_
 
 
 @pytest.mark.parametrize("name", ["daily.json", "snapshot.json", "private.json"])
-def test_daily_control_files_with_duplicate_schema_fail_without_publishing(tmp_path, name):
+def test_daily_control_files_with_duplicate_schema_fail_without_publishing(
+    tmp_path, name
+):
     source = tmp_path / "front20240805.nc"
     front_file(source)
-    prepare(tmp_path, [("front", "front", source, {"format": "netcdf", "variable": "front"})])
+    prepare(
+        tmp_path,
+        [("front", "front", source, {"format": "netcdf", "variable": "front"})],
+    )
     path = tmp_path / name
     original = path.read_text(encoding="utf-8")
     path.write_text(
@@ -618,10 +814,15 @@ def test_daily_control_files_with_duplicate_schema_fail_without_publishing(tmp_p
     assert "PRIVATE_SENTINEL" not in result.stdout + result.stderr
 
 
-def test_daily_frozen_replay_rejects_duplicate_alias_even_with_unchanged_final_identity(tmp_path):
+def test_daily_frozen_replay_rejects_duplicate_alias_even_with_unchanged_final_identity(
+    tmp_path,
+):
     source = tmp_path / "front20240805.nc"
     front_file(source)
-    prepare(tmp_path, [("front", "front", source, {"format": "netcdf", "variable": "front"})])
+    prepare(
+        tmp_path,
+        [("front", "front", source, {"format": "netcdf", "variable": "front"})],
+    )
     audit(tmp_path)
     path = tmp_path / "report.json"
     path.write_text(

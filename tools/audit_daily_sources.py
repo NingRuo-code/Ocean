@@ -31,7 +31,9 @@ def unique_json_object(pairs):
 
 
 def read_json(path):
-    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_json_object)
+    return json.loads(
+        path.read_text(encoding="utf-8"), object_pairs_hook=unique_json_object
+    )
 
 
 def digest(value):
@@ -647,7 +649,9 @@ def netcdf_rows(path, entry, file, source, support, requested_range):
         }
         time_values = dataset[time_name]
         try:
-            calendar = time_values.attrs.get("calendar", "standard")
+            calendar = (
+                str(time_values.attrs.get("calendar", "standard")).strip().lower()
+            )
             if (
                 calendar not in ["standard", "gregorian", "proleptic_gregorian"]
                 or entry.get("day_boundary") != "UTC"
@@ -693,6 +697,24 @@ def netcdf_rows(path, entry, file, source, support, requested_range):
             for key in ["_FillValue", "missing_value"]:
                 if key in attrs:
                     for fill in np.atleast_1d(attrs[key]):
+                        if isinstance(fill, (str, bytes)):
+                            try:
+                                if np.issubdtype(raw.dtype, np.integer):
+                                    fill = int(fill)
+                                    limits = np.iinfo(raw.dtype)
+                                    if not limits.min <= fill <= limits.max:
+                                        raise ValueError
+                                else:
+                                    fill = float(fill)
+                                    if not np.isfinite(fill):
+                                        raise ValueError
+                                    fill = np.asarray(fill, dtype=raw.dtype).item()
+                                    if not np.isfinite(fill):
+                                        raise ValueError
+                            except (ValueError, OverflowError):
+                                raise ValueError(
+                                    "invalid_missing_value_attribute"
+                                ) from None
                         valid &= raw != fill
             raw_missing_samples = int((~valid).sum())
             auxiliary_mask = {"basis": "not_configured; no_extra_quality_mask_inferred"}
@@ -722,6 +744,7 @@ def netcdf_rows(path, entry, file, source, support, requested_range):
             front = source["kind"] == "front"
             decoding, temperature = None, None
             code_basis, front_count, cold_count, warm_count = None, None, None, None
+            classification = None
             if front:
                 meanings = str(attrs.get("flag_meanings", "")).split()
                 codes = np.atleast_1d(attrs.get("flag_values", []))
@@ -730,7 +753,37 @@ def netcdf_rows(path, entry, file, source, support, requested_range):
                     if len(meanings) == len(codes)
                     else {}
                 )
-                if {
+                if entry.get("front_encoding"):
+                    if entry["front_encoding"] != "zenodo-20356239/v1":
+                        raise ValueError("unsupported_front_encoding")
+                    if (
+                        source.get("product", {}).get("id")
+                        not in {"zenodo-20356239", "zenodo-20356239-declared"}
+                        or variable != "front"
+                        or str(attrs.get("units", "")).strip() != "none"
+                        or str(attrs.get("missing_value", "")).strip() != "-128"
+                        or "flag_values" in attrs
+                        or "flag_meanings" in attrs
+                        or ("_FillValue" in attrs and attrs["_FillValue"] != -128)
+                    ):
+                        raise ValueError("front_profile_metadata_mismatch")
+                    known = np.isin(raw, [-20, -10, 0, 10, 20, 30])
+                    if np.any(valid & ~known):
+                        reasons.append("unrecognized_front_codes")
+                    valid &= known
+                    front_count = int((valid & np.isin(raw, [-10, 10, 30])).sum())
+                    cold_count = int((valid & (raw < 0)).sum())
+                    warm_count = int((valid & (raw > 0)).sum())
+                    code_basis = entry["front_encoding"]
+                    classification = {
+                        "evidence": "https://zenodo.org/records/20356239",
+                        "front_line_codes": [-10, 10, 30],
+                        "background_code": 0,
+                        "missing_code": -128,
+                        "missing_meaning": "land_or_missing",
+                        "side_basis": "sign; includes_line_cells",
+                    }
+                elif {
                     "background",
                     "cold_side",
                     "warm_side",
@@ -787,14 +840,21 @@ def netcdf_rows(path, entry, file, source, support, requested_range):
                 "time_verified": time_verified,
                 "filename_date": file_date(path),
                 "time_metadata": {
+                    "raw_value": metadata_value(time_values.values[index]),
                     "units": time_values.attrs.get("units"),
                     "calendar": time_values.attrs.get("calendar", "standard"),
+                    "time_zone": time_values.attrs.get("time_zone"),
                     "day_boundary": entry.get("day_boundary"),
                 },
                 "state": "parsed" if not reasons else "unverified",
                 "reasons": reasons,
                 "grid": grid,
                 "unit": str(attrs.get("units", "unknown")),
+                "mask_attributes": {
+                    key: metadata_value(attrs[key])
+                    for key in ["_FillValue", "missing_value"]
+                    if key in attrs
+                },
                 "decoding": decoding,
                 "temperature_c": temperature,
                 "auxiliary_mask": auxiliary_mask,
@@ -807,6 +867,7 @@ def netcdf_rows(path, entry, file, source, support, requested_range):
                 "cold_samples": cold_count,
                 "warm_samples": warm_count,
                 "code_basis": code_basis,
+                "classification": classification,
                 "support_scope": "display_mask_only"
                 if source["role"] == "display"
                 else "source_mask; qualification_pending",
