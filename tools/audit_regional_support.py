@@ -366,6 +366,33 @@ def validate_cells(value):
     return result
 
 
+def prepare_layer_geometry(layer, plane):
+    shapes, valid, classified, weighted = [], [], [], []
+    for cell in layer["cells"]:
+        shape = plane.rectangle(cell["bounds"])
+        shapes.append(shape)
+        state = cell["support"]
+        usable = state == "valid" and (
+            layer["kind"] != "activity" or cell.get("hours") is not None
+        )
+        if usable:
+            valid.append(shape)
+        if state in {"land", "missing"} or usable:
+            classified.append(shape)
+        if usable and layer["kind"] == "activity":
+            weighted.append((cell["hours"], shape))
+        if usable and layer["kind"] == "front":
+            weighted.append((cell.get("side", "unknown"), shape))
+    union = unary_union(shapes)
+    if math.fsum(shape.area for shape in shapes) - union.area > AREA_TOL * 1e6:
+        raise ValueError("overlapping_source_cells")
+    return {
+        "valid": unary_union(valid),
+        "known": unary_union(classified),
+        "weighted": weighted,
+    }
+
+
 def regional_day(day, layers, required, region, plane, allocation, source_ids):
     area = region.area / 1e6
     row = {
@@ -389,11 +416,21 @@ def regional_day(day, layers, required, region, plane, allocation, source_ids):
         )
         for kind in required
     }
-    selected = []
+    selected, prepared = [], {}
+    row["layer_support"] = {}
     for kind in required:
+        before = len(row["reasons"])
+        detail = {
+            "effective_area_km2": None,
+            "unknown_request_area_km2": area,
+            "known_excluded_area_km2": None,
+            "reasons": [],
+        }
+        row["layer_support"][kind] = detail
         layer = by_kind.get(kind)
         if layer is None:
             row["reasons"].append(f"missing_required_{kind}_layer")
+            detail["reasons"] = row["reasons"][before:]
             continue
         if layer.get("id") != source_ids.get(kind):
             row["reasons"].append(f"{kind}_source_identity_mismatch")
@@ -416,7 +453,18 @@ def regional_day(day, layers, required, region, plane, allocation, source_ids):
             row["reasons"].append(f"{kind}_duration_unknown")
         elif duration != 1:
             row["reasons"].append(f"{kind}_full_day_support_required")
-        selected.append(layer)
+        detail["reasons"] = row["reasons"][before:]
+        if not detail["reasons"]:
+            selected.append(layer)
+            prepared[kind] = prepare_layer_geometry(layer, plane)
+            part = prepared[kind]
+            valid_area = region.intersection(part["valid"]).area / 1e6
+            unknown_area = region.difference(part["known"]).area / 1e6
+            detail.update(
+                effective_area_km2=valid_area,
+                unknown_request_area_km2=unknown_area,
+                known_excluded_area_km2=max(0, area - unknown_area - valid_area),
+            )
     if row["reasons"]:
         return row
     durations = [layer["duration_days"] for layer in selected]
@@ -435,29 +483,11 @@ def regional_day(day, layers, required, region, plane, allocation, source_ids):
                 chosen.append(plane.rectangle(b))
         domain = unary_union(chosen)
     joint, known = domain, region
-    activity, fronts = [], []
+    activity, fronts = prepared["activity"]["weighted"], prepared["front"]["weighted"]
     for layer in selected:
-        shapes, valid, classified = [], [], []
-        for cell in layer["cells"]:
-            shape = plane.rectangle(cell["bounds"])
-            shapes.append(shape)
-            state = cell["support"]
-            usable = state == "valid" and (
-                layer["kind"] != "activity" or cell.get("hours") is not None
-            )
-            if usable:
-                valid.append(shape)
-            if state in {"land", "missing"} or usable:
-                classified.append(shape)
-            if layer["kind"] == "activity" and usable:
-                activity.append((cell["hours"], shape))
-            if layer["kind"] == "front" and usable:
-                fronts.append((cell.get("side", "unknown"), shape))
-        union = unary_union(shapes)
-        if math.fsum(shape.area for shape in shapes) - union.area > AREA_TOL * 1e6:
-            raise ValueError("overlapping_source_cells")
-        joint = joint.intersection(unary_union(valid))
-        known = known.intersection(unary_union(classified))
+        part = prepared[layer["kind"]]
+        joint = joint.intersection(part["valid"])
+        known = known.intersection(part["known"])
     joint_area = joint.area / 1e6
     unknown = max(0.0, region.difference(known).area / 1e6)
     row.update(

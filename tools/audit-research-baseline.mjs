@@ -6,7 +6,11 @@ import { runSourceAudit } from "./lib/source-audit.mjs";
 import { spawnSync } from "node:child_process";
 import { runEnvironmentComparison } from "./lib/environment-lineage.mjs";
 
-if (process.argv.includes("--regional-request") || process.argv.includes("--read-regional-snapshot")) {
+if (process.argv.includes("--support-request") || process.argv.includes("--read-support-snapshot")) {
+  const result = spawnSync(process.env.OCEAN_AUDIT_PYTHON || "python", [join(dirname(fileURLToPath(import.meta.url)), "audit_support_qualification.py"), ...process.argv.slice(2)], { stdio: "inherit" });
+  if (result.error) console.error("Support audit runtime unavailable; configure OCEAN_AUDIT_PYTHON.");
+  process.exitCode = result.status ?? 1;
+} else if (process.argv.includes("--regional-request") || process.argv.includes("--read-regional-snapshot")) {
   const result = spawnSync(process.env.OCEAN_AUDIT_PYTHON || "python", [join(dirname(fileURLToPath(import.meta.url)), "audit_regional_support.py"), ...process.argv.slice(2)], { stdio: "inherit" });
   if (result.error) console.error("Regional audit runtime unavailable; configure OCEAN_AUDIT_PYTHON.");
   process.exitCode = result.status ?? 1;
