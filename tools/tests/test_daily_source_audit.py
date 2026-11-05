@@ -467,6 +467,36 @@ def test_fleet_schema_date_and_product_mismatches_are_not_accepted(
     assert not list((tmp_path / "support").glob("*.npz"))
 
 
+def test_empty_official_fleet_file_does_not_verify_content_date_or_zero_activity(
+    tmp_path,
+):
+    source = tmp_path / "fleet-daily-csvs-100-v3-2024-08-05.csv"
+    source.write_text(
+        "date,cell_ll_lat,cell_ll_lon,flag,geartype,hours,fishing_hours,mmsi_present\n",
+        encoding="utf-8",
+    )
+    prepare(
+        tmp_path,
+        [
+            (
+                "gfw-fleet-daily-v3",
+                "activity",
+                source,
+                {
+                    "format": "activity-gfw-fleet-v3",
+                    "bbox": [123, 29, 125, 31],
+                    "product": {"version": "3.0.0"},
+                },
+            )
+        ],
+    )
+    row = audit(tmp_path)["sources"][0]["days"][0]
+    assert row["content_date_verified"] is False
+    assert row["unique_cell_hours_sum"] is None
+    assert row["unlisted_cell_value"] == "unknown"
+    assert row["time_verified"] is False
+
+
 def test_front_cli_separates_nondetection_from_fill_and_exports_actual_support(
     tmp_path,
 ):

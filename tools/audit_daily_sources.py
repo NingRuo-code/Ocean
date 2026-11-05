@@ -525,7 +525,7 @@ def activity_rows(path, entry, file, source, support):
             row["fleet_source"] = info
             row["unit_status"] = "official_product_schema"
             row["time_verified"] = False
-            row["content_date_verified"] = True
+            row["content_date_verified"] = info["scanned_records"] > 0
             row["state"] = "unverified"
             row["reasons"].append("gfw_fleet_utc_boundary_unverified")
             if info["duplicate_category_records"] or info["invalid_hour_records"]:

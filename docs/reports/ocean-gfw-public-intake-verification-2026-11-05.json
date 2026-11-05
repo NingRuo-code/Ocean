@@ -2,6 +2,16 @@
   "schema": "ocean-gfw-public-intake-verification/v1",
   "source_record": "https://zenodo.org/records/14982712",
   "version": "3.0.0",
+  "source_name": "Global Fishing Watch; official Zenodo 14982712",
+  "metric": "AIS-based apparent fishing effort",
+  "unit": "fishing_hours",
+  "license": "CC BY-NC 4.0",
+  "caveats": [
+    "AIS behavior estimates are not catch, biomass, revenue or guaranteed fishing outcomes.",
+    "2024 is provisional; AIS reception and classification affect comparability.",
+    "UTC day boundary and effective coverage remain unverified; unlisted cells are unknown, not zero.",
+    "These totals verify selected source records and conversion, not a front-fishery relationship."
+  ],
   "bbox": [
     120,
     27,
