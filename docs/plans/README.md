@@ -1,5 +1,7 @@
 # Ocean 项目规划入口
 
+2026-11-04：票据精简已执行并回读，接续从[当前实现顺序](ocean-current-execution-order-2026-11-04.md)开始。M1保留18张原票，先#37/#38；M2有11张真实B票，其他186张原开放执行票按证据触发。8票not_planned归并与标签调整见[执行记录](../reports/ocean-ticket-pruning-execution-2026-11-04.json)，[此前分析](ocean-roadmap-pruning-review-2026-11-04.md)保留为决策来源。以下为历史日期快照，不作为当前领取队列。
+
 本轮#325已按#326→#327完成软件验收2/2，[实际交付/完整回归](../reports/ocean-synthetic-run-implementation-2026-10-30.md)及[最新分账接续](../reports/ocean-progress-snapshot-2026-10-30-synthetic-runs.md)。PR/Issue终态核对GitHub；下列旧空队列记录保留为新补充前快照。
 
 最近整理：2026-10-30。
