@@ -46,3 +46,28 @@ B前7、后1–3、后1–7分别列日期及相邻月份，事件日明确排�
 #44七项审计交付：逐层全日历、代表位置/已有半径、邻月窗口、同批身份/基线、逐项阻塞/解除条件、P0与GD分账、脱敏报告及残余任务均已交付。未知的具体源字段不被提升为真实已核实；#14/#35保持开放，研究效果仍属于A/B/C。合成海岸/边界/纬度/分母等合同小例与上述真实结论分账，实际检查见[#39](ocean-regional-support-implementation-2026-11-05.md)与[#41](ocean-support-qualification-implementation-2026-11-05.md)。
 
 下一步按顺序#42确定性查询消费同一支持快照→#43来源/方法变化身份与旧快照，再推进#62等原票的合法可计算部分。真实A执行仍需解决上表材料前置；新报告或能力票关闭均不替代GD、生产部署或科学结果。
+
+## 可重复的本票校验
+
+```powershell
+python tools/verify_preferred_month_audit.py --bundle docs/reports/ocean-preferred-month-audit-verification-2026-11-05.json --projection docs/reports/ocean-candidate-support-verification-2026-11-05.json
+python -m pytest tools/tests/test_preferred_month_verification_cli.py -q
+```
+
+新检出仅靠已提交公开文件即可运行，无需原始资料或tmp脚本。有本地冻结结果时，在第一条命令加 `--snapshot-root data/processed/gfw-public-route-20261105`，会逐一核对精确的9份处理产物，不扫描原档或联网。已执行：公开与本地验证均通过，9运行/27几何/3去重结果一致；自动验证3项通过（正常、证据包被改、轻量投影字节被改）。初轮两个用例曾因本机临时目录权限失败，改用新目录复跑3/3通过，不将初轮记通过。
+
+校验约定：本证据包/去重outcome用排序键JSON身份；原审计快照沿既有紧凑JSON原字段顺序身份。最初独立校验脚本误用了排序键，已纠正校验脚本并逐份通过，不修改快照或放宽身份要求。校验完整性不构成来源真实性、许可或科学批准。
+
+独立初审：Standards0；Spec指出校验脚本应持久交付，现已保存为上述标准库CLI及本票自动检查。最终复审与完整工具结果发布前补记。
+
+最终检查：完整工具143通过（219.88s），新增证据校验CLI3通过；Ruff、编译、差异与公开/本地证据核对通过。本批未改后端/界面业务，沿前批后端310及来源6/data922记录，不重复宣称本批重新运行它们。
+
+## Standards
+
+复审0项未解决，未发现数据边界或项目规范违例。
+
+## Spec
+
+初审的持久校验入口缺口已修复，复审0项未解决。#44可按审计交付完成结项，真实未知核实项保留未核实，GD及父票不随之关闭。
+
+双轴最终：Standards 0、Spec 0；均无剩余最高问题。
