@@ -16,7 +16,6 @@
       "numeric_visibility": "withheld_public_boundary",
       "month": {
         "support_level": "unverified",
-        "computational_support": "unverified",
         "expected_days": 31,
         "included_days": 0,
         "excluded_days": 31,
@@ -38,35 +37,11 @@
           "quality_rule_approval_unverified",
           "source_versions_unverified"
         ],
-        "exclusion_reason_counts": {
-          "activity_bounds_verified_unknown": 31,
-          "activity_duration_unknown": 31,
-          "activity_source_day_missing": 28,
-          "activity_source_day_unverified": 3,
-          "activity_support_verified_unknown": 31,
-          "activity_time_verified_unknown": 31,
-          "activity_unit_unverified": 28,
-          "activity_verified_cells_unprepared": 31,
-          "front_bounds_verified_unknown": 31,
-          "front_duration_unknown": 31,
-          "front_source_day_missing": 28,
-          "front_source_day_unverified": 3,
-          "front_support_verified_unknown": 31,
-          "front_time_verified_unknown": 31,
-          "front_unit_unverified": 28,
-          "front_verified_cells_unprepared": 31,
-          "same_support_numerator_or_denominator_unavailable": 31,
-          "unknown_spatial_support": 31
-        },
-        "numeric_visibility": "withheld_public_boundary",
         "total_hours": null,
-        "mean_hours_per_supported_day": null,
-        "mean_hours_per_requested_day": null,
-        "area_time_km2_days": null,
-        "density_hours_per_km2_day": null,
-        "research_ready": false
+        "area_time_km2_days": null
       },
-      "windows": null,
+      "windows": {},
+      "event_data_gate_passed": null,
       "execution": {
         "status": "not_implemented",
         "can_submit": false,
@@ -80,7 +55,12 @@
         "method": "wgs84-laea-uniform/v1",
         "quality_rule": "complete-common-support/v1",
         "parameter": "sha256:f85d7efdf0bf139dfbe52fd6fdd7928a506b7bac56cd79526ab540f370dd9741",
-        "daily_snapshot_id": "sha256:8131c32402d308b4e22b8b4912e3b56dd540302ff2431d3c54b1d13f56b50c24"
+        "daily_snapshot_id": "sha256:8131c32402d308b4e22b8b4912e3b56dd540302ff2431d3c54b1d13f56b50c24",
+        "sources": {
+          "front": null,
+          "activity": null
+        },
+        "processing": null
       },
       "repeat_equal": true
     },
@@ -95,12 +75,11 @@
       },
       "status": 200,
       "snapshot_id": "sha256:eaa0e5c3847e2b1fd8e0149c06a4b16a115712cbf27d32bed2c3eec52b057e4e",
-      "support_level": "unverified",
+      "support_level": null,
       "freshness": "unknown",
       "numeric_visibility": "withheld_public_boundary",
       "month": {
         "support_level": "unverified",
-        "computational_support": "unverified",
         "expected_days": 31,
         "included_days": 0,
         "excluded_days": 31,
@@ -122,82 +101,12 @@
           "quality_rule_approval_unverified",
           "source_versions_unverified"
         ],
-        "exclusion_reason_counts": {
-          "activity_bounds_verified_unknown": 31,
-          "activity_duration_unknown": 31,
-          "activity_source_day_missing": 28,
-          "activity_source_day_unverified": 3,
-          "activity_support_verified_unknown": 31,
-          "activity_time_verified_unknown": 31,
-          "activity_unit_unverified": 28,
-          "activity_verified_cells_unprepared": 31,
-          "front_bounds_verified_unknown": 31,
-          "front_duration_unknown": 31,
-          "front_source_day_missing": 28,
-          "front_source_day_unverified": 3,
-          "front_support_verified_unknown": 31,
-          "front_time_verified_unknown": 31,
-          "front_unit_unverified": 28,
-          "front_verified_cells_unprepared": 31,
-          "same_support_numerator_or_denominator_unavailable": 31,
-          "unknown_spatial_support": 31
-        },
-        "numeric_visibility": "withheld_public_boundary",
         "total_hours": null,
-        "mean_hours_per_supported_day": null,
-        "mean_hours_per_requested_day": null,
-        "area_time_km2_days": null,
-        "density_hours_per_km2_day": null,
-        "research_ready": false
+        "area_time_km2_days": null
       },
       "windows": {
         "pre7": {
           "support_level": "unverified",
-          "computational_support": "unverified",
-          "expected_days": 7,
-          "included_days": 0,
-          "excluded_days": 7,
-          "layer_material_states": {
-            "front": {
-              "missing": 7
-            },
-            "activity": {
-              "missing": 7
-            }
-          },
-          "missing_prerequisites": [
-            "granularity_evidence_unverified",
-            "incomplete_common_support",
-            "license_evidence_unverified",
-            "processing_version_unverified",
-            "quality_rule_approval_unverified",
-            "source_versions_unverified"
-          ],
-          "exclusion_reason_counts": {
-            "activity_bounds_verified_unknown": 7,
-            "activity_duration_unknown": 7,
-            "activity_source_day_missing": 7,
-            "activity_support_verified_unknown": 7,
-            "activity_time_verified_unknown": 7,
-            "activity_unit_unverified": 7,
-            "activity_verified_cells_unprepared": 7,
-            "front_bounds_verified_unknown": 7,
-            "front_duration_unknown": 7,
-            "front_source_day_missing": 7,
-            "front_support_verified_unknown": 7,
-            "front_time_verified_unknown": 7,
-            "front_unit_unverified": 7,
-            "front_verified_cells_unprepared": 7,
-            "same_support_numerator_or_denominator_unavailable": 7,
-            "unknown_spatial_support": 7
-          },
-          "numeric_visibility": "withheld_public_boundary",
-          "total_hours": null,
-          "mean_hours_per_supported_day": null,
-          "mean_hours_per_requested_day": null,
-          "area_time_km2_days": null,
-          "density_hours_per_km2_day": null,
-          "research_ready": false,
           "dates": [
             "2024-07-25",
             "2024-07-26",
@@ -206,112 +115,26 @@
             "2024-07-29",
             "2024-07-30",
             "2024-07-31"
-          ]
+          ],
+          "expected_days": 7,
+          "included_days": 0,
+          "total_hours": null,
+          "area_time_km2_days": null
         },
         "post3": {
           "support_level": "unverified",
-          "computational_support": "unverified",
-          "expected_days": 3,
-          "included_days": 0,
-          "excluded_days": 3,
-          "layer_material_states": {
-            "front": {
-              "missing": 3
-            },
-            "activity": {
-              "missing": 3
-            }
-          },
-          "missing_prerequisites": [
-            "granularity_evidence_unverified",
-            "incomplete_common_support",
-            "license_evidence_unverified",
-            "processing_version_unverified",
-            "quality_rule_approval_unverified",
-            "source_versions_unverified"
-          ],
-          "exclusion_reason_counts": {
-            "activity_bounds_verified_unknown": 3,
-            "activity_duration_unknown": 3,
-            "activity_source_day_missing": 3,
-            "activity_support_verified_unknown": 3,
-            "activity_time_verified_unknown": 3,
-            "activity_unit_unverified": 3,
-            "activity_verified_cells_unprepared": 3,
-            "front_bounds_verified_unknown": 3,
-            "front_duration_unknown": 3,
-            "front_source_day_missing": 3,
-            "front_support_verified_unknown": 3,
-            "front_time_verified_unknown": 3,
-            "front_unit_unverified": 3,
-            "front_verified_cells_unprepared": 3,
-            "same_support_numerator_or_denominator_unavailable": 3,
-            "unknown_spatial_support": 3
-          },
-          "numeric_visibility": "withheld_public_boundary",
-          "total_hours": null,
-          "mean_hours_per_supported_day": null,
-          "mean_hours_per_requested_day": null,
-          "area_time_km2_days": null,
-          "density_hours_per_km2_day": null,
-          "research_ready": false,
           "dates": [
             "2024-08-02",
             "2024-08-03",
             "2024-08-04"
-          ]
+          ],
+          "expected_days": 3,
+          "included_days": 0,
+          "total_hours": null,
+          "area_time_km2_days": null
         },
         "post7": {
           "support_level": "unverified",
-          "computational_support": "unverified",
-          "expected_days": 7,
-          "included_days": 0,
-          "excluded_days": 7,
-          "layer_material_states": {
-            "front": {
-              "missing": 4,
-              "unverified": 3
-            },
-            "activity": {
-              "missing": 4,
-              "unverified": 3
-            }
-          },
-          "missing_prerequisites": [
-            "granularity_evidence_unverified",
-            "incomplete_common_support",
-            "license_evidence_unverified",
-            "processing_version_unverified",
-            "quality_rule_approval_unverified",
-            "source_versions_unverified"
-          ],
-          "exclusion_reason_counts": {
-            "activity_bounds_verified_unknown": 7,
-            "activity_duration_unknown": 7,
-            "activity_source_day_missing": 4,
-            "activity_source_day_unverified": 3,
-            "activity_support_verified_unknown": 7,
-            "activity_time_verified_unknown": 7,
-            "activity_unit_unverified": 4,
-            "activity_verified_cells_unprepared": 7,
-            "front_bounds_verified_unknown": 7,
-            "front_duration_unknown": 7,
-            "front_source_day_missing": 4,
-            "front_source_day_unverified": 3,
-            "front_support_verified_unknown": 7,
-            "front_time_verified_unknown": 7,
-            "front_unit_unverified": 4,
-            "front_verified_cells_unprepared": 7,
-            "same_support_numerator_or_denominator_unavailable": 7,
-            "unknown_spatial_support": 7
-          },
-          "numeric_visibility": "withheld_public_boundary",
-          "total_hours": null,
-          "mean_hours_per_supported_day": null,
-          "mean_hours_per_requested_day": null,
-          "area_time_km2_days": null,
-          "density_hours_per_km2_day": null,
-          "research_ready": false,
           "dates": [
             "2024-08-02",
             "2024-08-03",
@@ -320,8 +143,16 @@
             "2024-08-06",
             "2024-08-07",
             "2024-08-08"
-          ]
+          ],
+          "expected_days": 7,
+          "included_days": 0,
+          "total_hours": null,
+          "area_time_km2_days": null
         }
+      },
+      "event_data_gate_passed": {
+        "post3": false,
+        "post7": false
       },
       "execution": {
         "status": "not_implemented",
@@ -336,7 +167,12 @@
         "method": "wgs84-laea-uniform/v1",
         "quality_rule": "complete-common-support/v1",
         "parameter": "sha256:b2bbb087584e28d9adb99917601e5810235384543a053b2ea70064a6e292b964",
-        "daily_snapshot_id": "sha256:8131c32402d308b4e22b8b4912e3b56dd540302ff2431d3c54b1d13f56b50c24"
+        "daily_snapshot_id": "sha256:8131c32402d308b4e22b8b4912e3b56dd540302ff2431d3c54b1d13f56b50c24",
+        "sources": {
+          "front": null,
+          "activity": null
+        },
+        "processing": null
       },
       "repeat_equal": true
     },
@@ -351,12 +187,11 @@
       },
       "status": 200,
       "snapshot_id": "sha256:84c771b7f011bcc7b91ef46bb7b8bf8293498a891d138713a0067c7c9f6494b7",
-      "support_level": "unverified",
+      "support_level": null,
       "freshness": "unknown",
       "numeric_visibility": "withheld_public_boundary",
       "month": {
         "support_level": "unverified",
-        "computational_support": "unverified",
         "expected_days": 31,
         "included_days": 0,
         "excluded_days": 31,
@@ -378,82 +213,12 @@
           "quality_rule_approval_unverified",
           "source_versions_unverified"
         ],
-        "exclusion_reason_counts": {
-          "activity_bounds_verified_unknown": 31,
-          "activity_duration_unknown": 31,
-          "activity_source_day_missing": 28,
-          "activity_source_day_unverified": 3,
-          "activity_support_verified_unknown": 31,
-          "activity_time_verified_unknown": 31,
-          "activity_unit_unverified": 28,
-          "activity_verified_cells_unprepared": 31,
-          "front_bounds_verified_unknown": 31,
-          "front_duration_unknown": 31,
-          "front_source_day_missing": 28,
-          "front_source_day_unverified": 3,
-          "front_support_verified_unknown": 31,
-          "front_time_verified_unknown": 31,
-          "front_unit_unverified": 28,
-          "front_verified_cells_unprepared": 31,
-          "same_support_numerator_or_denominator_unavailable": 31,
-          "unknown_spatial_support": 31
-        },
-        "numeric_visibility": "withheld_public_boundary",
         "total_hours": null,
-        "mean_hours_per_supported_day": null,
-        "mean_hours_per_requested_day": null,
-        "area_time_km2_days": null,
-        "density_hours_per_km2_day": null,
-        "research_ready": false
+        "area_time_km2_days": null
       },
       "windows": {
         "pre7": {
           "support_level": "unverified",
-          "computational_support": "unverified",
-          "expected_days": 7,
-          "included_days": 0,
-          "excluded_days": 7,
-          "layer_material_states": {
-            "front": {
-              "missing": 7
-            },
-            "activity": {
-              "missing": 7
-            }
-          },
-          "missing_prerequisites": [
-            "granularity_evidence_unverified",
-            "incomplete_common_support",
-            "license_evidence_unverified",
-            "processing_version_unverified",
-            "quality_rule_approval_unverified",
-            "source_versions_unverified"
-          ],
-          "exclusion_reason_counts": {
-            "activity_bounds_verified_unknown": 7,
-            "activity_duration_unknown": 7,
-            "activity_source_day_missing": 7,
-            "activity_support_verified_unknown": 7,
-            "activity_time_verified_unknown": 7,
-            "activity_unit_unverified": 7,
-            "activity_verified_cells_unprepared": 7,
-            "front_bounds_verified_unknown": 7,
-            "front_duration_unknown": 7,
-            "front_source_day_missing": 7,
-            "front_support_verified_unknown": 7,
-            "front_time_verified_unknown": 7,
-            "front_unit_unverified": 7,
-            "front_verified_cells_unprepared": 7,
-            "same_support_numerator_or_denominator_unavailable": 7,
-            "unknown_spatial_support": 7
-          },
-          "numeric_visibility": "withheld_public_boundary",
-          "total_hours": null,
-          "mean_hours_per_supported_day": null,
-          "mean_hours_per_requested_day": null,
-          "area_time_km2_days": null,
-          "density_hours_per_km2_day": null,
-          "research_ready": false,
           "dates": [
             "2024-08-24",
             "2024-08-25",
@@ -462,108 +227,26 @@
             "2024-08-28",
             "2024-08-29",
             "2024-08-30"
-          ]
+          ],
+          "expected_days": 7,
+          "included_days": 0,
+          "total_hours": null,
+          "area_time_km2_days": null
         },
         "post3": {
           "support_level": "unverified",
-          "computational_support": "unverified",
-          "expected_days": 3,
-          "included_days": 0,
-          "excluded_days": 3,
-          "layer_material_states": {
-            "front": {
-              "missing": 3
-            },
-            "activity": {
-              "missing": 3
-            }
-          },
-          "missing_prerequisites": [
-            "granularity_evidence_unverified",
-            "incomplete_common_support",
-            "license_evidence_unverified",
-            "processing_version_unverified",
-            "quality_rule_approval_unverified",
-            "source_versions_unverified"
-          ],
-          "exclusion_reason_counts": {
-            "activity_bounds_verified_unknown": 3,
-            "activity_duration_unknown": 3,
-            "activity_source_day_missing": 3,
-            "activity_support_verified_unknown": 3,
-            "activity_time_verified_unknown": 3,
-            "activity_unit_unverified": 3,
-            "activity_verified_cells_unprepared": 3,
-            "front_bounds_verified_unknown": 3,
-            "front_duration_unknown": 3,
-            "front_source_day_missing": 3,
-            "front_support_verified_unknown": 3,
-            "front_time_verified_unknown": 3,
-            "front_unit_unverified": 3,
-            "front_verified_cells_unprepared": 3,
-            "same_support_numerator_or_denominator_unavailable": 3,
-            "unknown_spatial_support": 3
-          },
-          "numeric_visibility": "withheld_public_boundary",
-          "total_hours": null,
-          "mean_hours_per_supported_day": null,
-          "mean_hours_per_requested_day": null,
-          "area_time_km2_days": null,
-          "density_hours_per_km2_day": null,
-          "research_ready": false,
           "dates": [
             "2024-09-01",
             "2024-09-02",
             "2024-09-03"
-          ]
+          ],
+          "expected_days": 3,
+          "included_days": 0,
+          "total_hours": null,
+          "area_time_km2_days": null
         },
         "post7": {
           "support_level": "unverified",
-          "computational_support": "unverified",
-          "expected_days": 7,
-          "included_days": 0,
-          "excluded_days": 7,
-          "layer_material_states": {
-            "front": {
-              "missing": 7
-            },
-            "activity": {
-              "missing": 7
-            }
-          },
-          "missing_prerequisites": [
-            "granularity_evidence_unverified",
-            "incomplete_common_support",
-            "license_evidence_unverified",
-            "processing_version_unverified",
-            "quality_rule_approval_unverified",
-            "source_versions_unverified"
-          ],
-          "exclusion_reason_counts": {
-            "activity_bounds_verified_unknown": 7,
-            "activity_duration_unknown": 7,
-            "activity_source_day_missing": 7,
-            "activity_support_verified_unknown": 7,
-            "activity_time_verified_unknown": 7,
-            "activity_unit_unverified": 7,
-            "activity_verified_cells_unprepared": 7,
-            "front_bounds_verified_unknown": 7,
-            "front_duration_unknown": 7,
-            "front_source_day_missing": 7,
-            "front_support_verified_unknown": 7,
-            "front_time_verified_unknown": 7,
-            "front_unit_unverified": 7,
-            "front_verified_cells_unprepared": 7,
-            "same_support_numerator_or_denominator_unavailable": 7,
-            "unknown_spatial_support": 7
-          },
-          "numeric_visibility": "withheld_public_boundary",
-          "total_hours": null,
-          "mean_hours_per_supported_day": null,
-          "mean_hours_per_requested_day": null,
-          "area_time_km2_days": null,
-          "density_hours_per_km2_day": null,
-          "research_ready": false,
           "dates": [
             "2024-09-01",
             "2024-09-02",
@@ -572,8 +255,16 @@
             "2024-09-05",
             "2024-09-06",
             "2024-09-07"
-          ]
+          ],
+          "expected_days": 7,
+          "included_days": 0,
+          "total_hours": null,
+          "area_time_km2_days": null
         }
+      },
+      "event_data_gate_passed": {
+        "post3": false,
+        "post7": false
       },
       "execution": {
         "status": "not_implemented",
@@ -588,7 +279,12 @@
         "method": "wgs84-laea-uniform/v1",
         "quality_rule": "complete-common-support/v1",
         "parameter": "sha256:953b5884a215193782d12256713fd6dede33433ae84f14dfce21f626d9613f5c",
-        "daily_snapshot_id": "sha256:8131c32402d308b4e22b8b4912e3b56dd540302ff2431d3c54b1d13f56b50c24"
+        "daily_snapshot_id": "sha256:8131c32402d308b4e22b8b4912e3b56dd540302ff2431d3c54b1d13f56b50c24",
+        "sources": {
+          "front": null,
+          "activity": null
+        },
+        "processing": null
       },
       "repeat_equal": true
     }

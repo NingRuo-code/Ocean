@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[2]
 QUERY = {"month": "2024-08", "longitude": 124, "latitude": 30, "radius_km": 20}
 
 
-def audited_snapshot(tmp_path, *, synthetic=False, **overrides):
+def audited_snapshot(tmp_path, *, synthetic=False, claims=None, **overrides):
     request = tmp_path / "conditions.json"
     source = tmp_path / "daily.json"
     output = tmp_path / "support.json"
@@ -50,6 +50,7 @@ def audited_snapshot(tmp_path, *, synthetic=False, **overrides):
                 {
                     "schema": "ocean-regional-cells/v1",
                     "evidence_kind": "synthetic",
+                    **({"qualification_evidence": claims} if claims is not None else {}),
                     "days": [
                         {"date": f"2024-08-{day:02d}", "layers": layers} for day in range(1, 32)
                     ],
@@ -145,6 +146,9 @@ def test_event_query_consumes_separate_windows_and_exact_conditions(tmp_path):
     audit = response.json()["audited_support"]
     assert audit["snapshot_id"] == expected["support_snapshot_id"]
     assert audit["actual_conditions"]["purpose"] == "B_event"
+    assert audit["support_level"] is None
+    assert audit["month"]["scope"] == "month_calendar_only_not_event_eligibility"
+    assert audit["event_data_gate_passed"] == {"post3": False, "post7": False}
     assert audit["windows"]["pre7"]["dates"][0] == "2024-07-25"
     assert audit["windows"]["post3"]["expected_days"] == 3
     assert audit["windows"]["post7"]["expected_days"] == 7
@@ -191,9 +195,55 @@ def test_positive_numbers_are_hidden_until_publication_approval_and_remain_histo
     ]
     assert public["numeric_visibility"] == "approved_aggregate"
     assert public["month"]["total_hours"] == data["regions"][0]["month"]["summary"]["total_hours"]
+    assert (
+        public["month"]["supported_subset"]["area_time_km2_days"]
+        == data["regions"][0]["month"]["summary"]["supported_subset"]["area_time_km2_days"]
+    )
     assert public["days"][0]["hours"] == data["regions"][0]["days"][0]["hours"]
     assert public["freshness"] == "unknown" and public["research_ready"] is False
     assert public["evidence_kind"] == "synthetic"
+
+    data["evidence_kind"] = "audited_cells"
+    write_snapshot(path, data)
+    real = client.get("/api/query/monthly-analysis/capability", params=QUERY).json()[
+        "audited_support"
+    ]
+    assert real["month"]["total_hours"] is None and real["days"][0]["hours"] is None
+
+
+def test_projects_evidence_references_without_disclosing_evidence_bodies(tmp_path):
+    ref = "sha256:" + "e" * 64
+    geometry = {"id": "ecs20", "type": "circle", "center": [124, 30], "radius_km": 20}
+    claim = {"state": "verified", "evidence_id": ref}
+    path, data = audited_snapshot(
+        tmp_path,
+        synthetic=True,
+        claims={
+            "schema": "ocean-support-evidence/v1",
+            "source_versions": {
+                "front-original": ref,
+                "effort-original": ref,
+                "private-source": ref,
+            },
+            "processing_version": ref,
+            "license": claim,
+            "quality_rule": {**claim, "id": "complete-common-support/v1"},
+            "geometry": {"ecs20": {**claim, "request_geometry": geometry}},
+        },
+    )
+    client = client_for(path)
+    response = client.get("/api/query/monthly-analysis/capability", params=QUERY)
+    audit = response.json()["audited_support"]
+    assert audit["versions"]["sources"] == {"front": ref, "activity": ref}
+    assert audit["versions"]["processing"] == ref
+    assert audit["evidence"] == {"license": claim, "quality_rule": claim, "granularity": claim}
+    assert audit["month"]["available_uses"] == ["local_description"]
+    assert "private-source" not in response.text and audit["research_ready"] is False
+    data["conditions"]["allocation"] = str(tmp_path / "private-marker")
+    write_snapshot(path, data)
+    bad = client.get("/api/query/monthly-analysis/capability", params=QUERY)
+    assert bad.json()["audited_support"]["status"] == "invalid_snapshot"
+    assert "private-marker" not in bad.text
 
 
 def test_missing_tampered_and_unmatched_snapshots_never_reuse_a_previous_qualification(tmp_path):

@@ -45,8 +45,41 @@ def number(value):
 
 
 def fingerprint(value):
-    require(isinstance(value, str) and re.fullmatch(r"sha256:[a-f0-9]{64}", value))
+    require(evidence_id(value) is not None)
     return value
+
+
+def evidence_id(value):
+    return value if isinstance(value, str) and re.fullmatch(r"sha256:[a-f0-9]{64}", value) else None
+
+
+def evidence_projection(snapshot, geometry, required):
+    claims = snapshot["qualification_evidence"]
+    if claims is None:
+        claims = {}
+    else:
+        require(claims.get("schema") == "ocean-support-evidence/v1")
+    declared = claims.get("source_versions", {})
+    source_ids = snapshot["resolved_conditions"].get(
+        "source_ids",
+        {"front": "front-original", "activity": "effort-original", "sst": "sst-original"},
+    )
+    versions = {kind: evidence_id(declared.get(source_ids.get(kind))) for kind in required}
+    references = {}
+    for key, proof in {
+        "license": claims.get("license"),
+        "quality_rule": claims.get("quality_rule"),
+        "granularity": claims.get("geometry", {}).get(geometry["id"]),
+    }.items():
+        if proof is None:
+            references[key] = None
+            continue
+        require(proof["state"] in {"verified", "unverified", "blocked"})
+        references[key] = {
+            "state": proof["state"],
+            "evidence_id": evidence_id(proof.get("evidence_id")),
+        }
+    return references, versions, evidence_id(claims.get("processing_version"))
 
 
 def period_projection(period, disclose):
@@ -90,6 +123,29 @@ def period_projection(period, disclose):
     for metric in METRICS:
         value = number(period["summary"][metric])
         result[metric] = value if disclose else None
+    summary = period["summary"]
+    uses = period["available_uses"]
+    require(
+        isinstance(uses, list) and set(uses) <= {"local_description", "local_material_inspection"}
+    )
+    require(type(period["data_gate_passed"]) is bool)
+    subset = {
+        k: number(summary["supported_subset"][k])
+        for k in ["hours", "area_time_km2_days", "density_hours_per_km2_day"]
+    }
+    supported_days = summary["supported_days"]
+    require(type(supported_days) is int and included <= supported_days <= expected)
+    reason = summary["daily_mean_reason"]
+    require(reason in {None, "daily_spatial_support_changes", "no_supported_days"})
+    result.update(
+        available_uses=uses,
+        data_gate_passed=period["data_gate_passed"],
+        daily_mean_reason=reason,
+        supported_subset={
+            "days": supported_days,
+            **{k: v if disclose else None for k, v in subset.items()},
+        },
+    )
     result["research_ready"] = False
     if "dates" in period:
         dates = period["dates"]
@@ -197,6 +253,7 @@ def read_audited_support(path, request, state_path=None):
         require(
             conditions["method_version"] == "wgs84-laea-uniform/v1"
             and conditions["quality_rule"] == "complete-common-support/v1"
+            and conditions["allocation"] in {"overlap_uniform", "cell_center"}
         )
         require(isinstance(snapshot["regions"], list) and 1 <= len(snapshot["regions"]) <= 3)
         matches = [
@@ -210,7 +267,9 @@ def read_audited_support(path, request, state_path=None):
             return unavailable("not_audited", "requested_geometry_not_in_snapshot")
         require(len(matches) == 1)
         region = matches[0]
-        disclose = snapshot.get("public_release_approved") is True
+        disclose = (
+            snapshot["evidence_kind"] == "synthetic" and snapshot["public_release_approved"] is True
+        )
         required = snapshot["required_layers"]
         require(
             isinstance(required, list)
@@ -257,17 +316,24 @@ def read_audited_support(path, request, state_path=None):
         )
         daily = snapshot.get("input_daily_snapshot_id")
         versions["daily_snapshot_id"] = None if daily is None else fingerprint(daily)
+        references, versions["sources"], versions["processing"] = evidence_projection(
+            snapshot, region["geometry"], required
+        )
         period = period_projection(region["month"], disclose)
+        is_event = conditions["purpose"] == "B_event"
         result = {
             "status": "audited_snapshot",
+            "snapshot_schema": "ocean-support-qualification/v1",
             "snapshot_id": identity,
+            "audited_at": None,
             "requested_conditions": request,
             "actual_conditions": actual,
             "required_layers": required,
-            "support_level": period["support_level"],
+            "support_level": None if is_event else period["support_level"],
             "month": period,
             "days": rows,
             "versions": versions,
+            "evidence": references,
             "freshness": "unknown",
             "freshness_reason": "current_source_identity_not_checked",
             "research_ready": False,
@@ -275,9 +341,17 @@ def read_audited_support(path, request, state_path=None):
             "evidence_kind": snapshot["evidence_kind"],
             "evidence_scope": "frozen_audit_summary_not_independent_source_verification",
         }
-        if conditions["purpose"] == "B_event":
+        if is_event:
             windows = region["windows"]
             require(set(windows) == {"pre7", "post3", "post7"})
+            require(region["month"]["scope"] == "month_calendar_only_not_event_eligibility")
+            period["scope"] = "month_calendar_only_not_event_eligibility"
+            event_gates = region["event_data_gate_passed"]
+            require(
+                set(event_gates) == {"post3", "post7"}
+                and all(type(v) is bool for v in event_gates.values())
+            )
+            result["event_data_gate_passed"] = event_gates
             result["windows"] = {}
             event = date.fromisoformat(conditions["event_date"])
             for key, offsets in {
