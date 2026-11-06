@@ -10,6 +10,7 @@ from itertools import pairwise
 from pathlib import Path
 
 import audit_regional_support as p0
+import numpy as np
 from shapely.errors import GEOSException
 
 VERSION = "ocean-month-sensitivity-plan/v1"
@@ -27,6 +28,16 @@ DRAFT_FIELDS = {
     "rationale",
     "variants",
 }
+EXECUTION_FILES = (
+    "audit_daily_sources.py",
+    "audit_regional_support.py",
+    "audit_support_qualification.py",
+    "compute_monthly_distance.py",
+    "monthly_block_uncertainty.py",
+    "monthly_distance_background.py",
+    "monthly_sensitivity_plan.py",
+    "monthly_side_environment.py",
+)
 
 
 def identity(value):
@@ -104,6 +115,22 @@ def _base(data):
     return {key: value for key, value in data.items() if key != "sensitivity_plan"}
 
 
+def _execution_protocol():
+    return {
+        "code": {
+            name: "sha256:" + p0.file_digest(Path(__file__).with_name(name))
+            for name in EXECUTION_FILES
+        },
+        "runtime": {
+            "numpy": np.__version__,
+            "shapely": p0.shapely.__version__,
+            "pyproj": p0.pyproj.__version__,
+            "geos": p0.shapely.geos_version_string,
+            "proj": p0.pyproj.proj_version_str,
+        },
+    }
+
+
 def freeze_plan(data, draft):
     _validate_draft(draft)
     _require(
@@ -113,7 +140,11 @@ def freeze_plan(data, draft):
         and "sensitivity_plan" not in data,
         "freeze_requires_unplanned_synthetic_comparison",
     )
-    envelope = {**draft, "primary_input_id": identity(data)}
+    envelope = {
+        **draft,
+        "primary_input_id": identity(data),
+        "protocol": _execution_protocol(),
+    }
     return {**data, "sensitivity_plan": {**envelope, "plan_id": identity(envelope)}}
 
 
@@ -121,7 +152,7 @@ def verify_plan(data):
     plan = data["sensitivity_plan"]
     _require(
         isinstance(plan, dict)
-        and set(plan) == DRAFT_FIELDS | {"primary_input_id", "plan_id"},
+        and set(plan) == DRAFT_FIELDS | {"primary_input_id", "plan_id", "protocol"},
         "invalid_frozen_plan_fields",
     )
     _validate_draft({key: value for key, value in plan.items() if key in DRAFT_FIELDS})
@@ -131,6 +162,7 @@ def verify_plan(data):
         == identity({key: value for key, value in plan.items() if key != "plan_id"}),
         "frozen_plan_identity_mismatch",
     )
+    _require(plan["protocol"] == _execution_protocol(), "frozen_plan_protocol_changed")
     return plan
 
 
@@ -248,21 +280,28 @@ def compare_variants(data, request, plan, primary, evaluate):
     primary_support = _selected_support(primary)
     rows = []
     for specification in plan["variants"]:
-        packed, count, hours = variant_input(data, specification)
-        packed_id = identity(packed)
-        derived_request = {
-            **request,
-            "input_version": packed_id,
-            "radius_km": packed["conditions"]["geometries"][0]["radius_km"],
-        }
-        row = {
-            **specification,
-            "input_id": packed_id,
-            "removed_input_cells": count,
-            "removed_input_hours": hours,
-        }
+        row = dict(specification)
         try:
+            packed, count, hours = variant_input(data, specification)
+            packed_id = identity(packed)
+            derived_request = {
+                **request,
+                "input_version": packed_id,
+                "radius_km": packed["conditions"]["geometries"][0]["radius_km"],
+            }
+            row.update(
+                input_id=packed_id, removed_input_cells=count, removed_input_hours=hours
+            )
             result = evaluate(packed, derived_request, packed_id)
+        except OverflowError:
+            rows.append(
+                {
+                    **row,
+                    "status": "variant_unavailable",
+                    "reason": "variant_numeric_range_exceeded",
+                }
+            )
+            continue
         except (
             ValueError,
             TypeError,
@@ -299,6 +338,7 @@ def compare_variants(data, request, plan, primary, evaluate):
         "version": VERSION,
         "plan_id": plan["plan_id"],
         "primary_input_id": plan["primary_input_id"],
+        "protocol": plan["protocol"],
         "frozen_at": plan["frozen_at"],
         "scope": "synthetic_exploratory",
         "prior_target_effect_seen": plan["prior_target_effect_seen"],

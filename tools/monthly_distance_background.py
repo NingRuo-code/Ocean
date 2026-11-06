@@ -39,8 +39,11 @@ def compare_day(day, policy, requested_area_km2):
     reference_area = reference["area_time_km2_days"]
     covariates = day.pop("_comparison_covariates")
     common_area = day["common"]["effective_area_km2"]
+    outside_area = day["common"]["outside_request_selected_area_km2"] or 0
     coverage = (
-        min(1.0, common_area / requested_area_km2) if common_area is not None else None
+        min(1.0, max(0.0, common_area - outside_area) / requested_area_km2)
+        if common_area is not None
+        else None
     )
     area_ratio = None
     if not target_area and not reference_area:

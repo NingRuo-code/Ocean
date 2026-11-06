@@ -1,5 +1,6 @@
 """The actual freeze CLI and owner API keep the main and all sensitivity rows."""
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -12,8 +13,9 @@ from test_monthly_distance_reference import AUTH, URL, case
 CLI = Path(__file__).resolve().parents[2] / "tools" / "monthly_sensitivity_plan.py"
 
 
-def freeze(tmp_path):
-    reference = comparison_fixture(60, 4)
+def freeze(tmp_path, reference=None):
+    if reference is None:
+        reference = comparison_fixture(60, 4)
     draft = {
         "version": "ocean-month-sensitivity-plan/v1",
         "frozen_at": "2024-07-01T00:00:00+00:00",
@@ -113,6 +115,58 @@ def test_frozen_plan_executes_all_declared_axes_without_losing_failed_variants(
 def test_frozen_plan_cannot_be_reused_after_a_primary_input_change(tmp_path):
     registered = freeze(tmp_path)
     registered["distance_comparison"]["minimum_area_ratio"] = 0.3
+    client, _, request = case(tmp_path, registered)
+    run = client.post(URL, headers=AUTH, json=request)
+    assert run.status_code == 200, run.text
+    assert run.json()["state"] == "failed" and run.json()["result"] is None
+
+
+def test_coverage_excludes_outside_support_even_from_a_nonpaired_band(tmp_path):
+    data = comparison_fixture(8, 4)
+    data["conditions"]["allocation"] = "cell_center"
+    data["distance_comparison"]["minimum_circle_coverage"] = 0.0009
+    data["regional_cells"]["days"][0]["layers"][1]["cells"].append(
+        {"bounds": [0.020, 0.084, 0.022, 0.090], "support": "valid", "hours": 10}
+    )
+    client, _, request = case(tmp_path, data)
+    run = client.post(URL, headers=AUTH, json=request)
+    assert run.status_code == 200, run.text
+    day = run.json()["result"]["days"][0]
+    comparison = day["distance_comparison"]
+    assert comparison["target"]["hours"] == pytest.approx(8)
+    assert comparison["reference"]["hours"] == pytest.approx(4)
+    assert day["bands"][1]["hours"] == pytest.approx(10)
+    assert day["common"]["outside_request_selected_area_km2"] > 0
+    assert comparison["common_circle_coverage"] < 0.0009
+    assert comparison["reason"] == "insufficient_circle_coverage"
+
+
+def test_variant_preparation_overflow_does_not_erase_primary(tmp_path):
+    data = comparison_fixture(8, 4)
+    activity = data["regional_cells"]["days"][0]["layers"][1]
+    activity["cells"] += [
+        {"bounds": [0.20, -0.001, 0.202, 0.001], "support": "valid", "hours": 1e308},
+        {"bounds": [0.22, -0.001, 0.222, 0.001], "support": "valid", "hours": 1e308},
+    ]
+    client, _, request = case(tmp_path, freeze(tmp_path, data))
+    run = client.post(URL, headers=AUTH, json=request)
+    assert run.status_code == 200, run.text
+    record = run.json()
+    assert record["state"] == "completed", record
+    matrix = record["result"]["sensitivity"]
+    assert matrix["primary"]["target"]["hours"] == 8
+    row = next(item for item in matrix["variants"] if item["id"] == "large")
+    assert row["status"] == "variant_unavailable"
+    assert row["reason"] == "variant_numeric_range_exceeded"
+
+
+def test_old_execution_protocol_is_rejected_even_with_a_valid_frozen_id(tmp_path):
+    registered = freeze(tmp_path)
+    plan = registered["sensitivity_plan"]
+    plan["protocol"]["runtime"]["geos"] = "0.0.0"
+    del plan["plan_id"]
+    raw = json.dumps(plan, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode()
+    plan["plan_id"] = "sha256:" + hashlib.sha256(raw).hexdigest()
     client, _, request = case(tmp_path, registered)
     run = client.post(URL, headers=AUTH, json=request)
     assert run.status_code == 200, run.text
