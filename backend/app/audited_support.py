@@ -3,13 +3,11 @@
 import hashlib
 import json
 import math
-import os
 import re
-import stat
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
-from .analysis_support import content_id, decode_controlled_json
+from .analysis_support import content_id, decode_controlled_json, read_regular_bytes
 
 LEVELS = {"supported", "limited", "unsupported", "unverified"}
 KINDS = {"front", "activity", "sst"}
@@ -203,11 +201,7 @@ def unavailable(status, reason, freshness="unknown"):
 
 
 def read_json(path, max_bytes):
-    require(stat.S_ISREG(path.lstat().st_mode))
-    flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0)
-    with os.fdopen(os.open(path, flags), "rb") as stream:
-        require(stat.S_ISREG(os.fstat(stream.fileno()).st_mode))
-        return decode_controlled_json(stream.read(max_bytes + 1), max_bytes=max_bytes)
+    return decode_controlled_json(read_regular_bytes(path, max_bytes), max_bytes=max_bytes)
 
 
 def snapshot_digest(payload):

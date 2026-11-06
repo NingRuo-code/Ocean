@@ -3,6 +3,8 @@
 import hashlib
 import json
 import math
+import os
+import stat
 
 from .monthly_models import KnownDay
 
@@ -30,6 +32,19 @@ def decode_controlled_json(raw, max_bytes=1_048_576):
         return json.loads(raw, object_pairs_hook=_unique_object)
     except RecursionError:
         raise ValueError("Controlled input exceeds nesting budget") from None
+
+
+def read_regular_bytes(path, max_bytes):
+    if not stat.S_ISREG(path.lstat().st_mode):
+        raise ValueError("Controlled input must be a regular file")
+    flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0)
+    with os.fdopen(os.open(path, flags), "rb") as stream:
+        if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+            raise ValueError("Controlled input must be a regular file")
+        raw = stream.read(max_bytes + 1)
+    if len(raw) > max_bytes:
+        raise ValueError("Controlled input exceeds budget")
+    return raw
 
 
 def read_controlled_input(path, model):

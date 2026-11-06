@@ -103,7 +103,13 @@ def classify(point, samples, front_valid, plane, edges, position_error):
     def search_covers(radius):
         # P0 circle vertices are spaced 0.5°; the small outward guard covers the chord gap.
         guarded = (radius + position_error) / math.cos(math.radians(0.25)) + 0.001
-        return front_valid.covers(plane.circle(point, guarded))
+        try:
+            search = plane.circle(point, guarded)
+        except ValueError as error:
+            if str(error) != "unsupported_geometry_extent":
+                raise
+            return False
+        return front_valid.covers(search)
 
     far = len(edges)
     if (lower is None or lower >= edges[-1]) and search_covers(edges[-1]):
@@ -156,16 +162,13 @@ def evaluate_day(
     states = Counter()
     bounds = []
 
-    def contribute(joint, activity, front_valid, duration):
+    def contribute(pieces, front_valid, duration):
         samples = (
             None
             if front_lines is None
             else sample_geodesics(front_lines, plane, front_valid)
         )
-        for hours, shape in activity:
-            contribution = shape.intersection(joint)
-            if contribution.area <= 0:
-                continue
+        for hours, contribution in pieces:
             anchor = contribution.representative_point()
             point = plane.forward(
                 anchor.x, anchor.y, direction=TransformDirection.INVERSE
@@ -179,7 +182,7 @@ def evaluate_day(
             bounds.append((lower, upper))
             bins[group].append(
                 (
-                    hours * contribution.area / shape.area,
+                    hours,
                     contribution.area / 1e6 * duration,
                 )
             )
@@ -223,6 +226,24 @@ def evaluate_day(
             (x[1] for x in bounds if x[1] is not None), default=None
         ),
     }, bins
+
+
+def month_activity_accounting(days):
+    rows = [row["common"]["activity_accounting"] for row in days]
+    result = {}
+    for key in (
+        "observed_hours",
+        "observed_area_time_km2_days",
+        "observed_not_assigned_hours",
+        "observed_not_assigned_area_time_km2_days",
+    ):
+        known = [row[key] for row in rows if row[key] is not None]
+        result[key] = math.fsum(known) if known else None
+    result["reasons_by_day_count"] = dict(Counter(row["reason"] for row in rows))
+    result["scope"] = (
+        "sum of known observed contributions; unavailable days are not zero"
+    )
+    return result
 
 
 def evaluate(data, request, identity):
@@ -321,6 +342,7 @@ def evaluate(data, request, identity):
         "month": {
             "common": summarize([part for group in month_parts for part in group]),
             "bands": [summarize(group) for group in month_parts],
+            "activity_accounting": month_activity_accounting(days),
             "scope": "known common support subset; missing or unresolved days are not full monthly coverage",
         },
     }

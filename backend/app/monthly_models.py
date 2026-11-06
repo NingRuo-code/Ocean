@@ -15,6 +15,7 @@ class ClosedModel(BaseModel):
 
 
 class MonthlyConditions(ClosedModel):
+    purpose: str
     longitude: Annotated[Finite, Field(ge=-180, le=180)]
     latitude: Annotated[Finite, Field(ge=-90, le=90)]
     radius_km: Literal[10, 20, 30]

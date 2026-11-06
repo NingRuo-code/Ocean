@@ -133,11 +133,16 @@ def test_outside_circle_front_is_paired_by_day_and_uses_same_support_exposure(tm
         area, rel=0.0001
     )
     assert missing["common"]["hours"] is None
+    assert missing["common"]["activity_accounting"]["observed_not_assigned_hours"] == pytest.approx(
+        7
+    )
     assert result["month"]["bands"][0]["density_hours_per_km2_day"] == pytest.approx(
         42 / area, rel=0.0001
     )
     assert sum(row["hours"] or 0 for row in result["month"]["bands"]) == pytest.approx(50)
     assert result["month"]["common"]["area_time_km2_days"] == pytest.approx(3 * area, rel=0.0001)
+    assert result["month"]["activity_accounting"]["observed_hours"] == pytest.approx(57)
+    assert result["month"]["activity_accounting"]["observed_not_assigned_hours"] == pytest.approx(7)
     path.unlink()
     saved_url = URL + "/" + run["id"]
     assert client.get(saved_url).status_code == 401
@@ -215,6 +220,35 @@ def test_partial_coastal_cell_conserves_hours_on_the_retained_half(tmp_path):
     assert first["bands"][-1]["hours"] == pytest.approx(21, rel=0.0001)
     assert first["common"]["area_time_km2_days"] == pytest.approx(0.024618, rel=0.0001)
     assert first["distance_states"] == {"insufficient_search_support": 1}
+    accounting = first["common"]["activity_accounting"]
+    assert accounting["observed_hours"] == pytest.approx(42)
+    assert accounting["observed_not_assigned_hours"] == pytest.approx(21, rel=0.0001)
+    assert accounting["observed_not_assigned_area_time_km2_days"] == pytest.approx(
+        0.024618, rel=0.0001
+    )
+    assert accounting["reason"] == "observed_portion_not_on_common_support"
+
+
+def test_unsupported_outer_search_does_not_discard_verified_inner_bound(tmp_path):
+    data = reference_fixture()
+    data["conditions"]["geometries"][0]["center"] = [179.8, 0]
+    data["distance_edges_km"] = [5, 100]
+    data["regional_cells"]["days"] = [
+        {
+            "date": "2024-08-01",
+            "layers": [
+                layer("front", [179.71, -0.08, 179.89, 0.08]),
+                layer("activity", [179.799, -0.001, 179.801, 0.001], 42),
+            ],
+        }
+    ]
+    data["front_days"] = [{"date": "2024-08-01", "source_id": "front-original", "lines": []}]
+    client, _, request = case(tmp_path, data)
+    run = client.post(URL, headers=AUTH, json=request).json()
+    assert run["state"] == "completed", run
+    row = run["result"]["days"][0]
+    assert row["minimum_proven_lower_km"] == 5 and row["maximum_known_upper_km"] is None
+    assert row["bands"][-1]["hours"] == pytest.approx(42)
 
 
 def test_mismatched_versions_geometry_and_real_sources_cannot_run_reference(tmp_path):
@@ -232,3 +266,7 @@ def test_mismatched_versions_geometry_and_real_sources_cannot_run_reference(tmp_
         json={**request, "input_version": "sha256:" + hashlib.sha256(raw).hexdigest()},
     ).json()
     assert real["state"] == "failed" and real["result"] is None
+    path.unlink()
+    path.mkdir()
+    invalid = client.post(URL, headers=AUTH, json=request).json()
+    assert invalid["state"] == "failed" and invalid["result"] is None
