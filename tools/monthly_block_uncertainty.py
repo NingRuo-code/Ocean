@@ -109,6 +109,9 @@ def estimate_uncertainty(days, comparison, policy):
         return {**result, "reason": "between_group_assumptions_unverified"}
     if len(groups) < policy["minimum_groups"]:
         return {**result, "reason": "insufficient_registered_groups"}
+    tail = (1 - policy["confidence_level"]) / 2
+    if policy["iterations"] * tail < 1:
+        return {**result, "reason": "percentile_tail_below_sampling_resolution"}
     components = np.array(
         [
             [
@@ -139,7 +142,6 @@ def estimate_uncertainty(days, comparison, policy):
         float(effects.min()), float(effects.max()), rel_tol=1e-12, abs_tol=1e-12
     ):
         return {**result, "reason": "degenerate_block_distribution"}
-    tail = (1 - policy["confidence_level"]) / 2
     with np.errstate(over="ignore", invalid="ignore"):
         lower, upper = np.quantile(effects, [tail, 1 - tail], method="linear")
     if not all(math.isfinite(bound) for bound in (lower, upper)):

@@ -105,3 +105,16 @@ def test_no_paired_area_never_runs_resampling(tmp_path):
     assert interval["estimate"] is None and interval["reason"] == "no_paired_support"
     assert interval["supported_groups"] == interval["valid_iterations"] == 0
     assert result["month"]["common"]["hours"] > 0
+
+
+def test_requested_confidence_cannot_exceed_percentile_resolution(tmp_path):
+    reference = fixture()
+    reference["distance_uncertainty"].update(confidence_level=0.999999, iterations=200)
+    client, _, request = case(tmp_path, reference)
+    run = client.post(URL, headers=AUTH, json=request)
+    assert run.status_code == 200, run.text
+    result = run.json()["result"]
+    interval = result["month"]["distance_comparison"]["uncertainty"]
+    assert interval["estimate"] is not None
+    assert interval["reason"] == "percentile_tail_below_sampling_resolution"
+    assert interval["lower"] is None and interval["upper"] is None
