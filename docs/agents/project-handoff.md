@@ -1,9 +1,10 @@
 # Ocean 跨对话交接入口
 
-## 当前接续状态（2026-11-05，覆盖下方历史快照）
+## 当前接续状态（2026-11-06，覆盖下方历史快照）
 
 - PR [#331](https://github.com/NingRuo-code/Ocean/pull/331) 已合并（`ef7e8bf`），#330既有导出收尾关闭；PR [#332](https://github.com/NingRuo-code/Ocean/pull/332) 已合并（`6594e61`），#37/#38按来源审计交付完成关闭。两票未知项仍未知，GD/A/B未通过。此前“全部字段核实前不能实施#39”属于过度阻塞，已按#35审计/研究分账合同纠正，原生历史依赖未删。[审计验收说明](../reports/ocean-source-audit-completion-2026-11-05.md)。
-- #39公里几何/共同支持已由[PR #333](https://github.com/NingRuo-code/Ocean/pull/333)合并（`e4865fd`）并关闭。#41全日历/用途资格已由[PR #334](https://github.com/NingRuo-code/Ocean/pull/334)合并（`627a67d`）并关闭；资格CLI21、完整工具140、后端310、来源Node6和data922通过，Standards/Spec复审均0未解决。当前收尾 #44 真实首选月及窗口审计 → #42查询同源消费 → #43来源/方法身份，再按[当前顺序](../plans/ocean-current-execution-order-2026-11-04.md)推进。真实9次运行均未核实，未知仍拒绝，不借审计关闭放行研究。
+- #39公里几何/共同支持及#41全日历/用途资格已分别由[PR #333](https://github.com/NingRuo-code/Ocean/pull/333)、[PR #334](https://github.com/NingRuo-code/Ocean/pull/334)合并关闭。#44首选月及窗口审计已由[PR #335](https://github.com/NingRuo-code/Ocean/pull/335)合并关闭；真实9次运行均未核实，原未核项仍保留。[真实审计](../reports/ocean-preferred-month-audit-2026-11-05.md)。
+- [#42 查询同源消费](../data/support-query.md)实施已验证，远端状态看[票据](https://github.com/NingRuo-code/Ocean/issues/42)；接续#43来源/方法身份，随后按[当前顺序](../plans/ocean-current-execution-order-2026-11-04.md)推进。历史审计未自动变为当前资格，真实数值不在公开查询发布，旧页面文件级状态不变。
 - 固定GFW官方公开v3路线不需令牌，三日小时已与独立Decimal核对。首选月仍2024-08；原始锋面/SST/活动各仅已登记三日，其他日期不得补零。真实锋面时间起点、GFW日期分配/有效支持仍需直接依据；原始细格、定位和支持文件留本地忽略目录。
 - #331/#332发布前后端310通过、工具93通过、地图129通过、布局4通过；全Node/浏览器单轮233项中231通过、2项页面就绪失败，分别重跑通过，未证明根因，不记作一次全绿。远端无检查记录，不称CI通过。未部署生产。后续批次按其实际验证另记。
 
