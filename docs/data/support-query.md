@@ -8,4 +8,4 @@
 
 输出采用字段白名单。公开入口只允许明确批准的自有合成快照展示数值；真实数据的小时/面积/密度保持null，直到另有符合治理要求的真实数据公开流程。可用子集的统计与全期值分开，局部描述/资料检查保持本地用途。任意备注、路径、细格不会输出；证据仅投影适用的引用摘要与状态，原始证据不公开。B事件月表仅表示月历检查，分别读取事件各窗口和冻结的两种配对关口。审计范围与声明不构成许可或研究批准。
 
-可选 `OCEAN_SUPPORT_STATE_PATH` 读取维护者提供的至多4KiB状态文件（`{"schema":"ocean-support-state/v1","state":"scanning"}`，状态也可为expired或unknown）。扫描和过期只返回相应状态，不返回旧资格。无可靠当前身份的audited_snapshot表示读取了可校验的历史审计，freshness为unknown；#43补齐自动核对和显式重跑交接。research_ready始终false。旧顶层qualification/execution/versions合同保留，旧页面仍不能提交研究任务。线上权限及生产部署未由本地TestClient证明。
+可选 `OCEAN_SUPPORT_STATE_PATH` 指向[显式刷新](support-refresh.md)生成的至多4KiB私有状态文件。扫描、失败、过期或输入不可访问只返回相应状态，不返回旧资格。`registered_receipt_match`表示冻结产物与发布回执匹配；普通查询未重新核对内容，来源新鲜度仍unknown，资格只属于所读快照。单独配置快照仍可阅读历史。research_ready始终false。旧顶层qualification/execution/versions合同保留，旧页面仍不能提交研究任务。线上权限及生产部署未由本地TestClient证明。

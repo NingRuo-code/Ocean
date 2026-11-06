@@ -3,8 +3,11 @@
 import hashlib
 import json
 import math
+import os
 import re
-from datetime import date, timedelta
+import stat
+from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 
 from .analysis_support import content_id, decode_controlled_json
 
@@ -18,6 +21,8 @@ METRICS = [
     "area_time_km2_days",
     "density_hours_per_km2_day",
 ]
+PROTOCOL_HASHES = ("auditor_sha256", "regional_engine_sha256", "source_reader_sha256")
+OBSERVED_ROLES = {"request", "prepared_source", "auditor", "regional_engine", "source_reader"}
 
 
 def require(value):
@@ -198,12 +203,55 @@ def unavailable(status, reason, freshness="unknown"):
 
 
 def read_json(path, max_bytes):
-    with path.open("rb") as stream:
+    require(stat.S_ISREG(path.lstat().st_mode))
+    flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0)
+    with os.fdopen(os.open(path, flags), "rb") as stream:
+        require(stat.S_ISREG(os.fstat(stream.fileno()).st_mode))
         return decode_controlled_json(stream.read(max_bytes + 1), max_bytes=max_bytes)
+
+
+def snapshot_digest(payload):
+    return (
+        "sha256:"
+        + hashlib.sha256(
+            json.dumps(payload, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode(
+                "utf-8"
+            )
+        ).hexdigest()
+    )
+
+
+def observed_files_status(state):
+    records = state["observed_files"]
+    require(set(records) == OBSERVED_ROLES)
+    for record in records.values():
+        path = Path(record["path"])
+        expected = record["stat"]
+        require(
+            path.is_absolute()
+            and isinstance(expected, list)
+            and len(expected) == 5
+            and all(type(v) is int for v in expected)
+        )
+        try:
+            actual = path.stat()
+        except OSError:
+            return unavailable("freshness_unknown", "registered_input_or_protocol_unavailable")
+        current = [
+            actual.st_dev,
+            actual.st_ino,
+            actual.st_size,
+            actual.st_mtime_ns,
+            actual.st_ctime_ns,
+        ]
+        if current != expected:
+            return unavailable("expired", "registered_input_or_protocol_changed", "stale")
+    return None
 
 
 def read_audited_support(path, request, state_path=None):
     try:
+        ready = None
         if state_path is not None:
             state = read_json(state_path, 4096)
             require(state.get("schema") == "ocean-support-state/v1")
@@ -211,7 +259,30 @@ def read_audited_support(path, request, state_path=None):
                 return unavailable("scanning", "audit_refresh_in_progress")
             if state.get("state") == "expired":
                 return unavailable("expired", "audit_snapshot_marked_expired", "stale")
-            require(state.get("state") == "unknown")
+            if state.get("state") == "failed":
+                return unavailable("audit_failed", "audit_refresh_failed")
+            if state.get("state") == "ready":
+                ready = state
+                frozen_id = fingerprint(ready["snapshot_id"])
+                require(set(ready["protocol"]) == set(PROTOCOL_HASHES))
+                for identity in [
+                    ready["input_sha256"],
+                    ready["conditions_id"],
+                    *ready["protocol"].values(),
+                ]:
+                    fingerprint(identity)
+                generated = datetime.fromisoformat(ready["generated_at"])
+                require(
+                    generated.utcoffset() == UTC.utcoffset(generated)
+                    and generated.isoformat() == ready["generated_at"]
+                )
+                if problem := observed_files_status(ready):
+                    return problem
+                path = state_path.with_name(state_path.name + ".snapshots") / (
+                    frozen_id[7:] + ".json"
+                )
+            else:
+                require(state.get("state") == "unknown")
         if path is None:
             return unavailable("not_prepared", "audit_snapshot_not_configured")
         snapshot = read_json(path, 16 * 1024 * 1024)
@@ -228,16 +299,15 @@ def read_audited_support(path, request, state_path=None):
         )
         identity = fingerprint(snapshot["support_snapshot_id"])
         payload = {k: v for k, v in snapshot.items() if k != "support_snapshot_id"}
-        calculated = (
-            "sha256:"
-            + hashlib.sha256(
-                json.dumps(
-                    payload, ensure_ascii=False, separators=(",", ":"), allow_nan=False
-                ).encode("utf-8")
-            ).hexdigest()
-        )
-        require(identity == calculated)
+        require(identity == snapshot_digest(payload))
         conditions = snapshot["conditions"]
+        if ready is not None and (
+            identity != ready["snapshot_id"]
+            or "sha256:" + snapshot["input_sha256"] != ready["input_sha256"]
+            or snapshot_digest(conditions) != ready["conditions_id"]
+            or any("sha256:" + snapshot[k] != ready["protocol"][k] for k in PROTOCOL_HASHES)
+        ):
+            return unavailable("expired", "audit_snapshot_identity_mismatch", "stale")
         require(conditions.get("schema") == "ocean-support-request/v1")
         if (
             conditions["purpose"] != request.get("purpose", "A_month")
@@ -301,13 +371,7 @@ def read_audited_support(path, request, state_path=None):
                 event_date=conditions["event_date"], event_day_rule=conditions["event_day_rule"]
             )
         versions = {
-            k: fingerprint("sha256:" + snapshot[k])
-            for k in [
-                "input_sha256",
-                "regional_engine_sha256",
-                "source_reader_sha256",
-                "auditor_sha256",
-            ]
+            k: fingerprint("sha256:" + snapshot[k]) for k in ("input_sha256", *PROTOCOL_HASHES)
         }
         versions.update(
             method=conditions["method_version"],
@@ -326,6 +390,7 @@ def read_audited_support(path, request, state_path=None):
             "snapshot_schema": "ocean-support-qualification/v1",
             "snapshot_id": identity,
             "audited_at": None,
+            "qualification_scope": "frozen_snapshot_only",
             "requested_conditions": request,
             "actual_conditions": actual,
             "required_layers": required,
@@ -364,6 +429,17 @@ def read_audited_support(path, request, state_path=None):
                     projected["dates"] == [(event + timedelta(days=i)).isoformat() for i in offsets]
                 )
                 result["windows"][key] = projected
+        if ready is not None:
+            if read_json(state_path, 4096) != ready:
+                return unavailable("refresh_changed", "audit_state_changed_during_read")
+            if problem := observed_files_status(ready):
+                return problem
+            result.update(
+                audited_at=ready["generated_at"],
+                registered_receipt_match=True,
+                freshness_reason="receipt_matches_live_content_not_rechecked",
+                raw_source_freshness="unknown",
+            )
         return result
     except PermissionError:
         return unavailable("permission_denied", "audit_snapshot_permission_denied")
