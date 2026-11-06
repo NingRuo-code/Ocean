@@ -108,9 +108,17 @@ def create_monthly_router(
         raise ValueError("Invalid controlled record budget")
     router = APIRouter(prefix=f"{settings.api_prefix}/query/monthly-analysis")
     router.include_router(create_published_router(published_path), prefix="/published")
-    router.include_router(create_capability_router(published_path))
+    router.include_router(
+        create_capability_router(
+            published_path, settings.support_snapshot_path, settings.support_state_path
+        )
+    )
     router.include_router(create_case_router(settings, published_path), prefix="/cases")
-    router.include_router(create_synthetic_run_router(settings, example_path, _calculate, METHOD_VERSION, PARAMETER_VERSION))
+    router.include_router(
+        create_synthetic_run_router(
+            settings, example_path, _calculate, METHOD_VERSION, PARAMETER_VERSION
+        )
+    )
     records, lock = {}, RLock()
     require_owner = owner_requirement(settings)
 

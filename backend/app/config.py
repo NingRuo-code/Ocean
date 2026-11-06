@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     monthly_execution_token: SecretStr | None = None
     case_store_path: Path | None = None
     synthetic_run_store_path: Path | None = None
+    support_snapshot_path: Path | None = None
+    support_state_path: Path | None = None
 
     model_config = SettingsConfigDict(
         env_prefix="OCEAN_",
