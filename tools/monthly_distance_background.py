@@ -10,27 +10,38 @@ VERSION = "same-day-distance-background/v1"
 
 
 def validate_comparison(policy, edges):
+    required = {"version", "target_band", "reference_band", "minimum_area_ratio"}
     if (
         not isinstance(policy, dict)
-        or set(policy)
-        != {"version", "target_band", "reference_band", "minimum_area_ratio"}
+        or not required <= set(policy) <= required | {"minimum_circle_coverage"}
         or policy["version"] != VERSION
         or type(policy["target_band"]) is not int
         or type(policy["reference_band"]) is not int
         or not 0 <= policy["target_band"] < policy["reference_band"] <= len(edges)
         or not p0.finite(policy["minimum_area_ratio"])
         or not 0 < policy["minimum_area_ratio"] <= 1
+        or (
+            "minimum_circle_coverage" in policy
+            and (
+                not p0.finite(policy["minimum_circle_coverage"])
+                or not 0 <= policy["minimum_circle_coverage"] <= 1
+            )
+        )
     ):
         raise ValueError("invalid_same_circle_comparison_policy")
     return policy
 
 
-def compare_day(day, policy):
+def compare_day(day, policy, requested_area_km2):
     target = day["bands"][policy["target_band"]]
     reference = day["bands"][policy["reference_band"]]
     target_area = target["area_time_km2_days"]
     reference_area = reference["area_time_km2_days"]
     covariates = day.pop("_comparison_covariates")
+    common_area = day["common"]["effective_area_km2"]
+    coverage = (
+        min(1.0, common_area / requested_area_km2) if common_area is not None else None
+    )
     area_ratio = None
     if not target_area and not reference_area:
         reason = "neither_band_has_supported_area"
@@ -45,6 +56,8 @@ def compare_day(day, policy):
             for group in covariates.values()
         ):
             reason = "selected_support_extends_requested_circle"
+        elif coverage is None or coverage < policy.get("minimum_circle_coverage", 0):
+            reason = "insufficient_circle_coverage"
         elif area_ratio < policy["minimum_area_ratio"]:
             reason = "support_area_imbalance"
         else:
@@ -59,6 +72,7 @@ def compare_day(day, policy):
         "target_weight": None,
         "reference_weight": None,
         "covariates": covariates,
+        "common_circle_coverage": coverage,
     }
 
 
@@ -75,6 +89,12 @@ def band_covariates(day, fragments, layers, plane, circle, ids, allocation):
         if area
         else None,
         "outside_requested_circle_area_km2": math.fsum(outside) / 1e6,
+        "support_id": (
+            "sha256:"
+            + p0.digest(sorted(piece.normalize().wkb_hex for _, piece in fragments))
+            if fragments
+            else None
+        ),
         "sst": summarize_sst_subset(
             day, layers, plane, circle, ids, allocation, fragments
         ),
@@ -119,8 +139,8 @@ def _paired_temperature(rows):
     return [pair[0] for pair in pairs], pooled_temperature(1) - pooled_temperature(2)
 
 
-def compare_month(days, policy, edges):
-    rows = [compare_day(day, policy) for day in days]
+def compare_month(days, policy, edges, requested_area_km2):
+    rows = [compare_day(day, policy, requested_area_km2) for day in days]
     paired = [row for row in rows if row["included"]]
     target, reference = _pool(paired, "target"), _pool(paired, "reference")
     for day, row in zip(days, rows, strict=True):

@@ -13,6 +13,7 @@ from pathlib import Path
 import audit_regional_support as p0
 import monthly_block_uncertainty as uncertainty
 import monthly_distance_background as background
+import monthly_sensitivity_plan as sensitivity
 import monthly_side_environment as environment
 from audit_support_qualification import validate_conditions
 from pyproj.enums import TransformDirection
@@ -452,7 +453,16 @@ def evaluate(data, request, identity, qualification=None):
     if interval_policy is not None:
         require(comparison is not None, "uncertainty_requires_paired_comparison")
         interval_policy = uncertainty.validate_uncertainty(interval_policy)
+    plan = None
+    if "sensitivity_plan" in data:
+        require(
+            comparison is not None and qualification is None,
+            "sensitivity_requires_standalone_synthetic_comparison",
+        )
+        plan = sensitivity.verify_plan(data)
     lines = front_days(data["front_days"], start, end, ids.get("front"))
+    if plan is not None:
+        sensitivity.require_budget(daily_layers, lines, len(plan["variants"]), STEP_M)
     plane = p0.MetricPlane(*geometry["center"])
     circle = plane.circle(geometry["center"], geometry["radius_km"])
     days, month_parts = [], [[] for _ in range(len(edges) + 2)]
@@ -515,7 +525,7 @@ def evaluate(data, request, identity, qualification=None):
             Path(environment.__file__)
         )
     if comparison is not None:
-        contrast = background.compare_month(days, comparison, edges)
+        contrast = background.compare_month(days, comparison, edges, circle.area / 1e6)
         result["month"]["distance_comparison"] = contrast
         result["versions"]["distance_comparison"] = p0.file_digest(
             Path(background.__file__)
@@ -533,6 +543,13 @@ def evaluate(data, request, identity, qualification=None):
     if qualification is not None:
         result["qualification"] = qualification
     result["result_id"] = "sha256:" + p0.digest(result)
+    if plan is not None:
+        result["sensitivity"] = sensitivity.compare_variants(
+            data, request, plan, result, evaluate
+        )
+        result["versions"]["sensitivity"] = p0.file_digest(Path(sensitivity.__file__))
+        del result["result_id"]
+        result["result_id"] = "sha256:" + p0.digest(result)
     return result
 
 
