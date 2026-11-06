@@ -8,6 +8,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 Finite = Annotated[float, Field(strict=True, allow_inf_nan=False)]
 NonNegative = Annotated[float, Field(strict=True, ge=0, allow_inf_nan=False)]
 Month = Annotated[str, Field(pattern=r"^[12]\d{3}-(0[1-9]|1[0-2])$")]
+SnapshotId = Annotated[str, Field(pattern=r"^sha256:[a-f0-9]{64}$")]
+LayerUse = Literal["front_effort", "front_effort_sst"]
 
 
 class ClosedModel(BaseModel):
@@ -31,6 +33,20 @@ class MonthlyRequest(MonthlyConditions):
 
 class MonthlyDistanceRequest(MonthlyConditions):
     purpose: Literal["monthly_distance_reference"]
+    layer_use: LayerUse | None = None
+    support_snapshot_id: SnapshotId | None = None
+
+    @model_validator(mode="after")
+    def paired_qualification(self):
+        if (self.layer_use is None) != (self.support_snapshot_id is None):
+            raise ValueError("Layer use and snapshot identity must be supplied together")
+        return self
+
+
+class MonthlyResearchRequest(MonthlyConditions):
+    purpose: Literal["monthly_spatial_research"]
+    layer_use: LayerUse
+    support_snapshot_id: SnapshotId
 
 
 class KnownUnit(ClosedModel):

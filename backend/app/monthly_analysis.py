@@ -1,4 +1,4 @@
-"""Explicit synthetic-month adapter; no research qualification or background queue."""
+"""Controlled monthly submission, qualification and frozen result reads."""
 
 import calendar
 import copy
@@ -22,8 +22,15 @@ from .analysis_support import (
 )
 from .config import Settings
 from .monthly_capability import create_capability_router
-from .monthly_distance_reference import calculate_distance_reference
-from .monthly_models import KnownCircle, MonthlyDistanceRequest, MonthlyExample, MonthlyRequest
+from .monthly_distance_reference import QualificationInputMismatch, calculate_distance_reference
+from .monthly_execution_qualification import qualify_execution
+from .monthly_models import (
+    KnownCircle,
+    MonthlyDistanceRequest,
+    MonthlyExample,
+    MonthlyRequest,
+    MonthlyResearchRequest,
+)
 from .owner_access import owner_requirement
 from .published_months import PUBLISHED_PATH, create_published_router
 from .schemas import BasicQueryEvidence
@@ -136,7 +143,7 @@ def create_monthly_router(
             records[run_id] = {
                 "id": run_id,
                 "state": "running",
-                "request": request.model_dump(),
+                "request": request.model_dump(exclude_none=True),
                 "submitted_at": datetime.now(UTC).isoformat(),
                 "state_history": ["submitted", "running"],
                 "result": None,
@@ -175,9 +182,17 @@ def create_monthly_router(
         }
 
     @router.post("", dependencies=[Depends(require_owner)])
-    def submit(request: MonthlyRequest | MonthlyDistanceRequest, response: Response):
+    def submit(
+        request: MonthlyRequest | MonthlyDistanceRequest | MonthlyResearchRequest,
+        response: Response,
+    ):
+        if isinstance(request, MonthlyResearchRequest):
+            qualify_execution(settings, request)
         if isinstance(request, MonthlyDistanceRequest):
             response.headers["Cache-Control"] = "no-store"
+            qualification = (
+                qualify_execution(settings, request) if request.support_snapshot_id else None
+            )
             source = settings.monthly_distance_input_path
             if source is None:
                 raise HTTPException(503, "Registered distance reference is unavailable")
@@ -186,7 +201,11 @@ def create_monthly_router(
             try:
                 run_id = reserve(request)
                 try:
-                    result = calculate_distance_reference(request, source)
+                    result = calculate_distance_reference(request, source, qualification)
+                except QualificationInputMismatch:
+                    return finish(
+                        run_id, error={"code": "qualification_input_or_conditions_mismatch"}
+                    )
                 except (OSError, ValueError, TypeError, AttributeError, subprocess.SubprocessError):
                     return finish(
                         run_id, error={"code": "distance_reference_unavailable_or_invalid"}
