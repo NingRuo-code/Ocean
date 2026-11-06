@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     synthetic_run_store_path: Path | None = None
     support_snapshot_path: Path | None = None
     support_state_path: Path | None = None
+    monthly_distance_input_path: Path | None = None
 
     model_config = SettingsConfigDict(
         env_prefix="OCEAN_",

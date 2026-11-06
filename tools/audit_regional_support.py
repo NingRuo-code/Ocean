@@ -414,7 +414,9 @@ def prepare_layer_geometry(layer, plane):
     }
 
 
-def regional_day(day, layers, required, region, plane, allocation, source_ids):
+def regional_day(
+    day, layers, required, region, plane, allocation, source_ids, *, on_common=None
+):
     area = region.area / 1e6
     row = {
         "date": day,
@@ -529,6 +531,8 @@ def regional_day(day, layers, required, region, plane, allocation, source_ids):
     hours = math.fsum(
         value * shape.intersection(joint).area / shape.area for value, shape in activity
     )
+    if on_common is not None:
+        on_common(joint, activity, prepared["front"]["valid"], durations[0])
     sides = {
         side: unary_union([shape for value, shape in fronts if value == side])
         for side in ["cold", "warm", "unknown"]
