@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, unlinkSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, truncateSync, unlinkSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -57,6 +57,57 @@ test("reading a frozen snapshot does not reopen or rescan original inputs", () =
   const result = spawnSync(process.execPath, [cli, "--read-snapshot", w.output], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(result.stdout), original);
+});
+
+test("an explicitly listed source can exceed the default inventory byte budget", () => {
+  const w = workspace();
+  const extra = "private-input/extra.csv";
+  const extraPath = join(w.root, extra);
+  writeFileSync(extraPath, "");
+  const extraBytes = 256 * 1024 * 1024;
+  try {
+    truncateSync(extraPath, extraBytes);
+    w.registry.sources[0].locations.push(extra);
+    writeFileSync(w.registryPath, JSON.stringify(w.registry));
+    assert.equal(run(w).status, 0);
+    const partial = JSON.parse(readFileSync(w.output, "utf8"));
+    assert.equal(partial.sources[0].inspection.access, "partial");
+    assert.ok(partial.sources[0].gaps.includes("byte_budget_exceeded"));
+
+    const result = run(w, ["--source-byte-budget-mib", "257"]);
+    assert.equal(result.status, 0, result.stderr);
+    const expanded = JSON.parse(readFileSync(w.output, "utf8"));
+    assert.equal(expanded.sources[0].inspection.access, "readable");
+    assert.equal(expanded.sources[0].inventory.bytes_read, extraBytes + 3);
+    assert.equal(expanded.sources[0].files.length, 2);
+    assert.equal(expanded.sources[0].inspection.effective_support, "unknown");
+    assert.equal(expanded.research_ready, false);
+    assert.notEqual(expanded.snapshot_id, partial.snapshot_id);
+  } finally {
+    unlinkSync(extraPath);
+  }
+});
+
+test("an expanded source scan rejects directory scopes and invalid budgets before publishing a snapshot", () => {
+  const w = workspace();
+  for (const args of [
+    ["--source-byte-budget-mib", "2049"],
+    ["--source-byte-budget-mib", "257.5"],
+    ["--source-byte-budget-mib", "257", "--source-byte-budget-mib", "300"],
+  ]) {
+    const invalid = run(w, args);
+    assert.equal(invalid.status, 1);
+    assert.match(invalid.stderr, /invalid_source_byte_budget/);
+    assert.equal(existsSync(w.output), false);
+  }
+  w.registry.sources[0].locations = ["private-input"];
+  writeFileSync(w.registryPath, JSON.stringify(w.registry));
+  const expanded = run(w, ["--source-byte-budget-mib", "2048"]);
+  assert.equal(expanded.status, 1);
+  assert.match(expanded.stderr, /expanded_budget_requires_files/);
+  assert.equal(existsSync(w.output), false);
+  assert.equal(run(w).status, 0);
+  assert.equal(JSON.parse(readFileSync(w.output, "utf8")).sources[0].inventory.files_read, 1);
 });
 
 test("source registration rejects duplicate declarations and frozen keys instead of silently taking the last value", () => {

@@ -6,6 +6,9 @@ import {readAuditJson} from "./audit-json.mjs";
 
 const SCHEMA = "ocean-source-audit/v1";
 const CONTRACT = "source-registration/v1";
+const MIB = 1024 * 1024;
+const DEFAULT_BUDGET_MIB = 256;
+const MAX_EXPLICIT_BUDGET_MIB = 2048;
 const extensions = new Set([".js", ".json", ".csv", ".nc", ".nc4", ".parquet"]);
 const digest = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const within = (root, target) => {
@@ -49,6 +52,7 @@ async function inspectSource(source, root, budget, privateLocations) {
     const stat = await lstat(path);
     if (stat.isSymbolicLink()) { issues.push("symbolic_link_not_followed"); return; }
     if (stat.isDirectory()) {
+      if (budget.exactFilesOnly) throw Object.assign(new Error("List files explicitly"), { code: "expanded_budget_requires_files" });
       for (const name of (await readdir(path)).sort()) {
         if (budget.files <= 0) { issues.push("file_budget_exceeded"); break; }
         await visit(resolve(path, name));
@@ -61,12 +65,18 @@ async function inspectSource(source, root, budget, privateLocations) {
     if (stat.size > budget.bytes) { issues.push("byte_budget_exceeded"); return; }
     const hash = createHash("sha256");
     let size = 0;
-    for await (const chunk of createReadStream(path)) {
-      size += chunk.length;
-      if (size > budget.bytes) throw Object.assign(new Error("budget"), { code: "BYTE_BUDGET" });
-      hash.update(chunk);
+    if (stat.size) {
+      for await (const chunk of createReadStream(path, { end: stat.size - 1 })) {
+        size += chunk.length;
+        budget.bytes -= chunk.length;
+        hash.update(chunk);
+      }
     }
-    budget.bytes -= size;
+    const after = await lstat(path);
+    if (size !== stat.size || after.size !== stat.size || after.mtimeMs !== stat.mtimeMs || after.ctimeMs !== stat.ctimeMs) {
+      issues.push("source_changed_during_read");
+      return;
+    }
     bytes += size;
     const id = `${source.id}:${String(files.length + 1).padStart(4, "0")}`;
     files.push({ id, bytes: size, sha256: hash.digest("hex") });
@@ -77,12 +87,15 @@ async function inspectSource(source, root, budget, privateLocations) {
     privateLocations.push({ source: source.id, location: path });
     if (!within(root, path)) { issues.push("outside_source_root"); continue; }
     try { await visit(path); locationsRead++; }
-    catch (error) { issues.push(error.code === "ENOENT" ? "missing_location" : `access_${error.code ?? "unknown"}`); }
+    catch (error) {
+      if (error.code === "expanded_budget_requires_files") throw error;
+      issues.push(error.code === "ENOENT" ? "missing_location" : `access_${error.code ?? "unknown"}`);
+    }
   }
   const claims = (source.license_claims ?? []).map((claim) => ({ value: claim.value ?? null, evidence: claim.evidence ?? null }));
   const distinct = new Set(claims.map((claim) => claim.value?.trim().toLowerCase()).filter(Boolean));
   const access = files.length ? (issues.length ? "partial" : "readable") :
-    (issues.some(i => i.includes("budget") || i.startsWith("access_")) ? "unknown" : locationsRead ? "empty" : issues.includes("missing_location") ? "missing" : "unknown");
+    (issues.some(i => i.includes("budget") || i.startsWith("access_") || i === "source_changed_during_read") ? "unknown" : locationsRead ? "empty" : issues.includes("missing_location") ? "missing" : "unknown");
   return {
     id: source.id, kind: source.kind, role: source.role, product,
     derived_from: source.derived_from ?? [],
@@ -113,6 +126,13 @@ export async function runSourceAudit(args, defaultRoot) {
     return args[index + 1];
   };
   const frozen = option("--read-snapshot");
+  const budgetOption = "--source-byte-budget-mib";
+  const requestedBudget = option(budgetOption);
+  const budgetMib = requestedBudget == null ? DEFAULT_BUDGET_MIB : Number(requestedBudget);
+  if (requestedBudget != null && (frozen || args.indexOf(budgetOption) !== args.lastIndexOf(budgetOption) ||
+    !/^[0-9]{3,4}$/.test(requestedBudget) || budgetMib <= DEFAULT_BUDGET_MIB || budgetMib > MAX_EXPLICIT_BUDGET_MIB)) {
+    throw Object.assign(new Error("Invalid explicit source byte budget"), { code: "invalid_source_byte_budget" });
+  }
   if (frozen) {
     const snapshot = await readSourceSnapshot(resolve(frozen));
     process.stdout.write(JSON.stringify(snapshot, null, 2) + "\n");
@@ -146,7 +166,7 @@ export async function runSourceAudit(args, defaultRoot) {
     throw new Error("Output overlaps source or another audit output");
   }
   const privateLocations = [];
-  const budget = { files: 1000, bytes: 256 * 1024 * 1024 };
+  const budget = { files: 1000, bytes: budgetMib * MIB, exactFilesOnly: requestedBudget != null };
   const sources = [];
   for (const source of registry.sources) sources.push(await inspectSource(source, root, budget, privateLocations));
   for (const source of sources) {
