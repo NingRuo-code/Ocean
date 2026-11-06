@@ -16,3 +16,4 @@
 本阶段为直接距离软件参照，首选月正式计算须经[#64的P0执行准入](monthly-execution-qualification.md)、相应来源/粒度/许可和#68真实复算。东海2024-08真实锋线时间、有效支持与完整日历仍未通过，结果不能解释为实际捕捞活动分布。
 
 登记的合成输入可另启用[冷暖侧与可选 SST 子集](monthly-side-environment.md)；它们随同一冻结结果读取。
+也可预先登记[同圆同日的距离参照](monthly-distance-background.md)，核对成对支持与密度差。
