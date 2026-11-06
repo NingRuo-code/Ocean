@@ -14,7 +14,7 @@ import audit_regional_support as p0
 import monthly_side_environment as environment
 from audit_support_qualification import validate_conditions
 from pyproj.enums import TransformDirection
-from shapely.geometry import LineString
+from shapely.geometry import LineString, MultiLineString
 
 METHOD = "wgs84-distance-bands/v1"
 PARAMETERS = "half-open-bands/v1"
@@ -206,6 +206,11 @@ def evaluate_day(
             else sample_geodesics(front_lines, plane, front_valid, by_line)
         )
         masks = environment.side_masks(layers, plane) if side_enabled else None
+        projected_lines = (
+            plane.project(MultiLineString(by_line))
+            if side_enabled and samples and by_line
+            else None
+        )
         for hours, contribution in pieces:
             anchor = contribution.representative_point()
             point = plane.forward(
@@ -222,6 +227,14 @@ def evaluate_day(
             bins[group].append(part)
             if masks is not None:
                 side, reason = environment.classify_side(contribution, masks, lower)
+                # Allow for half the sampling interval and distortion inside the P0 local domain.
+                if (
+                    side != "unknown"
+                    and projected_lines is not None
+                    and contribution.distance(projected_lines)
+                    <= (error * 1000 + STEP_M / 2) * 1.05
+                ):
+                    side, reason = "unknown", "within_line_position_uncertainty"
                 if side != "unknown" and has_competing_fronts(point, by_line, error):
                     side, reason = "unknown", "competing_nearest_fronts"
                 side_parts[side].append(part)
@@ -267,6 +280,7 @@ def evaluate_day(
         ),
     }
     if side_enabled:
+        common.pop("side_hours", None)
         row["side_environment"] = environment.summarize_day(
             day.isoformat(),
             layers,

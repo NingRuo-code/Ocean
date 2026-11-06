@@ -4,6 +4,8 @@ import math
 from collections import Counter
 
 import audit_regional_support as p0
+from shapely.errors import GEOSException
+from shapely.geometry import GeometryCollection
 from shapely.ops import unary_union
 from shapely.strtree import STRtree
 
@@ -58,9 +60,9 @@ def _summary(parts, *, known_empty=False):
 def _sst_parts(day, layers, plane, circle, ids, allocation):
     by_kind = {layer["kind"]: layer for layer in layers}
     if "sst" not in by_kind:
-        return [], "missing_required_sst_layer", None
+        return [], "missing_required_sst_layer", None, None
     layer = by_kind["sst"]
-    parts = []
+    parts, ambiguous_exposures = [], []
 
     def contribute(pieces, _front_valid, duration):
         values, shapes = [], []
@@ -72,24 +74,44 @@ def _sst_parts(day, layers, plane, circle, ids, allocation):
             return
         tree = STRtree(shapes)
         for hours, piece in pieces:
+            candidates = []
+            seen, ambiguous = GeometryCollection(), GeometryCollection()
             for index in sorted(tree.query(piece)):
-                area = piece.intersection(shapes[index]).area
+                intersection = piece.intersection(shapes[index])
+                if intersection.area > 0:
+                    ambiguous = ambiguous.union(seen.intersection(intersection))
+                    seen = seen.union(intersection)
+                    candidates.append((index, intersection))
+            ambiguous_exposures.append(ambiguous.area / 1e6 * duration)
+            for index, intersection in candidates:
+                area = intersection.difference(ambiguous).area
                 if area > 0:
                     exposure = area / 1e6 * duration
                     parts.append(
                         (hours * area / piece.area, exposure, exposure * values[index])
                     )
 
-    common = p0.regional_day(
-        day,
-        layers,
-        ["front", "activity", "sst"],
-        circle,
-        plane,
-        allocation,
-        ids,
-        on_common=contribute,
-    )
+    try:
+        common = p0.regional_day(
+            day,
+            layers,
+            ["front", "activity", "sst"],
+            circle,
+            plane,
+            allocation,
+            ids,
+            on_common=contribute,
+        )
+    except ValueError as error:
+        if str(error) not in {
+            "overlapping_source_cells",
+            "unsupported_geometry_extent",
+            "source_outside_local_projection_domain",
+        }:
+            raise
+        return [], "sst_geometry_unusable", None, None
+    except GEOSException:
+        return [], "sst_geometry_unusable", None, None
     reasons = common["reasons"]
     reason = (
         None
@@ -98,7 +120,7 @@ def _sst_parts(day, layers, plane, circle, ids, allocation):
         if reasons
         else "no_same_day_supported_temperature"
     )
-    return parts, reason, layer["id"] if parts else None
+    return parts, reason, layer["id"] if parts else None, math.fsum(ambiguous_exposures)
 
 
 def _sst_summary(parts, reason=None):
@@ -120,9 +142,14 @@ def summarize_day(
     day, layers, plane, circle, ids, allocation, side_parts, side_reasons, common
 ):
     if common["hours"] is None:
-        sst_parts, reason, source = [], "main_support_unavailable", None
+        sst_parts, reason, source, ambiguous = (
+            [],
+            "main_support_unavailable",
+            None,
+            None,
+        )
     else:
-        sst_parts, reason, source = _sst_parts(
+        sst_parts, reason, source, ambiguous = _sst_parts(
             day, layers, plane, circle, ids, allocation
         )
     sides = {
@@ -149,7 +176,11 @@ def summarize_day(
     return {
         "sides": sides,
         "side_reasons_by_unit_count": dict(side_reasons),
-        "sst": {**_sst_summary(sst_parts, reason), "source_id": source},
+        "sst": {
+            **_sst_summary(sst_parts, reason),
+            "source_id": source,
+            "ambiguous_area_time_km2_days": ambiguous,
+        },
     }
 
 
