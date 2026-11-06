@@ -163,3 +163,48 @@ def test_unrepresentable_ratio_retains_the_finite_absolute_effect(tmp_path):
     assert comparison["difference_hours_per_km2_day"] > 0
     assert comparison["density_ratio"] is None
     assert comparison["relative_reason"] == "relative_effect_outside_numeric_range"
+
+
+def test_optional_temperature_budget_preserves_the_paired_main_effect(tmp_path):
+    reference = comparison_fixture(8, 4)
+    layers = reference["regional_cells"]["days"][0]["layers"]
+    cells = []
+    for count, start, hours in [(32, -0.01, 1), (33, 0.06, 2)]:
+        for index in range(count):
+            west = start + index * 0.0001
+            cells.append(
+                {
+                    "bounds": [west, -0.002, west + 0.00008, 0.002],
+                    "support": "valid",
+                    "hours": hours,
+                }
+            )
+    layers[1]["cells"] = cells
+    sst = {
+        **layer("activity", cells[0]["bounds"]),
+        "id": "sst-original",
+        "kind": "sst",
+        "unit": "degree_C",
+        "cells": [],
+    }
+    for index in range(65):
+        south = -0.004 + index * 0.00012
+        sst["cells"].append(
+            {
+                "bounds": [-0.015, south, 0.07, south + 0.0001],
+                "support": "valid",
+                "temperature_c": 16,
+            }
+        )
+    layers.append(sst)
+    client, _, request = case(tmp_path, reference)
+    run = client.post(URL, headers=AUTH, json=request)
+    assert run.status_code == 200, run.text
+    result = run.json()["result"]
+    first = result["days"][0]["distance_comparison"]
+    assert first["included"] is True
+    assert first["covariates"]["target"]["sst"]["reason"] == "optional_sst_pair_budget_exceeded"
+    assert first["covariates"]["reference"]["sst"]["reason"] == "optional_sst_pair_budget_exceeded"
+    assert result["month"]["distance_comparison"]["paired_dates"] == ["2024-08-01"]
+    assert result["month"]["distance_comparison"]["target"]["hours"] == pytest.approx(32)
+    assert result["month"]["distance_comparison"]["reference"]["hours"] == pytest.approx(66)

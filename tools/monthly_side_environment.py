@@ -11,6 +11,7 @@ from shapely.strtree import STRtree
 
 VERSION = "p0-side-and-sst/v1"
 SIDES = ("cold", "warm", "unknown")
+MAX_DAILY_SST_CELL_PAIRS = 4096
 
 
 def side_masks(layers, plane):
@@ -64,6 +65,9 @@ def _sst_parts(day, layers, plane, circle, ids, allocation, fragments=None):
     if "sst" not in by_kind:
         return [], "missing_required_sst_layer", None, None
     layer = by_kind["sst"]
+    activity_cells = by_kind.get("activity", {}).get("cells", [])
+    if len(activity_cells) * len(layer["cells"]) > MAX_DAILY_SST_CELL_PAIRS:
+        return [], "optional_sst_pair_budget_exceeded", None, None
     parts, ambiguous_exposures = [], []
 
     def contribute(pieces, _front_valid, duration):
