@@ -3,7 +3,9 @@
 import hashlib
 import json
 import math
+import os
 import re
+import stat
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
@@ -201,7 +203,10 @@ def unavailable(status, reason, freshness="unknown"):
 
 
 def read_json(path, max_bytes):
-    with path.open("rb") as stream:
+    require(stat.S_ISREG(path.lstat().st_mode))
+    flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0)
+    with os.fdopen(os.open(path, flags), "rb") as stream:
+        require(stat.S_ISREG(os.fstat(stream.fileno()).st_mode))
         return decode_controlled_json(stream.read(max_bytes + 1), max_bytes=max_bytes)
 
 
@@ -385,6 +390,7 @@ def read_audited_support(path, request, state_path=None):
             "snapshot_schema": "ocean-support-qualification/v1",
             "snapshot_id": identity,
             "audited_at": None,
+            "qualification_scope": "frozen_snapshot_only",
             "requested_conditions": request,
             "actual_conditions": actual,
             "required_layers": required,
@@ -430,8 +436,8 @@ def read_audited_support(path, request, state_path=None):
                 return problem
             result.update(
                 audited_at=ready["generated_at"],
-                freshness="current",
-                freshness_reason="registered_prepared_input_and_protocol_receipt_match",
+                registered_receipt_match=True,
+                freshness_reason="receipt_matches_live_content_not_rechecked",
                 raw_source_freshness="unknown",
             )
         return result

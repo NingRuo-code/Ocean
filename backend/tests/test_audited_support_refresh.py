@@ -1,6 +1,7 @@
 """Replay explicit audit refreshes through the existing CLI and read-only FastAPI query."""
 
 import json
+import os
 import subprocess
 import sys
 
@@ -20,7 +21,6 @@ def refresh(tmp_path):
     conditions = tmp_path / "conditions.json"
     source = tmp_path / "prepared-source.json"
     state = tmp_path / "support-state.json"
-    report = tmp_path / "latest-report.md"
     write_json(
         conditions,
         {
@@ -37,11 +37,11 @@ def refresh(tmp_path):
     write_json(
         source, {"schema": "ocean-regional-cells/v1", "evidence_kind": "synthetic", "days": []}
     )
-    return conditions, source, state, report
+    return conditions, source, state
 
 
 def refresh_args(paths):
-    conditions, source, state, report = paths
+    conditions, source, state = paths
     return [
         "--support-request",
         str(conditions),
@@ -49,13 +49,11 @@ def refresh_args(paths):
         str(source),
         "--support-state",
         str(state),
-        "--report-out",
-        str(report),
     ]
 
 
 def run_refresh(paths, *, success=True):
-    _, _, state, _ = paths
+    _, _, state = paths
     run = subprocess.run(
         [*CLI, *refresh_args(paths)],
         capture_output=True,
@@ -79,14 +77,15 @@ def frozen_path(state, receipt):
 
 
 def test_same_input_keeps_identity_and_same_path_replacement_expires_it(refresh):
-    _, source, state, report = refresh
+    _, source, state = refresh
     client = client_for(None, state)
     first = run_refresh(refresh)
     initial = audit(client)
     old = frozen_path(state, first)
+    report = old.with_suffix(".md")
     old_bytes = old.read_bytes()
     assert initial["snapshot_id"] == first["snapshot_id"]
-    assert initial["freshness"] == "current" and initial["raw_source_freshness"] == "unknown"
+    assert initial["freshness"] == "unknown" and initial["registered_receipt_match"] is True
     assert initial["research_ready"] is False and initial["audited_at"] == first["generated_at"]
     assert initial["snapshot_id"] in report.read_text(encoding="utf-8")
     repeat = run_refresh(refresh)
@@ -110,7 +109,7 @@ def test_same_input_keeps_identity_and_same_path_replacement_expires_it(refresh)
 
 
 def test_same_input_method_change_and_mismatched_receipt_never_reuse_old_qualification(refresh):
-    conditions, _, state, _ = refresh
+    conditions, _, state = refresh
     first = run_refresh(refresh)
     client = client_for(None, state)
     original = audit(client)
@@ -131,22 +130,29 @@ def test_same_input_method_change_and_mismatched_receipt_never_reuse_old_qualifi
 
 
 def test_missing_source_and_failed_refresh_preserve_prior_frozen_result(refresh):
-    _, source, state, _ = refresh
+    _, source, state = refresh
     receipt = run_refresh(refresh)
     old = frozen_path(state, receipt)
     old_bytes = old.read_bytes()
+    old_report = old.with_suffix(".md").read_bytes()
     client = client_for(old, state)
     source.unlink()
     missing = audit(client)
     assert missing["freshness"] == "unknown" and "snapshot_id" not in missing
     failed = run_refresh(refresh, success=False)
     assert failed["state"] == "failed"
+    assert failed["failure_reason"] == "FileNotFoundError"
+    assert (
+        failed["conditions_id"] == receipt["conditions_id"]
+        and failed["started_at"] < failed["failed_at"]
+    )
+    assert old.with_suffix(".md").read_bytes() == old_report
     assert audit(client)["status"] == "audit_failed" and old.read_bytes() == old_bytes
     assert audit(client_for(old))["freshness"] == "unknown"
 
 
 def test_interrupted_refresh_never_reuses_old_result_and_lock_excludes_second_writer(refresh):
-    _, _, state, _ = refresh
+    _, _, state = refresh
     receipt = run_refresh(refresh)
     old = frozen_path(state, receipt)
     old_bytes = old.read_bytes()
@@ -176,4 +182,48 @@ def test_interrupted_refresh_never_reuses_old_result_and_lock_excludes_second_wr
     lock.unlink()
     recovered = run_refresh(refresh)
     assert recovered["snapshot_id"] == receipt["snapshot_id"]
-    assert audit(client)["freshness"] == "current"
+    assert audit(client)["registered_receipt_match"] is True
+
+
+def test_equal_file_metadata_cannot_establish_current_source_identity(refresh):
+    _, source, state = refresh
+    data = json.loads(source.read_text(encoding="utf-8"))
+    data["days"] = [{"date": "2024-08-05", "layers": []}]
+    write_json(source, data)
+    first = run_refresh(refresh)
+    before = source.stat()
+    original = source.read_bytes()
+    updated = original.replace(b"2024-08-05", b"2024-08-06")
+    assert len(updated) == len(original) and updated != original
+    source.write_bytes(updated)
+    os.utime(source, ns=(before.st_atime_ns, before.st_mtime_ns))
+    observed = audit(client_for(None, state))
+    if observed["status"] == "expired":
+        assert "snapshot_id" not in observed
+    else:
+        assert observed["status"] == "audited_snapshot" and observed["freshness"] == "unknown"
+        assert observed["qualification_scope"] == "frozen_snapshot_only"
+    second = run_refresh(refresh)
+    assert first["snapshot_id"] != second["snapshot_id"]
+
+
+def test_bounded_input_that_would_produce_oversize_output_cannot_become_ready(refresh):
+    _, source, state = refresh
+    original = run_refresh(refresh)
+    old = frozen_path(state, original)
+    before = old.with_suffix(".md").read_bytes()
+    data = json.loads(source.read_text(encoding="utf-8"))
+    data["qualification_evidence"] = {
+        "schema": "ocean-support-evidence/v1",
+        "source_versions": {f"source{i:058d}": "sha256:" + "a" * 64 for i in range(117000)},
+    }
+    write_json(source, data)
+    assert source.stat().st_size < 16 * 1024 * 1024
+    failure = run_refresh(refresh, success=False)
+    assert (
+        failure["state"] == "failed"
+        and failure["failure_reason"] == "support_snapshot_budget_exceeded"
+    )
+    assert (
+        list(old.parent.glob("*.json")) == [old] and old.with_suffix(".md").read_bytes() == before
+    )

@@ -19,6 +19,7 @@ from shapely.ops import unary_union
 SCHEMA = "ocean-regional-support/v1"
 METHOD = "wgs84-laea-uniform/v1"
 AREA_TOL = 1e-6
+MAX_CONTROLLED_JSON_BYTES = 16 * 1024 * 1024
 GEOD = Geod(ellps="WGS84")
 pyproj.network.set_network_enabled(False)
 
@@ -40,8 +41,8 @@ def iso_day(value):
 
 def controlled_json_bytes(path):
     with path.open("rb") as stream:
-        raw = stream.read(16 * 1024 * 1024 + 1)
-    if len(raw) > 16 * 1024 * 1024:
+        raw = stream.read(MAX_CONTROLLED_JSON_BYTES + 1)
+    if len(raw) > MAX_CONTROLLED_JSON_BYTES:
         raise ValueError("input_budget_exceeded")
     return raw
 

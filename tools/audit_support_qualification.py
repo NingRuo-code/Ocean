@@ -391,8 +391,14 @@ def json_text(value):
     return json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
 
 
-def compute_snapshot(conditions_path, source, daily):
-    conditions = regional.controlled_json(conditions_path)
+def bounded_json_text(value, limit, error):
+    payload = json_text(value)
+    if len(payload.encode("utf-8")) + payload.count("\n") > limit:
+        raise ValueError(error)
+    return payload
+
+
+def compute_snapshot(conditions, source, daily):
     resolved = validate_conditions(conditions)
     raw = regional.controlled_json_bytes(source)
     data = json.loads(
@@ -429,7 +435,7 @@ def file_observation(path):
     ]
 
 
-def refresh_support(state_path, conditions, source, daily, report):
+def refresh_support(state_path, conditions, source, daily):
     """One explicit writer publishes a receipt only after all output is complete."""
     state_path = state_path.absolute()
     directory = state_path.with_name(state_path.name + ".snapshots")
@@ -441,7 +447,7 @@ def refresh_support(state_path, conditions, source, daily, report):
         "regional_engine": Path(regional.__file__).resolve(),
         "source_reader": Path(__file__).with_name("audit_daily_sources.py").resolve(),
     }
-    outputs = [state_path, directory, lock] + ([report] if report is not None else [])
+    outputs = [state_path, directory, lock]
     if any(
         regional.paths_overlap(o, i) for o in outputs for i in watched.values()
     ) or any(
@@ -455,17 +461,29 @@ def refresh_support(state_path, conditions, source, daily, report):
         raise ValueError("support_refresh_locked") from None
 
     def publish(state, **metadata):
-        payload = json_text(
-            {"schema": "ocean-support-state/v1", "state": state, **metadata}
+        payload = bounded_json_text(
+            {"schema": "ocean-support-state/v1", "state": state, **metadata},
+            4096,
+            "support_state_budget_exceeded",
         )
-        if len(payload.encode("utf-8")) > 4096:
-            raise ValueError("support_state_budget_exceeded")
         regional.atomic_text(state_path, payload)
 
+    attempt = {"started_at": datetime.now(UTC).isoformat()}
     try:
-        publish("scanning")
+        publish("scanning", **attempt)
+        request_observation = file_observation(conditions)
+        request = regional.controlled_json(conditions)
+        attempt["conditions_id"] = "sha256:" + regional.digest(request)
+        publish("scanning", **attempt)
         observed = {role: file_observation(path) for role, path in watched.items()}
-        result = compute_snapshot(conditions, source, daily)
+        if observed["request"] != request_observation:
+            raise ValueError("audit_input_changed_during_refresh")
+        result = compute_snapshot(request, source, daily)
+        payload = bounded_json_text(
+            result,
+            regional.MAX_CONTROLLED_JSON_BYTES,
+            "support_snapshot_budget_exceeded",
+        )
         identity = result["support_snapshot_id"]
         frozen_path = directory / (identity[7:] + ".json")
         if frozen_path.exists():
@@ -474,8 +492,9 @@ def refresh_support(state_path, conditions, source, daily, report):
             ) != regional.digest(result):
                 raise ValueError("conflicting_frozen_support_snapshot")
         else:
-            regional.atomic_text(frozen_path, json_text(result))
-        if report is not None:
+            regional.atomic_text(frozen_path, payload)
+        report = frozen_path.with_suffix(".md")
+        if not report.exists():
             regional.atomic_text(report, render_report(result))
         if any(
             file_observation(path) != observed[role] for role, path in watched.items()
@@ -483,10 +502,10 @@ def refresh_support(state_path, conditions, source, daily, report):
             raise ValueError("audit_input_changed_during_refresh")
         publish(
             "ready",
+            **attempt,
             generated_at=datetime.now(UTC).isoformat(),
             snapshot_id=identity,
             input_sha256="sha256:" + result["input_sha256"],
-            conditions_id="sha256:" + regional.digest(result["conditions"]),
             protocol={
                 k: "sha256:" + result[k]
                 for k in (
@@ -500,8 +519,16 @@ def refresh_support(state_path, conditions, source, daily, report):
                 for role, path in watched.items()
             },
         )
-    except (Exception, KeyboardInterrupt):
-        publish("failed")
+    except (Exception, KeyboardInterrupt) as error:
+        message = str(error)
+        publish(
+            "failed",
+            **attempt,
+            failed_at=datetime.now(UTC).isoformat(),
+            failure_reason=message
+            if re.fullmatch("[a-z_]{1,100}", message)
+            else type(error).__name__,
+        )
         raise
     finally:
         lock.unlink()
@@ -548,12 +575,13 @@ def main():
     if not source or not args.support_request or not (args.out or args.support_state):
         raise ValueError("missing_support_compute_arguments")
     if args.support_state:
+        if args.report_out:
+            raise ValueError("managed_reports_use_frozen_identity")
         refresh_support(
             args.support_state,
             args.support_request,
             source,
             args.daily_snapshot is not None,
-            args.report_out,
         )
         print("Calendar support audit refreshed; research approval remains separate.")
         return
@@ -565,9 +593,18 @@ def main():
     ) or (len(outputs) == 2 and regional.paths_overlap(*outputs)):
         raise ValueError("output_overlaps_input_or_output")
     result = compute_snapshot(
-        args.support_request, source, args.daily_snapshot is not None
+        regional.controlled_json(args.support_request),
+        source,
+        args.daily_snapshot is not None,
     )
-    regional.atomic_text(args.out, json_text(result))
+    regional.atomic_text(
+        args.out,
+        bounded_json_text(
+            result,
+            regional.MAX_CONTROLLED_JSON_BYTES,
+            "support_snapshot_budget_exceeded",
+        ),
+    )
     if args.report_out:
         regional.atomic_text(args.report_out, render_report(result))
     print("Calendar support audit complete; research approval remains separate.")
