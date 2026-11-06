@@ -279,6 +279,11 @@ def verify_qualification(source, resolved, conditions, request, qualification):
         request["layer_use"] != conditions["layer_use"]
         or request["support_snapshot_id"] != qualification["snapshot_id"]
         or qualification["versions"] != actual
+        or (
+            request["purpose"] == "monthly_spatial_research"
+            and qualification.get("distance_engine_sha256")
+            != "sha256:" + p0.file_digest(Path(__file__))
+        )
     ):
         raise QualificationInputMismatch
 
@@ -360,6 +365,9 @@ def evaluate(data, request, identity, qualification=None):
             edges,
             error,
         )
+        if research:
+            # This distance authorization does not cover the side subanalysis.
+            row["common"].pop("side_hours", None)
         days.append(row)
         for destination, parts in zip(month_parts, bins, strict=True):
             destination.extend(parts)

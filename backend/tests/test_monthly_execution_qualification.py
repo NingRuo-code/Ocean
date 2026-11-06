@@ -226,6 +226,8 @@ def test_p0_claims_cannot_launch_research_without_separate_exact_approval(tmp_pa
 
     approval = MonthlyResearchApproval(
         approval_id="sha256:" + "2" * 64,
+        distance_engine_sha256="sha256:"
+        + hashlib.sha256(CLI.with_name("compute_monthly_distance.py").read_bytes()).hexdigest(),
         **{
             key: request[key]
             for key in (
@@ -237,6 +239,14 @@ def test_p0_claims_cannot_launch_research_without_separate_exact_approval(tmp_pa
         },
     )
     approved = configured_client(tmp_path / "support.json", reference_file, approval)
+    stale_engine = configured_client(
+        tmp_path / "support.json",
+        reference_file,
+        approval.model_copy(update={"distance_engine_sha256": "sha256:" + "3" * 64}),
+    )
+    denied = stale_engine.post(URL, headers=AUTH, json=request)
+    assert denied.status_code == 409, denied.text
+    assert denied.json()["detail"]["reason"] == "research_approval_engine_version_mismatch"
     mismatch = approved.post(
         URL, headers=AUTH, json={**request, "input_version": "sha256:" + "3" * 64}
     )
@@ -248,5 +258,6 @@ def test_p0_claims_cannot_launch_research_without_separate_exact_approval(tmp_pa
     assert record["state"] == "completed", record
     assert record["result"]["qualification"]["approval_id"] == approval.approval_id
     assert record["result"]["research_ready"] is False
+    assert "side_hours" not in record["result"]["days"][0]["common"]
     assert approved.get(f"{URL}/{record['id']}").status_code == 401
     assert approved.get(f"{URL}/{record['id']}", headers=AUTH).json() == record

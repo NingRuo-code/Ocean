@@ -58,6 +58,7 @@ class MonthlyResearchApproval(ClosedModel):
     approval_id: SnapshotId
     support_snapshot_id: SnapshotId
     input_version: SnapshotId
+    distance_engine_sha256: SnapshotId
     method_version: DistanceMethod
     parameter_version: DistanceParameters
 

@@ -6,6 +6,7 @@ from typing import NoReturn, get_args
 from fastapi import HTTPException
 
 from .audited_support import PROTOCOL_HASHES, evidence_id, read_audited_support
+from .monthly_distance_reference import distance_engine_id
 from .monthly_models import DistanceMethod, DistanceParameters, MonthlyResearchRequest
 
 
@@ -53,7 +54,7 @@ def qualify_execution(settings, request):
         or period["computational_support"] != "supported"
     ):
         _reject("incomplete_required_support", support)
-    approval_id = None
+    approved_reference = {}
     if isinstance(request, MonthlyResearchRequest):
         if request.analysis_scope == "side":
             _reject("side_specific_support_not_verified", support)
@@ -73,15 +74,24 @@ def qualify_execution(settings, request):
             )
         ):
             _reject("research_approval_identity_mismatch", support)
-        approval_id = approval.approval_id
+        try:
+            engine = distance_engine_id()
+        except (OSError, ValueError):
+            _reject("analysis_engine_version_unverified", support)
+        if engine != approval.distance_engine_sha256:
+            _reject("research_approval_engine_version_mismatch", support)
+        approved_reference = {
+            "approval_id": approval.approval_id,
+            "distance_engine_sha256": engine,
+        }
     elif support["evidence_kind"] != "synthetic":
         _reject("synthetic_reference_requires_synthetic_support", support)
     return {
         "snapshot_id": support["snapshot_id"],
         "scope": "approved_frozen_input_direct_reference"
-        if approval_id
+        if approved_reference
         else "frozen_synthetic_validation",
-        **({"approval_id": approval_id} if approval_id else {}),
+        **approved_reference,
         "versions": {
             key: support["versions"][key]
             for key in (

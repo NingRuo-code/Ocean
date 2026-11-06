@@ -1,5 +1,6 @@
 """Owner calculation over bounded, maintainer-registered geometry inputs."""
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -14,6 +15,10 @@ REFERENCE_ENGINE = PROJECT_ROOT / "tools" / "compute_monthly_distance.py"
 
 class QualificationInputMismatch(ValueError):
     pass
+
+
+def distance_engine_id():
+    return "sha256:" + hashlib.sha256(read_regular_bytes(REFERENCE_ENGINE, 1024 * 1024)).hexdigest()
 
 
 def calculate_distance_reference(request, source, qualification=None):
