@@ -20,6 +20,7 @@ METRICS = [
     "density_hours_per_km2_day",
 ]
 PROTOCOL_HASHES = ("auditor_sha256", "regional_engine_sha256", "source_reader_sha256")
+GEOMETRY_RUNTIME_KEYS = ("shapely", "pyproj", "GEOS", "PROJ")
 OBSERVED_ROLES = {"request", "prepared_source", "auditor", "regional_engine", "source_reader"}
 
 
@@ -372,6 +373,12 @@ def read_audited_support(path, request, state_path=None):
             quality_rule=conditions["quality_rule"],
             parameter=content_id(snapshot["resolved_conditions"]),
         )
+        runtime = {key: snapshot.get("method", {}).get(key) for key in GEOMETRY_RUNTIME_KEYS}
+        if all(
+            isinstance(value, str) and re.fullmatch(r"[a-zA-Z0-9.+_-]{1,60}", value)
+            for value in runtime.values()
+        ):
+            versions["geometry_runtime"] = runtime
         daily = snapshot.get("input_daily_snapshot_id")
         versions["daily_snapshot_id"] = None if daily is None else fingerprint(daily)
         references, versions["sources"], versions["processing"] = evidence_projection(

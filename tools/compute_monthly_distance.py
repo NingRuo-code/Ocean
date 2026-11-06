@@ -246,7 +246,49 @@ def month_activity_accounting(days):
     return result
 
 
-def evaluate(data, request, identity):
+class QualificationInputMismatch(ValueError):
+    pass
+
+
+def verify_qualification(source, resolved, conditions, request, qualification):
+    if qualification is None:
+        if request.get("support_snapshot_id") is not None:
+            raise QualificationInputMismatch
+        return
+    actual = {
+        "input_sha256": "sha256:" + p0.digest(source),
+        "parameter": "sha256:"
+        + hashlib.sha256(
+            json.dumps(
+                resolved, sort_keys=True, separators=(",", ":"), allow_nan=False
+            ).encode()
+        ).hexdigest(),
+        "auditor_sha256": "sha256:"
+        + p0.file_digest(Path(__file__).with_name("audit_support_qualification.py")),
+        "regional_engine_sha256": "sha256:" + p0.file_digest(Path(p0.__file__)),
+        "source_reader_sha256": "sha256:"
+        + p0.file_digest(Path(__file__).with_name("audit_daily_sources.py")),
+        "geometry_runtime": {
+            "shapely": p0.shapely.__version__,
+            "pyproj": p0.pyproj.__version__,
+            "GEOS": p0.shapely.geos_version_string,
+            "PROJ": p0.pyproj.proj_version_str,
+        },
+    }
+    if (
+        request["layer_use"] != conditions["layer_use"]
+        or request["support_snapshot_id"] != qualification["snapshot_id"]
+        or qualification["versions"] != actual
+        or (
+            request["purpose"] == "monthly_spatial_research"
+            and qualification.get("distance_engine_sha256")
+            != "sha256:" + p0.file_digest(Path(__file__))
+        )
+    ):
+        raise QualificationInputMismatch
+
+
+def evaluate(data, request, identity, qualification=None):
     require(data["schema"] == "ocean-month-distance-input/v1", "invalid_distance_input")
     conditions = data["conditions"]
     resolved = validate_conditions(conditions)
@@ -270,9 +312,20 @@ def evaluate(data, request, identity):
         "reference_version_mismatch",
     )
     source = data["regional_cells"]
-    # This owner-controlled software reference publishes only explicitly registered synthetic aggregates.
+    verify_qualification(source, resolved, conditions, request, qualification)
+    research = request["purpose"] == "monthly_spatial_research"
     require(
-        source["evidence_kind"] == "synthetic",
+        source["evidence_kind"] == ("audited_cells" if research else "synthetic")
+        and (
+            not research
+            or (
+                qualification is not None
+                and qualification.get("scope")
+                == "approved_frozen_input_direct_reference"
+                and qualification.get("approval_id")
+                and request.get("analysis_scope") == "distance"
+            )
+        ),
         "real_input_requires_separate_qualification",
     )
     daily_layers = p0.validate_cells(source)
@@ -312,12 +365,15 @@ def evaluate(data, request, identity):
             edges,
             error,
         )
+        if research:
+            # This distance authorization does not cover the side subanalysis.
+            row["common"].pop("side_hours", None)
         days.append(row)
         for destination, parts in zip(month_parts, bins, strict=True):
             destination.extend(parts)
     result = {
-        "kind": "monthly_distance_reference",
-        "evidence_kind": "synthetic",
+        "kind": request["purpose"],
+        "evidence_kind": source["evidence_kind"],
         "research_ready": False,
         "parameters": request,
         "p0_conditions": conditions,
@@ -346,6 +402,8 @@ def evaluate(data, request, identity):
             "scope": "known common support subset; missing or unresolved days are not full monthly coverage",
         },
     }
+    if qualification is not None:
+        result["qualification"] = qualification
     result["result_id"] = "sha256:" + p0.digest(result)
     return result
 
@@ -358,12 +416,18 @@ if __name__ == "__main__":
         )
         data = json.loads(raw, object_pairs_hook=p0.unique_json_object)
         request = json.loads(sys.argv[1])
+        qualification = json.loads(sys.argv[2]) if len(sys.argv) == 3 else None
         identity = "sha256:" + hashlib.sha256(raw).hexdigest()
         print(
             json.dumps(
-                evaluate(data, request, identity), allow_nan=False, ensure_ascii=True
+                evaluate(data, request, identity, qualification),
+                allow_nan=False,
+                ensure_ascii=True,
             )
         )
+    except QualificationInputMismatch:
+        print("qualification_input_or_conditions_mismatch", file=sys.stderr)
+        raise SystemExit(1) from None
     except (
         ValueError,
         TypeError,
