@@ -38,12 +38,19 @@ def iso_day(value):
     return parsed
 
 
-def controlled_json(path):
+def controlled_json_bytes(path):
     with path.open("rb") as stream:
         raw = stream.read(16 * 1024 * 1024 + 1)
     if len(raw) > 16 * 1024 * 1024:
         raise ValueError("input_budget_exceeded")
-    return json.loads(raw.decode("utf-8"), object_pairs_hook=unique_json_object)
+    return raw
+
+
+def controlled_json(path):
+    return json.loads(
+        controlled_json_bytes(path).decode("utf-8"),
+        object_pairs_hook=unique_json_object,
+    )
 
 
 def bounds(value):

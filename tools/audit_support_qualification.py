@@ -2,11 +2,12 @@
 
 import argparse
 import calendar
+import hashlib
 import json
 import re
 import sys
 from collections import Counter
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import audit_regional_support as regional
@@ -386,6 +387,126 @@ def render_report(result):
     return "\n".join(lines) + "\n"
 
 
+def json_text(value):
+    return json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
+
+
+def compute_snapshot(conditions_path, source, daily):
+    conditions = regional.controlled_json(conditions_path)
+    resolved = validate_conditions(conditions)
+    raw = regional.controlled_json_bytes(source)
+    data = json.loads(
+        raw.decode("utf-8"), object_pairs_hook=regional.unique_json_object
+    )
+    if not isinstance(data, dict):
+        raise TypeError("invalid_regional_cells")
+    source_id = None
+    if daily:
+        source_id = data.get("daily_snapshot_id")
+        data = regional.from_daily_snapshot(data, resolved)
+    elif data.get("evidence_kind") == "real_source_audit":
+        raise ValueError("daily_snapshot_required")
+    result = evaluate_conditions(conditions, data)
+    result["input_sha256"] = hashlib.sha256(raw).hexdigest()
+    result["input_daily_snapshot_id"] = source_id
+    result["regional_engine_sha256"] = regional.file_digest(Path(regional.__file__))
+    result["source_reader_sha256"] = regional.file_digest(
+        Path(__file__).with_name("audit_daily_sources.py")
+    )
+    result["auditor_sha256"] = regional.file_digest(Path(__file__))
+    result["support_snapshot_id"] = "sha256:" + regional.digest(result)
+    return result
+
+
+def file_observation(path):
+    status = path.stat()
+    return [
+        status.st_dev,
+        status.st_ino,
+        status.st_size,
+        status.st_mtime_ns,
+        status.st_ctime_ns,
+    ]
+
+
+def refresh_support(state_path, conditions, source, daily, report):
+    """One explicit writer publishes a receipt only after all output is complete."""
+    state_path = state_path.absolute()
+    directory = state_path.with_name(state_path.name + ".snapshots")
+    lock = state_path.with_name(state_path.name + ".lock")
+    watched = {
+        "request": conditions.absolute(),
+        "prepared_source": source.absolute(),
+        "auditor": Path(__file__).resolve(),
+        "regional_engine": Path(regional.__file__).resolve(),
+        "source_reader": Path(__file__).with_name("audit_daily_sources.py").resolve(),
+    }
+    outputs = [state_path, directory, lock] + ([report] if report is not None else [])
+    if any(
+        regional.paths_overlap(o, i) for o in outputs for i in watched.values()
+    ) or any(
+        regional.paths_overlap(o, p) for i, o in enumerate(outputs) for p in outputs[:i]
+    ):
+        raise ValueError("output_overlaps_input_or_output")
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        lock.touch(exist_ok=False)
+    except FileExistsError:
+        raise ValueError("support_refresh_locked") from None
+
+    def publish(state, **metadata):
+        payload = json_text(
+            {"schema": "ocean-support-state/v1", "state": state, **metadata}
+        )
+        if len(payload.encode("utf-8")) > 4096:
+            raise ValueError("support_state_budget_exceeded")
+        regional.atomic_text(state_path, payload)
+
+    try:
+        publish("scanning")
+        observed = {role: file_observation(path) for role, path in watched.items()}
+        result = compute_snapshot(conditions, source, daily)
+        identity = result["support_snapshot_id"]
+        frozen_path = directory / (identity[7:] + ".json")
+        if frozen_path.exists():
+            if regional.digest(
+                regional.controlled_json(frozen_path)
+            ) != regional.digest(result):
+                raise ValueError("conflicting_frozen_support_snapshot")
+        else:
+            regional.atomic_text(frozen_path, json_text(result))
+        if report is not None:
+            regional.atomic_text(report, render_report(result))
+        if any(
+            file_observation(path) != observed[role] for role, path in watched.items()
+        ):
+            raise ValueError("audit_input_changed_during_refresh")
+        publish(
+            "ready",
+            generated_at=datetime.now(UTC).isoformat(),
+            snapshot_id=identity,
+            input_sha256="sha256:" + result["input_sha256"],
+            conditions_id="sha256:" + regional.digest(result["conditions"]),
+            protocol={
+                k: "sha256:" + result[k]
+                for k in (
+                    "auditor_sha256",
+                    "regional_engine_sha256",
+                    "source_reader_sha256",
+                )
+            },
+            observed_files={
+                role: {"path": str(path), "stat": observed[role]}
+                for role, path in watched.items()
+            },
+        )
+    except (Exception, KeyboardInterrupt):
+        publish("failed")
+        raise
+    finally:
+        lock.unlink()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--support-request", type=Path)
@@ -393,7 +514,9 @@ def main():
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--regional-input", type=Path)
     group.add_argument("--daily-snapshot", type=Path)
-    parser.add_argument("--out", type=Path)
+    output = parser.add_mutually_exclusive_group()
+    output.add_argument("--out", type=Path)
+    output.add_argument("--support-state", type=Path)
     parser.add_argument("--report-out", type=Path)
     args = parser.parse_args()
     if args.read_support_snapshot:
@@ -403,6 +526,7 @@ def main():
                 args.regional_input,
                 args.daily_snapshot,
                 args.out,
+                args.support_state,
                 args.report_out,
             ]
         ):
@@ -421,8 +545,18 @@ def main():
         print(json.dumps(result, ensure_ascii=False, allow_nan=False))
         return
     source = args.regional_input or args.daily_snapshot
-    if not source or not args.support_request or not args.out:
+    if not source or not args.support_request or not (args.out or args.support_state):
         raise ValueError("missing_support_compute_arguments")
+    if args.support_state:
+        refresh_support(
+            args.support_state,
+            args.support_request,
+            source,
+            args.daily_snapshot is not None,
+            args.report_out,
+        )
+        print("Calendar support audit refreshed; research approval remains separate.")
+        return
     outputs = [p for p in [args.out, args.report_out] if p is not None]
     if any(
         regional.paths_overlap(out, p)
@@ -430,30 +564,10 @@ def main():
         for p in [args.support_request, source]
     ) or (len(outputs) == 2 and regional.paths_overlap(*outputs)):
         raise ValueError("output_overlaps_input_or_output")
-    conditions = regional.controlled_json(args.support_request)
-    resolved = validate_conditions(conditions)
-    data = regional.controlled_json(source)
-    if not isinstance(data, dict):
-        raise TypeError("invalid_regional_cells")
-    source_id = None
-    if args.daily_snapshot:
-        source_id = data.get("daily_snapshot_id")
-        data = regional.from_daily_snapshot(data, resolved)
-    elif data.get("evidence_kind") == "real_source_audit":
-        raise ValueError("daily_snapshot_required")
-    result = evaluate_conditions(conditions, data)
-    result["input_sha256"] = regional.file_digest(source)
-    result["input_daily_snapshot_id"] = source_id
-    result["regional_engine_sha256"] = regional.file_digest(Path(regional.__file__))
-    result["source_reader_sha256"] = regional.file_digest(
-        Path(__file__).with_name("audit_daily_sources.py")
+    result = compute_snapshot(
+        args.support_request, source, args.daily_snapshot is not None
     )
-    result["auditor_sha256"] = regional.file_digest(Path(__file__))
-    result["support_snapshot_id"] = "sha256:" + regional.digest(result)
-    regional.atomic_text(
-        args.out,
-        json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
-    )
+    regional.atomic_text(args.out, json_text(result))
     if args.report_out:
         regional.atomic_text(args.report_out, render_report(result))
     print("Calendar support audit complete; research approval remains separate.")
@@ -470,6 +584,7 @@ if __name__ == "__main__":
         OSError,
         OverflowError,
         RecursionError,
+        KeyboardInterrupt,
     ) as error:
         message = str(error)
         print(
