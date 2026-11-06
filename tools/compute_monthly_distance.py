@@ -11,9 +11,10 @@ from itertools import pairwise
 from pathlib import Path
 
 import audit_regional_support as p0
+import monthly_side_environment as environment
 from audit_support_qualification import validate_conditions
 from pyproj.enums import TransformDirection
-from shapely.geometry import LineString
+from shapely.geometry import LineString, MultiLineString
 
 METHOD = "wgs84-distance-bands/v1"
 PARAMETERS = "half-open-bands/v1"
@@ -65,10 +66,17 @@ def front_days(rows, start, end, source_id):
     return by_date
 
 
-def sample_geodesics(lines, plane, valid):
+def sample_geodesics(lines, plane, valid, samples_by_line=None):
     """Sample geodesic segments with a known maximum along-line gap."""
     samples = []
+    seen = set()
     for line in lines:
+        if samples_by_line is not None:
+            path = tuple(tuple(point) for point in line)
+            key = min(path, path[::-1])
+            if key in seen:
+                continue
+            seen.add(key)
         points = [tuple(line[0])]
         for left, right in pairwise(line):
             _, _, length = p0.GEOD.inv(*left, *right)
@@ -82,8 +90,24 @@ def sample_geodesics(lines, plane, valid):
             points.append(tuple(right))
         if not valid.covers(plane.project(LineString(points)).buffer(0.001)):
             return None
+        if samples_by_line is not None:
+            samples_by_line.append(points)
         samples.extend(points)
     return samples
+
+
+def has_competing_fronts(point, by_line, position_error):
+    if len(by_line) < 2:
+        return False
+    distances = []
+    for line in by_line:
+        lon, lat = zip(*line, strict=True)
+        _, _, measured = p0.GEOD.inv(
+            [point[0]] * len(line), [point[1]] * len(line), lon, lat
+        )
+        distances.append(min(measured) / 1000)
+    first, second = sorted(distances)[:2]
+    return second - first <= STEP_M / 2000 + 2 * position_error
 
 
 def classify(point, samples, front_valid, plane, edges, position_error):
@@ -156,17 +180,36 @@ def summarize(parts):
 
 
 def evaluate_day(
-    day, layers, front_lines, plane, circle, required, ids, allocation, edges, error
+    day,
+    layers,
+    front_lines,
+    plane,
+    circle,
+    required,
+    ids,
+    allocation,
+    edges,
+    error,
+    side_enabled=False,
 ):
     bins = [[] for _ in range(len(edges) + 2)]
     states = Counter()
     bounds = []
+    side_parts = {side: [] for side in environment.SIDES} if side_enabled else {}
+    side_reasons = Counter()
 
     def contribute(pieces, front_valid, duration):
+        by_line = [] if side_enabled else None
         samples = (
             None
             if front_lines is None
-            else sample_geodesics(front_lines, plane, front_valid)
+            else sample_geodesics(front_lines, plane, front_valid, by_line)
+        )
+        masks = environment.side_masks(layers, plane) if side_enabled else None
+        projected_lines = (
+            plane.project(MultiLineString(by_line))
+            if side_enabled and samples and by_line
+            else None
         )
         for hours, contribution in pieces:
             anchor = contribution.representative_point()
@@ -180,12 +223,24 @@ def evaluate_day(
                 state if front_lines is not None else "front_line_material_missing"
             ] += 1
             bounds.append((lower, upper))
-            bins[group].append(
-                (
-                    hours,
-                    contribution.area / 1e6 * duration,
+            part = (hours, contribution.area / 1e6 * duration)
+            bins[group].append(part)
+            if masks is not None:
+                side, reason = environment.classify_side(
+                    contribution, masks, state, lower
                 )
-            )
+                # Allow for half the sampling interval and distortion inside the P0 local domain.
+                if (
+                    side != "unknown"
+                    and projected_lines is not None
+                    and contribution.distance(projected_lines)
+                    <= (error * 1000 + STEP_M / 2) * 1.05
+                ):
+                    side, reason = "unknown", "within_line_position_uncertainty"
+                if side != "unknown" and has_competing_fronts(point, by_line, error):
+                    side, reason = "unknown", "competing_nearest_fronts"
+                side_parts[side].append(part)
+                side_reasons[reason] += 1
 
     common = p0.regional_day(
         day.isoformat(),
@@ -214,7 +269,7 @@ def evaluate_day(
             ),
             "distance_partition_not_conserved",
         )
-    return {
+    row = {
         "date": day.isoformat(),
         "common": common,
         "bands": [summarize(x) for x in bins],
@@ -225,7 +280,21 @@ def evaluate_day(
         "maximum_known_upper_km": max(
             (x[1] for x in bounds if x[1] is not None), default=None
         ),
-    }, bins
+    }
+    if side_enabled:
+        common.pop("side_hours", None)
+        row["side_environment"] = environment.summarize_day(
+            day.isoformat(),
+            layers,
+            plane,
+            circle,
+            ids,
+            allocation,
+            side_parts,
+            side_reasons,
+            common,
+        )
+    return row, bins
 
 
 def month_activity_accounting(days):
@@ -314,6 +383,11 @@ def evaluate(data, request, identity, qualification=None):
     source = data["regional_cells"]
     verify_qualification(source, resolved, conditions, request, qualification)
     research = request["purpose"] == "monthly_spatial_research"
+    side_version = data.get("side_environment_version")
+    require(
+        side_version is None or (side_version == environment.VERSION and not research),
+        "side_environment_registration_not_qualified",
+    )
     require(
         source["evidence_kind"] == ("audited_cells" if research else "synthetic")
         and (
@@ -364,6 +438,7 @@ def evaluate(data, request, identity, qualification=None):
             conditions["allocation"],
             edges,
             error,
+            side_enabled=side_version is not None,
         )
         if research:
             # This distance authorization does not cover the side subanalysis.
@@ -402,6 +477,11 @@ def evaluate(data, request, identity, qualification=None):
             "scope": "known common support subset; missing or unresolved days are not full monthly coverage",
         },
     }
+    if side_version is not None:
+        result["month"]["side_environment"] = environment.summarize_month(days)
+        result["versions"]["side_environment"] = p0.file_digest(
+            Path(environment.__file__)
+        )
     if qualification is not None:
         result["qualification"] = qualification
     result["result_id"] = "sha256:" + p0.digest(result)
