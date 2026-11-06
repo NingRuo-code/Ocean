@@ -11,6 +11,7 @@ from itertools import pairwise
 from pathlib import Path
 
 import audit_regional_support as p0
+import monthly_block_uncertainty as uncertainty
 import monthly_distance_background as background
 import monthly_side_environment as environment
 from audit_support_qualification import validate_conditions
@@ -447,6 +448,10 @@ def evaluate(data, request, identity, qualification=None):
     if comparison is not None:
         require(not research, "comparison_research_protocol_not_qualified")
         comparison = background.validate_comparison(comparison, edges)
+    interval_policy = data.get("distance_uncertainty")
+    if interval_policy is not None:
+        require(comparison is not None, "uncertainty_requires_paired_comparison")
+        interval_policy = uncertainty.validate_uncertainty(interval_policy)
     lines = front_days(data["front_days"], start, end, ids.get("front"))
     plane = p0.MetricPlane(*geometry["center"])
     circle = plane.circle(geometry["center"], geometry["radius_km"])
@@ -510,15 +515,21 @@ def evaluate(data, request, identity, qualification=None):
             Path(environment.__file__)
         )
     if comparison is not None:
-        result["month"]["distance_comparison"] = background.compare_month(
-            days, comparison, edges
-        )
+        contrast = background.compare_month(days, comparison, edges)
+        result["month"]["distance_comparison"] = contrast
         result["versions"]["distance_comparison"] = p0.file_digest(
             Path(background.__file__)
         )
         result["versions"]["temperature_support"] = p0.file_digest(
             Path(environment.__file__)
         )
+        if interval_policy is not None:
+            contrast["uncertainty"] = uncertainty.estimate_uncertainty(
+                days, contrast, interval_policy
+            )
+            result["versions"]["block_uncertainty"] = p0.file_digest(
+                Path(uncertainty.__file__)
+            )
     if qualification is not None:
         result["qualification"] = qualification
     result["result_id"] = "sha256:" + p0.digest(result)
