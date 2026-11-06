@@ -106,6 +106,12 @@ def test_same_input_keeps_identity_and_same_path_replacement_expires_it(refresh)
         [*CLI, "--read-support-snapshot", str(old)], encoding="utf-8", timeout=30
     )
     assert json.loads(prior)["support_snapshot_id"] == first["snapshot_id"]
+    frozen_path(state, replacement).with_suffix(".md").write_text(
+        "inconsistent report", encoding="utf-8"
+    )
+    invalid = run_refresh(refresh, success=False)
+    assert invalid["failure_reason"] == "conflicting_frozen_support_report"
+    assert audit(client)["status"] == "audit_failed" and old.read_bytes() == old_bytes
 
 
 def test_same_input_method_change_and_mismatched_receipt_never_reuse_old_qualification(refresh):

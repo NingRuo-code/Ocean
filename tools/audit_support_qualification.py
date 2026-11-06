@@ -494,8 +494,13 @@ def refresh_support(state_path, conditions, source, daily):
         else:
             regional.atomic_text(frozen_path, payload)
         report = frozen_path.with_suffix(".md")
-        if not report.exists():
-            regional.atomic_text(report, render_report(result))
+        report_text = render_report(result)
+        if report.exists():
+            with report.open(encoding="utf-8") as stream:
+                if stream.read(len(report_text) + 1) != report_text:
+                    raise ValueError("conflicting_frozen_support_report")
+        else:
+            regional.atomic_text(report, report_text)
         if any(
             file_observation(path) != observed[role] for role, path in watched.items()
         ):
