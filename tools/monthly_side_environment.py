@@ -59,7 +59,7 @@ def _summary(parts, *, known_empty=False):
     }
 
 
-def _sst_parts(day, layers, plane, circle, ids, allocation):
+def _sst_parts(day, layers, plane, circle, ids, allocation, fragments=None):
     by_kind = {layer["kind"]: layer for layer in layers}
     if "sst" not in by_kind:
         return [], "missing_required_sst_layer", None, None
@@ -75,7 +75,7 @@ def _sst_parts(day, layers, plane, circle, ids, allocation):
         if not shapes:
             return
         tree = STRtree(shapes)
-        for hours, piece in pieces:
+        for hours, piece in pieces if fragments is None else fragments:
             candidates = []
             seen, ambiguous = GeometryCollection(), GeometryCollection()
             for index in sorted(tree.query(piece)):
@@ -178,12 +178,24 @@ def summarize_day(
     return {
         "sides": sides,
         "side_reasons_by_unit_count": dict(side_reasons),
-        "sst": {
-            **_sst_summary(sst_parts, reason),
-            "source_id": source,
-            "ambiguous_area_time_km2_days": ambiguous,
-        },
+        "sst": _sst_evidence(sst_parts, reason, source, ambiguous),
     }
+
+
+def _sst_evidence(parts, reason, source, ambiguous):
+    return {
+        **_sst_summary(parts, reason),
+        "source_id": source,
+        "ambiguous_area_time_km2_days": ambiguous,
+    }
+
+
+def summarize_sst_subset(day, layers, plane, circle, ids, allocation, fragments):
+    if not fragments:
+        return _sst_evidence([], "no_band_area", None, None)
+    return _sst_evidence(
+        *_sst_parts(day, layers, plane, circle, ids, allocation, fragments)
+    )
 
 
 def summarize_month(days):

@@ -11,6 +11,7 @@ from itertools import pairwise
 from pathlib import Path
 
 import audit_regional_support as p0
+import monthly_distance_background as background
 import monthly_side_environment as environment
 from audit_support_qualification import validate_conditions
 from pyproj.enums import TransformDirection
@@ -191,12 +192,18 @@ def evaluate_day(
     edges,
     error,
     side_enabled=False,
+    comparison=None,
 ):
     bins = [[] for _ in range(len(edges) + 2)]
     states = Counter()
     bounds = []
     side_parts = {side: [] for side in environment.SIDES} if side_enabled else {}
     side_reasons = Counter()
+    fragments = (
+        {comparison["target_band"]: [], comparison["reference_band"]: []}
+        if comparison
+        else {}
+    )
 
     def contribute(pieces, front_valid, duration):
         by_line = [] if side_enabled else None
@@ -225,6 +232,8 @@ def evaluate_day(
             bounds.append((lower, upper))
             part = (hours, contribution.area / 1e6 * duration)
             bins[group].append(part)
+            if group in fragments:
+                fragments[group].append((hours, contribution))
             if masks is not None:
                 side, reason = environment.classify_side(
                     contribution, masks, state, lower
@@ -294,6 +303,19 @@ def evaluate_day(
             side_reasons,
             common,
         )
+    if comparison is not None:
+        row["_comparison_covariates"] = {
+            group: background.band_covariates(
+                day.isoformat(),
+                fragments[comparison[f"{group}_band"]],
+                layers,
+                plane,
+                circle,
+                ids,
+                allocation,
+            )
+            for group in ("target", "reference")
+        }
     return row, bins
 
 
@@ -421,6 +443,10 @@ def evaluate(data, request, identity, qualification=None):
         "invalid_distance_edges",
     )
     require(p0.finite(error) and 0 <= error <= 5, "invalid_front_position_error")
+    comparison = data.get("distance_comparison")
+    if comparison is not None:
+        require(not research, "comparison_research_protocol_not_qualified")
+        comparison = background.validate_comparison(comparison, edges)
     lines = front_days(data["front_days"], start, end, ids.get("front"))
     plane = p0.MetricPlane(*geometry["center"])
     circle = plane.circle(geometry["center"], geometry["radius_km"])
@@ -439,6 +465,7 @@ def evaluate(data, request, identity, qualification=None):
             edges,
             error,
             side_enabled=side_version is not None,
+            comparison=comparison,
         )
         if research:
             # This distance authorization does not cover the side subanalysis.
@@ -480,6 +507,16 @@ def evaluate(data, request, identity, qualification=None):
     if side_version is not None:
         result["month"]["side_environment"] = environment.summarize_month(days)
         result["versions"]["side_environment"] = p0.file_digest(
+            Path(environment.__file__)
+        )
+    if comparison is not None:
+        result["month"]["distance_comparison"] = background.compare_month(
+            days, comparison, edges
+        )
+        result["versions"]["distance_comparison"] = p0.file_digest(
+            Path(background.__file__)
+        )
+        result["versions"]["temperature_support"] = p0.file_digest(
             Path(environment.__file__)
         )
     if qualification is not None:
