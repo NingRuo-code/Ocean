@@ -5,6 +5,7 @@ import calendar
 import hashlib
 import json
 import re
+import stat
 import sys
 from collections import Counter
 from datetime import UTC, date, datetime, timedelta
@@ -435,6 +436,16 @@ def file_observation(path):
     ]
 
 
+def existing_managed_artifact(path):
+    try:
+        mode = path.lstat().st_mode
+    except FileNotFoundError:
+        return False
+    if not stat.S_ISREG(mode):
+        raise ValueError("managed_support_artifact_not_regular")
+    return True
+
+
 def refresh_support(state_path, conditions, source, daily):
     """One explicit writer publishes a receipt only after all output is complete."""
     state_path = state_path.absolute()
@@ -486,7 +497,7 @@ def refresh_support(state_path, conditions, source, daily):
         )
         identity = result["support_snapshot_id"]
         frozen_path = directory / (identity[7:] + ".json")
-        if frozen_path.exists():
+        if existing_managed_artifact(frozen_path):
             if regional.digest(
                 regional.controlled_json(frozen_path)
             ) != regional.digest(result):
@@ -495,7 +506,7 @@ def refresh_support(state_path, conditions, source, daily):
             regional.atomic_text(frozen_path, payload)
         report = frozen_path.with_suffix(".md")
         report_text = render_report(result)
-        if report.exists():
+        if existing_managed_artifact(report):
             with report.open(encoding="utf-8") as stream:
                 if stream.read(len(report_text) + 1) != report_text:
                     raise ValueError("conflicting_frozen_support_report")
