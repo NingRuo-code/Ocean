@@ -2,13 +2,16 @@
 
 import calendar
 import copy
+import subprocess
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
-from threading import RLock
+from threading import Lock, RLock
+from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import ValidationError
 
 from .analysis_support import (
@@ -19,7 +22,8 @@ from .analysis_support import (
 )
 from .config import Settings
 from .monthly_capability import create_capability_router
-from .monthly_models import KnownCircle, MonthlyExample, MonthlyRequest
+from .monthly_distance_reference import calculate_distance_reference
+from .monthly_models import KnownCircle, MonthlyDistanceRequest, MonthlyExample, MonthlyRequest
 from .owner_access import owner_requirement
 from .published_months import PUBLISHED_PATH, create_published_router
 from .schemas import BasicQueryEvidence
@@ -29,6 +33,7 @@ from .synthetic_runs import create_synthetic_run_router
 EXAMPLE_PATH = Path(__file__).parent / "examples" / "monthly-known-units.json"
 METHOD_VERSION = "monthly-known-support/v1"
 PARAMETER_VERSION = "known-unit-membership/v1"
+OPTIONAL_OWNER = HTTPBearer(auto_error=False)
 
 
 def _calculate(request: MonthlyRequest, circle: KnownCircle, data, fingerprint):
@@ -120,6 +125,7 @@ def create_monthly_router(
         )
     )
     records, lock = {}, RLock()
+    distance_lock = Lock()
     require_owner = owner_requirement(settings)
 
     def reserve(request):
@@ -169,7 +175,25 @@ def create_monthly_router(
         }
 
     @router.post("", dependencies=[Depends(require_owner)])
-    def submit(request: MonthlyRequest):
+    def submit(request: MonthlyRequest | MonthlyDistanceRequest, response: Response):
+        if isinstance(request, MonthlyDistanceRequest):
+            response.headers["Cache-Control"] = "no-store"
+            source = settings.monthly_distance_input_path
+            if source is None:
+                raise HTTPException(503, "Registered distance reference is unavailable")
+            if not distance_lock.acquire(blocking=False):
+                raise HTTPException(409, "A controlled distance calculation is already running")
+            try:
+                run_id = reserve(request)
+                try:
+                    result = calculate_distance_reference(request, source)
+                except (OSError, ValueError, TypeError, AttributeError, subprocess.SubprocessError):
+                    return finish(
+                        run_id, error={"code": "distance_reference_unavailable_or_invalid"}
+                    )
+            finally:
+                distance_lock.release()
+            return finish(run_id, result=result)
         try:
             data, fingerprint = read_controlled_input(example_path, MonthlyExample)
         except (OSError, ValueError, ValidationError):
@@ -201,10 +225,17 @@ def create_monthly_router(
         return finish(run_id, result=result)
 
     @router.get("/{run_id}")
-    def read(run_id: str):
+    def read(
+        run_id: str,
+        response: Response,
+        credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(OPTIONAL_OWNER)],
+    ):
         with lock:
             if run_id not in records:
                 raise HTTPException(404, "Run unavailable in this process; reads never restart it")
+            if records[run_id]["request"]["purpose"] == "monthly_distance_reference":
+                require_owner(credentials)
+                response.headers["Cache-Control"] = "no-store"
             return copy.deepcopy(records[run_id])
 
     return router

@@ -414,7 +414,36 @@ def prepare_layer_geometry(layer, plane):
     }
 
 
-def regional_day(day, layers, required, region, plane, allocation, source_ids):
+def allocated_pieces(activity, footprint):
+    for hours, shape in activity:
+        piece = shape.intersection(footprint)
+        if piece.area > 0:
+            yield hours * piece.area / shape.area, piece
+
+
+def observed_activity_accounting(activity, domain):
+    hours, area_time, reason = None, None, "activity_observation_unavailable"
+    if activity is not None:
+        pieces = list(allocated_pieces(activity, domain))
+        hours = math.fsum(value for value, _ in pieces) if pieces else None
+        area_time = math.fsum(part.area / 1e6 for _, part in pieces)
+        reason = (
+            "required_common_support_unavailable"
+            if pieces
+            else "no_observed_activity_area"
+        )
+    return {
+        "observed_hours": hours,
+        "observed_area_time_km2_days": area_time,
+        "observed_not_assigned_hours": hours,
+        "observed_not_assigned_area_time_km2_days": area_time,
+        "reason": reason,
+    }
+
+
+def regional_day(
+    day, layers, required, region, plane, allocation, source_ids, *, on_common=None
+):
     area = region.area / 1e6
     row = {
         "date": day,
@@ -488,14 +517,10 @@ def regional_day(day, layers, required, region, plane, allocation, source_ids):
                 unknown_request_area_km2=unknown_area,
                 known_excluded_area_km2=max(0, area - unknown_area - valid_area),
             )
-    if row["reasons"]:
-        return row
-    durations = [layer["duration_days"] for layer in selected]
-    if max(durations) - min(durations) > 1e-12:
-        row["reasons"].append("inconsistent_temporal_support")
+    if row["reasons"] and on_common is None:
         return row
     domain = region
-    if allocation == "cell_center":
+    if allocation == "cell_center" and "activity" in prepared:
         chosen = []
         for cell in by_kind["activity"]["cells"]:
             if cell["support"] != "valid" or cell.get("hours") is None:
@@ -505,6 +530,16 @@ def regional_day(day, layers, required, region, plane, allocation, source_ids):
             if region.distance(center) <= 0.001:
                 chosen.append(plane.rectangle(b))
         domain = unary_union(chosen)
+    if on_common is not None:
+        row["activity_accounting"] = observed_activity_accounting(
+            prepared.get("activity", {}).get("weighted"), domain
+        )
+    if row["reasons"]:
+        return row
+    durations = [layer["duration_days"] for layer in selected]
+    if max(durations) - min(durations) > 1e-12:
+        row["reasons"].append("inconsistent_temporal_support")
+        return row
     joint, known = domain, region
     activity, fronts = prepared["activity"]["weighted"], prepared["front"]["weighted"]
     for layer in selected:
@@ -526,9 +561,24 @@ def regional_day(day, layers, required, region, plane, allocation, source_ids):
         row["area_time_km2_days"] = 0.0
         row["reasons"].append("no_qualified_common_support")
         return row
-    hours = math.fsum(
-        value * shape.intersection(joint).area / shape.area for value, shape in activity
-    )
+    pieces = allocated_pieces(activity, joint)
+    if on_common is not None:
+        pieces = list(pieces)
+        on_common(pieces, prepared["front"]["valid"], durations[0])
+    hours = math.fsum(value for value, _ in pieces)
+    if on_common is not None:
+        accounting = row["activity_accounting"]
+        remainder_hours = max(0.0, accounting["observed_hours"] - hours)
+        remainder_area = max(
+            0.0, accounting["observed_area_time_km2_days"] - joint_area * durations[0]
+        )
+        accounting.update(
+            observed_not_assigned_hours=remainder_hours,
+            observed_not_assigned_area_time_km2_days=remainder_area,
+            reason="observed_portion_not_on_common_support"
+            if remainder_area > AREA_TOL
+            else "observed_activity_assigned",
+        )
     sides = {
         side: unary_union([shape for value, shape in fronts if value == side])
         for side in ["cold", "warm", "unknown"]

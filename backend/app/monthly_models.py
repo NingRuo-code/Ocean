@@ -14,8 +14,8 @@ class ClosedModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class MonthlyRequest(ClosedModel):
-    purpose: Literal["monthly_spatial_example"]
+class MonthlyConditions(ClosedModel):
+    purpose: str
     longitude: Annotated[Finite, Field(ge=-180, le=180)]
     latitude: Annotated[Finite, Field(ge=-90, le=90)]
     radius_km: Literal[10, 20, 30]
@@ -23,6 +23,14 @@ class MonthlyRequest(ClosedModel):
     input_version: Annotated[str, Field(min_length=1, max_length=100)]
     method_version: Annotated[str, Field(min_length=1, max_length=100)]
     parameter_version: Annotated[str, Field(min_length=1, max_length=100)]
+
+
+class MonthlyRequest(MonthlyConditions):
+    purpose: Literal["monthly_spatial_example"]
+
+
+class MonthlyDistanceRequest(MonthlyConditions):
+    purpose: Literal["monthly_distance_reference"]
 
 
 class KnownUnit(ClosedModel):
