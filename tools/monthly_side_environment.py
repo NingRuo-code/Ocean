@@ -22,8 +22,10 @@ def side_masks(layers, plane):
     }
 
 
-def classify_side(piece, masks, distance_lower_km):
-    if distance_lower_km is None:
+def classify_side(piece, masks, distance_state, distance_lower_km):
+    if distance_state == "not_detected_within_search":
+        return "unknown", "no_detected_line_for_side"
+    if distance_lower_km is None or distance_state == "insufficient_search_support":
         return "unknown", "same_day_line_position_unverified"
     if distance_lower_km == 0:
         return "unknown", "within_line_position_uncertainty"

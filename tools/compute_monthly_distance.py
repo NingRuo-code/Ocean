@@ -226,7 +226,9 @@ def evaluate_day(
             part = (hours, contribution.area / 1e6 * duration)
             bins[group].append(part)
             if masks is not None:
-                side, reason = environment.classify_side(contribution, masks, lower)
+                side, reason = environment.classify_side(
+                    contribution, masks, state, lower
+                )
                 # Allow for half the sampling interval and distortion inside the P0 local domain.
                 if (
                     side != "unknown"

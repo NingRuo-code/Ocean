@@ -173,3 +173,31 @@ def test_small_sst_overlap_is_excluded_instead_of_double_counted(tmp_path):
     assert measurement["ambiguous_area_time_km2_days"] == pytest.approx(
         day["common"]["area_time_km2_days"] * 4 / 14
     )
+
+
+@pytest.mark.parametrize(
+    ("front_extent", "distance_state", "side_reason"),
+    [
+        (0.1, "insufficient_search_support", "same_day_line_position_unverified"),
+        (0.4, "not_detected_within_search", "no_detected_line_for_side"),
+    ],
+)
+def test_distance_lower_bound_does_not_alone_qualify_side(
+    tmp_path, front_extent, distance_state, side_reason
+):
+    reference = side_fixture()
+    reference["distance_edges_km"] = [1, 20]
+    reference["front_days"][0]["lines"] = []
+    front = reference["regional_cells"]["days"][0]["layers"][0]
+    front["cells"][0]["bounds"] = [-front_extent, -front_extent, 0, front_extent]
+    front["cells"][1]["bounds"] = [0, -front_extent, front_extent, front_extent]
+    client, _, request = case(tmp_path, reference)
+    run = client.post(URL, headers=AUTH, json=request)
+    assert run.status_code == 200, run.text
+    day = run.json()["result"]["days"][0]
+    assert day["minimum_proven_lower_km"] == (1 if front_extent == 0.1 else 20)
+    assert day["distance_states"][distance_state] == 3
+    result = day["side_environment"]
+    assert result["sides"]["cold"]["hours"] is None and result["sides"]["warm"]["hours"] is None
+    assert result["sides"]["unknown"]["hours"] == pytest.approx(23)
+    assert result["side_reasons_by_unit_count"][side_reason] == 3
