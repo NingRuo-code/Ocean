@@ -10,6 +10,8 @@ NonNegative = Annotated[float, Field(strict=True, ge=0, allow_inf_nan=False)]
 Month = Annotated[str, Field(pattern=r"^[12]\d{3}-(0[1-9]|1[0-2])$")]
 SnapshotId = Annotated[str, Field(pattern=r"^sha256:[a-f0-9]{64}$")]
 LayerUse = Literal["front_effort", "front_effort_sst"]
+DistanceMethod = Literal["wgs84-distance-bands/v1"]
+DistanceParameters = Literal["half-open-bands/v1"]
 
 
 class ClosedModel(BaseModel):
@@ -47,6 +49,17 @@ class MonthlyResearchRequest(MonthlyConditions):
     purpose: Literal["monthly_spatial_research"]
     layer_use: LayerUse
     support_snapshot_id: SnapshotId
+    analysis_scope: Literal["distance", "side"] = "distance"
+
+
+class MonthlyResearchApproval(ClosedModel):
+    """Independent authorization for exactly one frozen P0 snapshot and prepared package."""
+
+    approval_id: SnapshotId
+    support_snapshot_id: SnapshotId
+    input_version: SnapshotId
+    method_version: DistanceMethod
+    parameter_version: DistanceParameters
 
 
 class KnownUnit(ClosedModel):

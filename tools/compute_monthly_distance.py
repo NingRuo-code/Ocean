@@ -268,6 +268,12 @@ def verify_qualification(source, resolved, conditions, request, qualification):
         "regional_engine_sha256": "sha256:" + p0.file_digest(Path(p0.__file__)),
         "source_reader_sha256": "sha256:"
         + p0.file_digest(Path(__file__).with_name("audit_daily_sources.py")),
+        "geometry_runtime": {
+            "shapely": p0.shapely.__version__,
+            "pyproj": p0.pyproj.__version__,
+            "GEOS": p0.shapely.geos_version_string,
+            "PROJ": p0.pyproj.proj_version_str,
+        },
     }
     if (
         request["layer_use"] != conditions["layer_use"]
@@ -302,9 +308,19 @@ def evaluate(data, request, identity, qualification=None):
     )
     source = data["regional_cells"]
     verify_qualification(source, resolved, conditions, request, qualification)
-    # This owner-controlled software reference publishes only explicitly registered synthetic aggregates.
+    research = request["purpose"] == "monthly_spatial_research"
     require(
-        source["evidence_kind"] == "synthetic",
+        source["evidence_kind"] == ("audited_cells" if research else "synthetic")
+        and (
+            not research
+            or (
+                qualification is not None
+                and qualification.get("scope")
+                == "approved_frozen_input_direct_reference"
+                and qualification.get("approval_id")
+                and request.get("analysis_scope") == "distance"
+            )
+        ),
         "real_input_requires_separate_qualification",
     )
     daily_layers = p0.validate_cells(source)
@@ -348,8 +364,8 @@ def evaluate(data, request, identity, qualification=None):
         for destination, parts in zip(month_parts, bins, strict=True):
             destination.extend(parts)
     result = {
-        "kind": "monthly_distance_reference",
-        "evidence_kind": "synthetic",
+        "kind": request["purpose"],
+        "evidence_kind": source["evidence_kind"],
         "research_ready": False,
         "parameters": request,
         "p0_conditions": conditions,

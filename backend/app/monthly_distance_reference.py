@@ -1,4 +1,4 @@
-"""Explicit owner calculation over a maintainer-registered synthetic geometry input."""
+"""Owner calculation over bounded, maintainer-registered geometry inputs."""
 
 import json
 import subprocess
@@ -6,6 +6,7 @@ import sys
 
 from .analysis_support import read_regular_bytes
 from .config import PROJECT_ROOT
+from .monthly_models import MonthlyResearchRequest
 
 MAX_INPUT_BYTES = 16 * 1024 * 1024
 REFERENCE_ENGINE = PROJECT_ROOT / "tools" / "compute_monthly_distance.py"
@@ -27,6 +28,12 @@ def calculate_distance_reference(request, source, qualification=None):
             raise QualificationInputMismatch from None
         raise
     result = json.loads(child.stdout)
-    if result.get("evidence_kind") != "synthetic" or result.get("research_ready") is not False:
+    evidence_kind = "audited_cells" if isinstance(request, MonthlyResearchRequest) else "synthetic"
+    if (
+        result.get("evidence_kind") != evidence_kind
+        or result.get("research_ready") is not False
+        or result.get("kind") != request.purpose
+        or result.get("qualification") != qualification
+    ):
         raise ValueError("reference_output_boundary")
     return result

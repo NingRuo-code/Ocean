@@ -3,6 +3,8 @@ from pathlib import Path
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .monthly_models import MonthlyResearchApproval
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -24,6 +26,8 @@ class Settings(BaseSettings):
     support_snapshot_path: Path | None = None
     support_state_path: Path | None = None
     monthly_distance_input_path: Path | None = None
+    monthly_research_input_path: Path | None = None
+    monthly_research_approval: MonthlyResearchApproval | None = None
 
     model_config = SettingsConfigDict(
         env_prefix="OCEAN_",

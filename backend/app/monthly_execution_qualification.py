@@ -1,12 +1,12 @@
 """Qualify explicit monthly requests using frozen P0 evidence."""
 
 from calendar import monthrange
-from typing import NoReturn
+from typing import NoReturn, get_args
 
 from fastapi import HTTPException
 
-from .audited_support import read_audited_support
-from .monthly_models import MonthlyResearchRequest
+from .audited_support import PROTOCOL_HASHES, evidence_id, read_audited_support
+from .monthly_models import DistanceMethod, DistanceParameters, MonthlyResearchRequest
 
 
 def _reject(reason, support) -> NoReturn:
@@ -32,9 +32,19 @@ def qualify_execution(settings, request):
         _reject(support["reason"], support)
     if support["snapshot_id"] != request.support_snapshot_id:
         _reject("support_snapshot_identity_mismatch", support)
+    if request.method_version not in get_args(
+        DistanceMethod
+    ) or request.parameter_version not in get_args(DistanceParameters):
+        _reject("analysis_method_or_parameter_version_mismatch", support)
+    if evidence_id(request.input_version) is None:
+        _reject("analysis_input_version_unverified", support)
+    if "geometry_runtime" not in support["versions"]:
+        _reject("geometry_runtime_version_unverified", support)
     year, month = map(int, request.month.split("-"))
     dates = [f"{request.month}-{day:02d}" for day in range(1, monthrange(year, month)[1] + 1)]
     period = support["month"]
+    if any(proof and proof["state"] == "blocked" for proof in support["evidence"].values()):
+        _reject("support_evidence_explicitly_blocked", support)
     if (
         sorted(row["date"] for row in support["days"]) != dates
         or any(not row["included"] for row in support["days"])
@@ -43,24 +53,42 @@ def qualify_execution(settings, request):
         or period["computational_support"] != "supported"
     ):
         _reject("incomplete_required_support", support)
+    approval_id = None
     if isinstance(request, MonthlyResearchRequest):
-        if support["evidence_kind"] == "synthetic" or not period["data_gate_passed"]:
+        if request.analysis_scope == "side":
+            _reject("side_specific_support_not_verified", support)
+        if support["evidence_kind"] != "audited_cells" or not period["data_gate_passed"]:
             _reject("formal_research_qualification_missing", support)
-        # P0 reports frozen declarations. It cannot attest current originals or approve research.
-        _reject("current_source_identity_and_research_approval_not_verified", support)
-    if support["evidence_kind"] != "synthetic":
+        approval = settings.monthly_research_approval
+        # A self-declared P0 data gate is not independent authorization.
+        if approval is None or settings.monthly_research_input_path is None:
+            _reject("current_source_identity_and_research_approval_not_verified", support)
+        if any(
+            getattr(approval, field) != getattr(request, field)
+            for field in (
+                "support_snapshot_id",
+                "input_version",
+                "method_version",
+                "parameter_version",
+            )
+        ):
+            _reject("research_approval_identity_mismatch", support)
+        approval_id = approval.approval_id
+    elif support["evidence_kind"] != "synthetic":
         _reject("synthetic_reference_requires_synthetic_support", support)
     return {
         "snapshot_id": support["snapshot_id"],
-        "scope": "frozen_synthetic_validation",
+        "scope": "approved_frozen_input_direct_reference"
+        if approval_id
+        else "frozen_synthetic_validation",
+        **({"approval_id": approval_id} if approval_id else {}),
         "versions": {
             key: support["versions"][key]
             for key in (
                 "input_sha256",
                 "parameter",
-                "auditor_sha256",
-                "regional_engine_sha256",
-                "source_reader_sha256",
+                "geometry_runtime",
+                *PROTOCOL_HASHES,
             )
         },
     }

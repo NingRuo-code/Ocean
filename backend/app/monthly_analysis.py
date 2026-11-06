@@ -186,14 +186,16 @@ def create_monthly_router(
         request: MonthlyRequest | MonthlyDistanceRequest | MonthlyResearchRequest,
         response: Response,
     ):
-        if isinstance(request, MonthlyResearchRequest):
-            qualify_execution(settings, request)
-        if isinstance(request, MonthlyDistanceRequest):
+        if isinstance(request, (MonthlyDistanceRequest, MonthlyResearchRequest)):
             response.headers["Cache-Control"] = "no-store"
             qualification = (
                 qualify_execution(settings, request) if request.support_snapshot_id else None
             )
-            source = settings.monthly_distance_input_path
+            source = (
+                settings.monthly_research_input_path
+                if isinstance(request, MonthlyResearchRequest)
+                else settings.monthly_distance_input_path
+            )
             if source is None:
                 raise HTTPException(503, "Registered distance reference is unavailable")
             if not distance_lock.acquire(blocking=False):
@@ -252,7 +254,10 @@ def create_monthly_router(
         with lock:
             if run_id not in records:
                 raise HTTPException(404, "Run unavailable in this process; reads never restart it")
-            if records[run_id]["request"]["purpose"] == "monthly_distance_reference":
+            if records[run_id]["request"]["purpose"] in {
+                "monthly_distance_reference",
+                "monthly_spatial_research",
+            }:
                 require_owner(credentials)
                 response.headers["Cache-Control"] = "no-store"
             return copy.deepcopy(records[run_id])
