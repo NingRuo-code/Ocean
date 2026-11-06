@@ -131,3 +131,35 @@ def test_comparison_checks_same_day_sst_and_position_without_adjusting_main_hour
     assert month["comparability"]["sst_paired_dates"] == ["2024-08-01"]
     assert month["comparability"]["target_minus_reference_temperature_c"] == pytest.approx(-6)
     assert month["target"]["hours"] == 8 and month["reference"]["hours"] == 4
+
+
+def test_center_allocation_cannot_silently_expand_the_comparison_circle(tmp_path):
+    reference = comparison_fixture(8, 4)
+    reference["conditions"]["allocation"] = "cell_center"
+    reference["distance_comparison"]["minimum_area_ratio"] = 0.1
+    reference["regional_cells"]["days"][0]["layers"][1]["cells"][1]["bounds"] = [
+        0.086,
+        -0.002,
+        0.092,
+        0.002,
+    ]
+    client, _, request = case(tmp_path, reference)
+    run = client.post(URL, headers=AUTH, json=request)
+    assert run.status_code == 200, run.text
+    result = run.json()["result"]
+    first = result["days"][0]["distance_comparison"]
+    assert first["reference"]["hours"] == pytest.approx(4)
+    assert first["reason"] == "selected_support_extends_requested_circle"
+    assert result["month"]["distance_comparison"]["paired_dates"] == []
+
+
+def test_unrepresentable_ratio_retains_the_finite_absolute_effect(tmp_path):
+    client, _, request = case(tmp_path, comparison_fixture(8, 1e-310))
+    run = client.post(URL, headers=AUTH, json=request)
+    assert run.status_code == 200, run.text
+    record = run.json()
+    assert record["state"] == "completed", record
+    comparison = record["result"]["month"]["distance_comparison"]
+    assert comparison["difference_hours_per_km2_day"] > 0
+    assert comparison["density_ratio"] is None
+    assert comparison["relative_reason"] == "relative_effect_outside_numeric_range"

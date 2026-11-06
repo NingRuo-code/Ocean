@@ -30,6 +30,7 @@ def compare_day(day, policy):
     reference = day["bands"][policy["reference_band"]]
     target_area = target["area_time_km2_days"]
     reference_area = reference["area_time_km2_days"]
+    covariates = day.pop("_comparison_covariates")
     area_ratio = None
     if not target_area and not reference_area:
         reason = "neither_band_has_supported_area"
@@ -39,11 +40,15 @@ def compare_day(day, policy):
         reason = "no_reference_area"
     else:
         area_ratio = min(target_area, reference_area) / max(target_area, reference_area)
-        reason = (
-            "support_area_imbalance"
-            if area_ratio < policy["minimum_area_ratio"]
-            else None
-        )
+        if any(
+            group["outside_requested_circle_area_km2"] > p0.AREA_TOL
+            for group in covariates.values()
+        ):
+            reason = "selected_support_extends_requested_circle"
+        elif area_ratio < policy["minimum_area_ratio"]:
+            reason = "support_area_imbalance"
+        else:
+            reason = None
     return {
         "date": day["date"],
         "target": target,
@@ -53,21 +58,23 @@ def compare_day(day, policy):
         "reason": reason,
         "target_weight": None,
         "reference_weight": None,
-        "covariates": day.pop("_comparison_covariates"),
+        "covariates": covariates,
     }
 
 
 def band_covariates(day, fragments, layers, plane, circle, ids, allocation):
-    areas, moments = [], []
+    areas, moments, outside = [], [], []
     for _, piece in fragments:
         anchor = piece.representative_point()
         areas.append(piece.area)
         moments.append(piece.area * math.hypot(anchor.x, anchor.y) / 1000)
+        outside.append(piece.difference(circle).area)
     area = math.fsum(areas)
     return {
         "mean_local_distance_to_circle_center_km": math.fsum(moments) / area
         if area
         else None,
+        "outside_requested_circle_area_km2": math.fsum(outside) / 1e6,
         "sst": summarize_sst_subset(
             day, layers, plane, circle, ids, allocation, fragments
         ),
@@ -128,6 +135,11 @@ def compare_month(days, policy, edges):
     density = target["density_hours_per_km2_day"]
     background = reference["density_hours_per_km2_day"]
     ratio = density / background if background else None
+    relative_reason = None
+    if ratio is not None and not math.isfinite(ratio):
+        ratio, relative_reason = None, "relative_effect_outside_numeric_range"
+    elif ratio is None:
+        relative_reason = "zero_reference_density" if paired else "no_comparable_dates"
     sst_dates, sst_difference = _paired_temperature(paired)
 
     def band(index):
@@ -151,11 +163,7 @@ def compare_month(days, policy, edges):
         "difference_hours_per_km2_day": density - background if paired else None,
         "density_ratio": ratio,
         "relative_difference": ratio - 1 if ratio is not None else None,
-        "relative_reason": None
-        if ratio is not None
-        else "zero_reference_density"
-        if paired
-        else "no_comparable_dates",
+        "relative_reason": relative_reason,
         "reason": None if paired else "no_comparable_dates",
         "status": "paired_descriptive_distance_difference"
         if paired
