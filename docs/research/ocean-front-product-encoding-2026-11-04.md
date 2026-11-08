@@ -67,3 +67,7 @@
 进一步查阅作者新论文关联的[代码记录17218778](https://zenodo.org/records/17218778)，取得两份MATLAB分析脚本，原字节与SHA256留存于本地`author-2026-code-manifest.json`。FRAD脚本将`front_cca_warm_cold.nc`的time直接与fish_data第一列取整后比较；RDFPA脚本还对该鱼业日期调用`datestr`提取月份。这给出了作者分析链使用MATLAB日期序号的实际线索，比纯数值巧合更强。
 
 但该输入是不同布局的合并NetCDF（longitude/latitude），脚本不含当前逐日`front_location*.nc`的时间写出过程。这里仍无法直接证明新版原文件沿用了相同编码，故只记为候选解释的新证据，不将time_verified改为true，不修改原档。[作者代码来源](https://zenodo.org/records/17218778)
+
+## 11 月 8 日续查
+
+核对作者发布的浮游植物分析脚本 `Calculate_frontal_hotspot_and_barrier_effects.m`，共 5,781 字节，与归档公布的 MD5 `99a29412ed1e094ca339db03e5c98464` 一致，SHA-256 为 `c0c7ea42e5532c5e2e28382b4b74d9755b4f1dae45af07e9b4de31f1480cfe24`。脚本以 MATLAB `datenum` 生成日期并与文件内部时间直接匹配，适用输入为合并文件 `front_ccaim_warm_cold.nc`。当前逐日产品的写出公式、日期标签和格网边界仍需作者确认。[脚本归档](https://zenodo.org/records/20279533) · [询证草稿](ocean-source-provider-inquiries-2026-11-08.md)
