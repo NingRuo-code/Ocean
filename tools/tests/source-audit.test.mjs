@@ -110,6 +110,22 @@ test("an expanded source scan rejects directory scopes and invalid budgets befor
   assert.equal(JSON.parse(readFileSync(w.output, "utf8")).sources[0].inventory.files_read, 1);
 });
 
+test("an expanded source scan still rejects a directory listed after its file limit", () => {
+  const w = workspace();
+  const files = Array.from({ length: 999 }, (_, i) => `private-input/empty-${i}.csv`);
+  for (const file of files) writeFileSync(join(w.root, file), "");
+  try {
+    w.registry.sources[0].locations.push(...files, "private-input");
+    writeFileSync(w.registryPath, JSON.stringify(w.registry));
+    const expanded = run(w, ["--source-byte-budget-mib", "2048"]);
+    assert.equal(expanded.status, 1);
+    assert.match(expanded.stderr, /expanded_budget_requires_files/);
+    assert.equal(existsSync(w.output), false);
+  } finally {
+    for (const file of files) unlinkSync(join(w.root, file));
+  }
+});
+
 test("source registration rejects duplicate declarations and frozen keys instead of silently taking the last value", () => {
   for (const mode of ["registry", "escaped-registry", "frozen"]) {
     const w = workspace();

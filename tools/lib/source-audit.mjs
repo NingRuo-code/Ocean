@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
-import { createReadStream } from "node:fs";
-import { writeFile, mkdir, rename, lstat, readdir, realpath } from "node:fs/promises";
+import { writeFile, mkdir, rename, lstat, readdir, realpath, open } from "node:fs/promises";
 import { dirname, resolve, relative, isAbsolute, extname } from "node:path";
 import {readAuditJson} from "./audit-json.mjs";
 
@@ -11,6 +10,8 @@ const DEFAULT_BUDGET_MIB = 256;
 const MAX_EXPLICIT_BUDGET_MIB = 2048;
 const extensions = new Set([".js", ".json", ".csv", ".nc", ".nc4", ".parquet"]);
 const digest = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
+const sameSourceFile = (before, after) => after.isFile() && before.dev === after.dev &&
+  before.ino === after.ino && before.size === after.size && before.mtimeMs === after.mtimeMs && before.ctimeMs === after.ctimeMs;
 const within = (root, target) => {
   const rel = relative(root, target);
   return rel === "" || (!isAbsolute(rel) && rel !== ".." && !rel.startsWith("..\\") && !rel.startsWith("../"));
@@ -44,15 +45,18 @@ async function inspectSource(source, root, budget, privateLocations) {
   let bytes = 0;
   let locationsRead = 0;
   const visit = async (path) => {
-    if (budget.files <= 0) { issues.push("file_budget_exceeded"); return; }
+    if (budget.files <= 0 && !budget.exactFilesOnly) { issues.push("file_budget_exceeded"); return; }
     const actual = await realpath(path);
     if (!within(root, actual)) { issues.push("outside_source_root"); return; }
     if (seen.has(actual)) return;
     seen.add(actual);
     const stat = await lstat(path);
     if (stat.isSymbolicLink()) { issues.push("symbolic_link_not_followed"); return; }
+    if (budget.exactFilesOnly && stat.isDirectory()) {
+      throw Object.assign(new Error("List files explicitly"), { code: "expanded_budget_requires_files" });
+    }
+    if (budget.files <= 0) { issues.push("file_budget_exceeded"); return; }
     if (stat.isDirectory()) {
-      if (budget.exactFilesOnly) throw Object.assign(new Error("List files explicitly"), { code: "expanded_budget_requires_files" });
       for (const name of (await readdir(path)).sort()) {
         if (budget.files <= 0) { issues.push("file_budget_exceeded"); break; }
         await visit(resolve(path, name));
@@ -65,17 +69,25 @@ async function inspectSource(source, root, budget, privateLocations) {
     if (stat.size > budget.bytes) { issues.push("byte_budget_exceeded"); return; }
     const hash = createHash("sha256");
     let size = 0;
-    if (stat.size) {
-      for await (const chunk of createReadStream(path, { end: stat.size - 1 })) {
-        size += chunk.length;
-        budget.bytes -= chunk.length;
-        hash.update(chunk);
+    const file = await open(path, "r");
+    try {
+      if (!sameSourceFile(stat, await file.stat())) {
+        issues.push("source_changed_during_read");
+        return;
       }
-    }
-    const after = await lstat(path);
-    if (size !== stat.size || after.size !== stat.size || after.mtimeMs !== stat.mtimeMs || after.ctimeMs !== stat.ctimeMs) {
-      issues.push("source_changed_during_read");
-      return;
+      if (stat.size) {
+        for await (const chunk of file.createReadStream({ end: stat.size - 1, autoClose: false })) {
+          size += chunk.length;
+          budget.bytes -= chunk.length;
+          hash.update(chunk);
+        }
+      }
+      if (size !== stat.size || !sameSourceFile(stat, await file.stat()) || !sameSourceFile(stat, await lstat(path))) {
+        issues.push("source_changed_during_read");
+        return;
+      }
+    } finally {
+      await file.close();
     }
     bytes += size;
     const id = `${source.id}:${String(files.length + 1).padStart(4, "0")}`;
