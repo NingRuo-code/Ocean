@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, truncateSync, unlinkSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, truncateSync, unlinkSync, existsSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -124,6 +124,17 @@ test("an expanded source scan still rejects a directory listed after its file li
   } finally {
     for (const file of files) unlinkSync(join(w.root, file));
   }
+});
+
+test("an expanded source scan rejects a directly listed directory after its linked alias", () => {
+  const w = workspace();
+  symlinkSync(join(w.root, "private-input"), join(w.root, "linked-input"), "junction");
+  w.registry.sources[0].locations = ["linked-input", "private-input"];
+  writeFileSync(w.registryPath, JSON.stringify(w.registry));
+  const result = run(w, ["--source-byte-budget-mib", "2048"]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /expanded_budget_requires_files/);
+  assert.equal(existsSync(w.output), false);
 });
 
 test("source registration rejects duplicate declarations and frozen keys instead of silently taking the last value", () => {

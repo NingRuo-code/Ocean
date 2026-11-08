@@ -48,13 +48,13 @@ async function inspectSource(source, root, budget, privateLocations) {
     if (budget.files <= 0 && !budget.exactFilesOnly) { issues.push("file_budget_exceeded"); return; }
     const actual = await realpath(path);
     if (!within(root, actual)) { issues.push("outside_source_root"); return; }
-    if (seen.has(actual)) return;
-    seen.add(actual);
     const stat = await lstat(path);
     if (stat.isSymbolicLink()) { issues.push("symbolic_link_not_followed"); return; }
     if (budget.exactFilesOnly && stat.isDirectory()) {
       throw Object.assign(new Error("List files explicitly"), { code: "expanded_budget_requires_files" });
     }
+    if (seen.has(actual)) return;
+    seen.add(actual);
     if (budget.files <= 0) { issues.push("file_budget_exceeded"); return; }
     if (stat.isDirectory()) {
       for (const name of (await readdir(path)).sort()) {
