@@ -12,6 +12,7 @@ There are two different delivery paths:
 
 - **Existing source checkout:** the legacy layout below describes the already-running service. Sync only a fixed reviewed commit and explicitly approved aggregate assets after target admission and compatibility checks.
 - **O01 isolated release package:** [the isolated release instructions](../docs/reports/ocean-isolated-release-implementation-2026-10-27.md) build an allowlisted, platform-specific package and run a loopback read-only profile. That profile is not a drop-in Linux production deployment. It excludes real activity inputs and does not activate persistent tasks, private cases, reports or AI. Do not copy a Windows package to Ubuntu and infer compatibility.
+  When startup imports change, update the explicit module list in `deploy/release-allowlist.json` and rerun `tools/tests/isolated-release.test.mjs` against the installed package. The package includes the Python modules needed to import the app. The analysis worker and original data belong to the research environment.
 
 `deploy/deploy.ps1` and `remote-setup.sh` are retained legacy helpers, not the current production release mechanism. Their broad staging/setup/data-upload behavior and SSH defaults need separate review before use; this runbook does not authorize running them. OPS release switching, permissions, task fencing, backups and recovery remain separate gates.
 

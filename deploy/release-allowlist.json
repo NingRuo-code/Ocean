@@ -17,6 +17,10 @@
       "target": "backend/app/analysis_support.py"
     },
     {
+      "source": "backend/app/audited_support.py",
+      "target": "backend/app/audited_support.py"
+    },
+    {
       "source": "backend/app/cache_maintenance.py",
       "target": "backend/app/cache_maintenance.py"
     },
@@ -139,6 +143,14 @@
     {
       "source": "backend/app/monthly_capability.py",
       "target": "backend/app/monthly_capability.py"
+    },
+    {
+      "source": "backend/app/monthly_distance_reference.py",
+      "target": "backend/app/monthly_distance_reference.py"
+    },
+    {
+      "source": "backend/app/monthly_execution_qualification.py",
+      "target": "backend/app/monthly_execution_qualification.py"
     },
     {
       "source": "backend/app/monthly_models.py",

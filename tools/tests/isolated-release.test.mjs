@@ -36,7 +36,9 @@ test('fixed release starts original API from an independently installed no-Git p
   await writeFile(join(f.repo,'frontend/prototype/prototype-fishing.html'),'UNAPPROVED_WORKTREE');
   const built=command(['build','--repo',f.repo,'--commit',f.commit,'--out',bundle]);
   const members=spawnSync(python,['-c',"import zipfile,sys,json;print(json.dumps(zipfile.ZipFile(sys.argv[1]).namelist()))",bundle],{encoding:'utf8',windowsHide:true,timeout:15000});assert.equal(members.status,0,members.stderr);
-  for(const name of ['real-effort-input.json','fixture-effort-sample.json'])assert.equal(JSON.parse(members.stdout).includes('frontend/prototype/data/front_response/'+name),false);
+  const archived=JSON.parse(members.stdout);
+  for(const name of ['real-effort-input.json','fixture-effort-sample.json'])assert.equal(archived.includes('frontend/prototype/data/front_response/'+name),false);
+  assert.equal(archived.some(name=>name.startsWith('tools/')),false);
   command(['init','--root',isolation]);
   const installed=command(['install','--bundle',bundle,'--expected',built.bundle_sha256,'--commit',f.commit,'--root',isolation]);
   child=spawn(installed.python,['-I','-S','-B',join(installed.path,'deploy/release.py'),'serve','--release',installed.path,'--expected',built.release_id],{windowsHide:true,stdio:['ignore','pipe','pipe'],env:{...process.env,OCEAN_AI_PROVIDER:'local',OCEAN_MONTHLY_EXECUTION_TOKEN:'untrusted-parent-token'}});
