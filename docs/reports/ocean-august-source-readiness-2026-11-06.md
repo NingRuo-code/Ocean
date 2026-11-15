@@ -16,6 +16,19 @@
 
 本地操作入口位于 Git 忽略的 `data/processed/intake-20261104/`：`2024-08-source-archive-preflight.json` 为逐成员目录证据，`2024-08-source-registry.private.json` 与 `2024-08-daily-registry.private.json` 为审计登记，`2024-08-source-readback.json` 与 `2024-08-daily-readback.json` 为本轮回读产物。新机器须根据固定目录与原档重新生成登记及私有定位，不能用本报告替代实际输入哈希。
 
+## 本地归档成员核对
+
+[固定成员表](../data/august-2024-archive-members.json)记录两份公开 ZIP 的记录号、归档名、中心目录 SHA-256，以及八月各成员的压缩大小、原始大小和 CRC32。两套条目共 62 项，已用原中心目录独立回读。工具按固定成员名读取本地原档，大小和 CRC32 一致才输出原档 SHA-256。
+
+```powershell
+python tools/verify_august_archive_members.py
+python tools/verify_august_archive_members.py --require-complete
+```
+
+默认读取仓库的 `data/raw`，可通过 `--raw-root` 指定另一份本地目录。第一条命令允许盘点缺档，并列出缺失成员的压缩字节数。发现内容不一致或原档不可读取时，两种模式均返回退出码 2。整月归档齐备后用第二条命令，任何日期缺档也返回 2。JSON 输出包含成员状态和成员表的规范化内容哈希，无本机绝对路径。工具只读原档，不请求网络。
+
+11 月 15 日复跑时，锋面和 GFW 各 3 份匹配、28 份缺失，合计仍需 321,819,602 字节的成员压缩数据。两份归档全部匹配后，继续执行既有来源和逐日审计。日期、有效覆盖、零与未知、网格和许可仍按下方证据判定。
+
 ## 仍需提供方确认
 
 - **锋面日期与格网。** 就 [Zenodo 20356239](https://zenodo.org/records/20356239) 的 `front_location20240805.nc`，确认 `time=739469`、`days since 0000-00-00` 的确切转换公式、日历和 UTC 日标签；最好提供写出 `time` 的代码或其他两个原档的预期值。同时确认经纬度为像元中心还是角点，或提供边界构造规则。作者[公开分析脚本](https://zenodo.org/records/17218778)对另一份合并文件提供 MATLAB 时间线索，不能代替这一版本的写出约定。
