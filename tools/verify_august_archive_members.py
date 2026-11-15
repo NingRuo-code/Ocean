@@ -45,14 +45,20 @@ def check_member(
     return "matched", sha.hexdigest()
 
 
-def verify(raw_root: Path) -> dict:
+def load_catalog() -> dict:
     catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
     if catalog["month"] != "2024-08" or set(catalog["sources"]) != {"front", "gfw"}:
         raise ValueError("unexpected archive catalog")
-    sources = {}
-    for source, archive in catalog["sources"].items():
+    for archive in catalog["sources"].values():
         if [entry["day"] for entry in archive["members"]] != list(range(1, 32)):
             raise ValueError("incomplete archive catalog")
+    return catalog
+
+
+def verify(raw_root: Path) -> dict:
+    catalog = load_catalog()
+    sources = {}
+    for source, archive in catalog["sources"].items():
         members = []
         counts = {"matched": 0, "missing": 0, "invalid": 0}
         missing_compressed = 0
