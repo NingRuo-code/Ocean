@@ -19,7 +19,7 @@
 ## 仍需提供方确认
 
 - **锋面日期与格网。** 就 [Zenodo 20356239](https://zenodo.org/records/20356239) 的 `front_location20240805.nc`，确认 `time=739469`、`days since 0000-00-00` 的确切转换公式、日历和 UTC 日标签；最好提供写出 `time` 的代码或其他两个原档的预期值。同时确认经纬度为像元中心还是角点，或提供边界构造规则。作者[公开分析脚本](https://zenodo.org/records/17218778)对另一份合并文件提供 MATLAB 时间线索，不能代替这一版本的写出约定。
-- **GFW 日分配。** 就 [固定 v3.0.0 的 `fleet-daily-100-v3`](https://zenodo.org/records/14982712)，确认 `date` 是否为 UTC 日，跨午夜的两条 AIS 位置间隔是切分到两天，还是整体按某一条位置的时间戳归日。官方说明给出位置间时长的定义；查到的 README、schema 和 FAQ 未给出跨日分配规则。[固定版与地图/API 的区别](https://globalfishingwatch.org/faqs/2025-march-static-apparent-fishing-activity-v3-difference-with-map/)
+- **GFW 日分配。** 就 [固定 v3.0.0 的 `fleet-daily-100-v3`](https://zenodo.org/records/14982712)，确认 `date` 是否为 UTC 日，以及跨午夜时长是否按后一位置的日期归入该日。单 MMSI 下载说明有次日首条 AIS 位置接收前一日时长的例子，仍需固定 fleet 导出自身的依据。[11 月 15 日续查](../research/ocean-public-gfw-access-2026-11-05.md#11-月-15-日续查)
 - **GFW 有效支持。** 确认 2024-08 是否存在适用的逐日逐格覆盖、质量或故障标记，以及缺行、显式零、仅有船舶存在时长各自的含义与可用范围。11 月 8 日复查官方定义，AIS 断线判定所用接收估计基于 2017–2019 年。Insights API 的 Coverage 衡量单船在航程期间有 AIS 报告的小时比例，空间单位也与逐日逐格覆盖不同。两条路线均未提供本月所需的有效支持证据。[GFW 数据限制说明](https://api-doc.globalfishingwatch.org/our-apis/documentation/docs/v3/general-api-doc/data-caveats)
 
 确认后按归档目录取剩余日期、逐成员核大小/CRC 并记 SHA-256，完成同一月份的私有来源与逐日审计，再核对实际点位/半径、格网精度和许可。若发布方确认无法提供有效支持，继续保持 #67/#68 开放；任何只针对已有 AIS 报告格的分析都需要先评审不同的研究问题、分母和局限，不能直接代替既定整月结果。

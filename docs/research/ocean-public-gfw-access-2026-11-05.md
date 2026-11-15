@@ -59,6 +59,11 @@ README和记录元数据明确CC BY-NC 4.0，限定非商业使用。本地研�
 
 日界补查：对GFW官方网页与官方GitHub可索引内容作有界检索，未找到能直接绑定v3 fleet日CSV的UTC日界声明或生成SQL。未将BigQuery默认时区、新版API或2026模型文档的时间说明当作v3实证；继续保留日界未知。
 
+### 11 月 15 日续查
+
+- GFW FAQ 明确说明，可下载的单 MMSI 日数据会把前一天的部分时段归到次日首条 AIS 位置。GFW 的预测挑战手册第 6 页还用 UTC 时间举例，02:07:42 的位置携带从 01:11:39 起的 0.9341667 小时，整段计入 02:00 档。固定 v3.0.0 发布记录同样说明把位置间的时长分配给后一位置。按后一位置归日是有依据的解释。FAQ 没有注明版本或日界时区，手册小时示例适用 4Wings API，仍需确认这条规则及 UTC 日界是否适用于固定版 0.01° fleet 导出。[单船日下载 FAQ](https://globalfishingwatch.org/faqs/why-do-some-mmsis-downloadable-fishing-effort-data-add-up-to-more-than-24-hours/) · [预测挑战手册](https://globalfishingwatch.org/our-apis/assets/2024.NSIN_%26_NGA.Global_Fishing_Forecast_Grand_Challenge.GFW_Recommendations.pdf) · [固定版记录](https://zenodo.org/records/14982712)
+- 按 fleet 字段定义，`hours > 0` 且 `fishing_hours = 0` 表示该发布行记录了在场时长，同时记录的表观捕捞小时为零。这个零只适用于该行，格网接收充分性及缺行仍未知。固定版发布团队说明当时在准备单独的 AIS 接收数据集。可查的断线事件代码按断线起点的 1° 格网和 AIS 设备类别使用卫星接收估计，未提供可直接对齐 2024-08 逐日 0.01° fleet 的有效支持层。[fleet 字段定义](https://zenodo.org/records/14982712/preview/README-fleet-v3.txt?include_deleted=0) · [发布团队说明](https://globalfishingwatch.org/insights/ask-the-expert-amanda-lohmann-data-scientist-vessel-tracking-and-behavior/) · [断线事件实现](https://github.com/GlobalFishingWatch/pipe-gaps#definition-of-intentional-disabling-event)
+
 ## 路线比较与接续
 
 2018年Science研究本身使用2012–2016数据，官方介绍给出了当年的数据和GitHub链接；它不能直接证明2024试验资料。后来的官方门户说明下载需登录，API亦需Bearer令牌；这是**某条访问路线**的前置，不能推导所有官方公开分发路线均需令牌。[2018官方研究页](https://globalfishingwatch.org/research/global-footprint-of-fisheries/)、[门户说明](https://globalfishingwatch.org/data/new-data-download-portal/)

@@ -12,7 +12,7 @@
 
 想请您确认两点。
 
-1. 该归档的 `time` 应使用什么公式和日历转换？上述样例应对应哪个 UTC 日期和时刻？如果有写出该变量的代码或说明，烦请指引。
+1. 我们还核对了论文点名的 `20230105.nc`。旧版和新版的该日都存为 `738891`，与 MATLAB `datenum` 一致。能否确认新版逐日归档是否按这个公式和日历写出 `time`，以及 `739469` 对应的 UTC 日期和代表时刻？如果有写出该变量的代码或说明，烦请指引。
 2. 文件的 `lon`、`lat` 是否代表 0.05° 像元中心？如果用这些坐标计算像元面积，应采用什么边界规则？
 
 如有可引用的文档或链接，也请告知。感谢您开放数据和提供帮助！
@@ -27,7 +27,7 @@ Hello Global Fishing Watch Research and Data team,
 
 We are evaluating the static `fleet-daily-100-v3` dataset from Zenodo record 14982712 for a noncommercial study of ocean fronts and apparent fishing effort in the East China Sea in August 2024. We would appreciate clarification on two details for this release.
 
-1. Does `date` represent a UTC day? If the interval between two consecutive AIS positions crosses midnight, is its duration split across the two days or assigned to one date based on a position timestamp? A reference to the aggregation rule or an example would help.
+1. Your FAQ on downloadable daily MMSI data says the first AIS position of a day can receive time from the previous day. Does the fixed `fleet-daily-100-v3` export also group by the later position's UTC calendar date without splitting the assigned interval at midnight? A reference to the aggregation rule or an example would help.
 2. Is there a documented coverage or data quality layer for the August 2024 daily 0.01° grid? In particular, can users distinguish an omitted grid cell with adequate AIS reception from a cell with unknown reception, and what does an explicit `fishing_hours = 0` row indicate when vessel presence is recorded? If the release does not support that distinction, confirmation would help us define the scope of our analysis.
 
 A citable source or documentation link would be especially helpful. Thank you for your time.

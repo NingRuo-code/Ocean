@@ -71,3 +71,16 @@
 ## 11 月 8 日续查
 
 核对作者发布的浮游植物分析脚本 `Calculate_frontal_hotspot_and_barrier_effects.m`，共 5,781 字节，与归档公布的 MD5 `99a29412ed1e094ca339db03e5c98464` 一致，SHA-256 为 `c0c7ea42e5532c5e2e28382b4b74d9755b4f1dae45af07e9b4de31f1480cfe24`。脚本以 MATLAB `datenum` 生成日期并与文件内部时间直接匹配，适用输入为合并文件 `front_ccaim_warm_cold.nc`。当前逐日产品的写出公式、日期标签和格网边界仍需作者确认。[脚本归档](https://zenodo.org/records/20279533) · [询证草稿](ocean-source-provider-inquiries-2026-11-08.md)
+
+## 11 月 15 日续查：论文日文件与新版逐日文件
+
+ESSD 正文第 6 节明确将 `20230105.nc` 对应到 2023-01-05。沿旧记录 `14785322` 的 `front_warm_cold.zip` 取该成员，再从在用记录 `20356239` 的 `front_location.zip` 取同日期的成员。只获取两份成员和所需 ZIP 目录，核对 HTTP Range、解包大小和成员 CRC32。成员身份如下，整包 MD5 未在本轮复算。[论文第 6 节](https://essd.copernicus.org/articles/17/2831/2025/#section6) · [旧 NetCDF 归档](https://zenodo.org/records/14785322) · [当前归档](https://zenodo.org/records/20356239)
+
+| 记录与 ZIP 成员 | 字节数 | CRC32 | SHA-256 |
+| --- | ---: | --- | --- |
+| `14785322 / 2023/20230105.nc` | 1,309,796 | `da278df8` | `e376523c70bb0a7e6176c23de6fa4cb58ed300d7c1fa10c26b64a6f59506c01d` |
+| `20356239 / front_location/front_location20230105.nc` | 1,275,666 | `dc0a21f1` | `0d9d0590844af5e78ea18444e69820a9b0922a29a947b4e5346db247475c5611` |
+
+在 `decode_cf=False` 下，两版该日均为 `time=738891`（float32），变量属性完全相同，含 `units="days since 0000-00-00"` 和 `time_zone="UTC"`。按相同数组索引比较原始 `front`（保留填充值），25,920,000 个值中有 3,609,255 个不同，经纬度数组也有末位差异。论文日期为这一日的时间编码提供对照；研究输入仍取新版。两份样本和 `front-paper-anchor-20261115.json` 清单留在 Git 忽略的本地 `data/processed/intake-20261104/`。
+
+`date.toordinal() + 366` 与 MATLAB `datenum` 的候选解释同时匹配论文日期锚点和已下载的 2024-08-05 至 07 三日。这是逐日产品的跨版时间证据，适用范围是已查的四个日期。当前原档的写出公式、日历、UTC 日的代表时刻及格网边界仍待作者确认，接入保留 `time_verified=false`。[MATLAB 日期序号定义](https://www.mathworks.com/help/matlab/ref/datetime.datenum.html) · [询证草稿](ocean-source-provider-inquiries-2026-11-08.md)

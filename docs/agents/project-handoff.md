@@ -1,5 +1,10 @@
 # Ocean 跨对话交接入口
 
+## 2026-11-15 接续
+
+- 按用户安排保留服务器相关任务，后续另行执行。本地 M1 优先；[真实月流程](../plans/ocean-current-execution-order-2026-11-04.md)的验收顺序照旧。
+- 论文明确标注的 2023-01-05 锋面文件在新旧两版的原始时间均为 `738891`，与八月三日样本共同支持 MATLAB 日期序号的候选解释。固定 GFW v3 发布说明支持按后一位置分配时长，单 MMSI 下载 FAQ 另有跨日例证。固定 fleet 导出的 UTC 日界、2024-08 逐日逐格有效支持，以及当前锋面原档的写出公式和边界仍待确认。已细化两份未发送的询证草稿，#67/#68 保持开放。[锋面核对](../research/ocean-front-product-encoding-2026-11-04.md#11-月-15-日续查论文日文件与新版逐日文件) · [GFW 核对](../research/ocean-public-gfw-access-2026-11-05.md#11-月-15-日续查) · [询证草稿](../research/ocean-source-provider-inquiries-2026-11-08.md)
+
 ## 当前接续状态（2026-11-08，覆盖下方历史快照）
 
 - PR [#331](https://github.com/NingRuo-code/Ocean/pull/331) 已合并（`ef7e8bf`），#330既有导出收尾关闭；PR [#332](https://github.com/NingRuo-code/Ocean/pull/332) 已合并（`6594e61`），#37/#38按来源审计交付完成关闭。两票未知项仍未知，GD/A/B未通过。此前“全部字段核实前不能实施#39”属于过度阻塞，已按#35审计/研究分账合同纠正，原生历史依赖未删。[审计验收说明](../reports/ocean-source-audit-completion-2026-11-05.md)。
