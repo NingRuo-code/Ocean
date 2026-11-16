@@ -1,0 +1,154 @@
+{
+  "schema": "ocean-source-registry/v1",
+  "processing_version": "2024-08-exact-file-archive-preflight/v1",
+  "sources": [
+    {
+      "id": "front-original",
+      "kind": "front",
+      "role": "analysis_source",
+      "locations": [
+        "data/raw/front/2024/front_location20240801.nc",
+        "data/raw/front/2024/front_location20240802.nc",
+        "data/raw/front/2024/front_location20240803.nc",
+        "data/raw/front/2024/front_location20240804.nc",
+        "data/raw/front/2024/front_location20240805.nc",
+        "data/raw/front/2024/front_location20240806.nc",
+        "data/raw/front/2024/front_location20240807.nc",
+        "data/raw/front/2024/front_location20240808.nc",
+        "data/raw/front/2024/front_location20240809.nc",
+        "data/raw/front/2024/front_location20240810.nc",
+        "data/raw/front/2024/front_location20240811.nc",
+        "data/raw/front/2024/front_location20240812.nc",
+        "data/raw/front/2024/front_location20240813.nc",
+        "data/raw/front/2024/front_location20240814.nc",
+        "data/raw/front/2024/front_location20240815.nc",
+        "data/raw/front/2024/front_location20240816.nc",
+        "data/raw/front/2024/front_location20240817.nc",
+        "data/raw/front/2024/front_location20240818.nc",
+        "data/raw/front/2024/front_location20240819.nc",
+        "data/raw/front/2024/front_location20240820.nc",
+        "data/raw/front/2024/front_location20240821.nc",
+        "data/raw/front/2024/front_location20240822.nc",
+        "data/raw/front/2024/front_location20240823.nc",
+        "data/raw/front/2024/front_location20240824.nc",
+        "data/raw/front/2024/front_location20240825.nc",
+        "data/raw/front/2024/front_location20240826.nc",
+        "data/raw/front/2024/front_location20240827.nc",
+        "data/raw/front/2024/front_location20240828.nc",
+        "data/raw/front/2024/front_location20240829.nc",
+        "data/raw/front/2024/front_location20240830.nc",
+        "data/raw/front/2024/front_location20240831.nc"
+      ],
+      "product": {
+        "id": "zenodo-20356239",
+        "channel": "Zenodo front_location.zip; selected original members",
+        "version": "record-20356239",
+        "unit": "classification_code"
+      },
+      "derived_from": [],
+      "license_claims": [
+        {
+          "value": "CC BY 4.0",
+          "evidence": "https://zenodo.org/records/20356239"
+        }
+      ]
+    },
+    {
+      "id": "sst-original",
+      "kind": "sst",
+      "role": "analysis_source",
+      "locations": [
+        "data/raw/sst/2024/sst_20240801.nc",
+        "data/raw/sst/2024/sst_20240802.nc",
+        "data/raw/sst/2024/sst_20240803.nc",
+        "data/raw/sst/2024/sst_20240804.nc",
+        "data/raw/sst/2024/sst_20240805.nc",
+        "data/raw/sst/2024/sst_20240806.nc",
+        "data/raw/sst/2024/sst_20240807.nc",
+        "data/raw/sst/2024/sst_20240808.nc",
+        "data/raw/sst/2024/sst_20240809.nc",
+        "data/raw/sst/2024/sst_20240810.nc",
+        "data/raw/sst/2024/sst_20240811.nc",
+        "data/raw/sst/2024/sst_20240812.nc",
+        "data/raw/sst/2024/sst_20240813.nc",
+        "data/raw/sst/2024/sst_20240814.nc",
+        "data/raw/sst/2024/sst_20240815.nc",
+        "data/raw/sst/2024/sst_20240816.nc",
+        "data/raw/sst/2024/sst_20240817.nc",
+        "data/raw/sst/2024/sst_20240818.nc",
+        "data/raw/sst/2024/sst_20240819.nc",
+        "data/raw/sst/2024/sst_20240820.nc",
+        "data/raw/sst/2024/sst_20240821.nc",
+        "data/raw/sst/2024/sst_20240822.nc",
+        "data/raw/sst/2024/sst_20240823.nc",
+        "data/raw/sst/2024/sst_20240824.nc",
+        "data/raw/sst/2024/sst_20240825.nc",
+        "data/raw/sst/2024/sst_20240826.nc",
+        "data/raw/sst/2024/sst_20240827.nc",
+        "data/raw/sst/2024/sst_20240828.nc",
+        "data/raw/sst/2024/sst_20240829.nc",
+        "data/raw/sst/2024/sst_20240830.nc",
+        "data/raw/sst/2024/sst_20240831.nc"
+      ],
+      "product": {
+        "id": "noaacwBLENDEDCsstDaily",
+        "channel": "NOAA CoastWatch ERDDAP; supplemental SST, not the Zenodo front algorithm input",
+        "version": null,
+        "unit": "degree_C"
+      },
+      "derived_from": [],
+      "license_claims": []
+    },
+    {
+      "id": "effort-original",
+      "kind": "activity",
+      "role": "analysis_source",
+      "locations": [
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-01.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-02.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-03.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-04.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-05.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-06.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-07.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-08.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-09.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-10.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-11.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-12.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-13.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-14.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-15.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-16.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-17.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-18.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-19.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-20.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-21.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-22.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-23.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-24.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-25.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-26.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-27.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-28.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-29.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-30.csv",
+        "data/raw/fishing-source/v3-zenodo-14982712/fleet-daily-csvs-100-v3-2024-08-31.csv"
+      ],
+      "product": {
+        "id": "gfw-fleet-daily-v3",
+        "channel": "GFW official Zenodo 14982712; fleet daily 0.01 degree; 2024 provisional",
+        "version": "3.0.0",
+        "unit": "fishing_hours"
+      },
+      "derived_from": [],
+      "license_claims": [
+        {
+          "value": "CC BY-NC 4.0",
+          "evidence": "https://zenodo.org/records/14982712"
+        }
+      ]
+    }
+  ]
+}

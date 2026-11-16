@@ -14,7 +14,7 @@
 
 用逐个列出的三源八月登记表执行真实本地来源扫描、逐日审计和冻结回读。日审计身份 `sha256:eafac3d29b058b56a2f0b9dff7cf39f60d92ae2daabecb04aef6842b3f1b3f10`：锋面和 GFW 各 3 天未核实、28 天缺档；海温 3 天已解析、28 天缺档；源解析错误为零，研究资格仍未核实。没有改写或补齐原档，也没有运行真实效果。
 
-本地操作入口位于 Git 忽略的 `data/processed/intake-20261104/`：`2024-08-source-archive-preflight.json` 为逐成员目录证据，`2024-08-source-registry.private.json` 与 `2024-08-daily-registry.private.json` 为审计登记，`2024-08-source-readback.json` 与 `2024-08-daily-readback.json` 为本轮回读产物。新机器须根据固定目录与原档重新生成登记及私有定位，不能用本报告替代实际输入哈希。
+早期预检和回读产物保存在 Git 忽略的 `data/processed/intake-20261104/`。当前可直接使用下文的仓内登记。每台机器都须用自己的原档重建来源快照及私有定位，取得实际输入哈希。
 
 ## 本地归档成员核对
 
@@ -43,6 +43,24 @@ python tools/fetch_august_archive_members.py gfw 5 6 7
 `--raw-root` 可指定另一个已有目录。文件在目标目录内先写完，再通过同目录硬链接发布，目标文件系统需支持硬链接（如 NTFS 或常用 Linux 文件系统）。两个来源补齐后，运行上面的 `--require-complete`，再启动来源与逐日审计。
 
 11 月 15 日分别将两套 8 月 5 日原档重新取到独立目录，SHA-256 均与现有原档一致。再次执行显示两份均已匹配。主原档目录仍各有三天。
+
+## 从原档复跑到准入判定
+
+在仓库根目录运行以下命令。三个输入分别是[八月来源登记](../data/august-2024-source-registry.json)、[逐日登记](../data/august-2024-daily-registry.json)和[既有中心点准入请求](../data/august-2024-central-support-request.json)。来源逐个登记了固定产品的八月日期，路径相对于仓库根。逐日登记保留原适配器和区域范围。准入沿用中心 `124°E, 30°N`、10/20/30 公里和 `front_effort` 用途，海温作为逐日附加证据。
+
+```powershell
+$augustAuditDir = "data/processed/august-audit-replay"
+node tools/audit-research-baseline.mjs --source-registry docs/data/august-2024-source-registry.json --source-byte-budget-mib 2048 --out "$augustAuditDir/source.json" --private-out "$augustAuditDir/source-locators.private.json"
+node tools/audit-research-baseline.mjs --daily-registry docs/data/august-2024-daily-registry.json --source-snapshot "$augustAuditDir/source.json" --private-locators "$augustAuditDir/source-locators.private.json" --start 2024-08-01 --end 2024-08-31 --out "$augustAuditDir/daily.json" --report-out "$augustAuditDir/daily.md"
+node tools/audit-research-baseline.mjs --support-request docs/data/august-2024-central-support-request.json --daily-snapshot "$augustAuditDir/daily.json" --out "$augustAuditDir/support.json" --report-out "$augustAuditDir/support.md"
+node tools/audit-research-baseline.mjs --read-support-snapshot "$augustAuditDir/support.json"
+```
+
+每条命令成功后再执行下一条。命令使用项目 Python 和既有几何、NetCDF 依赖，可用 `OCEAN_AUDIT_PYTHON` 指定解释器。每轮使用独立输出目录，私有定位仅留在 Git 忽略的本地加工目录。此流程也能盘点不完整输入，缺失日期保留在日历上。逐日登记固定用 LF 换行，避免 Windows 检出改变登记字节哈希。
+
+11 月 15 日以这三份登记复跑。三套来源的逐日状态和输入文件哈希与早期预检一致。逐日登记采用固定换行后，快照身份重新生成。10/20/30 公里共同支持均为 0/31 日，捕捞小时和有效面积时间均未知。本地月分析提交入口对三个半径均返回 HTTP 409 `incomplete_required_support`。
+
+`--daily-snapshot` 复跑的是准入预检，区域单元仍标记为待准备。即使文件齐备，正式准入还需根据提供方依据准备并核实区域网格单元，再按[用途资格合同](../data/support-qualification-audit.md)通过 `--regional-input` 和相应证据复核。
 
 ## 仍需提供方确认
 

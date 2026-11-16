@@ -10,3 +10,6 @@ frontend/prototype/data/display-domains.js text eol=lf
 
 # Frozen G3 evidence is hashed byte-for-byte; preserve LF on Windows checkouts.
 docs/reports/g3-known-validation-2026-10-26/** text eol=lf
+
+# The August daily audit records the registry byte hash in its snapshot.
+docs/data/august-2024-daily-registry.json text eol=lf

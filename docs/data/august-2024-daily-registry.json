@@ -1,0 +1,51 @@
+{
+  "schema": "ocean-daily-audit-registry/v1",
+  "evidence_kind": "real_local_artifacts; original_source_qualification_pending",
+  "sources": [
+    {
+      "id": "front-original",
+      "format": "netcdf",
+      "variable": "front",
+      "front_encoding": "zenodo-20356239/v1",
+      "file_pattern": ".*\\.nc",
+      "day_boundary": "UTC",
+      "bbox": [
+        120,
+        27,
+        128,
+        34
+      ]
+    },
+    {
+      "id": "sst-original",
+      "format": "netcdf",
+      "variable": "analysed_sst",
+      "lon": "longitude",
+      "lat": "latitude",
+      "mask_variable": "mask",
+      "valid_mask_values": [
+        1
+      ],
+      "file_pattern": ".*\\.nc",
+      "day_boundary": "UTC",
+      "bbox": [
+        120,
+        27,
+        128,
+        34
+      ]
+    },
+    {
+      "id": "effort-original",
+      "format": "activity-gfw-fleet-v3",
+      "file_pattern": "fleet-daily-csvs-100-v3-.*\\.csv",
+      "day_boundary": "unknown",
+      "bbox": [
+        120,
+        27,
+        128,
+        34
+      ]
+    }
+  ]
+}

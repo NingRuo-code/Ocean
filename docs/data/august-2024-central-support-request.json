@@ -1,0 +1,38 @@
+{
+  "schema": "ocean-support-request/v1",
+  "purpose": "A_month",
+  "month": "2024-08",
+  "layer_use": "front_effort",
+  "allocation": "overlap_uniform",
+  "method_version": "wgs84-laea-uniform/v1",
+  "quality_rule": "complete-common-support/v1",
+  "geometries": [
+    {
+      "id": "central10",
+      "type": "circle",
+      "center": [
+        124,
+        30
+      ],
+      "radius_km": 10
+    },
+    {
+      "id": "central20",
+      "type": "circle",
+      "center": [
+        124,
+        30
+      ],
+      "radius_km": 20
+    },
+    {
+      "id": "central30",
+      "type": "circle",
+      "center": [
+        124,
+        30
+      ],
+      "radius_km": 30
+    }
+  ]
+}
