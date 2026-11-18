@@ -2,11 +2,13 @@
 
 This runbook describes how to sync verified Ocean updates to the already-deployed Alibaba Cloud Ubuntu server. It is intentionally sanitized: keep real server IPs, SSH key paths, passwords, tokens, raw AIS/GFW data, and incident notes out of Git.
 
-## Campus software review — 2026-11-18
+## SothisAI configuration and review — 2026-11-18
 
-The scheduled software review uses the isolated read-only release from #227. Confirm a platform-approved campus or aTrust application URL, then test from the reviewer's device during the agreed window. The reviewer changes a map date or layer, opens a known synthetic case, and checks its evidence and missing-data notices. If the URL fails on the day, give the walkthrough by screen sharing and reschedule hands-on verification.
+Use the existing CPU instance for the current #47 → #228 → #11 batch. Record actual CPU and memory limits, persistent storage and account quota, runtime, and the location and size of each data and backup layer. Use #227's fixed isolated release. Check the package and process identity, availability of space for both releases, state/backup references, and the prior release's startup procedure. Preserve the existing candidate and its separate state directory.
 
-SothisAI has passed loopback startup, fallback and recovery. Reviewer-side access is pending. Record that result in #11 as scheduled-review evidence. Continue actual-target inventory in #47, release admission in #228 and production verification under the existing OPS tasks. See the [current implementation order](../docs/plans/ocean-current-execution-order-2026-11-04.md#2026-11-18-完整实现与服务器安排).
+The ordinary-user manual documents WebShell, the Jupyter shortcut, and the service-port field. Confirm with the platform how an arbitrary application can receive a campus or aTrust URL and which users can reach it. Through that approved URL verify the same release in `/api/release`, a successful `/api/health`, the map and assets, and the read-only viewport and known-case behavior. The reviewer changes a map date or layer, opens a known synthetic case, and checks its evidence and missing-data notices on their device. If access fails on the day, give the walkthrough by screen sharing and reschedule hands-on verification.
+
+SothisAI has passed application startup, fallback and recovery on loopback. The project URL and reviewer-side access are pending. Put the campus review result in #11. Record actual target admission and backup/restore for the declared service scope under #228 and the applicable OPS tasks. See the [current implementation order](../docs/plans/ocean-current-execution-order-2026-11-04.md#2026-11-18-服务器优先执行).
 
 ## Current execution decision — 2026-10-27
 
