@@ -7,11 +7,13 @@ import stat
 from contextlib import closing, contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from uuid import uuid4
 
 from .analysis_support import content_id, decode_controlled_json
 
 APPLICATION_ID = 0x4F434153
+MAX_DB_BYTES = 64 * 1024 * 1024
 
 
 class CaseStoreError(Exception):
@@ -22,42 +24,65 @@ class CaseStore:
     def __init__(self, path):
         self.path = Path(os.path.abspath(path)) if path is not None else None
 
+    def _checked_store_exists(self):
+        for path in (*reversed(self.path.parents), self.path):
+            try:
+                info = path.lstat()
+            except FileNotFoundError:
+                continue
+            if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0):
+                raise CaseStoreError("unavailable")
+            if path == self.path:
+                if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_DB_BYTES:
+                    raise CaseStoreError("unavailable")
+                return True
+        return False
+
+    def _initialize_store(self):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with TemporaryDirectory(dir=self.path.parent, prefix=".ocean-case-") as temporary:
+            staged = Path(temporary) / "cases.sqlite3"
+            staged.touch(mode=0o600, exist_ok=False)
+            with closing(sqlite3.connect(staged, isolation_level=None)) as db:
+                db.execute("BEGIN IMMEDIATE")
+                db.execute(f"PRAGMA application_id={APPLICATION_ID}")
+                db.execute("PRAGMA user_version=1")
+                db.execute("CREATE TABLE cases(id TEXT PRIMARY KEY, created_at TEXT NOT NULL, head INTEGER NOT NULL)")
+                db.execute("CREATE TABLE versions(case_id TEXT REFERENCES cases(id), number INTEGER, payload TEXT NOT NULL, PRIMARY KEY(case_id,number))")
+                db.execute("CREATE TABLE intents(key TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, case_id TEXT, version INTEGER, FOREIGN KEY(case_id,version) REFERENCES versions(case_id,number))")
+                db.commit()
+            # The live name becomes visible with a committed schema. A competing
+            # initializer or an existing foreign file keeps its own live name.
+            try:
+                os.link(staged, self.path)
+            except FileExistsError:
+                pass
+
     @contextmanager
     def connection(self, write=False):
         if self.path is None:
             raise CaseStoreError("unavailable")
         try:
-            for p in [*reversed(self.path.parents), self.path]:
-                if not p.exists() and not p.is_symlink():
-                    continue
-                info = p.lstat()
-                if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0):
+            if not self._checked_store_exists():
+                if not write:
+                    yield None
+                    return
+                self._initialize_store()
+                if not self._checked_store_exists():
                     raise CaseStoreError("unavailable")
-            if self.path.exists() and self.path.stat().st_size > 64 * 1024 * 1024:
-                raise CaseStoreError("unavailable")
-            if write:
-                self.path.parent.mkdir(parents=True, exist_ok=True)
-            elif not self.path.exists():
-                yield None
-                return
-            target = str(self.path) if write else self.path.as_uri() + "?mode=ro"
-            with closing(sqlite3.connect(target, uri=not write, timeout=2, isolation_level=None)) as db:
+            mode = "rw" if write else "ro"
+            target = self.path.as_uri() + f"?mode={mode}"
+            with closing(sqlite3.connect(target, uri=True, timeout=2, isolation_level=None)) as db:
                 db.execute("PRAGMA foreign_keys=ON")
                 if write:
                     db.execute("BEGIN IMMEDIATE")
                 application = db.execute("PRAGMA application_id").fetchone()[0]
                 version = db.execute("PRAGMA user_version").fetchone()[0]
-                if write and application == 0 and version == 0 and not db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall():
-                    db.execute(f"PRAGMA application_id={APPLICATION_ID}")
-                    db.execute("PRAGMA user_version=1")
-                    db.execute("CREATE TABLE cases(id TEXT PRIMARY KEY, created_at TEXT NOT NULL, head INTEGER NOT NULL)")
-                    db.execute("CREATE TABLE versions(case_id TEXT REFERENCES cases(id), number INTEGER, payload TEXT NOT NULL, PRIMARY KEY(case_id,number))")
-                    db.execute("CREATE TABLE intents(key TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, case_id TEXT, version INTEGER, FOREIGN KEY(case_id,version) REFERENCES versions(case_id,number))")
-                elif application != APPLICATION_ID or version != 1:
+                if application != APPLICATION_ID or version != 1:
                     raise CaseStoreError("unavailable")
                 if write:
                     page_size = db.execute("PRAGMA page_size").fetchone()[0]
-                    db.execute(f"PRAGMA max_page_count={64 * 1024 * 1024 // page_size}")
+                    db.execute(f"PRAGMA max_page_count={MAX_DB_BYTES // page_size}")
                 try:
                     yield db
                     if write:

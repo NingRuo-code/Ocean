@@ -1,8 +1,10 @@
 """Owner case API: saved public CC0 reports, not real scientific case protection."""
 
 import json
+import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Event
 
 import pytest
 from fastapi import FastAPI
@@ -78,6 +80,41 @@ def test_concurrent_same_intent_is_one_case_and_conflicting_payload_is_rejected(
     assert len(client.get(BASE + "/cases", headers=AUTH).json()["cases"]) == 1
 
 
+def test_concurrent_save_during_first_database_initialization(tmp_path, monkeypatch):
+    client, _ = case_client(tmp_path)
+    request = save_request(client)
+    first_opened = Event()
+    resume_first = Event()
+    connect = sqlite3.connect
+
+    class PausableConnection(sqlite3.Connection):
+        def execute(self, sql, parameters=()):
+            if sql == "BEGIN IMMEDIATE" and not first_opened.is_set():
+                first_opened.set()
+                assert resume_first.wait(timeout=10)
+            return super().execute(sql, parameters)
+
+    def pausable_connect(*args, **kwargs):
+        return connect(*args, factory=PausableConnection, **kwargs)
+
+    def save():
+        return client.post(BASE + "/cases", json=request, headers=AUTH)
+
+    monkeypatch.setattr(sqlite3, "connect", pausable_connect)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first = pool.submit(save)
+        try:
+            assert first_opened.wait(timeout=5)
+            second = pool.submit(save).result(timeout=8)
+        finally:
+            resume_first.set()
+        first = first.result(timeout=5)
+
+    assert (first.status_code, second.status_code) == (200, 200)
+    assert first.json() == second.json()
+    assert client.get(BASE + "/cases", headers=AUTH).json()["total"] == 1
+
+
 @pytest.mark.parametrize("mode", ["private", "changed", "corrupt_store", "foreign_store", "empty_unknown_store"])
 def test_failed_saves_never_publish_cases_or_replace_unknown_material(tmp_path, mode):
     client, published = case_client(tmp_path)
@@ -98,7 +135,6 @@ def test_failed_saves_never_publish_cases_or_replace_unknown_material(tmp_path, 
         db.write_bytes(b"")
         before = b""
     else:
-        import sqlite3
         with sqlite3.connect(db) as connection:
             connection.execute("CREATE TABLE unrelated(value TEXT)")
         before = db.read_bytes()
