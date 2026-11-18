@@ -2,6 +2,12 @@
 
 This runbook describes how to sync verified Ocean updates to the already-deployed Alibaba Cloud Ubuntu server. It is intentionally sanitized: keep real server IPs, SSH key paths, passwords, tokens, raw AIS/GFW data, and incident notes out of Git.
 
+## Campus software review — 2026-11-18
+
+The scheduled software review uses the isolated read-only release from #227. Confirm a platform-approved campus or aTrust application URL, then test from the reviewer's device during the agreed window. The reviewer changes a map date or layer, opens a known synthetic case, and checks its evidence and missing-data notices. If the URL fails on the day, give the walkthrough by screen sharing and reschedule hands-on verification.
+
+SothisAI has passed loopback startup, fallback and recovery. Reviewer-side access is pending. Record that result in #11 as scheduled-review evidence. Continue actual-target inventory in #47, release admission in #228 and production verification under the existing OPS tasks. See the [current implementation order](../docs/plans/ocean-current-execution-order-2026-11-04.md#2026-11-18-完整实现与服务器安排).
+
 ## Current execution decision — 2026-10-27
 
 The user plans to replace the server. Do not run the old-server inventory, SSH deployment, tuning, package upload or service restart as part of this local work. #47/#228 remain open; the actual new target, access method, resource limits and admitted scope must be recorded before a separately arranged sync. Do not accept an unknown SSH host identity automatically.

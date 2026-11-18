@@ -2,13 +2,29 @@
 
 生效日期：2026-11-04。用户已明确要求处理可精简 ticket，并将实现顺序写入项目记忆。本页为后续领取任务的当前入口；历史规划保留作决策依据，当前范围与顺序以本页及 GitHub 实时状态为准。
 
-**2026-11-06 当前状态：** #330 经 PR #331 合并关闭；#37/#38 经 PR #332 按来源审计交付关闭，未知源语义留在研究资格。#39 → #41 → #44 → #42 → #43 由 PR #333–#337 关闭；#62 → #64 → #63 → #65 → #66 由 PR #338–#342 关闭。#67 的[登记合成冻结与敏感性验证](../reports/ocean-month-sensitivity-software-2026-11-06.md)已完成；正式 #67 与 #68 开放。下方 11 月 4–5 日的就绪标签和等待令牌等为历史快照。[来源审计验收与边界](../reports/ocean-source-audit-completion-2026-11-05.md)。
+## 2026-11-18 完整实现与服务器安排
+
+用户确认继续完成[完整研究版](ocean-master-plan-2026-10-24.md)，依照[执行总纲 #13](https://github.com/NingRuo-code/Ocean/issues/13)先打通真实 A 月，再推进真实 B 事件、C 区域比较及其余已批准能力。预约验收作为软件检查点。来源证据等待期间，可并行领用现有票据中对最终交付必要、且前置已具备的复跑、证据留存和发布准备切片。来源条件满足后优先回到真实月。
+
+| 交付 | 沿用的票据 | 下一步与完成条件 |
+| --- | --- | --- |
+| 首个真实 A 月 | [#37](https://github.com/NingRuo-code/Ocean/issues/37)、[#38](https://github.com/NingRuo-code/Ocean/issues/38) 的来源审计，复跑 [#44](https://github.com/NingRuo-code/Ocean/issues/44)、[#64](https://github.com/NingRuo-code/Ocean/issues/64)，再按 [#67](https://github.com/NingRuo-code/Ocean/issues/67) → [#68](https://github.com/NingRuo-code/Ocean/issues/68) | 首先取得 2024-08 锋面时间写出与格网依据、固定 GFW v3 的 UTC 日界和逐日逐格有效支持，核对原档、粒度和许可后重审同一请求。两套原档本地各匹配 3 日、缺 28 日，既有审计的三个半径均为 0/31 天。准入通过后先冻结方案，再计算真实整月。公开固定版取数无需另等令牌。[补档与复跑入口](../reports/ocean-august-source-readiness-2026-11-06.md) |
+| 真实 A 结果展示与证据交接 | [#69](https://github.com/NingRuo-code/Ocean/issues/69)、[#70](https://github.com/NingRuo-code/Ocean/issues/70) 与 #68 汇合到 [#71](https://github.com/NingRuo-code/Ocean/issues/71) → [#98](https://github.com/NingRuo-code/Ocean/issues/98) | 主图、说明、逐日证据、允许导出的基础图表和复算使用同一结果身份，再接入工作台只读展示。保存、保护及正式 PDF、PNG、CSV 成果包沿 [REPORT #125](https://github.com/NingRuo-code/Ocean/issues/125) 的 [#126–#140](../tickets/report-case-and-export/README.md)，其中 [#134](https://github.com/NingRuo-code/Ocean/issues/134) 承接真实 A 案例包。 |
+| 真实 B/C 与后续能力 | [B #72](https://github.com/NingRuo-code/Ocean/issues/72) 的 #74–#84，[C #85](https://github.com/NingRuo-code/Ocean/issues/85) 的 [#86–#94](../tickets/c-regional-evidence-comparison/README.md)，以及本页后续与条件性能力 | B 实际运行固定区完整前后窗，#83 消费 #71，#84 交接真实事件成果。C 等可比真实成果。独立复核、预测、AI、任务、报告和运维按各自已有前置进入。 |
+| 校内研究复跑与预约验收 | 取数和复跑沿 #67/#68，小范围只读发布复用 [#227](https://github.com/NingRuo-code/Ocean/issues/227) 与 [PR #351](https://github.com/NingRuo-code/Ocean/pull/351) 的 Linux 隔离验证 | SothisAI 已完成三日复跑和容器内只读启动、回退、恢复。预约前确认获准的校园网或 aTrust 项目网页入口。约定时段由助教或老师从自己的电脑打开页面，切换日期或图层，打开一个已知合成案例，找到证据与缺失提示。当天无法访问时先共享屏幕讲解，再补独立实操。项目网页入口和实操待验。 |
+| 实际服务器与正式发布 | [#47](https://github.com/NingRuo-code/Ocean/issues/47) → [#228](https://github.com/NingRuo-code/Ocean/issues/228)，再按 [#11](https://github.com/NingRuo-code/Ocean/issues/11) 同步及冒烟。生产沿 [OPS #226](https://github.com/NingRuo-code/Ocean/issues/226) 的 [#227–#251](../tickets/ops-release-observability-and-recovery/README.md) | 先确认实际目标、访问和代理、分层工作集、权限、容量及备份恢复点。#11 保留同步与真实入口验证。完整入口权限、版本切换与回退、备份恢复和混合负载继续按 OPS 原票，首批真实 A 生产归 [#249](https://github.com/NingRuo-code/Ocean/issues/249)，完整生产能力交付归 [#251](https://github.com/NingRuo-code/Ocean/issues/251)。正式目标与上线仍待确认。 |
+
+本地研究按来源、许可和分析条件准入。校内预约实操记录在 #11，正式发布另记录目标和线上证据。入口与版本继续沿 [#229](https://github.com/NingRuo-code/Ocean/issues/229)、[#230](https://github.com/NingRuo-code/Ocean/issues/230) 和 [#232](https://github.com/NingRuo-code/Ocean/issues/232)，备份与隔离恢复沿 [#236–#242](../tickets/ops-release-observability-and-recovery/README.md)。容量估算使用 #47 的代表性分层工作集、[#46](https://github.com/NingRuo-code/Ocean/issues/46) 的交互基线和 [#248](https://github.com/NingRuo-code/Ocean/issues/248) 的混合负载实测。三日研究任务和容器内只读回退只记录已测范围。部署操作见[运行手册](../../deploy/RUNBOOK.md)。
+
+## 近期执行证据与历史状态
+
+**2026-11-06 状态：** #330 经 PR #331 合并关闭；#37/#38 经 PR #332 按来源审计交付关闭，未知源语义留在研究资格。#39 → #41 → #44 → #42 → #43 由 PR #333–#337 关闭；#62 → #64 → #63 → #65 → #66 由 PR #338–#342 关闭。#67 的[登记合成冻结与敏感性验证](../reports/ocean-month-sensitivity-software-2026-11-06.md)已完成；正式 #67 与 #68 开放。下方 11 月 4–5 日的就绪标签和等待令牌等为历史快照。[来源审计验收与边界](../reports/ocean-source-audit-completion-2026-11-05.md)。
 
 11月5日公开真源更新：GFW官方Zenodo14982712 / 3.0.0三日0.01°fleet已下载并按原CLI核对，与独立Decimal小时总量一致；无需API令牌。首两票的剩余前置改为锋面时间写出依据及GFW日界/有效支持，不再仅等待访问凭据。#37/#38真实资格仍未结项，原顺序和依赖不变。[实施与下一步](../reports/ocean-gfw-public-intake-implementation-2026-11-05.md)。
 
 11月5日实施进展：#37真实分类/缺失值与SST日历适配已实现并复跑三日，尚缺作者时间起点依据；#38已修正许可并加入完整响应留存，用户确认暂无GFW令牌。两票真实验收保持开放并标needs-info，#37移除就绪标签。顺序不变，接续需先补时间依据与GFW访问/固定版本；#39等下游不越过前置。[实施证据](../reports/ocean-real-source-adapter-implementation-2026-11-05.md)。下方数量/就绪标签为11月4日票据精简快照。
 
-执行状态：已完成并统一回读。GitHub全部Issue为295项（241开放、54关闭）；原执行集合单列29项历史完成、8项归并、215项开放，不能把8项归并计入功能完成。M1/M2/后续候选池分别为18/11/186项，当前仅#37具有就绪标签。
+11 月 4 日精简回执：当时 GitHub 共 295 项 Issue（241 开放、54 关闭），原执行集合为 29 项历史完成、8 项归并、215 项开放。M1/M2/后续候选池分别为 18/11/186 项，当时仅 #37 有就绪标签。
 
 ## 当前目标与领取规则
 
@@ -72,15 +88,15 @@
 
 | 类别 | 启动条件与顺序 |
 | --- | --- |
-| G3独立复核 | A/B主方案固定且有独立合法样本；先跨期，再按证据扩展海域。保留研究价值，不要求观察到正结果 |
-| C比较、相似案例 | 有至少两份真实可比成果或足够案例，并明确比较/检索问题 |
-| 预测 | 可知输入、活动标签、时间切分及独立评估资料具备；先简单基线再检验锋面增量 |
-| AI | 确定性计算已能提供真实证据，且确需自然语言调用；AI不补科学数值 |
-| TASK/在线重算 | 实测时长、失败恢复或并发需求成立；复用现有持久化/身份能力，按差额交付；启用清理时须同时具备保护合同 |
-| REPORT及扩展 | 真实成果稳定且有具体使用需求，复用现有预览/导出；多类型、PDF、长表与导出取消后置 |
+| [G3 独立复核 #141–#158](../tickets/g3-independent-validation/README.md) | A/B 主方案固定且有独立合法样本，先跨期，再按证据扩展海域。所有实际结果均可报告。 |
+| [C 比较 #85–#94](../tickets/c-regional-evidence-comparison/README.md)、[G3 相似案例 #159–#175](../tickets/g3-similar-case-and-auxiliary-matching/README.md) | 有真实可比成果或足够案例，并明确比较或检索问题。 |
+| [预测 #176–#198](../tickets/prediction-baselines-and-independent-backtest/README.md) | 具备可知输入、活动标签、时间切分和独立评估资料，先建立简单基线，再检验锋面增量。 |
+| [AI #199–#225](../tickets/ai-multiturn-evidence-workbench/README.md) | 确定性计算已能提供真实证据，且确有自然语言调用需求。 |
+| [工作台 #95–#108](../tickets/w-analysis-workbench/README.md)、[TASK #109–#124](../tickets/task-center-and-data-preparation/README.md) | 按已验证成果接入功能。在线重算按实测时长、失败恢复或并发需求推进，启用清理时同时具备保护合同。 |
+| [REPORT #125–#140](../tickets/report-case-and-export/README.md) 及[报告扩展 #252–#279](../tickets/research-report-extension/README.md) | 真实成果稳定且有具体使用需求时复用现有预览和导出，按原票推进多类型、PDF、长表与导出取消。 |
 | 性能 | #46先取代表性真实基线。#54–#59完整条件和验收集中#45，只在瓶颈成立后重开所选原票；不逐个套技术 |
 | 服务器/OPS | 实际目标、访问、资源和发布安排具备后，#47→#228，再按#11及发布验收推进；新服不阻塞本地科学计算 |
-| #330既有收尾 | 本地已实现，后续核对既有验证/发布再收尾，不把合成任务扩展放在M1之前 |
+| #330 既有收尾 | 已随 PR #331 合并关闭。 |
 
 ## 已批准的归并与进度口径
 
