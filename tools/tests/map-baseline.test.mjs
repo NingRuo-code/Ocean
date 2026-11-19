@@ -93,8 +93,9 @@ test("partial coverage has its own paint time and never enters full-success perc
     const ready = () => map.dataset.renderStatus === 'ready';
     window.OFData = {serverEnabled:()=>true,viewportReady:ready,viewportState:()=>({status:'partial',usable:true})};
     window.requestAnimationFrame = callback => {
+      if (ready()) return setTimeout(() => frame(callback), 850);
       if (date.value === '2024-08-06' && ++frames === 2) map.dataset.renderStatus = 'ready';
-      return ready() ? setTimeout(() => frame(callback), 450) : frame(callback);
+      return frame(callback);
     };
     setTimeout(()=>{map.dataset.renderDate=date.value}, 260);
     document.getElementById('dateNext').onclick=()=>{
