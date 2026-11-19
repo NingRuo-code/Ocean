@@ -36,7 +36,7 @@ def scan_budget(max_entries=100_000, max_seconds=10):
 def measure(root, relative, budget=None):
     if budget is None:
         budget = scan_budget()
-    linux = sys.platform == "linux"
+    supports_allocation = sys.platform == "linux"
     unmeasured = {"status": "unavailable", "bytes": None, "observed_bytes": None}
     try:
         target = checked_path(root, relative)
@@ -78,7 +78,7 @@ def measure(root, relative, budget=None):
                         elif stat.S_ISREG(info.st_mode):
                             size += info.st_size
                             count += 1
-                            if linux and (blocks := getattr(info, "st_blocks", -1)) >= 0:
+                            if supports_allocation and (blocks := getattr(info, "st_blocks", -1)) >= 0:
                                 allocated += blocks * 512
                                 reported_allocations += 1
                         else:
@@ -90,7 +90,7 @@ def measure(root, relative, budget=None):
 
     visit(target, 0)
     allocation = unmeasured
-    if linux and not reasons and reported_allocations == count:
+    if supports_allocation and not reasons and reported_allocations == count:
         allocation = {"status": "measured", "bytes": allocated, "observed_bytes": allocated}
     elif reported_allocations:
         allocation = {"status": "partial", "bytes": None, "observed_bytes": allocated}

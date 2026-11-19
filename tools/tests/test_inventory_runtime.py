@@ -47,7 +47,9 @@ def test_cli_reports_allocated_file_bytes_separately_from_logical_size(cli_works
     allocation = layers["raw"]["allocation"]
     if sys.platform == "linux":
         # Independent CLI reports only the two regular file entries, without directory overhead.
-        reference = subprocess.check_output(["du", "-B1", "-l", str(example), str(alias)], text=True)
+        reference = subprocess.check_output(
+            ["du", "-B1", "-l", str(example), str(alias)], text=True, timeout=10,
+        )
         expected = sum(int(line.split()[0]) for line in reference.splitlines())
         assert allocation == {"status": "measured", "bytes": expected, "observed_bytes": expected}
         assert layers["cache"]["allocation"]["bytes"] == 0
