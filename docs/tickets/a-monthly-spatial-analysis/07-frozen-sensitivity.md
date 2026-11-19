@@ -25,3 +25,7 @@
 - #63 (https://github.com/NingRuo-code/Ocean/issues/63)
 - #64 (https://github.com/NingRuo-code/Ocean/issues/64)
 - #66 (https://github.com/NingRuo-code/Ocean/issues/66)
+
+## 2026-11-19 公开证据复核
+
+已经把上游格网与时刻、固定活动仓库的日期字段，以及八月原档的缺行和显式零分别[归档](../../reports/ocean-august-source-readiness-2026-11-06.md#仍需提供方确认)。四天活动样本用两种读法复核，三个半径的资格回放仍各为 0/31 天，快照身份保持一致。上游海温正午时刻不等同于锋面文件写出规则，活动 `DATE` 字段不等同于 UTC 日界；公开资料未补足逐日逐格有效覆盖。正式冻结及 #68 保持待核；本次不联系提供方。

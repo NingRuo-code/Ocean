@@ -78,6 +78,8 @@ node tools/audit-research-baseline.mjs --read-support-snapshot "$augustAuditDir/
 
 2026-11-19 复跑当前冻结逐日快照：新 Markdown 摘要在三个半径上均列出锋面 23 天缺档、8 天未核实，活动 27 天缺档、4 天未核实；两个必需层的时间和空间支持均未核实。各半径仍为 0/31 天。新旧 JSON 仅审计器源码身份和随之计算的快照标识变化，其余内容逐字段一致。
 
+同日优先查公开资料。已归档[锋面上游时间与格网](../research/ocean-front-upstream-grid-evidence-2026-11-19.md)、[GFW 固定版日界和覆盖](../research/ocean-gfw-fixed-v3-public-evidence-2026-11-19.md)、[四天原档缺行与显式零核对](../research/ocean-gfw-v3-local-cell-evidence-2026-11-19.md)。原档检查与三半径资格重放均已重新执行；资格快照 `sha256:bbf0e4095761a1c767f9eec01ef5429bfd872b84d796cbcbab3358e31cd25b68` 与上一轮一致。缺少当前锋面导出规则、固定活动日界及逐日逐格有效覆盖，未冻结正式方案、未扩大取数、未对外询证。
+
 ## 11 月 8 日验收
 
 实际来源与逐日快照在修正后的入口复跑，内容身份一致。66 项 Node 工具测试（含 10 项来源审计 CLI）、143 项 Python 工具测试和 922 项数据一致性检查通过。双轴复审最终均为零项待修复。更广的 Node 运行有一项隔离发布测试在导入应用时失败。发布应用、脚本、输入和该测试与主分支逐文件一致。
