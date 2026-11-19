@@ -40,6 +40,19 @@ if (sampleRoot && !args.includes("--isolated-service")) {
 if (!Number.isInteger(runs) || runs < 1 || runs > 20 || !Number.isFinite(timeout) || timeout < 100 || timeout > 60000) throw new Error("Invalid run budget");
 const edge = process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const scenarios = ["navigation", "reload", "date-change", "zoom", "drag"];
+
+function followingDate(iso) {
+  const day = new Date(`${iso}T00:00:00Z`);
+  if (!Number.isFinite(day.getTime())) return null;
+  day.setUTCDate(day.getUTCDate() + 1);
+  return day.toISOString().slice(0, 10);
+}
+
+function matchesViewChange(current, before) {
+  return !!before?.view && !!current.view && current.view !== before.view &&
+    current.time_origin === before.time_origin && current.date === before.date;
+}
+
 async function runBaseline(page, isolatedService = false, serviceRuntime = null, startupFailed = false, input = null) {
   const sampleKind = option("--sample-kind", "B0-current");
   if (!["B0-current", "controlled-fixture"].includes(sampleKind)) throw new Error("Unsupported evidence claim");
@@ -196,21 +209,23 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
       await measure("navigation", "fresh-profile", () => cdp.send("Page.navigate", { url: page }), (v) => !!v.date);
       const navigationDocument = await observed();
       await measure("reload", "same-profile", () => cdp.send("Page.reload", { ignoreCache: false }), (v) => !!v.date && v.time_origin !== navigationDocument?.time_origin);
-      const before = await observed();
-      await measure("date-change", "same-profile", () => cdp.evaluate("document.getElementById('dateNext').click()"), (v) => v.date !== before?.date);
-      const view = await observed();
+      const beforeDateChange = await observed();
+      const nextDate = followingDate(beforeDateChange?.date);
+      await measure("date-change", "same-profile", () => cdp.evaluate("document.getElementById('dateNext').click()"),
+        (v) => v.date === nextDate && v.time_origin === beforeDateChange?.time_origin);
+      const beforeZoom = await observed();
       const center = () => cdp.evaluate("(()=>{const r=document.getElementById('mapSvg').getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}})()");
       await measure("zoom", "same-profile", async () => {
         const box = await center();
         await cdp.send("Input.dispatchMouseEvent", { type: "mouseWheel", x: box.x, y: box.y, deltaX: 0, deltaY: -120 });
-      }, (v) => v.view !== view?.view);
+      }, (v) => matchesViewChange(v, beforeZoom));
       const beforeDrag = await observed();
       await measure("drag", "same-profile", async () => {
         const box = await center();
         await cdp.send("Input.dispatchMouseEvent", { type: "mousePressed", x: box.x, y: box.y, button: "left", clickCount: 1 });
         await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: box.x + 70, y: box.y + 15, button: "left", buttons: 1 });
         await cdp.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: box.x + 70, y: box.y + 15, button: "left", clickCount: 1 });
-      }, (v) => v.view !== beforeDrag?.view);
+      }, (v) => matchesViewChange(v, beforeDrag));
     } catch {
       for(const scenario of scenarios){
         if(attempts.some(a=>a.run===run&&a.scenario===scenario))continue;
@@ -256,6 +271,7 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
     commit, tracked_changes_present:trackedChanges, artifact_hashes: artifactHashes, environment, attempts, summary, targets_verified: false,
     protocol: { runs, timeout_ms: timeout, clock: "Node monotonic action dispatch to matching observed DOM plus two animation frames; 25ms polling overhead included",
       completion_deadline: "Matching painted state must be confirmed before the action deadline; in-flight browser commands may take longer to return",
+      action_identity: "Next-day action requires the following calendar date in the same document; zoom and drag require a changed view in the original document and date",
       partial_paint: "First matching usable partial viewport confirmed across two frames, observed separately from full readiness and excluded from success quantiles",
       segments: "Browser render/panel and network segments overlap; not added to elapsed time", canceled: "reported in request records; failed/timed-out attempts retained with null elapsed", cache_limitations: "no production cache purge; OS and storage warmth uncontrolled" },
     limitations: ["B0 activity layer still uses percentile/700-cell truncation; no valid acceleration ratio against a complete-support renderer.",
