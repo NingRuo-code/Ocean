@@ -23,6 +23,7 @@ from monthly_distance_background import compare_day
 METHOD = "fixed-event-comparable-controls/v1"
 PARAMETER = "frozen-single-control/v1"
 COVARIATES = ("distance_to_coast_km", "sst_c", "depth_m")
+STATIC_COVARIATES = {"distance_to_coast_km", "depth_m"}
 
 
 def registered_policy(policy):
@@ -32,6 +33,8 @@ def registered_policy(policy):
             "required_window",
             "max_center_distance_km",
             "minimum_area_ratio",
+            "control_clearance_km",
+            "front_position_error_km",
             "covariate_limits",
         }
         and policy["required_window"] in FOLLOW_UPS,
@@ -41,7 +44,11 @@ def registered_policy(policy):
         p0.finite(policy["max_center_distance_km"])
         and 0 < policy["max_center_distance_km"] <= 200
         and p0.finite(policy["minimum_area_ratio"])
-        and 0 < policy["minimum_area_ratio"] <= 1,
+        and 0 < policy["minimum_area_ratio"] <= 1
+        and p0.finite(policy["control_clearance_km"])
+        and 0 < policy["control_clearance_km"] <= 30
+        and p0.finite(policy["front_position_error_km"])
+        and 0 <= policy["front_position_error_km"] <= 5,
         "control_policy_geometry",
     )
     limits = policy["covariate_limits"]
@@ -55,8 +62,17 @@ def registered_policy(policy):
 
 def covariates(values):
     require(
-        values.keys() <= set(COVARIATES)
-        and all(value is None or p0.finite(value) for value in values.values()),
+        values.keys() <= STATIC_COVARIATES
+        and all(
+            isinstance(proof, dict)
+            and proof.keys() == {"value", "evidence_id", "scope"}
+            and proof["scope"] == "static_for_registered_circle"
+            and isinstance(proof["evidence_id"], str)
+            and re.fullmatch(r"sha256:[0-9a-f]{64}", proof["evidence_id"])
+            and p0.finite(proof["value"])
+            and proof["value"] >= 0
+            for proof in values.values()
+        ),
         "control_covariates_schema",
     )
     return values
@@ -113,8 +129,13 @@ def register_control(raw, target, anchors):
         "covariates": covariates(raw["covariates"]),
         "front_result_id": front["result_id"],
         "front_read_range": front["read_range"],
+        "front_position_error_km": front["geometry"]["front_position_error_km"],
         "observations": {
-            day["date"]: day["phase"] for day in front["selection"]["observations"]
+            day["date"]: {
+                "phase": day["phase"],
+                "lower_km": day["distance_km"]["lower"],
+            }
+            for day in front["selection"]["observations"]
         },
         "snapshots": snapshots,
     }
@@ -123,13 +144,16 @@ def register_control(raw, target, anchors):
 def covariate_checks(target, candidate, limits):
     output = {}
     for key in COVARIATES:
-        left, right = target.get(key), candidate.get(key)
+        target_proof, control_proof = target.get(key, {}), candidate.get(key, {})
+        left, right = target_proof.get("value"), control_proof.get("value")
         difference = (
             abs(left - right) if left is not None and right is not None else None
         )
         maximum = limits.get(key)
         if maximum is None:
             status = "not_required"
+        elif key == "sst_c":
+            status = "unverified_temporal_support"
         elif difference is None:
             status = "unknown"
         else:
@@ -140,6 +164,8 @@ def covariate_checks(target, candidate, limits):
             "difference": difference,
             "limit": maximum,
             "status": status,
+            "target_evidence_id": target_proof.get("evidence_id"),
+            "control_evidence_id": control_proof.get("evidence_id"),
         }
     return output
 
@@ -185,12 +211,16 @@ def evaluate_candidate(candidate, target, dates, policy, target_covariates):
     anchor = target["anchor_date"]
     required = [*dates["pre7"], *dates["event_day"], *dates[policy["required_window"]]]
     observations = candidate["observations"]
-    exposed = [
-        day
-        for day in required
-        if observations.get(day) in {"near", "between_thresholds"}
-    ]
-    missing = [day for day in required if observations.get(day, "unknown") == "unknown"]
+    exposed, missing, weak_clearance = [], [], []
+    for day in required:
+        row = observations.get(day, {})
+        phase, lower = row.get("phase"), row.get("lower_km")
+        if phase in {"near", "between_thresholds"}:
+            exposed.append(day)
+        elif phase != "clear":
+            missing.append(day)
+        elif not p0.finite(lower) or lower < policy["control_clearance_km"]:
+            weak_clearance.append(day)
     evidence = {
         key: candidate[key]
         for key in (
@@ -199,6 +229,7 @@ def evaluate_candidate(candidate, target, dates, policy, target_covariates):
             "distance_km",
             "front_result_id",
             "front_read_range",
+            "front_position_error_km",
         )
     }
     checks = covariate_checks(
@@ -208,6 +239,7 @@ def evaluate_candidate(candidate, target, dates, policy, target_covariates):
         covariates=checks,
         exposure_dates=exposed,
         missing_observation_dates=missing,
+        unproven_clearance_dates=weak_clearance,
         pair_checks=[],
     )
     if (
@@ -219,15 +251,19 @@ def evaluate_candidate(candidate, target, dates, policy, target_covariates):
     if exposed or missing:
         reason = "front_exposure_not_clear" if exposed else "front_observation_unknown"
         return {**evidence, "reason": reason}, None
+    if candidate["front_position_error_km"] != policy["front_position_error_km"]:
+        return {**evidence, "reason": "front_position_error_mismatch"}, None
+    if weak_clearance:
+        return {**evidence, "reason": "front_clearance_not_proven"}, None
     if any(
-        check["status"] in {"unknown", "outside_limit"} for check in checks.values()
+        check["status"] not in {"matched", "not_required"} for check in checks.values()
     ):
         return {**evidence, "reason": "covariates_not_matched"}, None
     frozen = candidate["snapshots"].get((anchor, "front_effort"))
     if frozen is None:
         return {**evidence, "reason": "control_p0_snapshot_missing"}, None
     context = {
-        day: {"front_exposure": observations.get(day, "unknown")}
+        day: {"front_exposure": observations.get(day, {}).get("phase", "unknown")}
         for day in sorted(set(dates["pre7"] + dates["event_day"] + dates["post7"]))
     }
     audited = project_support(frozen, dates, context)
@@ -295,13 +331,19 @@ def match_event(target, controls, policy, target_covariates):
             candidates.append(evidence)
             if result is not None:
                 eligible.append((evidence, result))
-    selected, contrasts = None, dict.fromkeys(FOLLOW_UPS)
+    selected, contrasts, control_days, paired_dates = (
+        None,
+        dict.fromkeys(FOLLOW_UPS),
+        {},
+        set(),
+    )
     if eligible:
         evidence, control = min(
             eligible, key=lambda item: (item[0]["distance_km"], item[0]["id"])
         )
         selected = {**evidence, "weight": 1, "scope": "retrospective_full_window"}
         paired_dates = {pair["date"] for pair in evidence["pair_checks"]}
+        control_days = {row["date"]: row for row in control["daily"]}
         for part in FOLLOW_UPS:
             if (
                 target["changes"][part]["status"] != "comparable"
@@ -312,6 +354,17 @@ def match_event(target, controls, policy, target_covariates):
             contrasts[part] = contrast(target, control, part)
     return {
         "anchor_date": target["anchor_date"],
+        "target_front_event": target["front_event"],
+        "target_support_snapshot_id": target["support_snapshot_id"],
+        "daily": [
+            {
+                "date": row["date"],
+                "target": row,
+                "control": control_days.get(row["date"]),
+                "matched_for_window": row["date"] in paired_dates,
+            }
+            for row in target["daily"]
+        ],
         "target_changes": target["changes"],
         "contrasts": contrasts,
         "matching": {
@@ -392,6 +445,7 @@ def evaluate(request, bundle, source_hash):
         "policy": policy,
         "events": events,
         "matched_events": sum(reuse.values()),
+        "match_rate": sum(reuse.values()) / len(events) if events else None,
         "control_reuse": dict(sorted(reuse.items())),
         "candidate_count": len(controls),
         "evidence_kind": "synthetic_example",

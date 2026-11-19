@@ -12,6 +12,7 @@ const digest = value => "sha256:" + createHash("sha256").update(value).digest("h
 const monthEnd = "2024-08-31";
 const scope = {id:"circle",type:"circle",center:[0,0],radius_km:10};
 const shift = (day,offset) => new Date(Date.parse(day)+offset*86400000).toISOString().slice(0,10);
+const staticProof = (value, scopeId) => ({value,scope:"static_for_registered_circle",evidence_id:digest(scopeId)});
 
 function controlled(directory, anchor = monthEnd, nextAnchor = null) {
   const base = {purpose:"fixed_region_event_example",longitude:0,latitude:0,radius_km:10,search_start:anchor,search_end:nextAnchor ?? anchor};
@@ -100,11 +101,13 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null) {
     return JSON.parse(run(experiment,["--read-fixed-region-result",output],{OCEAN_EXPERIMENT_PYTHON:"unavailable"}));
   }
   function registerControl(id, longitude, exposureOffset=null, supportOptions={}) {
+    const {exitDistance=2,...p0Options}=supportOptions;
     const controlBase={...base,longitude,search_start:shift(anchor,-7),search_end:shift(anchor,7)};
     const fixture=JSON.parse(readFileSync(fixturePath,"utf8"));
     const layer=fixture.regional_cells.days[0].layers;
     fixture.id=id;
     fixture.geometry.longitude=longitude;
+    fixture.policy.exit_distance_km=exitDistance;
     fixture.front_source_version=front.source.front_source_version;
     const calendar=Array.from({length:19},(_,i)=>shift(anchor,i-9));
     fixture.regional_cells.days=calendar.map(date=>({date,layers:layer}));
@@ -117,17 +120,17 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null) {
     const output=join(directory,id);
     run(experiment,["--fixed-region-request",request,"--input",input,"--output",output]);
     return {id,longitude,latitude:0,radius_km:10,search_start:controlBase.search_start,search_end:controlBase.search_end,
-      covariates:{distance_to_coast_km:8},front_summary_json:readFileSync(join(output,"summary.json"),"utf8"),
+      covariates:{distance_to_coast_km:staticProof(8,`${id} coast`)},front_summary_json:readFileSync(join(output,"summary.json"),"utf8"),
       front_manifest_json:readFileSync(join(output,"manifest.json"),"utf8"),
-      support_snapshots:[makeSnapshot(false,{days:15,longitude,...supportOptions})]};
+      support_snapshots:[makeSnapshot(false,{days:15,longitude,...p0Options})]};
   }
-  function fixedControls(controls, targetRun, name) {
+  function fixedControls(controls, targetRun, name, covariateLimits={distance_to_coast_km:3}) {
     const source=write(`${name}.json`,{schema:"ocean-fixed-region-controls-input/v1",
       target_summary_json:readFileSync(join(directory,targetRun,"summary.json"),"utf8"),
       target_manifest_json:readFileSync(join(directory,targetRun,"manifest.json"),"utf8"),
-      target_covariates:{distance_to_coast_km:7},
+      target_covariates:{distance_to_coast_km:staticProof(7,"target coast")},
       policy:{required_window:"post7",max_center_distance_km:40,minimum_area_ratio:0.8,
-        covariate_limits:{distance_to_coast_km:3}},controls});
+        control_clearance_km:2,front_position_error_km:0.01,covariate_limits:covariateLimits},controls});
     const request=write(`${name}-request.json`,{...base,input_version:digest(readFileSync(source)),
       method_version:"fixed-event-comparable-controls/v1",parameter_version:"frozen-single-control/v1"});
     const output=join(directory,name);
@@ -198,6 +201,7 @@ test("same-day controls stay fixed and later front exposure excludes an otherwis
     assert.equal(event.matching.selected.id,"good");
     assert.equal(event.matching.selected.weight,1);
     assert.equal(event.matching.selected.scope,"retrospective_full_window");
+    assert.equal(event.matching.selected.covariates.distance_to_coast_km.control_evidence_id,digest("good coast"));
     assert.equal(event.matching.candidates.find(c=>c.id==="exposed").reason,"front_exposure_not_clear");
     assert.deepEqual(event.matching.candidates.find(c=>c.id==="exposed").exposure_dates,["2024-09-05"]);
     assert.equal(event.contrasts.post3.pre7.control_density,0);
@@ -207,6 +211,10 @@ test("same-day controls stay fixed and later front exposure excludes an otherwis
     assert.equal(noMatch.matching.selected,null);
     assert.equal(noMatch.contrasts.post3,null);
     assert.equal(noMatch.target_changes.post3.absolute_density_change,target.events[0].changes.post3.absolute_density_change);
+    const weak=registerControl("weak",0.22,null,{exitDistance:1});
+    const failedClearance=fixedControls([weak],"target-effects","unproven-clearance").events[0];
+    assert.equal(failedClearance.matching.selected,null);
+    assert.equal(failedClearance.matching.candidates[0].reason,"front_clearance_not_proven");
   } finally {
     if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
   }
@@ -229,6 +237,9 @@ test("same-day comparisons retain direction and require registered covariates an
     const unmeasured=fixedControls([{...valid,covariates:{}}],"target-effects","unknown-coast").events[0];
     assert.equal(unmeasured.matching.selected,null);
     assert.equal(unmeasured.matching.candidates[0].covariates.distance_to_coast_km.status,"unknown");
+    const temporal=fixedControls([valid],"target-effects","unverified-sst",{sst_c:2}).events[0];
+    assert.equal(temporal.matching.selected,null);
+    assert.equal(temporal.matching.candidates[0].covariates.sst_c.status,"unverified_temporal_support");
   } finally {
     if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
   }
