@@ -30,6 +30,22 @@ function boundedText(path, bytes=ARTIFACT_BYTES) {
   } finally { closeSync(fd); }
 }
 function report(result) {
+  if (result.schema_version === "fixed-region-window-qualification/v1") {
+    const lines = ["# 固定海域事件窗口资格 · 合成样例", "", `锋面结果 ${result.front_result_id}。`,
+      "事件日单列。真实研究资格待验证。", ""];
+    for (const event of result.events) {
+      lines.push(`## 观测锚日 ${event.anchor_date}`, "",
+        "| 用途 | 窗口 | 日期 | 支持状态 | 排除日期 |", "| --- | --- | --- | --- | --- |");
+      for (const [use, evidence] of Object.entries(event.support)) {
+        for (const [name, window] of Object.entries(evidence.windows)) {
+          lines.push(`| ${use} | ${name} | ${window.dates[0]} – ${window.dates.at(-1)} | ${window.status} | ${window.excluded_dates?.join(", ") ?? "未知"} |`);
+        }
+      }
+      lines.push("");
+    }
+    if (!result.events.length) lines.push("当前结果中没有可取得窗口的已确认锚日。", "");
+    return lines.join("\n");
+  }
   if (result.schema_version === "fixed-region-front-observation/v1") {
     const {policy, observations, events} = result.selection;
     return ["# 固定海域锋面观测 · 合成样例", "", `状态 ${result.status}；结果 ${result.result_id}`,
@@ -130,9 +146,14 @@ export function runFixedRegionExample(args, root) {
     requestFlag: "--fixed-region-request", readFlag: "--read-fixed-region-result",
     purpose: "fixed_region_event_example", outputName: "fixed-region-example",
     inputName: "fixed-region-event.json", module: "app.fixed_region_example",
-    pythonArgs: (request, root, stage) => JSON.parse(request).method_version === "observed-fixed-exposure/v1"
-      ? ["-B","-X",`pycache_prefix=${join(stage,"pycache")}`,join(root,"tools/fixed_region_front_observations.py")]
-      : undefined,
+    pythonArgs: (request, root, stage) => {
+      const scripts = new Map([
+        ["observed-fixed-exposure/v1","fixed_region_front_observations.py"],
+        ["fixed-event-window-qualification/v1","fixed_region_window_qualification.py"],
+      ]);
+      const script = scripts.get(JSON.parse(request).method_version);
+      return script ? ["-B","-X",`pycache_prefix=${join(stage,"pycache")}`,join(root,"tools",script)] : undefined;
+    },
     errorCode: "controlled_event_failed", report,
   });
 }

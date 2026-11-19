@@ -53,7 +53,7 @@ def register(request, source, source_hash):
         "request_source_identity",
     )
     require(
-        source.keys()
+        source.keys() - {"front_source_version"}
         == {
             "schema",
             "id",
@@ -76,6 +76,12 @@ def register(request, source, source_hash):
             for key in ("id", "front_source_id")
         ),
         "synthetic_source_required",
+    )
+    version = source.get("front_source_version")
+    require(
+        version is None
+        or (isinstance(version, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", version)),
+        "invalid_front_source_version",
     )
     coordinates = (request["longitude"], request["latitude"])
     radius = request["radius_km"]
@@ -403,6 +409,7 @@ def evaluate(request, source, source_hash):
             "input_sha256": source_hash,
             "license": source["license"],
             "front_source_id": source["front_source_id"],
+            "front_source_version": source.get("front_source_version"),
         },
         "versions": {
             "event_engine": p0.file_digest(Path(__file__)),
