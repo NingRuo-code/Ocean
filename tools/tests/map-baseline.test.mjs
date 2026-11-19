@@ -52,6 +52,42 @@ test("basemap-only and wrong-date attempts remain timeouts in the report", () =>
   assert.equal(report.summary.navigation.timeout, 1);
 });
 
+test("date and view actions do not accept an unrelated ready map", () => {
+  const root = mkdtempSync(join(tmpdir(), "ocean-baseline-action-"));
+  const page = join(root, "actions.html"), out = join(root, "baseline.json");
+  writeFileSync(page, `<!doctype html>
+    <input id="timeDate" type="date" value="2024-08-05"><button id="dateNext">next</button>
+    <svg id="mapSvg" width="600" height="400" data-render-date="2024-08-05" data-render-status="ready" data-view-key="initial"></svg>
+    <script>
+    const date = document.getElementById('timeDate');
+    const map = document.getElementById('mapSvg');
+    document.getElementById('dateNext').onclick = () => {
+      date.value = map.dataset.renderDate = '2024-08-07';
+    };
+    map.onwheel = () => {
+      date.value = map.dataset.renderDate = '2024-08-08';
+      map.dataset.viewKey = 'zoomed-on-wrong-date';
+    };
+    map.onpointerup = () => { location.href = 'unrelated.html'; };
+    </script>`);
+  writeFileSync(join(root, "unrelated.html"), `<!doctype html>
+    <input id="timeDate" type="date" value="2024-08-08">
+    <svg id="mapSvg" width="600" height="400" data-render-date="2024-08-08" data-render-status="ready" data-view-key="another-document"></svg>`);
+  const result = spawnSync(process.execPath, [resolve("tools/benchmark-map.mjs"),
+    "--page", pathToFileURL(page).href, "--runs", "1", "--timeout-ms", "900",
+    "--sample-kind", "controlled-fixture", "--out", out], { encoding: "utf8", timeout: 25000 });
+  const report = JSON.parse(readFileSync(out, "utf8"));
+  const [navigation, reload, dateChange, zoom, drag] = report.attempts;
+  assert.deepEqual([navigation.status, reload.status], ["success", "success"]);
+  assert.equal(dateChange.last_observed?.date, "2024-08-07");
+  assert.equal(zoom.last_observed?.view, "zoomed-on-wrong-date");
+  assert.ok(drag.requests.some(request => request.kind === "Document"), "Drag dispatched a navigation to another document");
+  assert.deepEqual([dateChange.status, zoom.status], ["timeout", "timeout"]);
+  assert.notEqual(drag.status, "success", "A different document must never complete the drag");
+  assert.ok([dateChange, zoom, drag].every(attempt => attempt.elapsed_ms === null));
+  assert.equal(result.status, 1, result.stderr);
+});
+
 test("paint after the action budget does not count as successful completion", () => {
   const root = mkdtempSync(join(tmpdir(), "ocean-baseline-deadline-"));
   const page = join(root, "late-paint.html"), out = join(root, "baseline.json");
