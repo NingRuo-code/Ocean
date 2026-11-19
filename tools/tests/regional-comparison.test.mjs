@@ -57,10 +57,12 @@ test("comparison reopens without source files or Python and refuses overwrite or
 }));
 
 test("comparison reuses identical normalized inputs and excludes a source whose permission changes", () => scenario(({ root, request, source, out, call, submit }) => {
-  assert.equal(submit().status, 0);
+  const first = submit();
+  assert.equal(first.status, 0, first.stderr);
+  assert.equal(JSON.parse(first.stdout).source_freshness, "unknown");
   const frozen = readFileSync(join(out, "summary.json"), "utf8");
   const initial = JSON.parse(frozen);
-  assert.equal(initial.source_freshness, "unknown");
+  assert.equal(initial.result_id, "sha256:ad186603a839ab2fcd52cd5620980ecfbe750361ea83ff0af2d432eda28a4b52");
   const retry = join(root, "retry");
   const reuse = () => call(["--regional-comparison-request", request, "--input", source,
     "--reuse-regional-comparison-result", out, "--output", retry]);
@@ -94,10 +96,13 @@ test("comparison reuses identical normalized inputs and excludes a source whose 
   assert.equal(readFileSync(join(out, "summary.json"), "utf8"), frozen);
 }));
 
-test("missing snapshots keep each candidate and an explicit prerequisite, without manufacturing zeros", () => scenario(({ source, out, submit }) => {
+test("missing snapshots keep candidates and prerequisites while withholding unverified source details", () => scenario(({ request, source, out, submit }) => {
   const pack = JSON.parse(readFileSync(source, "utf8"));
   pack.snapshots = [];
   writeFileSync(source, JSON.stringify(pack));
+  const requested = JSON.parse(readFileSync(request, "utf8"));
+  requested.candidates[0].source.id = "unverified-source-label";
+  writeFileSync(request, JSON.stringify(requested));
   assert.equal(submit().status, 0);
   const result = JSON.parse(readFileSync(join(out, "summary.json"), "utf8"));
   assert.equal(result.status, "not_ready");
@@ -105,6 +110,9 @@ test("missing snapshots keep each candidate and an explicit prerequisite, withou
   assert.equal(result.rows[0].reason, "source_result_missing");
   assert.equal(result.rows[0].required, "existing_A_result");
   assert.equal(result.rows[0].metrics, undefined);
+  assert.equal(result.rows[0].candidate.result_id, undefined);
+  assert.doesNotMatch(JSON.stringify(result) + readFileSync(join(out, "report.md"), "utf8"),
+    /unverified-source-label/);
 }));
 
 test("event snapshots stay in their own board with actual four-window values", () => scenario(({ request, out, submit }) => {

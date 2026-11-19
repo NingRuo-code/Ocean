@@ -10,19 +10,11 @@ from pydantic import Field, model_validator
 from .analysis_support import content_id, decode_controlled_json, known_period_summary
 from .comparison_models import Identity, SnapshotPack
 from .g3_candidate_support import review_candidate_support
-from .monthly_models import ClosedModel, Finite, Month
+from .g3_models import G3Region, Label, Seasons
+from .monthly_models import ClosedModel, Month
 from .published_months import UNITS, project_public_month
 
-Label = Annotated[str, Field(pattern=r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")]
 Reference = Annotated[str, Field(pattern=r"^[A-Za-z][A-Za-z0-9_.-]{0,63}/v[1-9][0-9]*$")]
-MonthNumber = Annotated[int, Field(strict=True, ge=1, le=12)]
-
-
-class ValidationRegion(ClosedModel):
-    id: Label
-    name: Annotated[str, Field(pattern=r"^[\w .-]{1,80}$")]
-    longitude: Annotated[Finite, Field(ge=-180, le=180)]
-    latitude: Annotated[Finite, Field(ge=-90, le=90)]
 
 
 class ValidationCandidate(ClosedModel):
@@ -40,13 +32,10 @@ class ValidationRequest(ClosedModel):
     protocol_ref: Reference
     partition_ref: Reference
     source_ref: Identity
-    region: ValidationRegion
+    region: G3Region
     radius_km: Literal[10, 20, 30]
     season_year_rule: Literal["calendar_year"]
-    seasons: Annotated[
-        dict[Label, Annotated[list[MonthNumber], Field(min_length=1, max_length=12)]],
-        Field(min_length=1, max_length=12),
-    ]
+    seasons: Seasons
     aggregation: Literal["sum_known_nonoverlapping_H_over_E"]
     candidates: Annotated[list[ValidationCandidate], Field(min_length=1, max_length=12)]
 

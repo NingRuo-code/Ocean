@@ -274,8 +274,6 @@ def compare_known_snapshots(request_payload, pack_payload):
         if any(row["status"] == "limited_side_by_side" for row in rows)
         else "not_ready",
         "parameters": parameters,
-        "request_identity": content_id(parameters),
-        "source_freshness": "unknown",
         "evidence_kind": "synthetic_example",
         "research_ready": False,
         "source": {
@@ -296,15 +294,14 @@ def compare_known_snapshots(request_payload, pack_payload):
     if request.method_version == "known-snapshots/v2":
         result["source"]["version"] = request.method_version
         add_compatibility(result, request, snapshots)
-    for row, parameter in zip(rows, parameters["candidates"], strict=True):
-        if row["reason"] in {
-            "source_not_public",
-            "source_license_unverified",
-            "source_identity_or_contract_invalid",
-        }:
+    withheld = [index for index, row in enumerate(rows) if "source_result_id" not in row]
+    if withheld:
+        # Bind the original request even when the public projection omits source details.
+        result["request_identity"] = content_id(parameters)
+        for index in withheld:
             for key in ("source", "result_id", "snapshot_sha256"):
-                del row["candidate"][key]
-                del parameter[key]
+                del rows[index]["candidate"][key]
+                del parameters["candidates"][index][key]
     result["result_id"] = content_id(result)
     return result
 

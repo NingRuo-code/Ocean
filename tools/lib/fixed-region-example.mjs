@@ -358,7 +358,7 @@ export function runControlledExample(args, root, profile) {
           if (previous?.manifest && isDeepStrictEqual(previous.summary, value.result) &&
               previous.manifest.artifacts["report.md"] === hash(profile.report(value.result))) {
             console.log(JSON.stringify({state:"completed",run_id:previous.manifest.run_id,
-              result_id:previous.summary.result_id,reused:true,source_freshness:previous.summary.source_freshness,error:null}));
+              result_id:previous.summary.result_id,reused:true,source_freshness:"unknown",error:null}));
             return 0;
           }
         }
@@ -390,8 +390,9 @@ export function runControlledExample(args, root, profile) {
     if (result) {
       manifest.result_id=result.result_id;manifest.parameters=result.parameters;manifest.inputs=[result.source];
       manifest.artifacts=Object.fromEntries(Object.entries(artifacts).map(([name, content])=>[name,hash(content)]));
+      if(profile.reuseFlag) manifest.source_freshness="unknown";
       if(executionId) Object.assign(manifest,{execution_id:executionId,
-        versioned_result_id:result.versioned_result_id,source_freshness:"unknown"});
+        versioned_result_id:result.versioned_result_id});
     }
     if (Buffer.byteLength(JSON.stringify(manifest,null,2)+"\n","utf8")>ARTIFACT_BYTES) {
       state="failed";result=null;error={code:profile.errorCode};
@@ -409,7 +410,7 @@ export function runControlledExample(args, root, profile) {
     console.log(JSON.stringify({state,run_id:manifest.run_id,result_id:manifest.result_id,error,
       ...(manifest.execution_id ? {execution_id:manifest.execution_id,versioned_result_id:manifest.versioned_result_id,
         reused:false,source_freshness:"unknown"} : profile.reuseFlag && result ?
-        {reused:false,source_freshness:result.source_freshness} : {})}));
+        {reused:false,source_freshness:"unknown"} : {})}));
     return state === "completed" ? 0 : 2;
   } catch { console.error("Controlled example rejected; no completed result was published.");return 2; }
   finally {

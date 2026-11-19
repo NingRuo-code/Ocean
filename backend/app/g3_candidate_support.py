@@ -8,18 +8,10 @@ from pydantic import Field, field_validator, model_validator
 from .analysis_support import content_id
 from .audited_support import evidence_id, project_frozen_support, unavailable
 from .comparison_models import Identity
-from .monthly_models import ClosedModel, Finite, LayerUse, Month
+from .g3_models import G3Region, Label, Seasons
+from .monthly_models import ClosedModel, LayerUse, Month
 
-Label = Annotated[str, Field(pattern=r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")]
-MonthNumber = Annotated[int, Field(strict=True, ge=1, le=12)]
 ISODate = Annotated[str, Field(pattern=r"^[12]\d{3}-\d{2}-\d{2}$")]
-
-
-class ReviewRegion(ClosedModel):
-    id: Label
-    name: Annotated[str, Field(pattern=r"^[\w .-]{1,80}$")]
-    longitude: Annotated[Finite, Field(ge=-180, le=180)]
-    latitude: Annotated[Finite, Field(ge=-90, le=90)]
 
 
 class EventWindow(ClosedModel):
@@ -47,11 +39,8 @@ class CandidateReview(ClosedModel):
     method_version: Literal["candidate-support/v1"]
     season_year_rule: Literal["calendar_year"]
     layer_use: LayerUse
-    seasons: Annotated[
-        dict[Label, Annotated[list[MonthNumber], Field(min_length=1, max_length=12)]],
-        Field(min_length=1, max_length=12),
-    ]
-    regions: Annotated[list[ReviewRegion], Field(min_length=1, max_length=8)]
+    seasons: Seasons
+    regions: Annotated[list[G3Region], Field(min_length=1, max_length=8)]
     candidates: Annotated[list[ReviewCandidate], Field(min_length=1, max_length=24)]
 
     @model_validator(mode="after")
