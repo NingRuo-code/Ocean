@@ -33,15 +33,19 @@ The temporal window used to compare a front event with apparent fishing effort. 
 _Avoid_: Same-day-only response
 
 **Front Buffer Response**:
-The first-stage spatial matching method for summing apparent fishing effort near a front event. Fishing hours are summed inside a buffer around the front rather than requiring both datasets to share an identical grid.
+The legacy spatial matching method for summing apparent fishing effort inside a moving buffer around a front on each observation date.
 _Avoid_: Exact pixel overlap only
+
+**Fixed-Region Front Event**:
+A period of qualifying observed front exposure in a fixed sea area. The anchor date is the first qualifying daily observation confirmed by the registered continuity rules.
+_Avoid_: Physical front lifetime, moving front buffer
 
 **Operation Range**:
 The user-facing radius for searching operation cues around a departure point. The product defaults to 20 km while allowing 10, 20, and 30 km; research analysis reports all three as a sensitivity check.
 _Avoid_: Hidden model radius
 
 **Response Baseline**:
-The comparison used to decide whether apparent fishing effort increased around a front event. The first stage compares against both the same front buffer before the event and same-day non-front control areas.
+The prior apparent fishing effort for the same analysis geometry and the effort in same-day comparable control areas.
 _Avoid_: Raw fishing hours without comparison
 
 **Response Strength**:
@@ -49,11 +53,11 @@ The evidence summary for whether apparent fishing effort increased around a fron
 _Avoid_: Bare fishing-hour total
 
 **Response Enhancement**:
-The first-stage threshold for calling an AIS operation response enhanced. The one-to-three-day post-front fishing effort must be at least twenty percent higher than the seven-day pre-front baseline and also higher than same-day non-front control areas.
+The legacy moving-buffer label for a one-to-three-day response at least twenty percent above its seven-day baseline and above its same-day controls. The fixed-region analysis reports its registered comparison and uncertainty.
 _Avoid_: Increase without baseline
 
 **Non-Front Control Area**:
-A same-day comparison area away from fronts, used to test whether apparent fishing effort near a front is higher than background fishing activity. The first-stage negative samples are same-area buffers at least 50 km away from fronts.
+A same-day comparison area with verified comparability and an eligible non-front state. The legacy moving-buffer samples used equal-area buffers at least 50 km from fronts.
 _Avoid_: Arbitrary empty ocean
 
 **Similar Front Event**:
