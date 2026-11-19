@@ -23,3 +23,11 @@
 ## Blocked by
 
 - #75 (https://github.com/NingRuo-code/Ocean/issues/75)
+
+## 实施记录 · 2026-11-19
+
+既有固定海域实验入口接受 `fixed-event-window-effects/v1` 与 `exact-common-support/v1`。输入 `ocean-fixed-region-window-effects-input/v1` 以 `window_summary_json` 和 `window_manifest_json` 原文绑定 B03 已完成产物。请求 `input_version` 是输入字节的 SHA-256，几何及锚日搜索条件与原任务保持一致。
+
+各窗按 P0 共同支持逐日相加 H 与 E，再计算密度 H/E。完整窗汇总、已知子集、日均、面积时间和排除日分别保留。比较只使用完整、已取得 B03 软件资格且前后共享同一精确共同支持的窗口。面积变化、不同覆盖位置、许可或来源未核、缺日时保留已知描述，变化量留空。事件日单列。零基线仍可报告密度绝对差，相对变化未知。
+
+事件等权平均及面积时间合并估计分别出具。跨事件汇总先核实来源版本、处理版本以及 P0 方法、质量和面积分配口径。日期重叠会阻止面积时间合并，保留等权描述并记录重叠日期供相关组处理。结果是合成窗口变化，自然事件与对照差需后续票据和真实输入验收。

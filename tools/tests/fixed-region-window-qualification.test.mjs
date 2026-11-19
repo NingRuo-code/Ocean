@@ -13,8 +13,8 @@ const monthEnd = "2024-08-31";
 const scope = {id:"circle",type:"circle",center:[0,0],radius_km:10};
 const shift = (day,offset) => new Date(Date.parse(day)+offset*86400000).toISOString().slice(0,10);
 
-function controlled(directory, anchor = monthEnd) {
-  const base = {purpose:"fixed_region_event_example",longitude:0,latitude:0,radius_km:10,search_start:anchor,search_end:anchor};
+function controlled(directory, anchor = monthEnd, nextAnchor = null) {
+  const base = {purpose:"fixed_region_event_example",longitude:0,latitude:0,radius_km:10,search_start:anchor,search_end:nextAnchor ?? anchor};
   const run = (entry, args, env={}) => {
     const output=spawnSync(process.execPath,[entry,...args],{encoding:"utf8",windowsHide:true,env:{...process.env,...env}});
     assert.equal(output.status,0,output.stderr || output.stdout);
@@ -22,10 +22,19 @@ function controlled(directory, anchor = monthEnd) {
   };
   const write = (name, document) => {const path=join(directory,name);writeFileSync(path,JSON.stringify(document));return path;};
   let fixturePath = resolve("tools/examples/b02-front-continuity.json");
-  if (anchor !== monthEnd) {
+  if (anchor !== monthEnd || nextAnchor) {
     const fixture=JSON.parse(readFileSync(fixturePath,"utf8"));
     const offset=(Date.parse(anchor)-Date.parse(monthEnd))/86400000;
     for(const row of [...fixture.front_days,...fixture.regional_cells.days]) row.date=shift(row.date,offset);
+    if(nextAnchor) {
+      const active = new Set([anchor,shift(anchor,1),nextAnchor,shift(nextAnchor,1)]);
+      const template=fixture.regional_cells.days[0].layers;
+      const objects=fixture.front_days.find(row=>row.date===anchor).objects;
+      const length=(Date.parse(nextAnchor)-Date.parse(anchor))/86400000+5;
+      const calendar=Array.from({length},(_,i)=>shift(anchor,i-2));
+      fixture.regional_cells.days=calendar.map(date=>({date,layers:template}));
+      fixture.front_days=calendar.map(date=>({date,source_id:fixture.front_source_id,objects:active.has(date)?objects:[]}));
+    }
     fixture.front_source_version=digest(JSON.stringify([fixture.regional_cells,fixture.front_days]));
     fixturePath=write("front-input.json",fixture);
   }
@@ -36,26 +45,31 @@ function controlled(directory, anchor = monthEnd) {
   const frontManifest = readFileSync(join(directory,"front-result","manifest.json"),"utf8");
   const front = JSON.parse(frontSummary);
   assert.equal(front.result_id,JSON.parse(evidence).result_id);
-  const makeSnapshot = (blocked, {frontVersion=front.source.front_source_version, blockedQuality=false, nullLicense=false}={}) => {
+  const makeSnapshot = (blocked, {frontVersion=front.source.front_source_version, blockedQuality=false, nullLicense=false,
+    days=11, hours=()=>0, varySupportAt=null, halfSupport=false, eventDate=anchor, processingVersion=null,
+    activitySource="effort-original"}={}) => {
     const claim = {state:"verified",evidence_id:"sha256:"+"c".repeat(64)};
-    const cells = {schema:"ocean-regional-cells/v1",evidence_kind:"synthetic",days:Array.from({length:11},(_,i) => {
-      const day = shift(anchor,i-7);
+    const cells = {schema:"ocean-regional-cells/v1",evidence_kind:"synthetic",days:Array.from({length:days},(_,i) => {
+      const day = shift(eventDate,i-7);
       const layer = (kind,id,unit,hours) => ({kind,id,unit,role:"analysis_source",time_verified:true,bounds_verified:true,
         support_verified:true,duration_days:1,cells:[{bounds:[-0.4,-0.4,0.4,0.4],hours,support:"valid"}]});
-      return {date:day,layers:[layer("front","front-original","classification_code",null),layer("activity","effort-original","fishing_hours",0)]};
-    }),qualification_evidence:{schema:"ocean-support-evidence/v1",source_versions:{...(frontVersion?{"front-original":frontVersion}:{}),"effort-original":claim.evidence_id},
-      processing_version:claim.evidence_id,license:nullLicense ? null : blocked ? {state:"blocked"} : claim,
+      const frontLayer=layer("front","front-original","classification_code",null);
+      if(halfSupport||i-7===varySupportAt) frontLayer.cells=[{bounds:[-0.4,-0.4,0,0.4],support:"valid"},{bounds:[0,-0.4,0.4,0.4],support:"land"}];
+      return {date:day,layers:[frontLayer,layer("activity",activitySource,"fishing_hours",hours(i-7))]};
+    }),qualification_evidence:{schema:"ocean-support-evidence/v1",source_versions:{...(frontVersion?{"front-original":frontVersion}:{}),"effort-original":claim.evidence_id,"effort-other":claim.evidence_id},
+      processing_version:processingVersion ?? claim.evidence_id,license:nullLicense ? null : blocked ? {state:"blocked"} : claim,
       quality_rule:{id:"complete-common-support/v1",...(blockedQuality?{state:"blocked"}:claim)},geometry:{circle:{...claim,request_geometry:scope}}}};
     const output=join(directory,blocked?"blocked-support.json":"support.json");
-    const conditions={schema:"ocean-support-request/v1",purpose:"B_event",event_date:anchor,event_day_rule:"exclude_event_day/v1",
-      month:anchor.slice(0,7),layer_use:"front_effort",method_version:"wgs84-laea-uniform/v1",quality_rule:"complete-common-support/v1",
-      allocation:"overlap_uniform",geometries:[scope]};
+    const conditions={schema:"ocean-support-request/v1",purpose:"B_event",event_date:eventDate,event_day_rule:"exclude_event_day/v1",
+      month:eventDate.slice(0,7),layer_use:"front_effort",method_version:"wgs84-laea-uniform/v1",quality_rule:"complete-common-support/v1",
+      allocation:"overlap_uniform",geometries:[scope],
+      ...(activitySource==="effort-original"?{}:{source_ids:{front:"front-original",activity:activitySource}})};
     run(audit,["--support-request",write("p0-conditions.json",conditions),"--regional-input",write("cells.json",cells),"--out",output]);
     return readFileSync(output,"utf8");
   };
   function windowReport(snapshot, name, failure = false) {
     const source = write(`${name}.json`,{schema:"ocean-fixed-region-window-evidence/v1",
-      front_summary_json:frontSummary,front_manifest_json:frontManifest,support_snapshots:[snapshot]});
+      front_summary_json:frontSummary,front_manifest_json:frontManifest,support_snapshots:[snapshot].flat()});
     const request = write(`${name}-request.json`,{...base,input_version:digest(readFileSync(source)),
       method_version:"fixed-event-window-qualification/v1",parameter_version:"p0-event-calendar/v1"});
     const output = join(directory,name);
@@ -71,7 +85,20 @@ function controlled(directory, anchor = monthEnd) {
     unlinkSync(source);unlinkSync(request);
     return JSON.parse(run(experiment,["--read-fixed-region-result",output],{OCEAN_EXPERIMENT_PYTHON:"unavailable"}));
   }
-  return {front, makeSnapshot, windowReport};
+  function windowEffects(snapshot, name) {
+    const windows = `${name}-windows`;
+    windowReport(snapshot,windows);
+    const source = write(`${name}.json`,{schema:"ocean-fixed-region-window-effects-input/v1",
+      window_summary_json:readFileSync(join(directory,windows,"summary.json"),"utf8"),
+      window_manifest_json:readFileSync(join(directory,windows,"manifest.json"),"utf8")});
+    const request = write(`${name}-request.json`,{...base,input_version:digest(readFileSync(source)),
+      method_version:"fixed-event-window-effects/v1",parameter_version:"exact-common-support/v1"});
+    const output=join(directory,name);
+    run(experiment,["--fixed-region-request",request,"--input",source,"--output",output]);
+    unlinkSync(source);unlinkSync(request);
+    return JSON.parse(run(experiment,["--read-fixed-region-result",output],{OCEAN_EXPERIMENT_PYTHON:"unavailable"}));
+  }
+  return {front, makeSnapshot, windowReport, windowEffects};
 }
 
 test("B uses the matching P0 B_event audit for cross-month windows and holds unlicensed aggregates",()=>{
@@ -133,6 +160,100 @@ test("a month-start anchor preserves the exact previous-month pre-window",()=>{
     assert.deepEqual(windows.post3.dates,["2024-09-02","2024-09-03","2024-09-04"]);
     assert.equal(daily.find(day=>day.date==="2024-09-04").hours,0);
     assert.equal(daily.find(day=>day.date==="2024-09-05").hours,null);
+  } finally {
+    if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
+  }
+});
+
+test("B effects use additive H/E on identical support and retain zero baseline and unequal areas",()=>{
+  const directory=mkdtempSync(join(tmpdir(),"ocean-b03-"));
+  try {
+    const {makeSnapshot,windowEffects}=controlled(directory);
+    const hours = day => day<0 ? 10 : day===0 ? 5000 : day<=3 ? 20 : 30;
+    const estimate=windowEffects(makeSnapshot(false,{days:15,hours}),"effects-result");
+    const event=estimate.events[0];
+    assert.equal(event.changes.post3.status,"comparable");
+    assert.ok(Math.abs(event.changes.post3.relative_change_percent-100)<1e-8);
+    assert.ok(Math.abs(event.changes.post7.relative_change_percent-(180/70-1)*100)<1e-8);
+    assert.ok(Math.abs(event.windows.post3.area_time_km2_days/event.windows.pre7.area_time_km2_days-3/7)<1e-8);
+    assert.equal(event.windows.pre7.supported_days,7);
+    assert.equal(estimate.pooled.post7.event_count,1);
+    assert.equal(estimate.pooled.post7.equal_event_difference,event.changes.post7.absolute_density_change);
+    assert.equal(estimate.pooled.post7.pooled_density_difference,event.changes.post7.absolute_density_change);
+
+    const zero=windowEffects(makeSnapshot(false,{days:15,hours:day=>day<0 ? 0 : hours(day)}),"zero-effect").events[0];
+    assert.equal(zero.windows.pre7.total_hours,0);
+    assert.ok(zero.changes.post3.absolute_density_change>0);
+    assert.equal(zero.changes.post3.relative_change_percent,null);
+    assert.equal(zero.changes.post3.relative_reason,"zero_baseline");
+
+    const area=windowEffects(makeSnapshot(false,{days:15,hours,varySupportAt:2}),"area-effect").events[0];
+    assert.equal(area.changes.post3.status,"common_support_changed");
+    assert.equal(area.changes.post3.absolute_density_change,null);
+    assert.ok(area.windows.post3.area_time_km2_days>0);
+    assert.equal(area.windows.post3.common_support_status,"varies_within_window");
+
+    const partial=windowEffects(makeSnapshot(false,{hours}),"partial-effect").events[0];
+    assert.equal(partial.changes.post3.status,"comparable");
+    assert.equal(partial.changes.post7.status,"incomplete_window");
+    assert.equal(partial.windows.post7.total_hours,null);
+    assert.equal(partial.windows.post7.supported_days,3);
+    assert.ok(partial.windows.post7.known_subset.total_hours>0);
+  } finally {
+    if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
+  }
+});
+
+test("overlapping calendars keep event weights while withholding pooled exposure",()=>{
+  const directory=mkdtempSync(join(tmpdir(),"ocean-b03-"));
+  const second="2024-09-10";
+  try {
+    const {makeSnapshot,windowEffects}=controlled(directory,monthEnd,second);
+    const globalHours = (anchor, offset) => 100+(Date.parse(shift(anchor,offset))-Date.parse(monthEnd))/86400000;
+    const result=windowEffects([
+      makeSnapshot(false,{days:15,hours:offset=>globalHours(monthEnd,offset)}),
+      makeSnapshot(false,{days:15,eventDate:second,hours:offset=>globalHours(second,offset)}),
+    ],"overlap-effect");
+    for(const phase of ["post3","post7"]) {
+      assert.equal(result.pooled[phase].event_count,2);
+      assert.equal(result.pooled[phase].pooled_status,"overlapping_dates");
+      assert.equal(result.pooled[phase].pooled_density_difference,null);
+      const directMean=result.events.reduce((sum,event)=>sum+event.changes[phase].absolute_density_change,0)/2;
+      assert.ok(Math.abs(result.pooled[phase].equal_event_difference-directMean)<1e-12);
+    }
+    assert.deepEqual(result.pooled.post3.overlapping_dates,["2024-09-03"]);
+    assert.deepEqual(result.pooled.post7.overlapping_dates,["2024-09-03","2024-09-04","2024-09-05","2024-09-06","2024-09-07"]);
+  } finally {
+    if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
+  }
+});
+
+test("distinct supported areas separate equal-event and pooled effects, and incompatible provenance holds both",()=>{
+  const directory=mkdtempSync(join(tmpdir(),"ocean-b03-"));
+  const second="2024-09-20";
+  try {
+    const {makeSnapshot,windowEffects}=controlled(directory,monthEnd,second);
+    const first=makeSnapshot(false,{days:15,hours:d=>d<0 ? 10 : 20});
+    const half={days:15,eventDate:second,halfSupport:true,hours:d=>d<0 ? 10 : 40};
+    const result=windowEffects([first,makeSnapshot(false,half)],"weights-effect");
+    const [a,b]=result.events;
+    assert.ok(Math.abs(b.windows.pre7.area_time_km2_days/a.windows.pre7.area_time_km2_days-0.5)<1e-6);
+    assert.ok(Math.abs(b.changes.post3.absolute_density_change/a.changes.post3.absolute_density_change-3)<1e-8);
+    const pooled=result.pooled.post3;
+    assert.equal(pooled.pooled_status,"available");
+    assert.ok(Math.abs(pooled.pooled_density_difference/pooled.equal_event_difference-5/6)<1e-6);
+
+    const changed=windowEffects([first,makeSnapshot(false,{...half,processingVersion:digest("other processing")})],"provenance-effect");
+    assert.ok(changed.events.every(event=>event.changes.post3.status==="comparable"));
+    assert.equal(changed.pooled.post3.pooled_status,"incompatible_provenance");
+    assert.equal(changed.pooled.post3.equal_event_difference,null);
+    assert.equal(changed.pooled.post3.pooled_density_difference,null);
+
+    const selected=windowEffects([first,makeSnapshot(false,{...half,activitySource:"effort-other"})],"source-choice-effect");
+    assert.ok(selected.events.every(event=>event.changes.post3.status==="comparable"));
+    assert.deepEqual(selected.events[0].provenance.source_versions,selected.events[1].provenance.source_versions);
+    assert.notEqual(selected.events[0].provenance.selected_source_ids.activity,selected.events[1].provenance.selected_source_ids.activity);
+    assert.equal(selected.pooled.post3.pooled_status,"incompatible_provenance");
   } finally {
     if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
   }
