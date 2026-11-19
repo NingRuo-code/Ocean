@@ -1,0 +1,27 @@
+{
+  "schema": "ocean-fixed-region-front-observations/v1",
+  "id": "ocean-b02-equatorial-example",
+  "license": "CC0-1.0",
+  "front_source_id": "front-original",
+  "geometry": {"longitude": 0, "latitude": 0, "radius_km": 10},
+  "policy": {"enter_distance_km": 0.8, "exit_distance_km": 2, "persistence_days": 2, "clear_days": 2},
+  "front_position_error_km": 0.01,
+  "regional_cells": {
+    "schema": "ocean-regional-cells/v1",
+    "evidence_kind": "synthetic",
+    "days": [
+      {"date": "2024-08-29", "layers": [{"id": "front-original", "kind": "front", "role": "analysis_source", "unit": "classification_code", "duration_days": 1, "time_verified": true, "bounds_verified": true, "support_verified": true, "cells": [{"bounds": [-0.4, -0.4, 0.4, 0.4], "support": "valid"}]}]},
+      {"date": "2024-08-30", "layers": [{"id": "front-original", "kind": "front", "role": "analysis_source", "unit": "classification_code", "duration_days": 1, "time_verified": true, "bounds_verified": true, "support_verified": true, "cells": [{"bounds": [-0.4, -0.4, 0.4, 0.4], "support": "valid"}]}]},
+      {"date": "2024-08-31", "layers": [{"id": "front-original", "kind": "front", "role": "analysis_source", "unit": "classification_code", "duration_days": 1, "time_verified": true, "bounds_verified": true, "support_verified": true, "cells": [{"bounds": [-0.4, -0.4, 0.4, 0.4], "support": "valid"}]}]},
+      {"date": "2024-09-01", "layers": [{"id": "front-original", "kind": "front", "role": "analysis_source", "unit": "classification_code", "duration_days": 1, "time_verified": true, "bounds_verified": true, "support_verified": true, "cells": [{"bounds": [-0.4, -0.4, 0.4, 0.4], "support": "valid"}]}]},
+      {"date": "2024-09-02", "layers": [{"id": "front-original", "kind": "front", "role": "analysis_source", "unit": "classification_code", "duration_days": 1, "time_verified": true, "bounds_verified": true, "support_verified": true, "cells": [{"bounds": [-0.4, -0.4, 0.4, 0.4], "support": "valid"}]}]}
+    ]
+  },
+  "front_days": [
+    {"date": "2024-08-29", "source_id": "front-original", "objects": []},
+    {"date": "2024-08-30", "source_id": "front-original", "objects": []},
+    {"date": "2024-08-31", "source_id": "front-original", "objects": [{"id": "F7", "points": [[0.04, -0.01], [0.04, 0.01]]}]},
+    {"date": "2024-09-01", "source_id": "front-original", "objects": [{"id": "F2", "points": [[0.04, -0.01], [0.04, 0.01]]}]},
+    {"date": "2024-09-02", "source_id": "front-original", "objects": []}
+  ]
+}

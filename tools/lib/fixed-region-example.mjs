@@ -30,6 +30,17 @@ function boundedText(path, bytes=ARTIFACT_BYTES) {
   } finally { closeSync(fd); }
 }
 function report(result) {
+  if (result.schema_version === "fixed-region-front-observation/v1") {
+    const {policy, observations, events} = result.selection;
+    return ["# 固定海域锋面观测 · 合成样例", "", `状态 ${result.status}；结果 ${result.result_id}`,
+      `锚日搜索 ${result.parameters.search_start} – ${result.parameters.search_end}；观测读取 ${result.read_range.start} – ${result.read_range.end}。`,
+      `圆心 ${result.geometry.longitude}°, ${result.geometry.latitude}°，半径 ${result.geometry.radius_km} km。进入距离 ${policy.enter_distance_km} km，退出距离 ${policy.exit_distance_km} km，持续 ${policy.persistence_days} 日，重触发间隔 ${policy.clear_days} 个明确远离日。`,
+      "", "| 首次观测 | 锚日 | 退出确认 | 断档 | 状态 |", "| --- | --- | --- | --- | --- |",
+      ...events.map(e => `| ${e.first_near_date} | ${e.anchor_date ?? "未知"} | ${e.exit_observed_date ?? "未知"} | ${e.unknown_dates.join(", ") || "无"} | ${e.reason ?? (e.right_truncated ? "右截断" : "已登记")} |`),
+      "", "| 观测日 | 状态 | 依据 |", "| --- | --- | --- |",
+      ...observations.map(d => `| ${d.date} | ${d.phase} | ${d.reasons.join(", ")} |`),
+      "", "锚日表示首次合格日观测。活动窗口资格、活动变化及真实 B 结果待后续票验证。", ""].join("\n");
+  }
   const lines=["# Fixed-region event response / 合成样例", "", "仅为自建合成样例；不是真实研究、因果关系或渔获证据。", "",
     `状态：${result.status}；观测锚日：${result.event?.anchor_date || "无可确认单一事件"}`, "",
     "| 窗口 | 起止日期 | 已知小时 H | 已知面积时间 E (km²·d) | 有效日 / 窗口日 | H/E | 状态 |",
@@ -73,7 +84,8 @@ export function runControlledExample(args, root, profile) {
       const source=opts["--input"] || join(root,"backend/app/examples",profile.inputName);
       const requestJson=boundedText(opts[profile.requestFlag],16_384);requestHash=hash(requestJson);
       const inputJson=boundedText(source);inputHash=hash(inputJson);
-      const computed=spawnSync(process.env.OCEAN_EXPERIMENT_PYTHON || "python",["-m",profile.module],{
+      const pythonArgs=profile.pythonArgs?.(requestJson,root) ?? ["-m",profile.module];
+      const computed=spawnSync(process.env.OCEAN_EXPERIMENT_PYTHON || "python",pythonArgs,{
         cwd:join(root,"backend"),encoding:"utf8",windowsHide:true,timeout:20_000,maxBuffer:4_194_304,
         input:JSON.stringify({request_json:requestJson,input_json:inputJson})});
       const value=JSON.parse(computed.stdout || "{}");
@@ -118,6 +130,8 @@ export function runFixedRegionExample(args, root) {
     requestFlag: "--fixed-region-request", readFlag: "--read-fixed-region-result",
     purpose: "fixed_region_event_example", outputName: "fixed-region-example",
     inputName: "fixed-region-event.json", module: "app.fixed_region_example",
+    pythonArgs: (request, root) => JSON.parse(request).method_version === "observed-fixed-exposure/v1"
+      ? [join(root,"tools/fixed_region_front_observations.py")] : undefined,
     errorCode: "controlled_event_failed", report,
   });
 }

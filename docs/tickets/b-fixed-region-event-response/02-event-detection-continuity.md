@@ -25,3 +25,27 @@
 
 - #73 (https://github.com/NingRuo-code/Ocean/issues/73)
 - #62 (https://github.com/NingRuo-code/Ocean/issues/62)
+
+## 实施记录 · 2026-11-19
+
+延续 `tools/run-front-response-experiment.mjs --fixed-region-request` 执行入口。注册合成输入使用 `observed-fixed-exposure/v1` 方法与 `front-continuity/v1` 参数。它们绑定固定 WGS84 公里圆、原输入字节和观测规则版本。原 B01 小例和旧移动缓冲报告使用各自原口径，固定海域术语见 [ADR-0002](../../adr/0002-hold-the-event-study-region-fixed.md)。
+
+距离为固定圆至最接近已观测锋线的距离。实现使用 A 的 WGS84 线采样、日观测支持、距离上下界和位置误差，在接近和远离阈值之间保留过渡态。阈值、连续近距离天数和确认退出所需的连续远离日由合成夹具显式登记。锚日是首次合格日观测，跨缺口保留不确定的分段联系，连续远离未满足时保留合并记录。日内对象编号可变化，固定海域观测按空间关系归入事件。
+
+以下 PowerShell 命令复现自有 CC0 样例。运行型 Python 需要既有 A 几何分析依赖。命令生成新的独立输出目录，读取命令使用冻结成果。
+
+```powershell
+$source = 'tools/examples/b02-front-continuity.json'
+$id = 'sha256:' + (Get-FileHash $source -Algorithm SHA256).Hash.ToLowerInvariant()
+$tag = [guid]::NewGuid().ToString('N')
+$request = "tmp/b02-request-$tag.json"
+$output = "tmp/b02-result-$tag"
+@{purpose='fixed_region_event_example'; longitude=0; latitude=0; radius_km=10;
+  search_start='2024-08-31'; search_end='2024-08-31'; input_version=$id;
+  method_version='observed-fixed-exposure/v1'; parameter_version='front-continuity/v1'} |
+    ConvertTo-Json -Compress | Set-Content -Encoding ascii $request
+node tools/run-front-response-experiment.mjs --fixed-region-request $request --input $source --output $output
+node tools/run-front-response-experiment.mjs --read-fixed-region-result $output
+```
+
+样例锚日为 `2024-08-31`，实际观测范围为 `2024-08-29` 至 `2024-09-02`，退出证据不足，记录右截断。该路径交付观测与候选清单。跨月活动窗口资格沿 #75，真实前后资料与冻结方案沿 #83 验收。
