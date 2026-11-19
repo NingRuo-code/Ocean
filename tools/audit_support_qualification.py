@@ -358,13 +358,43 @@ def render_report(result):
         "| Region | Period | Computational | Support | Included/required | Missing prerequisites |",
         "| --- | --- | --- | --- | --- | --- |",
     ]
-    for region in result["regions"]:
-        periods = {"month": region["month"], **region.get("windows", {})}
-        for name, period in periods.items():
-            lines.append(
-                f"| {region['geometry']['id']} | {name} | {period['computational_support']} | {period['support_level']} | {period['included_days']}/{period['expected_days']} | {', '.join(period['missing_prerequisites'])} |"
-            )
+    periods = [
+        (region["geometry"]["id"], name, period)
+        for region in result["regions"]
+        for name, period in {"month": region["month"], **region.get("windows", {})}.items()
+    ]
+    for region_id, name, period in periods:
+        lines.append(
+            f"| {region_id} | {name} | {period['computational_support']} | {period['support_level']} | {period['included_days']}/{period['expected_days']} | {', '.join(period['missing_prerequisites'])} |"
+        )
     lines += [
+        "",
+        "## Source material by period",
+        "",
+        "These are counts of days by source state, not days of valid common support.",
+        "",
+        "| Region | Period | Layer | Days by material state |",
+        "| --- | --- | --- | --- |",
+    ]
+    for region_id, name, period in periods:
+        for layer, states in period["layer_material_states"].items():
+            counts = ", ".join(f"{state}={days}" for state, days in states.items())
+            lines.append(f"| {region_id} | {name} | {layer} | {counts} |")
+    lines += [
+        "",
+        "## Exclusion counts by period",
+        "",
+        "A day may have several exclusion reasons. Counts across reasons must not be added to get the number of excluded days.",
+        "",
+        "| Region | Period | Exclusion reason | Days |",
+        "| --- | --- | --- | --- |",
+    ]
+    for region_id, name, period in periods:
+        for reason, days in period["exclusion_reason_counts"].items():
+            lines.append(f"| {region_id} | {name} | {reason} | {days} |")
+    lines += [
+        "",
+        "## Daily detail",
         "",
         "| Region | Date | Included | Hours | Effective km² | km²-days | Exclusion reasons |",
         "| --- | --- | --- | --- | --- | --- | --- |",
