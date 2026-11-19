@@ -30,6 +30,32 @@ function boundedText(path, bytes=ARTIFACT_BYTES) {
   } finally { closeSync(fd); }
 }
 function report(result) {
+  if (result.schema_version === "fixed-region-event-reading-pack/v1") {
+    const {heading,summary}=readingContext(result);
+    const lines=[heading,"",summary,"", "![锚日前后活动密度差](lag.svg)","",
+      `短窗 ${result.cohorts.post3.event_count} 个事件，后 7 日 ${result.cohorts.post7.event_count} 个事件，共同队列 ${result.cohorts.common.event_count} 个事件。`,
+      "逐日 H/E 和同日对照值见 [逐日表](daily.csv)；完整窗口和同日变化差见 [窗口表](windows.csv)。锚日用于诊断。", "",
+      "## 事件、对照与窗口", ""];
+    for(const event of result.events) {
+      const meanings={no_fixed_control:"缺少合格对照",no_complete_post7:"后 7 日证据不足",equal_change:"目标与对照变化相同",
+        negative_change_difference:"目标相对对照下降",positive_change_difference:"目标相对对照上升"};
+      lines.push(`- ${event.anchor_date}，相关组 ${event.group_id}，${meanings[event.interpretation]}。对照 ${event.selected_control?.id ?? "未知"}。`);
+      for(const candidate of event.candidates) if(candidate.reason) lines.push(`  - ${candidate.id} · ${candidate.reason}`);
+      for(const [window,comparison] of Object.entries(event.windows)) {
+        const target=event.target_changes[window];
+        lines.push(`  - ${window} 目标原前后差 ${target.absolute_density_change ?? "未知"}；同日变化差 ${comparison?.change_difference ?? "未知"} h/(km²·d)。`);
+      }
+    }
+    const inference=result.inference;
+    const limitations={insufficient_registered_groups:"组数不足",between_group_assumptions_unverified:"跨组假设待核",no_paired_support:"缺少成对支持",
+      event_provenance_unverified:"冻结来源待核",degenerate_block_distribution:"重采样分布退化"};
+    lines.push("", "## 区间与来源", "", inference.lower===null
+      ? `区间无法可靠估计。${limitations[inference.reason] ?? inference.reason ?? "支持不足"}。可得描述估计 ${inference.estimate ?? "未知"} h/(km²·d)。`
+      : `${inference.window} 的登记区间 [${inference.lower}, ${inference.upper}] h/(km²·d)。`,
+      `冻结身份 ${result.result_id}。B05 ${result.source_results.control}，B06 ${result.source_results.inference}，B07 ${result.source_results.lag}。`,
+      "聚合用于本地读取。逐日图保留支持断点和队列变化。真实研究资格待验收。", "");
+    return lines.join("\n");
+  }
   if (result.schema_version === "fixed-region-event-lag/v1") {
     const {cohorts,profiles}=result;
     const lines=["# 锚日前后逐日变化与共同队列 · 合成样例", "", `来源 ${result.control_result_id}。`,
@@ -132,6 +158,43 @@ function report(result) {
   return lines.join("\n");
 }
 
+function readingContext(result) {
+  const heading="# 固定海域事件成果包 · 合成样例";
+  const p=result.parameters;
+  const conditions=`${p.search_start} – ${p.search_end}，圆心 ${p.longitude}°, ${p.latitude}°，半径 ${p.radius_km} km。`;
+  if(result.events.length) return {heading,summary:conditions};
+  const empty=result.front_observation_status==="no_observed_entry" ? "在可核对日期中未见合格事件。" : "观测证据不足，当前没有已确认的事件。";
+  return {heading,summary:conditions+empty};
+}
+
+function csv(rows) {
+  function cell(value) {
+    if(value===null || value===undefined) return "";
+    if(typeof value==="number" || typeof value==="boolean") return String(value);
+    const text=/^[=+@\-\s]/.test(value) ? "'"+value : String(value);
+    return /[",\r\n]/.test(text) ? '"'+text.replaceAll('"','""')+'"' : text;
+  }
+  return rows.map(row=>row.map(cell).join(",")).join("\n")+"\n";
+}
+
+function dailyCsv(result) {
+  return csv([["anchor_date","date","relative_day","target_hours","target_area_time_km2_days","control_hours",
+    "control_area_time_km2_days","target_front_state","control_front_state","matched_day","group_id","result_id"],
+    ...result.events.flatMap(event=>event.daily.map(day=>[event.anchor_date,day.date,day.offset,day.target.hours,
+      day.target.area_time,day.control.hours,day.control.area_time,day.target.front_exposure,day.control.front_exposure,
+      day.pair_available,event.group_id,result.result_id]))]);
+}
+
+function windowsCsv(result) {
+  return csv([["anchor_date","window","phase","target_hours","target_area_time_km2_days","control_hours",
+    "control_area_time_km2_days","same_day_density_difference","target_before_after_difference","difference_of_changes","state","result_id"],
+    ...result.events.flatMap(event=>Object.entries(event.windows).flatMap(([name,value])=>["pre7","post"].map(phase=>{
+      const row=value?.[phase];
+      return [event.anchor_date,name,phase,row?.target_hours,row?.target_area_time,row?.control_hours,row?.control_area_time,
+        row?.same_day_density_difference,event.target_changes[name].absolute_density_change,value?.change_difference,event.interpretation,result.result_id];
+    }))) ]);
+}
+
 function lagChart(result) {
   const {available,common}=result.profiles;
   const values=[...available,...common].flatMap(d=>d.density_difference===null?[]:[Math.abs(d.density_difference)]);
@@ -177,7 +240,8 @@ function readFrozen(folder, profile) {
   const text=boundedText(join(folder,"summary.json"));
   if(hash(text)!==manifest.artifacts["summary.json"]) throw Error("artifact_mismatch");
   const summary=JSON.parse(text);
-  const names=profile.chartSchema && summary.schema_version===profile.chartSchema ? ["lag.svg","report.md","summary.json"] : ["report.md","summary.json"];
+  const extra=profile.extraArtifacts?.get(summary.schema_version) ?? {};
+  const names=["report.md","summary.json",...Object.keys(extra)].sort();
   if(Object.keys(manifest.artifacts).sort().join("|")!==names.join("|")) throw Error("incomplete_manifest");
   for (const name of names.filter(name=>name!=="summary.json")) {
     if (hash(boundedText(join(folder,name))) !== manifest.artifacts[name]) throw Error("artifact_mismatch");
@@ -217,7 +281,7 @@ export function runControlledExample(args, root, profile) {
     if (result) {
       try {
         artifacts={"summary.json":JSON.stringify(result,null,2)+"\n","report.md":profile.report(result)};
-        if(profile.chartSchema && result.schema_version===profile.chartSchema) artifacts["lag.svg"]=lagChart(result);
+        for(const [name,render] of Object.entries(profile.extraArtifacts?.get(result.schema_version) ?? {})) artifacts[name]=render(result);
         if (Object.values(artifacts).some(value=>Buffer.byteLength(value,"utf8")>ARTIFACT_BYTES)) throw Error("output_budget");
       } catch { state="failed";result=null;error={code:profile.errorCode}; }
     }
@@ -259,10 +323,15 @@ export function runFixedRegionExample(args, root) {
         ["fixed-event-comparable-controls/v1","fixed_region_comparable_controls.py"],
         ["fixed-event-group-uncertainty/v1","fixed_region_event_inference.py"],
         ["fixed-event-lag-cohort/v1","fixed_region_event_lag.py"],
+        ["fixed-event-reading-pack/v1","fixed_region_event_evidence.py"],
       ]);
       const script = scripts.get(JSON.parse(request).method_version);
       return script ? ["-B","-X",`pycache_prefix=${join(stage,"pycache")}`,join(root,"tools",script)] : undefined;
     },
-    errorCode: "controlled_event_failed", report, chartSchema:"fixed-region-event-lag/v1",
+    errorCode: "controlled_event_failed", report,
+    extraArtifacts:new Map([
+      ["fixed-region-event-lag/v1",{"lag.svg":lagChart}],
+      ["fixed-region-event-reading-pack/v1",{"lag.svg":result=>result.lag_svg,"daily.csv":dailyCsv,"windows.csv":windowsCsv}],
+    ]),
   });
 }

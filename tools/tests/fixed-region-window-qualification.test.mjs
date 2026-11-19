@@ -169,7 +169,27 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null, radius = 10
     const result=JSON.parse(run(experiment,["--read-fixed-region-result",output],{OCEAN_EXPERIMENT_PYTHON:"unavailable"}));
     return {result,output};
   }
-  return {front, makeSnapshot, windowReport, windowEffects, registerControl, fixedControls,eventInference,eventLag};
+  function readingPack(controlRun, inferenceRun, lagRun, name, {use="local_allowed_aggregate",corruptFigure=false,expectFailure=false}={}) {
+    const artifact=runName=>({summary_json:readFileSync(join(directory,runName,"summary.json"),"utf8"),
+      manifest_json:readFileSync(join(directory,runName,"manifest.json"),"utf8")});
+    const source=write(`${name}.json`,{schema:"ocean-fixed-region-reading-pack-input/v1",use,
+      controls:artifact(controlRun),inference:artifact(inferenceRun),lag:artifact(lagRun),
+      lag_svg:readFileSync(join(directory,lagRun,"lag.svg"),"utf8")+(corruptFigure?"\n":"")});
+    const request=write(`${name}-request.json`,{...base,input_version:digest(readFileSync(source)),
+      method_version:"fixed-event-reading-pack/v1",parameter_version:"frozen-aggregate-evidence/v1"});
+    const output=join(directory,name);
+    if(expectFailure) {
+      const failure=spawnSync(process.execPath,[experiment,"--fixed-region-request",request,"--input",source,"--output",output],{encoding:"utf8",windowsHide:true});
+      assert.equal(failure.status,2,failure.stdout);
+      assert.deepEqual(JSON.parse(readFileSync(join(output,"manifest.json"),"utf8")).artifacts,{});
+      return null;
+    }
+    run(experiment,["--fixed-region-request",request,"--input",source,"--output",output]);
+    unlinkSync(source);unlinkSync(request);
+    const result=JSON.parse(run(experiment,["--read-fixed-region-result",output],{OCEAN_EXPERIMENT_PYTHON:"unavailable"}));
+    return {result,output};
+  }
+  return {front, makeSnapshot, windowReport, windowEffects, registerControl, fixedControls,eventInference,eventLag,readingPack};
 }
 
 test("B uses the matching P0 B_event audit for cross-month windows and holds unlicensed aggregates",()=>{
@@ -531,6 +551,43 @@ test("lag plots preserve short-only cases and verify a fixed common cohort witho
     assert.equal(gap.profiles.available.find(day=>day.offset===4).event_count,1);
     assert.equal(gap.profiles.available.find(day=>day.offset===5).density_difference,null);
     assert.equal(gap.profiles.available.find(day=>day.offset===6).event_count,1);
+  } finally {
+    if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
+  }
+});
+
+test("one reading pack binds original plot, aggregate tables, interval status and source identities",()=>{
+  const directory=mkdtempSync(join(tmpdir(),"ocean-b03-"));
+  try {
+    const {makeSnapshot,windowEffects,registerControl,fixedControls,eventInference,eventLag,readingPack}=controlled(directory);
+    windowEffects(makeSnapshot(false,{days:15,hours:day=>day<0?10:20}),"target-effects");
+    const control=registerControl("registered",0.24);
+    const b05=fixedControls([control],"target-effects","control-read");
+    const b06=eventInference("control-read","group-read");
+    const {result:b07,output:lagOutput}=eventLag("control-read","lag-read");
+    const pack=readingPack("control-read","group-read","lag-read","reading-pack");
+    assert.deepEqual(pack.result.source_results,{control:b05.result_id,inference:b06.result_id,lag:b07.result_id});
+    assert.equal(pack.result.research_ready,false);
+    assert.equal(pack.result.inference.reason,"insufficient_registered_groups");
+    assert.equal(pack.result.events[0].windows.post3.change_difference,b05.events[0].contrasts.post3.change_difference);
+    assert.equal(readFileSync(join(pack.output,"lag.svg"),"utf8"),readFileSync(join(lagOutput,"lag.svg"),"utf8"));
+    const md=readFileSync(join(pack.output,"report.md"),"utf8");
+    assert.match(md,/合成样例/);
+    assert.match(md,/区间.*组数不足/s);
+    const csv=readFileSync(join(pack.output,"daily.csv"),"utf8");
+    const original=b07.events[0].daily.find(day=>day.offset===1);
+    assert.ok(csv.includes(`${monthEnd},2024-09-01,1,${original.target.hours},${original.target.area_time},0,`));
+    for(const file of ["lag.svg","daily.csv","windows.csv"]) {
+      assert.equal(JSON.parse(readFileSync(join(pack.output,"manifest.json"),"utf8")).artifacts[file],digest(readFileSync(join(pack.output,file))));
+    }
+    readingPack("control-read","group-read","lag-read","tampered-plot",{corruptFigure:true,expectFailure:true});
+    readingPack("control-read","group-read","lag-read","public-pack",{use:"public",expectFailure:true});
+    fixedControls([],"target-effects","different-control");
+    eventInference("different-control","different-group");
+    readingPack("control-read","different-group","lag-read","different-inputs",{expectFailure:true});
+    unlinkSync(join(lagOutput,"lag.svg"));
+    assert.equal(spawnSync(process.execPath,[experiment,"--read-fixed-region-result",pack.output],{encoding:"utf8",windowsHide:true,
+      env:{...process.env,OCEAN_EXPERIMENT_PYTHON:"unavailable"}}).status,0);
   } finally {
     if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
   }
