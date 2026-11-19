@@ -19,10 +19,11 @@ import tempfile
 import tomllib
 import uuid
 import venv
+import zlib
 from importlib import metadata
 from io import BytesIO
 from pathlib import Path, PurePosixPath
-from zipfile import ZIP_DEFLATED, BadZipFile, ZipFile
+from zipfile import ZIP_DEFLATED, ZIP_STORED, BadZipFile, ZipFile
 
 SCHEMA = "ocean-isolated-release/v1"
 PROFILE = "isolated-read-only/v1"
@@ -410,7 +411,17 @@ def verified_candidate(package, commit):
         len(names) == len(set(names)) and len(names) <= MAX_FILES + 1,
         "duplicate_or_excess_member",
     )
+    folded = {name.casefold() for name in names}
+    require(
+        not any(str(parent) in folded for name in folded for parent in PurePosixPath(name).parents),
+        "colliding_member_path",
+    )
     for info in infos:
+        require(
+            info.compress_type in {ZIP_STORED, ZIP_DEFLATED}
+            and not info.flag_bits & (0x01 | 0x20 | 0x40),
+            "unsupported_zip_member",
+        )
         require(
             info.file_size <= MAX_FILE
             and stat.S_IFMT(info.external_attr >> 16) in {0, stat.S_IFREG},
@@ -429,6 +440,44 @@ def verified_candidate(package, commit):
             "file_integrity_failed",
         )
     return manifest, raw
+
+
+def check_preflight_requirements(package, manifest):
+    files = manifest["files"]
+    require(
+        {
+            POLICY, "deploy/release.py", "backend/app/main.py", "backend/pyproject.toml",
+            "frontend/prototype/prototype-fishing.html",
+            "runtime/fastapi/__init__.py", "runtime/uvicorn/__init__.py",
+        } <= files.keys(),
+        "required_release_component_missing",
+    )
+    lock = manifest.get("dependencies")
+    require(
+        manifest.get("dependency_mode") == "independent-installed-distribution-copy/v1"
+        and isinstance(lock, dict)
+        and {"fastapi", "uvicorn"} <= lock.keys()
+        and all(isinstance(version, str) and version for version in lock.values()),
+        "invalid_release_dependencies",
+    )
+    require(files[POLICY]["bytes"] <= 1024**2, "invalid_release_allowlist")
+    policy_bytes = package.read(POLICY)
+    require(digest(policy_bytes) == manifest.get("allowlist_sha256"), "allowlist_integrity_failed")
+    policy = parse(policy_bytes)
+    require(
+        isinstance(policy, dict)
+        and policy.get("schema") == "ocean-release-allowlist/v1"
+        and policy.get("profile") == PROFILE
+        and isinstance(policy.get("files"), list)
+        and len(policy["files"]) <= MAX_FILES,
+        "invalid_release_allowlist",
+    )
+    targets = [safe_path(entry["target"]) for entry in policy["files"]]
+    require(
+        len(targets) == len(set(targets))
+        and set(targets) == {name for name in files if not name.startswith("runtime/")},
+        "allowlist_member_set_mismatch",
+    )
 
 
 def available_install_space(versions, manifest, raw, reserve):
@@ -456,6 +505,8 @@ def inventory_context(path):
         require(isinstance(report, dict) and report.get("schema") == "ocean-runtime-inventory/v1", reason)
         snapshot = report.get("source_snapshot_id")
         require(isinstance(snapshot, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", snapshot), reason)
+        layout = report.get("layout", "checkout")
+        require(layout in {"checkout", "sothisai"}, reason)
         layers = {}
         for name in (
             "raw", "hot_display", "derived_unclassified", "indexes",
@@ -472,9 +523,12 @@ def inventory_context(path):
                     reason,
                 )
             layers[name] = {"status": status, "bytes": values[0], "files": values[1]}
-    except (OSError, ValueError, KeyError, TypeError):
+    except (OSError, ValueError, KeyError, TypeError, RecursionError):
         raise ReleaseError(reason) from None
-    return {"scope": "recorded_observation", "source_snapshot_id": snapshot, "layers": layers}
+    return {
+        "scope": "recorded_observation", "layout": layout,
+        "source_snapshot_id": snapshot, "layers": layers,
+    }
 
 
 def preflight(args):
@@ -482,6 +536,7 @@ def preflight(args):
     context = inventory_context(args.inventory)
     with checked_bundle(args) as package:
         manifest, raw = verified_candidate(package, args.commit)
+        check_preflight_requirements(package, manifest)
     candidate_destination(versions, manifest["release_id"])
     return {
         "schema": "ocean-isolated-preflight/v1",
@@ -504,6 +559,7 @@ def install(args):
         identity = manifest["release_id"]
         destination = candidate_destination(versions, identity)
         if args.reserve_bytes is not None:
+            check_preflight_requirements(package, manifest)
             available_install_space(versions, manifest, raw, args.reserve_bytes)
         staging = versions / (".stage-" + uuid.uuid4().hex)
         staging.mkdir()
@@ -773,13 +829,13 @@ def main():
         result = actions[args.command](args)
         if result is not None:
             print(json.dumps(result, ensure_ascii=True))
-    except BadZipFile:
+    except (BadZipFile, zlib.error):
         print(json.dumps({"error": "invalid_bundle"}), file=sys.stderr)
         return 1
     except ReleaseError as error:
         print(json.dumps({"error": str(error)}), file=sys.stderr)
         return 1
-    except (OSError, ValueError, KeyError, TypeError, ImportError):
+    except (OSError, ValueError, KeyError, TypeError, ImportError, RecursionError):
         print(json.dumps({"error": "release_operation_failed"}), file=sys.stderr)
         return 1
     return 0

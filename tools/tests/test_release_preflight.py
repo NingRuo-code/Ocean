@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from zipfile import ZipFile
+from zipfile import ZIP_BZIP2, ZIP_STORED, ZipFile
 
 import pytest
 
@@ -18,6 +18,8 @@ LAYERS = (
     "staging", "cache", "results", "backup",
 )
 SNAPSHOT = "sha256:" + "1" * 64
+MAP = "frontend/prototype/prototype-fishing.html"
+POLICY = "deploy/release-allowlist.json"
 
 
 def sha256(content):
@@ -39,10 +41,33 @@ def cli(*args):
     )
 
 
+def write_candidate(bundle, manifest, assets, compression=ZIP_STORED):
+    manifest["files"] = {p: {"bytes": len(b), "sha256": sha256(b)} for p, b in assets.items()}
+    manifest.pop("release_id", None)
+    manifest["release_id"] = sha256(encode(manifest))
+    manifest_bytes = encode(manifest)
+    with ZipFile(bundle, "w", compression=compression) as archive:
+        archive.writestr("manifest.json", manifest_bytes)
+        for path, content in assets.items():
+            archive.writestr(path, content)
+    return len(manifest_bytes) + sum(map(len, assets.values()))
+
+
 @pytest.fixture
 def release_target(tmp_path):
-    asset = b"minimal checked release asset\n"
-    name = "backend/app/test_fixture.py"
+    assets = {
+        "backend/app/main.py": b"# Registered app fixture\n",
+        "backend/pyproject.toml": b"[project]\nname = 'preflight-fixture'\n",
+        "deploy/release.py": b"# Registered release tool fixture\n",
+        MAP: b"<html>Preflight fixture</html>\n",
+    }
+    assets[POLICY] = encode({
+        "schema": "ocean-release-allowlist/v1",
+        "profile": "isolated-read-only/v1",
+        "files": [{"source": path, "target": path} for path in [*assets, POLICY]],
+    })
+    assets["runtime/fastapi/__init__.py"] = b"# Registered dependency fixture\n"
+    assets["runtime/uvicorn/__init__.py"] = b"# Registered dependency fixture\n"
     manifest = {
         "schema": "ocean-isolated-release/v1",
         "profile": "isolated-read-only/v1",
@@ -54,14 +79,12 @@ def release_target(tmp_path):
             "platform": sys.platform,
             "machine": platform.machine(),
         },
-        "files": {name: {"bytes": len(asset), "sha256": sha256(asset)}},
+        "allowlist_sha256": sha256(assets[POLICY]),
+        "dependency_mode": "independent-installed-distribution-copy/v1",
+        "dependencies": {"fastapi": "1.0", "uvicorn": "1.0"},
     }
-    manifest["release_id"] = sha256(encode(manifest))
-    manifest_bytes = encode(manifest)
     bundle = tmp_path / "candidate.zip"
-    with ZipFile(bundle, "w") as archive:
-        archive.writestr("manifest.json", manifest_bytes)
-        archive.writestr(name, asset)
+    expanded = write_candidate(bundle, manifest, assets)
     report = tmp_path / "inventory.json"
     report.write_bytes(encode({
         "schema": "ocean-runtime-inventory/v1",
@@ -79,7 +102,7 @@ def release_target(tmp_path):
         "--bundle", bundle, "--expected", sha256(bundle.read_bytes()),
         "--commit", COMMIT, "--root", target,
     )
-    return target, report, arguments, len(manifest_bytes) + len(asset)
+    return target, report, arguments, expanded
 
 
 def test_preflight_consumes_inventory_and_checks_isolated_target_without_changes(release_target):
@@ -154,3 +177,33 @@ def test_preflight_and_install_recheck_candidate_target_and_mounted_space(releas
     with bundle.open("ab") as output:
         output.write(b"changed after preflight")
     reject(cli("install", *arguments, "--reserve-bytes", 0), "bundle_integrity_failed")
+
+
+@pytest.mark.parametrize(
+    ("change", "reason"),
+    [
+        ("missing_entry", "required_release_component_missing"),
+        ("archive_format", "unsupported_zip_member"),
+        ("path_collision", "colliding_member_path"),
+    ],
+)
+def test_preflight_does_not_admit_incomplete_or_unsupported_candidates(release_target, change, reason):
+    target, inventory, arguments, _ = release_target
+    bundle = arguments[1]
+    with ZipFile(bundle) as package:
+        manifest = json.loads(package.read("manifest.json"))
+        assets = {path: package.read(path) for path in manifest["files"]}
+    if change == "missing_entry":
+        del assets[MAP]
+    if change == "path_collision":
+        assets["backend/app/main.py/subpath"] = b"not a valid installed path"
+    compression = ZIP_BZIP2 if change == "archive_format" else ZIP_STORED
+    write_candidate(bundle, manifest, assets, compression)
+    result = cli(
+        "preflight", *arguments, "--expected", sha256(bundle.read_bytes()),
+        "--inventory", inventory, "--reserve-bytes", 0,
+    )
+    assert result.returncode == 1
+    assert json.loads(result.stderr) == {"error": reason}
+    assert result.stdout == ""
+    assert list((target / "versions").iterdir()) == []
