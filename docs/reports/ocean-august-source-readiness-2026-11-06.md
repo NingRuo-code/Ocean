@@ -76,9 +76,11 @@ node tools/audit-research-baseline.mjs --read-support-snapshot "$augustAuditDir/
 
 确认后按归档目录取剩余日期、逐成员核大小/CRC 并记 SHA-256，完成同一月份的私有来源与逐日审计，再核对实际点位/半径、格网精度和许可。若发布方确认无法提供有效支持，继续保持 #67/#68 开放；任何只针对已有 AIS 报告格的分析都需要先评审不同的研究问题、分母和局限，不能直接代替既定整月结果。
 
-2026-11-19 复跑当前冻结逐日快照：新 Markdown 摘要在三个半径上均列出锋面 23 天缺档、8 天未核实，活动 27 天缺档、4 天未核实；两个必需层的时间和空间支持均未核实。各半径仍为 0/31 天。新旧 JSON 仅审计器源码身份和随之计算的快照标识变化，其余内容逐字段一致。
+## 2026-11-19 公开证据与复跑
 
-同日优先查公开资料。已归档[锋面上游时间与格网](../research/ocean-front-upstream-grid-evidence-2026-11-19.md)、[GFW 固定版日界和覆盖](../research/ocean-gfw-fixed-v3-public-evidence-2026-11-19.md)、[四天原档缺行与显式零核对](../research/ocean-gfw-v3-local-cell-evidence-2026-11-19.md)。原档检查与三半径资格重放均已重新执行；资格快照 `sha256:bbf0e4095761a1c767f9eec01ef5429bfd872b84d796cbcbab3358e31cd25b68` 与上一轮一致。缺少当前锋面导出规则、固定活动日界及逐日逐格有效覆盖，未冻结正式方案、未扩大取数、未对外询证。
+已归档[锋面上游时间与格网](../research/ocean-front-upstream-grid-evidence-2026-11-19.md)、[GFW 固定版日界和覆盖](../research/ocean-gfw-fixed-v3-public-evidence-2026-11-19.md)、[四天原档缺行与显式零核对](../research/ocean-gfw-v3-local-cell-evidence-2026-11-19.md)。缺少当前锋面导出规则、固定活动日界及逐日逐格有效覆盖，本轮工作限于公开资料与现有样本。
+
+归档成员核验仍为锋面 8 天匹配、23 天缺档，活动 4 天匹配、27 天缺档，两层均无不匹配成员。三个半径的资格回放各为 0/31 天，已匹配文件所在日的两个必需层仍有待核实。新资格快照为 `sha256:0edc6564c186045e7ea32ccdf97580c5e6c2cf8177d4fded5326df0174391c4c`，回读与新快照一致。相对上一轮 `sha256:bbf0e4095761a1c767f9eec01ef5429bfd872b84d796cbcbab3358e31cd25b68`，Windows 工作树中的审计器源码以 CRLF 换行，原始字节哈希和快照标识随之变化。将审计器字节换行转换为 LF 可复得上一轮审计器哈希。其余 JSON 字段逐项一致。
 
 ## 11 月 8 日验收
 
