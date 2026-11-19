@@ -4,6 +4,7 @@ import csv
 import hashlib
 import io
 import json
+import os
 from xml.etree import ElementTree
 from zipfile import ZipFile
 
@@ -192,6 +193,51 @@ def test_completed_distance_evidence_keeps_zero_and_unknown_after_source_removal
         aggregates = list(csv.DictReader(io.StringIO(bundle.read("monthly.csv").decode("utf-8-sig"))))
         assert aggregates[1]["group"] == "[0, 5)" and aggregates[1]["fishing_hours"] == "42.0"
         assert aggregates[2]["fishing_hours"] == ""
+
+
+def test_repeat_submit_reuses_the_same_completed_run_with_identical_live_input(tmp_path):
+    client, _, request = case(tmp_path)
+    first = client.post(URL, json=request, headers=AUTH).json()
+    repeated = client.post(URL, json={**request, "longitude": -0.0}, headers=AUTH).json()
+    assert first["state"] == "completed", first
+    assert repeated == first
+    assert client.get(f"{URL}/{first['id']}", headers=AUTH).json() == first
+
+    direct_path = tmp_path / "independent"
+    direct_path.mkdir()
+    direct_client, _, direct_request = case(direct_path)
+    direct = direct_client.post(URL, json=direct_request, headers=AUTH).json()
+    assert direct["state"] == "completed", direct
+    assert direct["id"] != first["id"]
+    assert direct["execution_id"] == first["execution_id"]
+    assert direct["result"] == repeated["result"]
+
+
+def test_same_path_replacement_never_reuses_old_result_or_indexes_failed_request(tmp_path):
+    client, source, request = case(tmp_path)
+    first = client.post(URL, json=request, headers=AUTH).json()
+    assert first["state"] == "completed", first
+    original_stat = source.stat()
+    replacement = source.read_bytes().replace(b'"hours": 42', b'"hours": 47')
+    assert len(replacement) == original_stat.st_size
+    source.write_bytes(replacement)
+    os.utime(source, ns=(original_stat.st_atime_ns, original_stat.st_mtime_ns))
+
+    stale = client.post(URL, json=request, headers=AUTH).json()
+    assert stale["state"] == "failed" and stale["result"] is None
+    newest = {**request, "input_version": "sha256:" + hashlib.sha256(replacement).hexdigest()}
+    failed_method = client.post(URL, json={**newest, "method_version": "changed"}, headers=AUTH).json()
+    assert failed_method["state"] == "failed"
+    second = client.post(URL, json=newest, headers=AUTH).json()
+    assert second["state"] == "completed", second
+    assert second["execution_id"] != first["execution_id"]
+    assert second["result"]["result_id"] != first["result"]["result_id"]
+    assert second["result"]["days"][0]["common"]["hours"] == pytest.approx(47)
+
+    source.unlink()
+    old = client.get(f"{URL}/{first['id']}", headers=AUTH).json()
+    assert old == first and old["source_freshness"] == "unknown"
+    assert old["result"]["days"][0]["common"]["hours"] == pytest.approx(42)
 
 
 @pytest.mark.parametrize(("latitude", "expected_band"), [(0, 1), (60, 0)])

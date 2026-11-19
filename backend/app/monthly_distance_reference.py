@@ -4,6 +4,7 @@ import hashlib
 import json
 import subprocess
 import sys
+from importlib.metadata import version
 
 from .analysis_support import read_regular_bytes
 from .config import PROJECT_ROOT
@@ -11,6 +12,16 @@ from .monthly_models import MonthlyResearchRequest
 
 MAX_INPUT_BYTES = 16 * 1024 * 1024
 REFERENCE_ENGINE = PROJECT_ROOT / "tools" / "compute_monthly_distance.py"
+EXECUTION_SOURCES = (
+    "audit_daily_sources.py",
+    "audit_regional_support.py",
+    "audit_support_qualification.py",
+    "compute_monthly_distance.py",
+    "monthly_block_uncertainty.py",
+    "monthly_distance_background.py",
+    "monthly_sensitivity_plan.py",
+    "monthly_side_environment.py",
+)
 
 
 class QualificationInputMismatch(ValueError):
@@ -21,8 +32,29 @@ def distance_engine_id():
     return "sha256:" + hashlib.sha256(read_regular_bytes(REFERENCE_ENGINE, 1024 * 1024)).hexdigest()
 
 
-def calculate_distance_reference(request, source, qualification=None):
-    raw = read_regular_bytes(source, MAX_INPUT_BYTES)
+def read_distance_input(source):
+    return read_regular_bytes(source, MAX_INPUT_BYTES)
+
+
+def distance_execution_environment():
+    # The optional compiled dependencies are needed only for controlled distance work.
+    import pyproj
+    import shapely
+
+    return {
+        "engines": {
+            name: hashlib.sha256(
+                read_regular_bytes(REFERENCE_ENGINE.with_name(name), 1024 * 1024)
+            ).hexdigest()
+            for name in EXECUTION_SOURCES
+        },
+        "python": sys.version,
+        "packages": {name: version(name) for name in ("numpy", "pyproj", "shapely")},
+        "geometry_runtime": (pyproj.proj_version_str, shapely.geos_version_string),
+    }
+
+
+def calculate_distance_reference(request, raw, qualification=None):
     command = [sys.executable, str(REFERENCE_ENGINE), request.model_dump_json(exclude_none=True)]
     if qualification:
         command.append(json.dumps(qualification))
