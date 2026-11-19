@@ -401,6 +401,7 @@ def match_event(target, controls, policy, target_covariates):
         "target_front_event": target["front_event"],
         "target_support_snapshot_id": target["support_snapshot_id"],
         "target_provenance": target["provenance"],
+        "target_windows": target["windows"],
         "daily": [
             {
                 "date": row["date"],
@@ -490,6 +491,7 @@ def evaluate(request, bundle, source_hash):
         "target_result_id": target["result_id"],
         "front_lineage": target.get("front_lineage"),
         "front_candidate_count": target.get("front_candidate_count"),
+        "front_observation_status": target.get("front_observation_status"),
         "policy": policy,
         "events": events,
         "matched_events": sum(reuse.values()),

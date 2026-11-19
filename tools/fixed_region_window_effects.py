@@ -248,6 +248,7 @@ def evaluate(request, bundle, source_hash):
         "front_result_id": qualified["front_result_id"],
         "front_lineage": qualified.get("front_lineage"),
         "front_candidate_count": qualified.get("front_candidate_count"),
+        "front_observation_status": qualified.get("status"),
         "front_read_range": qualified["front_read_range"],
         "evidence_kind": "synthetic_example",
         "research_ready": False,

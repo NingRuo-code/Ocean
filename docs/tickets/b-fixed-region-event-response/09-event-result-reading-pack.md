@@ -23,3 +23,11 @@
 
 - #78 (https://github.com/NingRuo-code/Ocean/issues/78)
 - #79 (https://github.com/NingRuo-code/Ocean/issues/79)
+
+## 实施记录 · 2026-11-19
+
+既有固定海域实验入口接受 `fixed-event-reading-pack/v1` 和 `frozen-aggregate-evidence/v1`。输入 `ocean-fixed-region-reading-pack-input/v1` 以 `controls`、`inference`、`lag` 保存 B05/B06/B07 已完成成果的 `summary_json`、`manifest_json` 原文，`lag_svg` 保存 B07 的原图。三者必须关联同一个 B05 结果、固定几何和搜索期。已校验原图的字节摘要和静态图形范围。
+
+同一完成目录包含 `report.md`、原 `lag.svg`、逐日 `daily.csv`、窗口 `windows.csv` 及结构化摘要和校验清单。主图、原前后和同日变化差、逐日 H/E、队列、缺失原因及区间状态沿冻结证据读取。B06 区间相关组与 B07 时滞组分别标注。未匹配事件保留目标区覆盖、排除日期和已知子集。图旁记录实际持续暴露日以及逐日区间的边界。许可用途为 `local_allowed_aggregate`，当前支持的输入为已登记合成成果。源目录或运行时移除后仍可通过既有冻结读入口验证并读取。
+
+本项交付本地聚合成果包。真实成果消费和工作台验收分别沿 #84 和 #21，正式授权与研究结论继续按原票执行。
