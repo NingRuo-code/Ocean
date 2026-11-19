@@ -30,6 +30,22 @@ function boundedText(path, bytes=ARTIFACT_BYTES) {
   } finally { closeSync(fd); }
 }
 function report(result) {
+  if (result.schema_version === "fixed-region-comparable-controls/v1") {
+    const lines = ["# 固定海域同日对照 · 合成样例", "", `事件效应结果 ${result.target_result_id}。`,
+      "候选依据登记空间域、非锋面日期、资料资格及环境范围核对，采用回顾性条件比较。", ""];
+    for (const event of result.events) {
+      lines.push(`## 锚日 ${event.anchor_date}`, "");
+      if (event.matching.selected) lines.push(`固定对照 ${event.matching.selected.id}，权重 ${event.matching.selected.weight}。`);
+      else lines.push("当前没有合格固定对照，保留事件区原变化。");
+      for (const item of event.matching.candidates) lines.push(`- ${item.id} · ${item.reason ?? "满足登记条件"}`);
+      for (const [name, value] of Object.entries(event.contrasts)) {
+        if(value) lines.push(`- ${name} 前期同日差 ${value.pre7.same_day_density_difference}，后期同日差 ${value.post.same_day_density_difference}，变化差 ${value.change_difference} h/(km²·d)。`);
+      }
+      lines.push("");
+    }
+    lines.push("结果保留渔具等未测因素的限制，真实研究资格待验收。", "");
+    return lines.join("\n");
+  }
   if (result.schema_version === "fixed-region-window-effects/v1") {
     const lines = ["# 固定海域事件活动变化 · 合成样例", "", `窗口资格结果 ${result.window_result_id}。`,
       "变化为相同有效支持上的表观捕捞活动密度差。单位 h/(km²·d)，锚日单列。", "",
@@ -169,6 +185,7 @@ export function runFixedRegionExample(args, root) {
         ["observed-fixed-exposure/v1","fixed_region_front_observations.py"],
         ["fixed-event-window-qualification/v1","fixed_region_window_qualification.py"],
         ["fixed-event-window-effects/v1","fixed_region_window_effects.py"],
+        ["fixed-event-comparable-controls/v1","fixed_region_comparable_controls.py"],
       ]);
       const script = scripts.get(JSON.parse(request).method_version);
       return script ? ["-B","-X",`pycache_prefix=${join(stage,"pycache")}`,join(root,"tools",script)] : undefined;
