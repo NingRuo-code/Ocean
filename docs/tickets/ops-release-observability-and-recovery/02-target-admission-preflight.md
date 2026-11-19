@@ -23,3 +23,17 @@
 
 - #227 (https://github.com/NingRuo-code/Ocean/issues/227)
 - #47 (https://github.com/NingRuo-code/Ocean/issues/47)
+
+## 隔离目标软件切片
+
+复用 O01 发布 CLI，增加 `preflight` 子命令。操作者提供固定包、包哈希、提交、已有隔离根目录、#47 盘点报告和保留空间。预检读取并校验候选与目标，以当次挂载文件系统可用字节核对展开及保留空间。报告中的盘点数据保留原观测范围，账号配额、受控入口与独立备份继续按正式目标核验。
+
+预检过程中目标目录保持原样。实际隔离安装可传入同一个 `--reserve-bytes`，在写入前复核当次包、目标和空间条件。既有安装命令仍可沿用原参数。验收从真实 CLI 检查通过路径、未知与不足、错误包和目标，以及预检后条件变化。
+
+```bash
+python deploy/release.py preflight \
+  --bundle "$bundle" --expected "$bundle_sha256" --commit "$commit" \
+  --root "$isolation_root" --inventory "$inventory" --reserve-bytes "$reserve_bytes"
+```
+
+展开字节是候选文件及清单的逻辑长度。保留空间由操作者按虚拟环境、文件系统分配开销及运行暂存留出。挂载卷剩余量已计入留在同一卷上的旧版本开销。路径写入权限由系统初步检查。隔离根目录通过既有 `release.py init` 创建，账号可用配额和正式入口继续单独核验。
