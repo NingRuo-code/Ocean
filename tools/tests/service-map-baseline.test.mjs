@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,readFile,rm,writeFile,mkdir,copyFile,appendFile} from 'node:fs/promises';
+import {mkdtemp,readFile,rm,writeFile,mkdir,copyFile,appendFile,symlink,link} from 'node:fs/promises';
 import {join,dirname,resolve,basename} from 'node:path';
 import {tmpdir} from 'node:os';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {pathToFileURL} from 'node:url';
 import {createServer} from 'node:http';
+import {createHash} from 'node:crypto';
 
 const execute=promisify(execFile);
 test('baseline rejects credential-confused remote pages and conflicting original-service claims',async()=>{
@@ -57,6 +58,91 @@ test('existing baseline CLI records real original-app missing-day failure with e
  }
 });
 
+test('managed benchmark measures the real day API with an explicitly staged NetCDF sample',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'ocean-service-baseline-'));
+ const raw=join(root,'PRIVATE-sample-root'),out=join(root,'report.json');
+ const relativeName='front/2024/front_location20240805.nc';
+ const sample=join(raw,relativeName);
+ try{
+  await mkdir(dirname(sample),{recursive:true});
+  await execute(process.env.OCEAN_EXPERIMENT_PYTHON||'python',['-c',`
+import sys
+import numpy as np
+import xarray as xr
+xr.Dataset(
+    {"front": (("lat", "lon", "time"), np.full((3, 3, 1), 10, dtype="int8"))},
+    coords={"lat": [29.95, 30, 30.05], "lon": [124, 124.05, 124.1],
+            "time": [np.datetime64("2024-08-05")]},
+).to_netcdf(sys.argv[1], engine="scipy")
+`,sample],{windowsHide:true,timeout:20000});
+  await mkdir(join(raw,'fishing-source'));
+  await writeFile(join(raw,'fishing-source','PRIVATE-unused.csv'),'unrelated');
+  const bytes=await readFile(sample);
+  const sha256=createHash('sha256').update(bytes).digest('hex');
+  const execution=await execute(process.execPath,[
+   resolve('tools/benchmark-map.mjs'),'--isolated-service','--sample-root',raw,
+   '--runs','1','--timeout-ms','2500','--out',out,
+  ],{cwd:root,windowsHide:true,timeout:35000}).catch(error=>error);
+  const report=await readFile(out,'utf8').then(JSON.parse).catch(()=>{
+   assert.fail(execution.stderr||'Managed benchmark did not write its report');
+  });
+  assert.deepEqual(report.input,{
+   kind:'explicit_local_netcdf',
+   files:{front:1,sst:0},bytes:bytes.length,
+   snapshot_id:'sha256:'+createHash('sha256').update(JSON.stringify([
+    {name:relativeName,bytes:bytes.length,sha256},
+   ])).digest('hex'),
+  });
+  assert.equal(report.service.kind,'isolated_original_app');
+  const exporter='backend/scripts/export_prototype_data.py';
+  assert.equal(report.artifact_hashes[exporter],createHash('sha256').update(await readFile(exporter)).digest('hex'));
+  assert.ok(report.attempts[0].requests.some(request=>request.role==='day'&&request.status===200));
+  assert.deepEqual(await readFile(sample),bytes);
+  assert.equal(report.b1_qualified,false);
+  assert.doesNotMatch(JSON.stringify(report),/PRIVATE-sample-root|PRIVATE-unused|front_location/);
+ }finally{
+  if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith('ocean-service-baseline-'))await rm(root,{recursive:true,force:true});
+ }
+});
+
+test('explicit benchmark samples reject linked source folders and report writes in the sample root',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'ocean-service-baseline-'));
+ try{
+  const raw=join(root,'PRIVATE-raw'),outside=join(root,'PRIVATE-outside');
+  const plain=join(root,'plain-raw');
+  await mkdir(join(raw,'front'),{recursive:true});
+  await mkdir(outside);
+  await writeFile(join(outside,'front_location20240805.nc'),'must not be staged through a link');
+  await symlink(outside,join(raw,'front','2024'),process.platform==='win32'?'junction':'dir');
+  await mkdir(join(plain,'front','2024'),{recursive:true});
+  const plainSample=join(plain,'front','2024','front_location20240805.nc');
+  await writeFile(plainSample,'isolated input');
+  const outsideReport=join(root,'report.json');
+  const insideReport=join(plain,'PRIVATE-report.json');
+  const linkedReport=join(root,'linked-report.json');
+  await link(plainSample,linkedReport);
+  for(const [options,input,out] of [
+   [['--isolated-service'],raw,outsideReport],
+   [['--isolated-service'],plain,insideReport],
+   [['--isolated-service'],plain,linkedReport],
+   [[],plain,outsideReport],
+  ]){
+   const result=await execute(process.execPath,[
+    'tools/benchmark-map.mjs',...options,'--sample-root',input,'--runs','1','--out',out,
+   ],{windowsHide:true,timeout:15000,env:{...process.env,EDGE:join(root,'unused-browser')}}).catch(error=>error);
+   assert.equal(result.code,1);
+   assert.match(result.stderr,/Invalid or unavailable NetCDF benchmark samples|Local samples require --isolated-service/);
+   assert.doesNotMatch(result.stderr,/PRIVATE-raw|PRIVATE-outside|PRIVATE-report/);
+  }
+  await assert.rejects(readFile(outsideReport),{code:'ENOENT'});
+  await assert.rejects(readFile(insideReport),{code:'ENOENT'});
+  assert.equal(await readFile(plainSample,'utf8'),'isolated input');
+  assert.equal(await readFile(linkedReport,'utf8'),'isolated input');
+ }finally{
+  if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith('ocean-service-baseline-'))await rm(root,{recursive:true,force:true});
+ }
+});
+
 test('service startup and runtime configuration failures are safe reports without raw errors',async()=>{
  const root=await mkdtemp(join(tmpdir(),'ocean-service-baseline-'));
  try{
@@ -74,6 +160,24 @@ test('service startup and runtime configuration failures are safe reports withou
    assert.doesNotMatch(JSON.stringify(report),/PRIVATE|AppData|Traceback|Fatal Python/);
   }
  }finally{if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith('ocean-service-baseline-'))await rm(root,{recursive:true,force:true});}
+});
+
+test('managed benchmark waits for a slow original-app startup before recording browser attempts',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'ocean-service-baseline-')),out=join(root,'report.json');
+ try{
+  await writeFile(join(root,'sitecustomize.py'),'import time\ntime.sleep(8.25)\n');
+  const execution=await execute(process.execPath,[
+   'tools/benchmark-map.mjs','--isolated-service','--runs','1','--timeout-ms','1500','--out',out,
+  ],{windowsHide:true,timeout:55000,env:{...process.env,PYTHONPATH:root}}).catch(error=>error);
+  assert.equal(execution.code,1);
+  const report=JSON.parse(await readFile(out,'utf8'));
+  assert.equal(report.service.status?.layers.process,'responding');
+  assert.ok(report.attempts[0].action_attempted);
+  assert.ok(report.attempts[0].requests.some(request=>request.role==='health'&&request.status===200));
+  assert.equal(report.attempts[0].elapsed_ms,null);
+ }finally{
+  if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith('ocean-service-baseline-'))await rm(root,{recursive:true,force:true});
+ }
 });
 
 test('original-service baseline identifies installed package versions without recording installation paths or direct URLs',async()=>{

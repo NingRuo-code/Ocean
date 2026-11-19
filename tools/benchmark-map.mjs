@@ -10,7 +10,7 @@ import { launchBrowser, sleep } from "./lib/browser-driver.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
-const values=new Set(['--page','--runs','--timeout-ms','--sample-kind','--out']);
+const values=new Set(['--page','--runs','--timeout-ms','--sample-kind','--out','--sample-root']);
 for(let i=0;i<args.length;i++){
   if(args[i]==='--isolated-service')continue;
   if(!values.has(args[i])||!args[i+1]||args[i+1].startsWith('--'))throw Error('Unknown or incomplete baseline option');
@@ -32,12 +32,20 @@ function localPage(value){
 const page = localPage(option("--page", pathToFileURL(resolve(root, "frontend/prototype/prototype-fishing.html")).href));
 const runs = Number(option("--runs", "3"));
 const timeout = Number(option("--timeout-ms", "15000"));
+const sampleRoot = option("--sample-root", null);
+const output = resolve(option("--out", "data/processed/map-baseline.json"));
+if (sampleRoot && !args.includes("--isolated-service")) {
+  throw Error("Local samples require --isolated-service");
+}
 if (!Number.isInteger(runs) || runs < 1 || runs > 20 || !Number.isFinite(timeout) || timeout < 100 || timeout > 60000) throw new Error("Invalid run budget");
 const edge = process.env.EDGE ?? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const scenarios = ["navigation", "reload", "date-change", "zoom", "drag"];
-async function runBaseline(page, isolatedService = false, serviceRuntime = null, startupFailed = false) {
+async function runBaseline(page, isolatedService = false, serviceRuntime = null, startupFailed = false, input = null) {
   const sampleKind = option("--sample-kind", "B0-current");
   if (!["B0-current", "controlled-fixture"].includes(sampleKind)) throw new Error("Unsupported evidence claim");
+  const serviceArtifacts = ["backend/pyproject.toml", "backend/scripts/export_prototype_data.py"];
+  const runnerArtifacts = ["tools/benchmark-map.mjs","tools/lib/browser-driver.mjs","tools/lib/monthly-test-service.mjs"];
+  if (input) runnerArtifacts.push("tools/lib/benchmark-samples.mjs");
   const hashFile = async (path) => {
     const hash=createHash('sha256');let bytes=0;
     for await(const chunk of createReadStream(resolve(root,path))){
@@ -60,8 +68,11 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
       }
     }
     await visit("frontend/prototype");
-    if(isolatedService){await visit("backend/app");hashes["backend/pyproject.toml"]=await hashFile("backend/pyproject.toml");}
-    for(const path of ["tools/benchmark-map.mjs","tools/lib/browser-driver.mjs","tools/lib/monthly-test-service.mjs"])hashes[path]=await hashFile(path);
+    if (isolatedService) {
+      await visit("backend/app");
+      for (const path of serviceArtifacts) hashes[path] = await hashFile(path);
+    }
+    for (const path of runnerArtifacts) hashes[path] = await hashFile(path);
     if(page.startsWith('file:'))hashes.entry_document=await hashFile(fileURLToPath(page));
     return Object.fromEntries(Object.entries(hashes).sort(([a],[b])=>a.localeCompare(b,'en')));
   }
@@ -70,7 +81,13 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
   let commit = null;
   let trackedChanges=null;
   try { commit = execFileSync("git", ["-c", `safe.directory=${root.replaceAll("\\", "/")}`, "rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(); } catch { /* unknown, not guessed */ }
-  try{execFileSync('git',['-c',`safe.directory=${root.replaceAll('\\','/')}`,'diff','--quiet','HEAD','--','tools/benchmark-map.mjs','tools/lib/monthly-test-service.mjs','tools/lib/browser-driver.mjs','frontend/prototype','backend/app','backend/pyproject.toml'],{cwd:root,stdio:'ignore'});trackedChanges=false;}catch(error){trackedChanges=error.status===1?true:null;}
+  try {
+    execFileSync("git", ["-c", `safe.directory=${root.replaceAll("\\","/")}`, "diff", "--quiet", "HEAD", "--",
+      ...runnerArtifacts, "frontend/prototype", "backend/app", ...serviceArtifacts], {cwd: root, stdio: "ignore"});
+    trackedChanges=false;
+  } catch(error) {
+    trackedChanges=error.status===1?true:null;
+  }
   const attempts = [];
   const environment = { node_version: process.version, run_environments: [], cache_layers: {browser: "fresh profile then same-profile reload", service: isolatedService ? "empty at start; shared across all browser runs" : "not controlled", os_storage: "uncontrolled"}, platform: platform(), release: release(), cpu_model: cpus()[0]?.model ?? null,
     cpu_count: cpus().length, ram_bytes: totalmem(), browser: null, gpu: null,
@@ -196,7 +213,7 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
       timeout: group.filter((a) => a.status === "timeout").length, p50_ms: good.length ? quantile(good, .5) : null,
       p95_ms: good.length >= 20 ? quantile(good, .95) : null, tail_note: good.length < 20 ? "insufficient samples for stable tail claim" : "empirical nearest-rank; this environment only" };
   }
-  const report = { service, artifact_integrity:artifactIntegrity, identity_collection_ms:{before:identityBeforeMs,after:identityAfterMs}, b1_qualified: false, schema: "ocean-map-baseline/v1", generated_at: new Date().toISOString(), sample_kind: sampleKind,
+  const report = { service, ...(input ? {input} : {}), artifact_integrity:artifactIntegrity, identity_collection_ms:{before:identityBeforeMs,after:identityAfterMs}, b1_qualified: false, schema: "ocean-map-baseline/v1", generated_at: new Date().toISOString(), sample_kind: sampleKind,
     runner_sha256: artifactHashes['tools/benchmark-map.mjs'],
     page_sha256: artifactHashes.entry_document??null,
     commit, tracked_changes_present:trackedChanges, artifact_hashes: artifactHashes, environment, attempts, summary, targets_verified: false,
@@ -206,9 +223,8 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
       "Managed Python inventory samples visible installed distribution metadata at service startup only; duplicates remain ambiguous, paths and direct URLs are excluded. This is not a dependency lock or installed-byte integrity check.",
       "Controlled fixtures verify timing/identity only, not real data coverage. This is not B1 numerical/coverage qualification.",
       "Local measured results do not establish production, server capacity, or 3/1/2-second targets."] };
-  const output = resolve(option("--out", "data/processed/map-baseline.json"));
   await mkdir(dirname(output), { recursive: true });
-  await writeFile(output, JSON.stringify(report, null, 2) + "\n");
+  await writeFile(output, JSON.stringify(report, null, 2) + "\n", {flag: input ? "wx" : "w"});
   console.log(JSON.stringify({ attempts: attempts.length, summary, targets_verified: false }));
   if (attempts.some((a) => a.status !== "success")) process.exitCode = 1;
 
@@ -232,7 +248,19 @@ function responseEncoding(headers) {
 }
 if(args.includes("--isolated-service")){
   if(args.includes("--page") || option("--sample-kind","B0-current")!=="B0-current")throw Error("Isolated original service cannot override page or claim a fixture");
-  let entered=false;
-  try{await withService((base,context)=>{entered=true;return runBaseline(base+"/prototype-fishing.html",true,context.runtime);},{collectRuntimeInventory:true});}
-  catch{if(entered)throw Error('Managed baseline could not finish');await runBaseline(page,true,null,true);}
+  let entered=false, input=null;
+  const prepareRaw = sampleRoot ? async rawTarget => {
+    const {stageBenchmarkSamples}=await import("./lib/benchmark-samples.mjs");
+    input=await stageBenchmarkSamples(sampleRoot,rawTarget,output);
+  } : null;
+  try{
+    await withService((base,context)=>{
+      entered=true;
+      return runBaseline(base+"/prototype-fishing.html",true,context.runtime,false,input);
+    },{collectRuntimeInventory:true,prepareRaw,projectRoot:root});
+  }catch{
+    if(entered)throw Error("Managed baseline could not finish");
+    if(sampleRoot&&!input)throw Error("Invalid or unavailable NetCDF benchmark samples");
+    await runBaseline(page,true,null,true,input);
+  }
 } else await runBaseline(page);

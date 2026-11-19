@@ -45,3 +45,16 @@ node tools/benchmark-map.mjs --page "$base/prototype-fishing.html" \
 25 次尝试均超时，成功耗时及 p50/p95 保持未知。导航、刷新和换日的首轮均取得 HTTP 200 的单日与视窗响应，单日状态为就绪，浏览器视窗仍显示部分覆盖。用 `bbox=122,27,124.2,29.6&step=4` 直接复核视窗时，8 月 5 日三层可用，8 月 6 日的锋面和海温可用、活动层不可用。此视窗接口的活动展示来自已登记的静态层。
 
 此前空原档服务的缺日失败和本次部分视窗超时分别保留。B1、全操作成功、冷热及尾部证据继续按 #46 核实。
+
+## 用显式样本运行受管服务测量
+
+用现有命令直接启动回环原服务，并在新建的缓存和数据目录内测量。将 `sample_root` 设为恢复副本的 `data/raw`，将 `report` 设为样本目录之外的全新文件。
+
+```bash
+node tools/benchmark-map.mjs --isolated-service --sample-root "$sample_root" \
+  --runs 5 --timeout-ms 12000 --out "$report"
+```
+
+受管服务从本次复制的单日 NetCDF 读取数据。入口识别 `front/<year>/front_locationYYYYMMDD.nc` 和 `sst/<year>/sst_YYYYMMDD.nc`，支持至多 128 份文件、128 MiB。报告记录两层文件数、字节数及绑定文件相对位置、长度和 SHA-256 的快照身份。输出不含样本路径或原档内容。临时服务结束后释放本次副本和缓存。
+
+受管服务在开始浏览器计时前，最多等待 45 秒取得健康响应。省略 `--sample-root` 时仍可用原空数据场景复测。显式样本用于 B0，完整覆盖和 B1 继续按实际证据核实。
