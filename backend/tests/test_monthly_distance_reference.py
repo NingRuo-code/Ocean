@@ -4,6 +4,7 @@ import csv
 import hashlib
 import io
 import json
+from xml.etree import ElementTree
 from zipfile import ZipFile
 
 import pytest
@@ -165,6 +166,7 @@ def test_completed_distance_evidence_keeps_zero_and_unknown_after_source_removal
     assert page.headers["cache-control"] == "no-store"
     assert run["result"]["result_id"] in page.text
     assert "距离带" in page.text and "未知" in page.text and "合成" in page.text
+    assert "<td>已观测但未纳入共同支持</td><td>7.0</td>" in page.text
     response = client.get(url, headers=AUTH, params={"format": "zip"})
     assert response.status_code == 200
     assert client.get(url, headers=AUTH, params={"format": "zip"}).content == response.content
@@ -173,6 +175,14 @@ def test_completed_distance_evidence_keeps_zero_and_unknown_after_source_removal
         manifest = json.loads(bundle.read("manifest.json"))
         assert manifest["result_id"] == run["result"]["result_id"]
         assert manifest["files"]["evidence.html"]["sha256"] == hashlib.sha256(page.content).hexdigest()
+        svg = ElementTree.fromstring(bundle.read("distance.svg"))
+        svg_text = " ".join(svg.itertext())
+        assert manifest["result_id"] in svg_text and "有效支持" in svg_text
+        assert "区间未估计" in svg_text and "未知" in svg_text
+        svg_bands = {g.attrib["data-band"]: g[0] for g in svg.iter() if "data-band" in g.attrib}
+        assert float(svg_bands["0"].get("width")) > 0
+        assert float(svg_bands["2"].get("width")) == 0
+        assert "1" not in svg_bands
         rows = list(csv.DictReader(io.StringIO(bundle.read("daily.csv").decode("utf-8-sig"))))
         assert len(rows) == 31
         assert rows[0]["fishing_hours"] == "42.0"
