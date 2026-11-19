@@ -6,10 +6,12 @@ import {tmpdir} from "node:os";
 import {setTimeout as delay} from "node:timers/promises";
 
 // Actual production app on isolated loopback; no test-only business service.
-export async function withService(work,{collectRuntimeInventory=false,caseOwnerToken="",enableCaseStore=false,publishedFixtureText=null,enableSyntheticRuns=false,syntheticRunPath=null}={}) {
+export async function withService(work,{collectRuntimeInventory=false,caseOwnerToken="",enableCaseStore=false,publishedFixtureText=null,enableSyntheticRuns=false,syntheticRunPath=null,distanceFixtureText=null}={}) {
   const root=await mkdtemp(join(tmpdir(),"ocean-month-service-"));
   await mkdir(join(root,"raw"));await mkdir(join(root,"cache"));
   if(publishedFixtureText!==null)await writeFile(join(root,"published.json"),publishedFixtureText,"utf8");
+  const distancePath=join(root,"distance.json");
+  if(distanceFixtureText!==null)await writeFile(distancePath,distanceFixtureText,"utf8");
   const inventoryCode=collectRuntimeInventory?`
 def installed_distributions():
     import hashlib,importlib.metadata,re,time,collections
@@ -52,7 +54,7 @@ print(json.dumps({'port':s.getsockname()[1],'runtime':runtime}),flush=True)
 uvicorn.Server(uvicorn.Config(app,log_level='error')).run(sockets=[s])`;
   const inherited=Object.fromEntries(Object.entries(process.env).filter(([key])=>!key.toUpperCase().startsWith('OCEAN_')));
   const child=spawn(process.env.OCEAN_EXPERIMENT_PYTHON || "python",["-c",code],{cwd:resolve("backend"),windowsHide:true,
-    env:{...inherited,OCEAN_TEST_FRONTEND:resolve("frontend/prototype"),OCEAN_PROTOTYPE_DATA_DIR:resolve("frontend/prototype/data"),OCEAN_API_PREFIX:'/api',OCEAN_AI_PROVIDER:"rules",OCEAN_MONTHLY_EXECUTION_TOKEN:caseOwnerToken,...(publishedFixtureText===null?{}:{OCEAN_TEST_PUBLISHED:join(root,"published.json")}),...(enableCaseStore?{OCEAN_CASE_STORE_PATH:join(root,"cases.sqlite3")}:{}),...(enableSyntheticRuns?{OCEAN_SYNTHETIC_RUN_STORE_PATH:syntheticRunPath||join(root,"runs.sqlite3")}:{}),OCEAN_RAW_DATA_DIR:join(root,"raw"),OCEAN_CACHE_DIR:join(root,"cache")},stdio:["ignore","pipe","pipe"]});
+    env:{...inherited,OCEAN_TEST_FRONTEND:resolve("frontend/prototype"),OCEAN_PROTOTYPE_DATA_DIR:resolve("frontend/prototype/data"),OCEAN_API_PREFIX:'/api',OCEAN_AI_PROVIDER:"rules",OCEAN_MONTHLY_EXECUTION_TOKEN:caseOwnerToken,...(publishedFixtureText===null?{}:{OCEAN_TEST_PUBLISHED:join(root,"published.json")}),...(enableCaseStore?{OCEAN_CASE_STORE_PATH:join(root,"cases.sqlite3")}:{}),...(enableSyntheticRuns?{OCEAN_SYNTHETIC_RUN_STORE_PATH:syntheticRunPath||join(root,"runs.sqlite3")}:{}),...(distanceFixtureText===null?{}:{OCEAN_MONTHLY_DISTANCE_INPUT_PATH:distancePath}),OCEAN_RAW_DATA_DIR:join(root,"raw"),OCEAN_CACHE_DIR:join(root,"cache")},stdio:["ignore","pipe","pipe"]});
   let output="",port,runtime,startError=null;
   child.on('error',()=>{startError=true;});
   child.stdout.on("data",b=>{output+=b.toString();try{const info=JSON.parse(output.split("\n")[0]);port=info.port;runtime=info.runtime;}catch{}});
@@ -61,7 +63,7 @@ uvicorn.Server(uvicorn.Config(app,log_level='error')).run(sockets=[s])`;
     for(let n=0;n<150&&!port;n++){if(startError||child.exitCode!==null)throw Error("Actual API did not start");await delay(50);}
     assert.ok(port,"Actual API listening port");const base=`http://127.0.0.1:${port}`;
     for(let n=0;n<100;n++){try{if((await fetch(base+"/api/health")).ok)break;}catch{}await delay(50);}
-    await work(base,{runtime});
+    await work(base,{runtime,distancePath});
   }finally{child.kill();await Promise.race([new Promise(r=>child.once("exit",r)),delay(2000)]);
     if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith("ocean-month-service-"))await rm(root,{recursive:true,force:true}).catch(()=>{});
   }

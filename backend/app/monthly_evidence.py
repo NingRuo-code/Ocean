@@ -165,8 +165,7 @@ def comparison_reading(comparison, names, days):
                 row["covariates"]["reference"]["mean_local_distance_to_circle_center_km"],
                 row["reason"],
             )
-            for day in days
-            if (row := day.get("distance_comparison")) is not None
+            for row in days
         ),
     )
     preview = (
@@ -215,36 +214,63 @@ def side_reading(environment):
     return table(("侧别", *UNITS), rows) + days + temperature, rows
 
 
-def render_monthly_evidence(result):
+def project_monthly_evidence(result):
+    """Versioned owner aggregate shared by the report and standalone evidence."""
     edges = result["distance_edges_km"]
     names = [f"[{low}, {high})" for low, high in zip([0, *edges[:-1]], edges, strict=True)]
     names.extend([f"≥ {edges[-1]}", "距离未知"])
     month = result["month"]
-    bands = [(name, *metrics(entry)) for name, entry in zip(names, month["bands"], strict=True)]
-    days = daily_rows(result)
-    totals = metrics(month["common"])
+    return {
+        "version": VERSION,
+        "audience": "owner_aggregate",
+        "result_id": result["result_id"],
+        "evidence_kind": result["evidence_kind"],
+        "research_ready": result["research_ready"],
+        "parameters": result["parameters"],
+        "versions": result["versions"],
+        "p0_conditions": {key: result["p0_conditions"][key]
+                          for key in ("layer_use", "method_version", "quality_rule", "allocation")},
+        "units": dict(zip(FIELDS, ("h", "km²·d", "h/(km²·d)"), strict=True)),
+        "distance_km_edges": edges,
+        "totals": dict(zip(FIELDS, metrics(month["common"]), strict=True)),
+        "bands": [{"label": name, **dict(zip(FIELDS, metrics(entry), strict=True))}
+                  for name, entry in zip(names, month["bands"], strict=True)],
+        "daily": daily_rows(result),
+        "comparison": month.get("distance_comparison"),
+        "paired_days": [row for day in result["days"] if (row := day.get("distance_comparison")) is not None],
+        "activity_accounting": month["activity_accounting"],
+        "side_environment": month.get("side_environment"),
+        "limitations": {
+            "coverage": month["scope"],
+            "metric": "apparent_fishing_effort_hours",
+            "inference": "distance_band_density_is_descriptive",
+        },
+    }
+
+
+def render_monthly_evidence(content):
+    names = [band["label"] for band in content["bands"]]
+    bands = [(band["label"], *metrics(band)) for band in content["bands"]]
+    days = content["daily"]
+    totals = metrics(content["totals"])
     supported = sum(day["fishing_hours"] is not None for day in days)
-    review = "合成距离参照" if result["evidence_kind"] == "synthetic" else "已登记直接参照"
-    params = result["parameters"]
-    identifier = display(result["result_id"])
-    versions = table(("版本来源", "身份"), result["versions"].items())
-    p0 = result["p0_conditions"]
+    review = "合成距离参照" if content["evidence_kind"] == "synthetic" else "已登记直接参照"
+    params = content["parameters"]
+    identifier = display(content["result_id"])
+    versions = table(("版本来源", "身份"), content["versions"].items())
     conditions = table(
         ("参数", "值"),
         [
             *params.items(),
-            *(
-                (f"P0 {key}", p0[key])
-                for key in ("layer_use", "method_version", "quality_rule", "allocation")
-            ),
+            *((f"P0 {key}", value) for key, value in content["p0_conditions"].items()),
         ],
     )
     explanation, interval, comparison, pairs = comparison_reading(
-        month.get("distance_comparison"), names, result["days"]
+        content["comparison"], names, content["paired_days"]
     )
-    figure = distance_figure(bands, result["result_id"], "同日对照 · " + interval)
-    activity, activity_rows = activity_reading(month["activity_accounting"])
-    sides, side_rows = side_reading(month.get("side_environment"))
+    figure = distance_figure(bands, content["result_id"], "同日对照 · " + interval)
+    activity, activity_rows = activity_reading(content["activity_accounting"])
+    sides, side_rows = side_reading(content["side_environment"])
     support_note = (
         "缺测日期保留为未知。下列数值只覆盖已知共同支持。"
         if supported
@@ -253,10 +279,11 @@ def render_monthly_evidence(result):
     day_table = table(DAILY_COLUMNS.values(), ([row[key] for key in DAILY_COLUMNS] for row in days))
     page = f"""<!DOCTYPE html>
 <html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
 <title>月度距离与活动证据</title><style>
-body{{margin:2rem auto;max-width:72rem;padding:0 1rem;font:16px/1.55 system-ui;color:#17333e}}
+body{{margin:1rem auto;max-width:72rem;padding:0 .75rem;font:16px/1.55 system-ui;color:#17333e;background:#fff}}
 svg{{display:block;width:100%;max-width:55rem}}table{{border-collapse:collapse;width:100%}}
-th,td{{padding:.5rem;text-align:left;vertical-align:top;border-bottom:1px solid #c7d7dc}}
+th,td{{padding:.4rem;text-align:left;vertical-align:top;border-bottom:1px solid #c7d7dc;overflow-wrap:anywhere}}
 details{{margin:1rem 0;overflow:auto}}summary{{cursor:pointer}}code{{overflow-wrap:anywhere}}
 </style><body><main>
 <h1>月度距离与活动证据</h1><p>{review}。表观捕捞活动按小时计。正式研究资格未通过。</p>

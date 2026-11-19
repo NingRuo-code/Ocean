@@ -853,6 +853,10 @@
       "target": "frontend/prototype/prototype-month-report.js"
     },
     {
+      "source": "frontend/prototype/prototype-controlled-month-report.js",
+      "target": "frontend/prototype/prototype-controlled-month-report.js"
+    },
+    {
       "source": "frontend/prototype/prototype-preferences.js",
       "target": "frontend/prototype/prototype-preferences.js"
     },
