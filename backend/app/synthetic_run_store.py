@@ -11,8 +11,10 @@ from uuid import uuid4
 
 from .analysis_support import content_id, decode_controlled_json
 from .monthly_models import MonthlyRequest
+from .sqlite_store_initialization import initialize_sqlite_store
 
 APPLICATION_ID = 0x4F52554E
+MAX_DB_BYTES = 64 * 1024 * 1024
 
 
 class RunStoreError(Exception):
@@ -23,41 +25,52 @@ class RunStore:
     def __init__(self, path):
         self.path = Path(os.path.abspath(path)) if path is not None else None
 
+    def _checked_store_exists(self):
+        for path in (*reversed(self.path.parents), self.path):
+            try:
+                info = path.lstat()
+            except FileNotFoundError:
+                continue
+            if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0):
+                raise RunStoreError("unavailable")
+            if path == self.path:
+                if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_DB_BYTES:
+                    raise RunStoreError("unavailable")
+                return True
+        return False
+
     @contextmanager
     def connection(self, write=False):
         if self.path is None:
             raise RunStoreError("unavailable")
         try:
-            for p in [*reversed(self.path.parents), self.path]:
-                if not p.exists() and not p.is_symlink():
-                    continue
-                info = p.lstat()
-                if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0):
+            if not self._checked_store_exists():
+                if not write:
+                    yield None
+                    return
+                initialize_sqlite_store(
+                    self.path,
+                    application_id=APPLICATION_ID,
+                    schema_version=1,
+                    prefix=".ocean-run-",
+                    statements=(
+                        "CREATE TABLE runs(id TEXT PRIMARY KEY, intent TEXT UNIQUE NOT NULL, "
+                        "fingerprint TEXT NOT NULL, payload TEXT NOT NULL)",
+                    ),
+                )
+                if not self._checked_store_exists():
                     raise RunStoreError("unavailable")
-            if self.path.exists() and self.path.stat().st_size > 64 * 1024 * 1024:
-                raise RunStoreError("unavailable")
-            if write:
-                self.path.parent.mkdir(parents=True, exist_ok=True)
-            elif not self.path.exists():
-                yield None
-                return
-            target = str(self.path) if write else self.path.as_uri() + "?mode=ro"
-            with closing(sqlite3.connect(target, uri=not write, timeout=1, isolation_level=None)) as db:
+            target = self.path.as_uri() + ("?mode=rw" if write else "?mode=ro")
+            with closing(sqlite3.connect(target, uri=True, timeout=1, isolation_level=None)) as db:
                 if write:
                     db.execute("BEGIN IMMEDIATE")
                 app_id = db.execute("PRAGMA application_id").fetchone()[0]
                 version = db.execute("PRAGMA user_version").fetchone()[0]
-                if write and app_id == version == 0 and not db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall():
-                    db.execute(f"PRAGMA application_id={APPLICATION_ID}")
-                    db.execute("PRAGMA user_version=1")
-                    db.execute("CREATE TABLE runs(id TEXT PRIMARY KEY, intent TEXT UNIQUE NOT NULL, fingerprint TEXT NOT NULL, payload TEXT NOT NULL)")
-                    db.commit()
-                    db.execute("BEGIN IMMEDIATE")
-                elif app_id != APPLICATION_ID or version != 1:
+                if app_id != APPLICATION_ID or version != 1:
                     raise RunStoreError("unavailable")
                 if write:
                     page_size = db.execute("PRAGMA page_size").fetchone()[0]
-                    db.execute(f"PRAGMA max_page_count={64 * 1024 * 1024 // page_size}")
+                    db.execute(f"PRAGMA max_page_count={MAX_DB_BYTES // page_size}")
                 try:
                     yield db
                     if write:

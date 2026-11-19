@@ -4,9 +4,8 @@
 且抓取脚本每天还在往里写"这个规模后，全量 rglob + 逐文件 stat 会在并发下明显排队
 （实测 4500+ 文件时单次 0.38 s、20 并发下最慢 9 s）。这里加一层"目录指纹 + 短 TTL"缓存：
 
-- 指纹只遍历目录、不 stat 文件，几千个文件也只有毫秒级开销；
-- 任一目录 mtime 变化（新增/删除/改名文件）即视为数据更新，抓取脚本持续写入时
-  请求自然回落到真实扫描，不会看到过期数据；
+- 指纹读取目录时间和已枚举的 NetCDF 文件名，不逐个 stat 文件；
+- 文件名集合变化时重新扫描，即使共享盘未在同一时间粒度内更新目录 mtime；
 - 数据稳定后（演示、答辩、日常浏览）瞬时命中，并把 `cached=true` 回给调用方。
 """
 
@@ -30,11 +29,11 @@ __all__ = [
     "invalidate_catalog_cache",
 ]
 
-# 目录指纹没变时最多复用多久（秒）。指纹能抓住"增删文件"，这个 TTL 只兜住
+# 目录指纹没变时最多复用多久（秒）。文件名集合能识别增删和改名，TTL 兜住
 # "文件被原地覆盖但目录 mtime 没变"的极端情况，所以给得很短。
 CATALOG_CACHE_TTL_SECONDS = 15.0
 
-DirectorySignature = tuple[tuple[str, int], ...]
+DirectorySignature = tuple[tuple[str, int, tuple[str, ...]], ...]
 
 
 @dataclass
@@ -53,17 +52,20 @@ _misses = 0
 
 
 def directory_signature(root: Path) -> DirectorySignature:
-    """目录级指纹：只读目录项、不 stat 文件，几千个文件也只有毫秒级开销。"""
+    """用目录时间及 NetCDF 文件名构造指纹，无需逐个 stat 文件。"""
     if not root.is_dir():
         return ()
-    signature: list[tuple[str, int]] = []
-    for current_dir, dir_names, _file_names in os.walk(root):
+    signature: list[tuple[str, int, tuple[str, ...]]] = []
+    for current_dir, dir_names, file_names in os.walk(root):
         dir_names[:] = [name for name in dir_names if name not in IGNORED_DATA_DIRECTORIES]
         try:
             mtime_ns = os.stat(current_dir).st_mtime_ns
         except OSError:  # 目录在遍历过程中被删掉：跳过，交给下一次调用重算
             continue
-        signature.append((os.path.relpath(current_dir, root), mtime_ns))
+        netcdf_names = tuple(
+            sorted(name for name in file_names if name.lower().endswith((".nc", ".nc4")))
+        )
+        signature.append((os.path.relpath(current_dir, root), mtime_ns, netcdf_names))
     signature.sort()
     return tuple(signature)
 
