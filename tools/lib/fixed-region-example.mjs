@@ -14,7 +14,7 @@ const fixedMethods = new Map([
   ["observed-fixed-exposure/v1",{schema:"fixed-region-front-observation/v1",script:"fixed_region_front_observations.py",records:["selection","geometry","read_range"]}],
   ["fixed-event-window-qualification/v1",{schema:"fixed-region-window-qualification/v1",script:"fixed_region_window_qualification.py",records:["front_lineage"],lists:["events"]}],
   ["fixed-event-window-effects/v1",{schema:"fixed-region-window-effects/v1",script:"fixed_region_window_effects.py",records:["pooled"],lists:["events"]}],
-  ["fixed-event-comparable-controls/v1",{schema:"fixed-region-comparable-controls/v1",script:"fixed_region_comparable_controls.py",records:["front_lineage","policy"],lists:["events"]}],
+  ["fixed-event-comparable-controls/v1",{schema:"fixed-region-comparable-controls/v1",script:"fixed_region_comparable_controls.py",records:["policy"],lists:["events"]}],
   ["fixed-event-group-uncertainty/v1",{schema:"fixed-region-event-group-uncertainty/v1",script:"fixed_region_event_inference.py",records:["inference","counts","policy"],lists:["groups","individual_effects"]}],
   ["fixed-event-lag-cohort/v1",{schema:"fixed-region-event-lag/v1",script:"fixed_region_event_lag.py",records:["cohorts","profiles"],lists:["events"]}],
   ["fixed-event-reading-pack/v1",{schema:"fixed-region-event-reading-pack/v1",script:"fixed_region_event_evidence.py",records:["source_results","cohorts","inference"],lists:["events"]}],
@@ -289,8 +289,8 @@ function readFrozen(folder, profile, withManifest=false) {
   if (summary.kind !== profile.purpose || summary.evidence_kind !== "synthetic_example" || summary.research_ready !== false || summary.result_id !== manifest.result_id) throw Error("result_mismatch");
   if (!isDeepStrictEqual(summary.parameters,manifest.parameters) || manifest.inputs?.length !== 1 || !isDeepStrictEqual(summary.source,manifest.inputs[0])) throw Error("identity_mismatch");
   if(profile.reuseFlag) {
-    fixedSummary(summary);
     if(summary.execution_id!==undefined || manifest.execution_id!==undefined) {
+      fixedSummary(summary);
       if(!isDigest(manifest.execution_id) || manifest.execution_id!==summary.execution_id ||
         manifest.versioned_result_id!==summary.versioned_result_id ||
         summary.versioned_result_id!==versionedResultId(summary.result_id,summary.execution_id) ||

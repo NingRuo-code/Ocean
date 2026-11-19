@@ -495,6 +495,22 @@ test("registered independent B groups give reproducible percentile endpoints and
     const legacy=eventInference("legacy-controls","legacy-interval");
     assert.equal(legacy.inference.reason,"event_provenance_unverified");
     assert.deepEqual(legacy.individual_effects.map(item=>item.estimate).sort((a,b)=>a-b),expected);
+    const historical=join(directory,"historical-controls");mkdirSync(historical);
+    const historicalReport=structuredClone(contrasts),historicalManifest=structuredClone(oldManifest);
+    for(const key of ["execution_id","versioned_result_id","source_freshness"]) {
+      delete historicalReport[key];
+      delete historicalManifest[key];
+    }
+    delete historicalReport.front_lineage;
+    const historicalText=JSON.stringify(historicalReport);
+    historicalManifest.artifacts["summary.json"]=digest(historicalText);
+    writeFileSync(join(historical,"summary.json"),historicalText);
+    writeFileSync(join(historical,"manifest.json"),JSON.stringify(historicalManifest));
+    writeFileSync(join(historical,"report.md"),readFileSync(join(directory,"fixed-controls","report.md")));
+    const frozen=spawnSync(process.execPath,[experiment,"--read-fixed-region-result",historical],{encoding:"utf8",windowsHide:true,
+      env:{...process.env,OCEAN_EXPERIMENT_PYTHON:"unavailable"}});
+    assert.equal(frozen.status,0,frozen.stderr);
+    assert.deepEqual(JSON.parse(frozen.stdout),historicalReport);
   } finally {
     if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
   }
