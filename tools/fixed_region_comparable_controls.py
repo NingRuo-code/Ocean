@@ -360,6 +360,7 @@ def match_event(target, controls, policy, target_covariates):
         "anchor_date": target["anchor_date"],
         "target_front_event": target["front_event"],
         "target_support_snapshot_id": target["support_snapshot_id"],
+        "target_provenance": target["provenance"],
         "daily": [
             {
                 "date": row["date"],
@@ -446,6 +447,7 @@ def evaluate(request, bundle, source_hash):
             )
         },
         "target_result_id": target["result_id"],
+        "front_candidate_count": target.get("front_candidate_count"),
         "policy": policy,
         "events": events,
         "matched_events": sum(reuse.values()),

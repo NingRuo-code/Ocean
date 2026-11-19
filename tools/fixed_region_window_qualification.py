@@ -352,6 +352,7 @@ def evaluate(request, bundle, source_hash):
         "source": {"id": "frozen-front-and-p0-snapshots", "input_sha256": source_hash},
         "engine_sha256": p0.file_digest(Path(__file__)),
         "front_result_id": front["result_id"],
+        "front_candidate_count": len(observed_events),
         "front_read_range": front["read_range"],
         "status": front["status"],
         "research_ready": False,

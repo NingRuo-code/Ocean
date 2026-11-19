@@ -246,6 +246,7 @@ def evaluate(request, bundle, source_hash):
         "engine_sha256": p0.file_digest(Path(__file__)),
         "window_result_id": qualified["result_id"],
         "front_result_id": qualified["front_result_id"],
+        "front_candidate_count": qualified.get("front_candidate_count"),
         "front_read_range": qualified["front_read_range"],
         "evidence_kind": "synthetic_example",
         "research_ready": False,

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
-import {mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync} from "node:fs";
+import {mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {basename, dirname, join, resolve} from "node:path";
 import {spawnSync} from "node:child_process";
@@ -14,8 +14,8 @@ const scope = {id:"circle",type:"circle",center:[0,0],radius_km:10};
 const shift = (day,offset) => new Date(Date.parse(day)+offset*86400000).toISOString().slice(0,10);
 const staticProof = (value, scopeId) => ({value,scope:"static_for_registered_circle",evidence_id:digest(scopeId)});
 
-function controlled(directory, anchor = monthEnd, nextAnchor = null) {
-  const base = {purpose:"fixed_region_event_example",longitude:0,latitude:0,radius_km:10,search_start:anchor,search_end:nextAnchor ?? anchor};
+function controlled(directory, anchor = monthEnd, nextAnchor = null, radius = 10) {
+  const base = {purpose:"fixed_region_event_example",longitude:0,latitude:0,radius_km:radius,search_start:anchor,search_end:nextAnchor ?? anchor};
   const run = (entry, args, env={}) => {
     const output=spawnSync(process.execPath,[entry,...args],{encoding:"utf8",windowsHide:true,env:{...process.env,...env}});
     assert.equal(output.status,0,output.stderr || output.stdout);
@@ -23,8 +23,9 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null) {
   };
   const write = (name, document) => {const path=join(directory,name);writeFileSync(path,JSON.stringify(document));return path;};
   let fixturePath = resolve("tools/examples/b02-front-continuity.json");
-  if (anchor !== monthEnd || nextAnchor) {
+  if (anchor !== monthEnd || nextAnchor || radius!==10) {
     const fixture=JSON.parse(readFileSync(fixturePath,"utf8"));
+    fixture.geometry.radius_km=radius;
     const offset=(Date.parse(anchor)-Date.parse(monthEnd))/86400000;
     for(const row of [...fixture.front_days,...fixture.regional_cells.days]) row.date=shift(row.date,offset);
     if(nextAnchor) {
@@ -50,7 +51,7 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null) {
     days=11, hours=()=>0, varySupportAt=null, halfSupport=false, eventDate=anchor, processingVersion=null,
     activitySource="effort-original", longitude=0}={}) => {
     const claim = {state:"verified",evidence_id:"sha256:"+"c".repeat(64)};
-    const region={...scope,center:[longitude,0]};
+    const region={...scope,center:[longitude,0],radius_km:radius};
     const cells = {schema:"ocean-regional-cells/v1",evidence_kind:"synthetic",days:Array.from({length:days},(_,i) => {
       const day = shift(eventDate,i-7);
       const layer = (kind,id,unit,hours) => ({kind,id,unit,role:"analysis_source",time_verified:true,bounds_verified:true,
@@ -101,8 +102,8 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null) {
     return JSON.parse(run(experiment,["--read-fixed-region-result",output],{OCEAN_EXPERIMENT_PYTHON:"unavailable"}));
   }
   function registerControl(id, longitude, exposureOffset=null, supportOptions={}) {
-    const {exitDistance=2,...p0Options}=supportOptions;
-    const controlBase={...base,longitude,search_start:shift(anchor,-7),search_end:shift(anchor,7)};
+    const {exitDistance=2,eventDate=anchor,alsoEventDate=null,...p0Options}=supportOptions;
+    const controlBase={...base,longitude,search_start:shift(eventDate,-7),search_end:shift(alsoEventDate ?? eventDate,7)};
     const fixture=JSON.parse(readFileSync(fixturePath,"utf8"));
     const layer=fixture.regional_cells.days[0].layers;
     fixture.id=id;
@@ -110,20 +111,23 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null) {
     fixture.policy.enter_distance_km=Math.min(fixture.policy.enter_distance_km,exitDistance/2);
     fixture.policy.exit_distance_km=exitDistance;
     fixture.front_source_version=front.source.front_source_version;
-    const calendar=Array.from({length:19},(_,i)=>shift(anchor,i-9));
+    const extent=19+(alsoEventDate ? (Date.parse(alsoEventDate)-Date.parse(eventDate))/86400000 : 0);
+    const calendar=Array.from({length:extent},(_,i)=>shift(eventDate,i-9));
     fixture.regional_cells.days=calendar.map(date=>({date,layers:layer}));
     fixture.front_days=calendar.map(date=>({date,source_id:fixture.front_source_id,objects:
-      exposureOffset!==null && date===shift(anchor,exposureOffset)
+      exposureOffset!==null && date===shift(eventDate,exposureOffset)
         ? [{id:"LaterFront",points:[[longitude,-0.01],[longitude,0.01]]}] : []}));
     const input=write(`${id}-source.json`,fixture);
     const request=write(`${id}-request.json`,{...controlBase,input_version:digest(readFileSync(input)),
       method_version:"observed-fixed-exposure/v1",parameter_version:"front-continuity/v1"});
     const output=join(directory,id);
     run(experiment,["--fixed-region-request",request,"--input",input,"--output",output]);
-    return {id,longitude,latitude:0,radius_km:10,search_start:controlBase.search_start,search_end:controlBase.search_end,
+    const supportSnapshots=[makeSnapshot(false,{days:15,longitude,eventDate,...p0Options})];
+    if(alsoEventDate) supportSnapshots.push(makeSnapshot(false,{days:15,longitude,eventDate:alsoEventDate,...p0Options}));
+    return {id,longitude,latitude:0,radius_km:radius,search_start:controlBase.search_start,search_end:controlBase.search_end,
       covariates:{distance_to_coast_km:staticProof(8,`${id} coast`)},front_summary_json:readFileSync(join(output,"summary.json"),"utf8"),
       front_manifest_json:readFileSync(join(output,"manifest.json"),"utf8"),
-      support_snapshots:[makeSnapshot(false,{days:15,longitude,...p0Options})]};
+      support_snapshots:supportSnapshots};
   }
   function fixedControls(controls, targetRun, name, covariateLimits={distance_to_coast_km:3}, clearance=2) {
     const source=write(`${name}.json`,{schema:"ocean-fixed-region-controls-input/v1",
@@ -139,7 +143,20 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null) {
     unlinkSync(source);unlinkSync(request);
     return JSON.parse(run(experiment,["--read-fixed-region-result",output],{OCEAN_EXPERIMENT_PYTHON:"unavailable"}));
   }
-  return {front, makeSnapshot, windowReport, windowEffects, registerControl, fixedControls};
+  function eventInference(controlRuns, name, policyOptions={}) {
+    const artifacts=[controlRuns].flat().map(controlRun=>({summary_json:readFileSync(join(directory,controlRun,"summary.json"),"utf8"),
+      manifest_json:readFileSync(join(directory,controlRun,"manifest.json"),"utf8")}));
+    const source=write(`${name}.json`,{schema:"ocean-fixed-region-event-inference-input/v1",control_runs:artifacts,
+      policy:{window:"post3",estimand:"equal_event",adjacency_days:3,confidence_level:0.9,iterations:400,
+        seed:20261119,minimum_groups:2,assumption:"between_groups_registered",rationale:"Synthetic independent nominated groups.",...policyOptions}});
+    const request=write(`${name}-request.json`,{...base,input_version:digest(readFileSync(source)),
+      method_version:"fixed-event-group-uncertainty/v1",parameter_version:"registered-group-percentile/v1"});
+    const output=join(directory,name);
+    run(experiment,["--fixed-region-request",request,"--input",source,"--output",output]);
+    unlinkSync(source);unlinkSync(request);
+    return JSON.parse(run(experiment,["--read-fixed-region-result",output],{OCEAN_EXPERIMENT_PYTHON:"unavailable"}));
+  }
+  return {front, makeSnapshot, windowReport, windowEffects, registerControl, fixedControls,eventInference};
 }
 
 test("B uses the matching P0 B_event audit for cross-month windows and holds unlicensed aggregates",()=>{
@@ -353,6 +370,74 @@ test("distinct supported areas separate equal-event and pooled effects, and inco
     assert.deepEqual(selected.events[0].provenance.source_versions,selected.events[1].provenance.source_versions);
     assert.notEqual(selected.events[0].provenance.selected_source_ids.activity,selected.events[1].provenance.selected_source_ids.activity);
     assert.equal(selected.pooled.post3.pooled_status,"incompatible_provenance");
+  } finally {
+    if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
+  }
+});
+
+test("registered independent B groups give reproducible percentile endpoints and exact descriptive fallback",()=>{
+  const directory=mkdtempSync(join(tmpdir(),"ocean-b03-"));
+  const second="2024-09-20";
+  try {
+    const {makeSnapshot,windowEffects,registerControl,fixedControls,eventInference}=controlled(directory,monthEnd,second);
+    windowEffects([makeSnapshot(false,{days:15,hours:offset=>offset<0 ? 10 : 20}),
+      makeSnapshot(false,{days:15,eventDate:second,hours:offset=>offset<0 ? 10 : 50})],"target-effects");
+    const first=registerControl("north",0.24), other=registerControl("south",-0.24,null,{eventDate:second});
+    const contrasts=fixedControls([first,other],"target-effects","fixed-controls");
+    assert.equal(contrasts.matched_events,2);
+    const expected=contrasts.events.map(event=>event.contrasts.post3.change_difference).sort((a,b)=>a-b);
+    const result=eventInference("fixed-controls","event-interval");
+    assert.equal(result.counts.candidate_events,2);
+    assert.equal(result.counts.eligible_events,2);
+    assert.equal(result.counts.usable_groups,2);
+    assert.equal(result.inference.status,"estimated_for_registered_assumptions");
+    assert.equal(result.inference.lower,expected[0]);
+    assert.equal(result.inference.upper,expected[1]);
+    assert.equal(result.inference.estimate,(expected[0]+expected[1])/2);
+    assert.equal(result.inference.valid_iterations,400);
+    const repeated=eventInference("fixed-controls","repeat-interval");
+    assert.deepEqual(repeated.inference,result.inference);
+    const unverified=eventInference("fixed-controls","unverified-interval",{assumption:"unverified"});
+    assert.equal(unverified.inference.reason,"between_group_assumptions_unverified");
+    assert.equal(unverified.inference.lower,null);
+    assert.equal(unverified.inference.estimate,result.inference.estimate);
+
+    const secondaryDir=join(directory,"radius20");mkdirSync(secondaryDir);
+    const variant=controlled(secondaryDir,monthEnd,second,20);
+    variant.windowEffects([variant.makeSnapshot(false,{days:15,hours:offset=>offset<0 ? 10 : 20}),
+      variant.makeSnapshot(false,{days:15,eventDate:second,hours:offset=>offset<0 ? 10 : 50})],"target-effects");
+    variant.fixedControls([],"target-effects","fixed-controls");
+    const combined=eventInference(["fixed-controls","radius20/fixed-controls"],"multi-radius-interval");
+    assert.equal(combined.counts.event_radius_rows,4);
+    assert.equal(combined.counts.eligible_events,2);
+    assert.equal(combined.counts.usable_groups,2);
+    assert.ok(combined.dependence_links.some(link=>link.reasons.includes("same_anchor_radius_variant")));
+    assert.deepEqual(combined.inference,result.inference);
+  } finally {
+    if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
+  }
+});
+
+test("shared event days and shared control identity form one group and prevent pooled reuse",()=>{
+  const directory=mkdtempSync(join(tmpdir(),"ocean-b03-"));
+  const second="2024-09-10";
+  try {
+    const {makeSnapshot,windowEffects,registerControl,fixedControls,eventInference}=controlled(directory,monthEnd,second);
+    const rates=(day,offset)=>30+(Date.parse(shift(day,offset))-Date.parse(monthEnd))/86400000;
+    windowEffects([makeSnapshot(false,{days:15,hours:offset=>rates(monthEnd,offset)}),
+      makeSnapshot(false,{days:15,eventDate:second,hours:offset=>rates(second,offset)})],"target-effects");
+    const shared=registerControl("shared",0.24,null,{alsoEventDate:second});
+    assert.equal(fixedControls([shared],"target-effects","fixed-controls").matched_events,2);
+    const equal=eventInference("fixed-controls","dependency-interval");
+    assert.equal(equal.counts.usable_groups,1);
+    assert.equal(equal.groups[0].members.length,2);
+    assert.ok(equal.dependence_links[0].reasons.includes("shared_window_dates"));
+    assert.ok(equal.dependence_links[0].reasons.includes("reused_control_location"));
+    assert.equal(equal.inference.reason,"insufficient_registered_groups");
+    assert.ok(equal.inference.estimate>0);
+    const pooled=eventInference("fixed-controls","overlap-pooled",{estimand:"pooled_area_time"});
+    assert.equal(pooled.inference.reason,"overlapping_dates_for_pooled_estimate");
+    assert.equal(pooled.inference.lower,null);
   } finally {
     if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
   }

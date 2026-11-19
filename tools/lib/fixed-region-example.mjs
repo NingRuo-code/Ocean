@@ -30,6 +30,18 @@ function boundedText(path, bytes=ARTIFACT_BYTES) {
   } finally { closeSync(fd); }
 }
 function report(result) {
+  if (result.schema_version === "fixed-region-event-group-uncertainty/v1") {
+    const {counts, inference, policy} = result;
+    const lines = ["# 固定海域相关事件组区间 · 合成样例", "",
+      `窗口 ${policy.window}，估计量 ${policy.estimand}。锋面候选 ${counts.front_candidate_events ?? "未知"}，送入比较 ${counts.candidate_events}，合格 ${counts.eligible_events}，半径展开 ${counts.event_radius_rows} 行，有效日期 ${counts.eligible_dates}，可用组 ${counts.usable_groups}。`,
+      `描述估计 ${inference.estimate ?? "未知"} h/(km²·d)。`,
+      inference.lower === null ? `区间无法可靠估计。${inference.reason}` : `登记假设下 ${policy.confidence_level*100}% 区间 [${inference.lower}, ${inference.upper}] h/(km²·d)。`,
+      `当次种子 ${policy.seed}，有效抽样 ${inference.valid_iterations}/${inference.requested_iterations}。`, "",
+      "## 分组成员", ""];
+    for (const group of result.groups) lines.push(`- 组 ${group.id} · ${group.members.join(", ")}`);
+    lines.push("", "分组登记保留相关证据，跨组独立性仍取决于登记假设。真实研究资格待验收。", "");
+    return lines.join("\n");
+  }
   if (result.schema_version === "fixed-region-comparable-controls/v1") {
     const lines = ["# 固定海域同日对照 · 合成样例", "", `事件效应结果 ${result.target_result_id}。`,
       "候选依据登记空间域、非锋面日期、资料资格及环境范围核对，采用回顾性条件比较。", ""];
@@ -186,6 +198,7 @@ export function runFixedRegionExample(args, root) {
         ["fixed-event-window-qualification/v1","fixed_region_window_qualification.py"],
         ["fixed-event-window-effects/v1","fixed_region_window_effects.py"],
         ["fixed-event-comparable-controls/v1","fixed_region_comparable_controls.py"],
+        ["fixed-event-group-uncertainty/v1","fixed_region_event_inference.py"],
       ]);
       const script = scripts.get(JSON.parse(request).method_version);
       return script ? ["-B","-X",`pycache_prefix=${join(stage,"pycache")}`,join(root,"tools",script)] : undefined;

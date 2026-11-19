@@ -74,6 +74,28 @@ def _block_support(days, length):
     ]
 
 
+def draw_component_totals(components, iterations, seed):
+    """Sample complete registered groups while keeping their additive components aligned."""
+    rng = np.random.Generator(np.random.PCG64(seed))
+    draw = rng.integers(0, len(components), size=(iterations, len(components)))
+    with np.errstate(over="ignore", invalid="ignore"):
+        return components[draw].sum(axis=1).T
+
+
+def percentile_bounds(effects, tail):
+    if math.isclose(
+        float(effects.min()), float(effects.max()), rel_tol=1e-12, abs_tol=1e-12
+    ):
+        return "degenerate_block_distribution", None, None
+    with np.errstate(over="ignore", invalid="ignore"):
+        lower, upper = np.quantile(effects, [tail, 1 - tail], method="linear")
+    if not all(math.isfinite(bound) for bound in (lower, upper)):
+        return "nonfinite_percentile_bounds", None, None
+    if math.isclose(lower, upper, rel_tol=1e-12, abs_tol=1e-12):
+        return "degenerate_percentile_interval", None, None
+    return None, float(lower), float(upper)
+
+
 def estimate_uncertainty(days, comparison, policy):
     groups = _block_support(days, policy["block_days"])
     result = {
@@ -123,10 +145,10 @@ def estimate_uncertainty(days, comparison, policy):
         ],
         dtype=np.float64,
     )
-    rng = np.random.Generator(np.random.PCG64(policy["seed"]))
-    draw = rng.integers(0, len(groups), size=(policy["iterations"], len(groups)))
+    target_h, target_e, reference_h, reference_e = draw_component_totals(
+        components, policy["iterations"], policy["seed"]
+    )
     with np.errstate(over="ignore", divide="ignore", invalid="ignore"):
-        target_h, target_e, reference_h, reference_e = components[draw].sum(axis=1).T
         effects = target_h / target_e - reference_h / reference_e
     valid = (
         (target_e > 0)
@@ -138,19 +160,12 @@ def estimate_uncertainty(days, comparison, policy):
     result["valid_iterations"] = int(valid.sum())
     if not bool(valid.all()):
         return {**result, "reason": "invalid_or_zero_exposure_resamples"}
-    if math.isclose(
-        float(effects.min()), float(effects.max()), rel_tol=1e-12, abs_tol=1e-12
-    ):
-        return {**result, "reason": "degenerate_block_distribution"}
-    with np.errstate(over="ignore", invalid="ignore"):
-        lower, upper = np.quantile(effects, [tail, 1 - tail], method="linear")
-    if not all(math.isfinite(bound) for bound in (lower, upper)):
-        return {**result, "reason": "nonfinite_percentile_bounds"}
-    if math.isclose(lower, upper, rel_tol=1e-12, abs_tol=1e-12):
-        return {**result, "reason": "degenerate_percentile_interval"}
+    reason, lower, upper = percentile_bounds(effects, tail)
+    if reason:
+        return {**result, "reason": reason}
     return {
         **result,
         "status": "estimated_for_registered_assumptions",
-        "lower": float(lower),
-        "upper": float(upper),
+        "lower": lower,
+        "upper": upper,
     }
