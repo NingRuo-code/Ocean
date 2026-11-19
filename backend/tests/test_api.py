@@ -530,6 +530,7 @@ def test_catalog_hides_file_list_by_default_and_caches(tmp_path: Path, monkeypat
     raw_root = tmp_path / "raw"
     monkeypatch.setattr(settings, "raw_data_dir", raw_root)
     catalog_module.invalidate_catalog_cache()
+    misses_before = catalog_module.catalog_cache_stats()["misses"]
     _write_front_file(
         raw_root / "front" / "2024" / "front_location20240805.nc",
         np.array([[0, 0], [0, 0]], dtype=np.int8),
@@ -561,12 +562,15 @@ def test_catalog_hides_file_list_by_default_and_caches(tmp_path: Path, monkeypat
     ]
     assert explicit.json()["files"][0]["size_bytes"] > 0
 
-    # 新文件落地（目录 mtime 变化）后必须立刻看到，不能吃旧缓存
+    # 共享盘可能在同一时间粒度内保留旧目录 mtime，新增文件也必须立即可见。
+    folder = raw_root / "front" / "2024"
+    stamp = folder.stat()
     _write_front_file(
-        raw_root / "front" / "2024" / "front_location20240806.nc",
+        folder / "front_location20240806.nc",
         np.array([[0, 0], [0, 0]], dtype=np.int8),
         "2024-08-06",
     )
+    os.utime(folder, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
     third = client.get("/api/catalog")
     assert third.headers["X-Catalog-Cache"] == "miss"
     assert third.json()["file_count"] == 2
@@ -576,7 +580,7 @@ def test_catalog_hides_file_list_by_default_and_caches(tmp_path: Path, monkeypat
     refreshed = client.get("/api/catalog?refresh=true")
     assert refreshed.headers["X-Catalog-Cache"] == "miss"
     assert refreshed.json()["file_count"] == 2
-    assert catalog_module.catalog_cache_stats()["misses"] >= 4
+    assert catalog_module.catalog_cache_stats()["misses"] - misses_before == 3
 
 
 def _write_front_file(path: Path, values: np.ndarray, observation_date: str) -> None:

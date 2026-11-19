@@ -3,8 +3,9 @@
 import json
 import shutil
 import sqlite3
-from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from threading import Event
 
 import pytest
 
@@ -123,6 +124,38 @@ def test_two_service_instances_accept_one_terminal_record_for_the_same_intent(tm
         responses = list(pool.map(lambda client: client.post(BASE, headers=AUTH, json=body), [first, second]))
     assert [r.status_code for r in responses] == [200, 200]
     assert responses[0].json() == responses[1].json()
+
+
+def test_submission_during_first_database_creation_returns_the_same_terminal_record(
+    tmp_path, monkeypatch
+):
+    first, source = run_client(tmp_path)
+    second, _ = run_client(tmp_path, source)
+    body = submission(source)
+    opened, resume = Event(), Event()
+    connect = sqlite3.connect
+
+    def pause_first_creation(database, *args, **kwargs):
+        connection = connect(database, *args, **kwargs)
+        if not kwargs.get("uri") and Path(database).name == "runs.sqlite3" and not opened.is_set():
+            opened.set()
+            if not resume.wait(10):
+                connection.close()
+                raise RuntimeError("Test did not release the first initializer")
+        return connection
+
+    monkeypatch.setattr(sqlite3, "connect", pause_first_creation)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        original = pool.submit(first.post, BASE, headers=AUTH, json=body)
+        try:
+            assert opened.wait(10), "First writer did not open the database"
+            concurrent = second.post(BASE, headers=AUTH, json=body)
+        finally:
+            resume.set()
+        initial = original.result(timeout=10)
+
+    assert initial.status_code == concurrent.status_code == 200
+    assert initial.json() == concurrent.json()
 
 
 def test_capacity_preserves_old_records_and_allows_replay_after_source_loss(tmp_path):

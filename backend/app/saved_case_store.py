@@ -7,10 +7,10 @@ import stat
 from contextlib import closing, contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from uuid import uuid4
 
 from .analysis_support import content_id, decode_controlled_json
+from .sqlite_store_initialization import initialize_sqlite_store
 
 APPLICATION_ID = 0x4F434153
 MAX_DB_BYTES = 64 * 1024 * 1024
@@ -39,24 +39,19 @@ class CaseStore:
         return False
 
     def _initialize_store(self):
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with TemporaryDirectory(dir=self.path.parent, prefix=".ocean-case-") as temporary:
-            staged = Path(temporary) / "cases.sqlite3"
-            staged.touch(mode=0o600, exist_ok=False)
-            with closing(sqlite3.connect(staged, isolation_level=None)) as db:
-                db.execute("BEGIN IMMEDIATE")
-                db.execute(f"PRAGMA application_id={APPLICATION_ID}")
-                db.execute("PRAGMA user_version=1")
-                db.execute("CREATE TABLE cases(id TEXT PRIMARY KEY, created_at TEXT NOT NULL, head INTEGER NOT NULL)")
-                db.execute("CREATE TABLE versions(case_id TEXT REFERENCES cases(id), number INTEGER, payload TEXT NOT NULL, PRIMARY KEY(case_id,number))")
-                db.execute("CREATE TABLE intents(key TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, case_id TEXT, version INTEGER, FOREIGN KEY(case_id,version) REFERENCES versions(case_id,number))")
-                db.commit()
-            # The live name becomes visible with a committed schema. A competing
-            # initializer or an existing foreign file keeps its own live name.
-            try:
-                os.link(staged, self.path)
-            except FileExistsError:
-                pass
+        initialize_sqlite_store(
+            self.path,
+            application_id=APPLICATION_ID,
+            schema_version=1,
+            prefix=".ocean-case-",
+            statements=(
+                "CREATE TABLE cases(id TEXT PRIMARY KEY, created_at TEXT NOT NULL, head INTEGER NOT NULL)",
+                "CREATE TABLE versions(case_id TEXT REFERENCES cases(id), number INTEGER, "
+                "payload TEXT NOT NULL, PRIMARY KEY(case_id,number))",
+                "CREATE TABLE intents(key TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, case_id TEXT, "
+                "version INTEGER, FOREIGN KEY(case_id,version) REFERENCES versions(case_id,number))",
+            ),
+        )
 
     @contextmanager
     def connection(self, write=False):

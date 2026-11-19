@@ -193,6 +193,10 @@
       "target": "backend/app/schemas.py"
     },
     {
+      "source": "backend/app/sqlite_store_initialization.py",
+      "target": "backend/app/sqlite_store_initialization.py"
+    },
+    {
       "source": "backend/app/stratified_validation.py",
       "target": "backend/app/stratified_validation.py"
     },

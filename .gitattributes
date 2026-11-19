@@ -13,3 +13,6 @@ docs/reports/g3-known-validation-2026-10-26/** text eol=lf
 
 # The August daily audit records the registry byte hash in its snapshot.
 docs/data/august-2024-daily-registry.json text eol=lf
+
+# Preserve the exact CRLF bytes registered in the public preferred-month audit receipt.
+docs/reports/ocean-candidate-support-verification-2026-11-05.json -text whitespace=cr-at-eol
