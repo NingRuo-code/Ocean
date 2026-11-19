@@ -73,7 +73,7 @@ def read_front(bundle, request):
     return summary
 
 
-def read_support(text, request, anchors, front_source_id):
+def read_support(text, request, anchors, front_source):
     snapshot = json_object(text)
     payload = {
         key: value for key, value in snapshot.items() if key != "support_snapshot_id"
@@ -96,9 +96,10 @@ def read_support(text, request, anchors, front_source_id):
         and resolved == snapshot["resolved_conditions"],
         "event_support_conditions_mismatch",
     )
+    front_id = front_source["front_source_id"]
     require(
         resolved.get("source_ids", {"front": "front-original"}).get("front")
-        == front_source_id,
+        == front_id,
         "event_front_source_mismatch",
     )
     matches = [
@@ -109,7 +110,16 @@ def read_support(text, request, anchors, front_source_id):
         and region["geometry"]["radius_km"] == request["radius_km"]
     ]
     require(len(matches) == 1, "event_support_geometry_mismatch")
-    return (event, use), (snapshot, matches[0])
+    proof = snapshot.get("qualification_evidence") or {}
+    audit_version = proof.get("source_versions", {}).get(front_id)
+    front_version = front_source.get("front_source_version")
+    if not front_version or not audit_version:
+        compatibility = "front_version_unverified"
+    elif front_version != audit_version:
+        compatibility = "front_version_mismatch"
+    else:
+        compatibility = "front_version_matched"
+    return (event, use), (snapshot, matches[0], compatibility)
 
 
 def window_days(anchor):
@@ -160,7 +170,7 @@ def project_day(row, disclose):
     }
 
 
-def window_results(dates, rows, region, allowed, license_state):
+def window_results(dates, rows, region, hold):
     by_date = {row["date"]: row for row in rows}
     windows = {}
     for name, expected in dates.items():
@@ -169,6 +179,8 @@ def window_results(dates, rows, region, allowed, license_state):
         if name == "event_day":
             day = days[0]
             support = "supported" if day["included"] else day["state"]
+            level = None
+            intended_use = "event_day_diagnostic"
             reasons = day["reasons"]
             hours, area_time = day["hours"], day["area_time_km2_days"]
         else:
@@ -178,31 +190,33 @@ def window_results(dates, rows, region, allowed, license_state):
                 "event_window_mismatch",
             )
             support = window["computational_support"]
+            level = window["support_level"]
+            intended_use = (
+                "local_description"
+                if "local_description" in window["available_uses"]
+                else None
+            )
             reasons = window["missing_prerequisites"]
             hours, area_time = (
                 window["summary"][key] for key in ("total_hours", "area_time_km2_days")
             )
-        status = (
-            support
-            if allowed
-            else (
-                "blocked_by_license"
-                if license_state == "blocked"
-                else "license_unverified"
-            )
-        )
+        status = hold or level or "event_day_diagnostic"
+        usable = not hold and intended_use is not None and not missing
+        hours_available = usable and hours is not None
+        area_time_available = usable and area_time is not None and area_time > 0
         windows[name] = {
             "status": status,
             "dates": expected,
             "excluded_dates": missing,
             "computational_support": support,
+            "support_level": level,
             "reasons": reasons,
             "data_gate_passed": False,
-            "hours_available": allowed and not missing and hours is not None,
-            "area_time_available": allowed
-            and not missing
-            and area_time is not None
-            and area_time > 0,
+            "hours_available": hours_available,
+            "area_time_available": area_time_available,
+            "eligible_for_synthetic_effect": level == "supported"
+            and hours_available
+            and area_time_available,
         }
     return windows
 
@@ -225,18 +239,25 @@ def project_support(audited, dates, context):
                 for day, facts in context.items()
             ],
         }
-    snapshot, region = audited
+    snapshot, region, compatibility = audited
     rows = {row["date"]: row for row in region["days"]}
     require(context.keys() <= rows.keys(), "incomplete_p0_calendar")
-    license_state = (
-        (snapshot.get("qualification_evidence") or {}).get("license", {}).get("state")
-    )
-    allowed = license_state == "verified" and not any(
+    proof = snapshot.get("qualification_evidence") or {}
+    license_state = proof.get("license", {}).get("state")
+    allowed_license = license_state == "verified" and not any(
         "license_evidence_unverified" in window["missing_prerequisites"]
         for window in region["windows"].values()
     )
+    if compatibility != "front_version_matched":
+        hold = compatibility
+    elif not allowed_license:
+        hold = (
+            "blocked_by_license" if license_state == "blocked" else "license_unverified"
+        )
+    else:
+        hold = None
     daily = [
-        {"date": day, **project_day(rows[day], allowed), **facts}
+        {"date": day, **project_day(rows[day], hold is None), **facts}
         for day, facts in context.items()
     ]
     return {
@@ -244,6 +265,12 @@ def project_support(audited, dates, context):
         "support_snapshot_id": snapshot["support_snapshot_id"],
         "conditions": snapshot["conditions"],
         "license_state": license_state,
+        "front_version_status": compatibility,
+        "source_provenance": {
+            "source_versions": proof.get("source_versions", {}),
+            "processing_version": proof.get("processing_version"),
+            "scope": snapshot["evidence_scope"],
+        },
         "p0_versions": {
             key: snapshot[key]
             for key in (
@@ -253,7 +280,7 @@ def project_support(audited, dates, context):
                 "auditor_sha256",
             )
         },
-        "windows": window_results(dates, daily, region, allowed, license_state),
+        "windows": window_results(dates, daily, region, hold),
         "daily": daily,
     }
 
@@ -285,9 +312,7 @@ def evaluate(request, bundle, source_hash):
     }
     snapshots = {}
     for raw in bundle["support_snapshots"]:
-        key, audited = read_support(
-            raw, request, anchors, front["source"]["front_source_id"]
-        )
+        key, audited = read_support(raw, request, anchors, front["source"])
         require(key not in snapshots, "duplicate_event_support")
         snapshots[key] = audited
     events = []

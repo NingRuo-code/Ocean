@@ -3,6 +3,7 @@
   "id": "ocean-b02-equatorial-example",
   "license": "CC0-1.0",
   "front_source_id": "front-original",
+  "front_source_version": "sha256:47dbae920848402b0c1685d32395ea7580c82fdb7dc3ba8dc3d3802e69418cfa",
   "geometry": {"longitude": 0, "latitude": 0, "radius_km": 10},
   "policy": {"enter_distance_km": 0.8, "exit_distance_km": 2, "persistence_days": 2, "clear_days": 2},
   "front_position_error_km": 0.01,

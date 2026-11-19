@@ -29,6 +29,6 @@
 
 既有固定海域实验入口接受 `fixed-event-window-qualification/v1` 与 `p0-event-calendar/v1`。输入为 `ocean-fixed-region-window-evidence/v1`，包含 B02 已完成结果的 `front_summary_json` 与 `front_manifest_json`，以及 P0 已有 `B_event` 快照的 `support_snapshots` 数组。这些字段保存原 JSON 文本，校验 B02 成果摘要、P0 快照身份、锚日、固定圆、锋面来源 ID 和分层用途。请求 `input_version` 是整个输入文件的 SHA-256，固定圆和锚日搜索范围沿 B02 原条件。
 
-执行沿 [P0 审计入口](../../data/support-qualification-audit.md) 读取既有输出。结果按独立日期保存前 7 日、事件日、后 1–3 日和后 1–7 日。逐日记录资料状态、排除原因、小时与分母可用性、持续暴露和别的候选重叠；超出已读锋面上下文的活动窗口仍明确标为暴露未知。`front_effort` 与 `front_effort_sst` 各读相应 P0 快照。许可依据缺失或被阻塞时保留诊断，隐去数值和支持身份。普通读取沿同一冻结产物合同，不访问来源和审计程序。
+执行沿 [P0 审计入口](../../data/support-qualification-audit.md) 读取既有输出。结果按独立日期保存前 7 日、事件日、后 1–3 日和后 1–7 日。逐日记录资料状态、排除原因、小时与分母可用性、持续暴露和别的候选重叠。超出已读锋面上下文的活动窗口标为暴露未知。`front_effort` 与 `front_effort_sst` 各读相应 P0 快照。窗口分别记录 P0 资格、计算支持及描述数值的可用性，事件日单列为诊断。本人需在 B02 及 P0 声明共同的 `front_source_version`，许可或版本未验证时保留诊断，隐去数值和支持身份。普通读取沿同一冻结产物合同，不访问来源和审计程序。
 
 本轮连接自有合成月初、月末样例与实际 P0 工具输出。两个跨月窗口、已知零、后 7 日缺日、未登记 SST、许可阻塞及快照失配已测试。门槛目前只允许合成输入；真实资料许可、预登记规则和研究执行在 #83 核验，窗口效应由 #76 实现。
