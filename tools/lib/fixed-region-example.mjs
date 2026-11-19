@@ -30,6 +30,21 @@ function boundedText(path, bytes=ARTIFACT_BYTES) {
   } finally { closeSync(fd); }
 }
 function report(result) {
+  if (result.schema_version === "fixed-region-event-lag/v1") {
+    const {cohorts,profiles}=result;
+    const lines=["# 锚日前后逐日变化与共同队列 · 合成样例", "", `来源 ${result.control_result_id}。`,
+      `短期 ${cohorts.post3.event_count} 个事件，后七日 ${cohorts.post7.event_count} 个事件，具有完整同日证据的共同队列 ${cohorts.common.event_count} 个事件。`,
+      `共同队列的等权变化差。后 1–3 日 ${cohorts.common.equal_event_window_effects.post3 ?? "未知"}，后 1–7 日 ${cohorts.common.equal_event_window_effects.post7 ?? "未知"} h/(km²·d)。`,
+      "逐日可用案例与共同队列分别绘制。锚日为诊断记录，断点保留未知。", "", "![逐日活动密度差](lag.svg)", ""];
+    for(const [key,title] of [["common","共同队列"],["available","逐日可用案例"]]) {
+      lines.push(`## ${title}`, "", "| 相对日 | 事件数 | 相关组 | 目标 H | 目标 E | 对照 H | 对照 E | 密度差 | 状态 |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+      for(const day of profiles[key]) lines.push(`| ${day.offset} | ${day.event_count} | ${day.group_ids.join(", ") || "—"} | ${day.target.hours ?? "未知"} | ${day.target.area_time ?? "未知"} | ${day.control.hours ?? "未知"} | ${day.control.area_time ?? "未知"} | ${day.density_difference ?? "未知"} | ${day.status} |`);
+      lines.push("");
+    }
+    lines.push("H 为表观捕捞活动小时，E 为 km²·d，密度差单位 h/(km²·d)。状态以观测锚日计算，保留实际持续暴露和再次触发证据。", "");
+    return lines.join("\n");
+  }
   if (result.schema_version === "fixed-region-event-group-uncertainty/v1") {
     const {counts, inference, policy} = result;
     const lines = ["# 固定海域相关事件组区间 · 合成样例", "",
@@ -116,16 +131,57 @@ function report(result) {
     "实际GIS、完整事件识别、P0资格、同日对照及不确定性须在后续任务验收。", "");
   return lines.join("\n");
 }
+
+function lagChart(result) {
+  const {available,common}=result.profiles;
+  const values=[...available,...common].flatMap(d=>d.density_difference===null?[]:[Math.abs(d.density_difference)]);
+  const peak=Math.max(...values,0);
+  const x=offset=>100+(offset+7)*46, y=value=>180-110*(value/(peak||1));
+  const axes=[
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 370" role="img" aria-labelledby="title desc">',
+    '<title id="title">锚日前后目标与固定对照密度差</title><desc id="desc">共同队列和逐日可用案例。没有支持的相对日保留空白。</desc>',
+    '<rect width="840" height="370" fill="#fff"/>',
+    '<g font-family="system-ui, sans-serif" font-size="13" fill="#173243">',
+    '<text x="28" y="27" font-size="19">锚日前后活动密度差</text>',
+    '<text x="28" y="49">目标 − 固定对照 [h/(km²·d)]</text>',
+    '<path d="M95,180 H795 M100,70 V294" fill="none" stroke="#b5c4ca"/>',
+  ];
+  for(const value of [-peak,0,peak].filter((v,i,a)=>a.indexOf(v)===i)) {
+    axes.push(`<text x="87" y="${y(value)+4}" text-anchor="end">${value.toPrecision(3)}</text>`);
+  }
+  for(const {offset} of common) {
+    axes.push(`<text x="${x(offset)}" y="317" text-anchor="middle">${offset===0?"0 日":offset}</text>`);
+  }
+  if(!values.length) axes.push('<text x="420" y="140" text-anchor="middle">没有可配对的相对日证据</text>');
+  const marks=[];
+  for(const [name,rows,color,shift] of [["available",available,"#5c6983",-5],["common",common,"#187e77",5]]) {
+    marks.push(`<g data-series="${name}" fill="${color}">`);
+    for(const row of rows) {
+      if(row.density_difference===null) continue;
+      marks.push(`<circle cx="${x(row.offset)+shift}" cy="${y(row.density_difference)}" r="4" data-offset="${row.offset}"><title>${row.event_count} 个事件，${row.density_difference.toPrecision(5)}</title></circle>`);
+    }
+    marks.push("</g>");
+  }
+  return [...axes,...marks,
+    '<circle cx="100" cy="345" r="4" fill="#5c6983"/><text x="111" y="350">逐日可用案例</text>',
+    '<circle cx="252" cy="345" r="4" fill="#187e77"/><text x="263" y="350">共同队列</text>',
+    '<text x="790" y="350" text-anchor="end">相对观测锚日</text></g></svg>', ""].join("\n");
+}
+
 function readFrozen(folder, profile) {
   if (!lstatSync(folder).isDirectory() || lstatSync(folder).isSymbolicLink()) throw Error("invalid_directory");
   const manifest=JSON.parse(boundedText(join(folder,"manifest.json")));
   if (manifest.schema_version !== "front-response-experiment-manifest/v2" || manifest.purpose !== profile.purpose || manifest.evidence_kind !== "synthetic_example" || manifest.research_ready !== false) throw Error("wrong_manifest");
   if (manifest.state === "failed") return {state:"failed",error:manifest.error,run_id:manifest.run_id};
-  if (manifest.state !== "completed" || Object.keys(manifest.artifacts || {}).sort().join("|") !== "report.md|summary.json") throw Error("incomplete_manifest");
-  for (const name of ["summary.json","report.md"]) {
+  if (manifest.state !== "completed" || !manifest.artifacts) throw Error("incomplete_manifest");
+  const text=boundedText(join(folder,"summary.json"));
+  if(hash(text)!==manifest.artifacts["summary.json"]) throw Error("artifact_mismatch");
+  const summary=JSON.parse(text);
+  const names=profile.chartSchema && summary.schema_version===profile.chartSchema ? ["lag.svg","report.md","summary.json"] : ["report.md","summary.json"];
+  if(Object.keys(manifest.artifacts).sort().join("|")!==names.join("|")) throw Error("incomplete_manifest");
+  for (const name of names.filter(name=>name!=="summary.json")) {
     if (hash(boundedText(join(folder,name))) !== manifest.artifacts[name]) throw Error("artifact_mismatch");
   }
-  const summary=JSON.parse(boundedText(join(folder,"summary.json")));
   if (summary.kind !== profile.purpose || summary.evidence_kind !== "synthetic_example" || summary.research_ready !== false || summary.result_id !== manifest.result_id) throw Error("result_mismatch");
   if (!isDeepStrictEqual(summary.parameters,manifest.parameters) || manifest.inputs?.length !== 1 || !isDeepStrictEqual(summary.source,manifest.inputs[0])) throw Error("identity_mismatch");
   return summary;
@@ -157,11 +213,12 @@ export function runControlledExample(args, root, profile) {
         state="completed";result=value.result;error=null;
       }
     } catch { /* Failed inputs never expose private locations or partial output. */ }
-    let summary, markdown;
+    let artifacts;
     if (result) {
       try {
-        summary=JSON.stringify(result,null,2)+"\n";markdown=profile.report(result);
-        if ([summary,markdown].some(value=>Buffer.byteLength(value,"utf8")>ARTIFACT_BYTES)) throw Error("output_budget");
+        artifacts={"summary.json":JSON.stringify(result,null,2)+"\n","report.md":profile.report(result)};
+        if(profile.chartSchema && result.schema_version===profile.chartSchema) artifacts["lag.svg"]=lagChart(result);
+        if (Object.values(artifacts).some(value=>Buffer.byteLength(value,"utf8")>ARTIFACT_BYTES)) throw Error("output_budget");
       } catch { state="failed";result=null;error={code:profile.errorCode}; }
     }
     const manifest={schema_version:"front-response-experiment-manifest/v2",purpose:profile.purpose,
@@ -169,7 +226,7 @@ export function runControlledExample(args, root, profile) {
       transport_identity:{request_sha256:requestHash,input_sha256:inputHash},error,artifacts:{}};
     if (result) {
       manifest.result_id=result.result_id;manifest.parameters=result.parameters;manifest.inputs=[result.source];
-      manifest.artifacts={"summary.json":hash(summary),"report.md":hash(markdown)};
+      manifest.artifacts=Object.fromEntries(Object.entries(artifacts).map(([name, content])=>[name,hash(content)]));
     }
     if (Buffer.byteLength(JSON.stringify(manifest,null,2)+"\n","utf8")>ARTIFACT_BYTES) {
       state="failed";result=null;error={code:profile.errorCode};
@@ -177,7 +234,7 @@ export function runControlledExample(args, root, profile) {
       delete manifest.result_id;delete manifest.parameters;delete manifest.inputs;
     }
     if (result) {
-      writeFileSync(join(stage,"summary.json"),summary);writeFileSync(join(stage,"report.md"),markdown);
+      for(const [name,content] of Object.entries(artifacts)) writeFileSync(join(stage,name),content);
     }
     writeFileSync(join(stage,"manifest.json"),JSON.stringify(manifest,null,2)+"\n");
     renameSync(stage,output);stage=null;
@@ -201,10 +258,11 @@ export function runFixedRegionExample(args, root) {
         ["fixed-event-window-effects/v1","fixed_region_window_effects.py"],
         ["fixed-event-comparable-controls/v1","fixed_region_comparable_controls.py"],
         ["fixed-event-group-uncertainty/v1","fixed_region_event_inference.py"],
+        ["fixed-event-lag-cohort/v1","fixed_region_event_lag.py"],
       ]);
       const script = scripts.get(JSON.parse(request).method_version);
       return script ? ["-B","-X",`pycache_prefix=${join(stage,"pycache")}`,join(root,"tools",script)] : undefined;
     },
-    errorCode: "controlled_event_failed", report,
+    errorCode: "controlled_event_failed", report, chartSchema:"fixed-region-event-lag/v1",
   });
 }

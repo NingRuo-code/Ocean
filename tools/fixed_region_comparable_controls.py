@@ -334,7 +334,7 @@ def match_event(target, controls, policy, target_covariates):
             )
             candidates.append(evidence)
             if result is not None:
-                eligible.append((evidence, result))
+                eligible.append((evidence, result, candidate))
     selected, contrasts, control_days, paired_dates = (
         None,
         dict.fromkeys(FOLLOW_UPS),
@@ -342,11 +342,26 @@ def match_event(target, controls, policy, target_covariates):
         set(),
     )
     if eligible:
-        evidence, control = min(
+        evidence, control, candidate = min(
             eligible, key=lambda item: (item[0]["distance_km"], item[0]["id"])
         )
         selected = {**evidence, "weight": 1, "scope": "retrospective_full_window"}
         paired_dates = {pair["date"] for pair in evidence["pair_checks"]}
+        if (
+            policy["required_window"] == "post3"
+            and target["changes"]["post7"]["status"] == "comparable"
+        ):
+            extended, qualified = evaluate_candidate(
+                candidate,
+                target,
+                dates,
+                {**policy, "required_window": "post7"},
+                target_covariates,
+            )
+            selected["same_control_post7"] = extended
+            if qualified is not None:
+                control = qualified
+                paired_dates = {row["date"] for row in extended["pair_checks"]}
         control_days = {row["date"]: row for row in control["daily"]}
         for part in FOLLOW_UPS:
             if (
