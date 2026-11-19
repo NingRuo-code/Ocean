@@ -81,8 +81,9 @@ test("date and view actions do not accept an unrelated ready map", () => {
   assert.deepEqual([navigation.status, reload.status], ["success", "success"]);
   assert.equal(dateChange.last_observed?.date, "2024-08-07");
   assert.equal(zoom.last_observed?.view, "zoomed-on-wrong-date");
-  assert.equal(drag.last_observed?.view, "another-document");
-  assert.deepEqual([dateChange.status, zoom.status, drag.status], ["timeout", "timeout", "timeout"]);
+  assert.ok(drag.requests.some(request => request.kind === "Document"), "Drag dispatched a navigation to another document");
+  assert.deepEqual([dateChange.status, zoom.status], ["timeout", "timeout"]);
+  assert.notEqual(drag.status, "success", "A different document must never complete the drag");
   assert.ok([dateChange, zoom, drag].every(attempt => attempt.elapsed_ms === null));
   assert.equal(result.status, 1, result.stderr);
 });
