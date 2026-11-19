@@ -35,3 +35,5 @@
 后续固定了资格判定所记录的三个源码文件的 Git 换行。两种 `core.autocrlf` 设置下的干净检出得到同一资格快照，旧快照保留原身份并通过回读。研究准入结论仍各为 0/31 天。见[来源准入报告](../../reports/ocean-august-source-readiness-2026-11-06.md#2026-11-19-公开证据与复跑)。
 
 已获准筛查公开替代源并做小样。在同一研究点，[NOAA ACSPO](../../research/ocean-august-public-front-alternatives-2026-11-19.md) 的时间坐标覆盖全月，实读 19 天的三个半径分别有 19、17、16 个锋面完整日。[GFW ArcGIS](../../research/ocean-august-public-activity-alternatives-2026-11-19.md) 可匿名取得目标月活动图层，未取得可用于共同支持的接收质量证据。未形成通过时间、覆盖与许可三项核查的替代组合。满足后先提交候选和原计划影响，由用户确认正式输入，随后重跑 #44/#64 后进入 #67。对外询证继续暂缓。
+
+按用户本轮安排，新增公开源查验及目录实测仍不足，暂停固定月批量取数和替代源筛查，等待新的版本专属、适用目标月和研究域的来源证据。原固定资格快照仍各为 0/31 天；#67 保持 `needs-info`，#68、#71、#98 继续等待。恢复规则与独立的本机任务见[当前执行顺序](../../plans/ocean-current-execution-order-2026-11-04.md)。[新增查验依据](../../research/ocean-august-public-coverage-followup-2026-11-19.md)
