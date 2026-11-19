@@ -243,7 +243,7 @@ def project_support(audited, dates, context):
     rows = {row["date"]: row for row in region["days"]}
     require(context.keys() <= rows.keys(), "incomplete_p0_calendar")
     proof = snapshot.get("qualification_evidence") or {}
-    license_state = proof.get("license", {}).get("state")
+    license_state = (proof.get("license") or {}).get("state")
     allowed_license = license_state == "verified" and not any(
         "license_evidence_unverified" in window["missing_prerequisites"]
         for window in region["windows"].values()

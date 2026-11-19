@@ -36,7 +36,7 @@ function controlled(directory, anchor = monthEnd) {
   const frontManifest = readFileSync(join(directory,"front-result","manifest.json"),"utf8");
   const front = JSON.parse(frontSummary);
   assert.equal(front.result_id,JSON.parse(evidence).result_id);
-  const makeSnapshot = (blocked, {frontVersion=front.source.front_source_version, blockedQuality=false}={}) => {
+  const makeSnapshot = (blocked, {frontVersion=front.source.front_source_version, blockedQuality=false, nullLicense=false}={}) => {
     const claim = {state:"verified",evidence_id:"sha256:"+"c".repeat(64)};
     const cells = {schema:"ocean-regional-cells/v1",evidence_kind:"synthetic",days:Array.from({length:11},(_,i) => {
       const day = shift(anchor,i-7);
@@ -44,7 +44,7 @@ function controlled(directory, anchor = monthEnd) {
         support_verified:true,duration_days:1,cells:[{bounds:[-0.4,-0.4,0.4,0.4],hours,support:"valid"}]});
       return {date:day,layers:[layer("front","front-original","classification_code",null),layer("activity","effort-original","fishing_hours",0)]};
     }),qualification_evidence:{schema:"ocean-support-evidence/v1",source_versions:{...(frontVersion?{"front-original":frontVersion}:{}),"effort-original":claim.evidence_id},
-      processing_version:claim.evidence_id,license:blocked ? {state:"blocked"} : claim,
+      processing_version:claim.evidence_id,license:nullLicense ? null : blocked ? {state:"blocked"} : claim,
       quality_rule:{id:"complete-common-support/v1",...(blockedQuality?{state:"blocked"}:claim)},geometry:{circle:{...claim,request_geometry:scope}}}};
     const output=join(directory,blocked?"blocked-support.json":"support.json");
     const conditions={schema:"ocean-support-request/v1",purpose:"B_event",event_date:anchor,event_day_rule:"exclude_event_day/v1",
@@ -114,6 +114,9 @@ test("B uses the matching P0 B_event audit for cross-month windows and holds unl
     assert.equal(mismatched.windows.post3.status,"front_version_mismatch");
     assert.equal(mismatched.windows.post3.hours_available,false);
     assert.equal(mismatched.source_provenance.source_versions["front-original"],"sha256:"+"a".repeat(64));
+    const unlicensed=windowReport(makeSnapshot(false,{nullLicense:true}),"unknown-license-result").events[0].support.front_effort;
+    assert.equal(unlicensed.windows.post3.status,"license_unverified");
+    assert.equal(unlicensed.windows.post3.hours_available,false);
     windowReport(snapshot.replace("exclude_event_day/v1","include_event_day/v1"),"tampered-result",true);
   } finally {
     if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
