@@ -11,11 +11,12 @@ test("real browser baseline waits for matching data and marks small-sample tails
   const page = join(root, "controlled.html");
   writeFileSync(page, `<!doctype html><meta charset="utf-8">
     <input id="timeDate" type="date" value="2024-08-05"><button id="dateNext">next</button>
-    <svg id="mapSvg" width="600" height="400" data-render-date="2024-08-04" data-render-status="ready" data-view-key="initial"><path d="M0 0L200 200"/></svg>
+    <svg id="mapSvg" width="600" height="400" data-render-date="2024-08-04" data-render-status="ready"
+      data-view-key='["2024-08-05",124.5,30.2,1,"flat"]'><path d="M0 0L200 200"/></svg>
     <script>
     const map=document.getElementById('mapSvg');
     setTimeout(()=>{map.dataset.renderDate='2024-08-05';map.dataset.renderStatus='ready';},350);
-    document.getElementById('dateNext').onclick=()=>{document.getElementById('timeDate').value='2024-08-06';map.dataset.renderStatus='pending';setTimeout(()=>{map.dataset.renderDate='2024-08-06';map.dataset.renderStatus='ready';},200)};
+    document.getElementById('dateNext').onclick=()=>{document.getElementById('timeDate').value='2024-08-06';map.dataset.renderStatus='pending';setTimeout(()=>{map.dataset.renderDate='2024-08-06';map.dataset.viewKey=JSON.stringify(['2024-08-06',124.5,30.2,1,'flat']);map.dataset.renderStatus='ready';},200)};
     map.onwheel=()=>{map.dataset.renderStatus='pending';setTimeout(()=>{map.dataset.viewKey='zoomed';map.dataset.renderStatus='ready';},180)};
     map.onpointerup=()=>{map.dataset.viewKey='dragged'};
     </script>`);
@@ -88,6 +89,39 @@ test("date and view actions do not accept an unrelated ready map", () => {
   assert.equal(result.status, 1, result.stderr);
 });
 
+test("switching to the next date on a different viewport does not record either paint time", () => {
+  const root = mkdtempSync(join(tmpdir(), "ocean-baseline-date-view-"));
+  const page = join(root, "date-view.html"), out = join(root, "baseline.json");
+  writeFileSync(page, `<!doctype html>
+    <input id="timeDate" type="date" value="2024-08-05"><button id="dateNext">next</button>
+    <svg id="mapSvg" width="600" height="400" data-render-date="2024-08-05" data-render-status="ready"
+      data-view-key='["2024-08-05",124.5,30.2,1,"flat"]'></svg>
+    <script>
+    const date = document.getElementById("timeDate");
+    const map = document.getElementById("mapSvg");
+    window.OFData = {serverEnabled: () => true, viewportReady: () => map.dataset.renderStatus === "ready",
+      viewportState: () => ({status: "partial", usable: true})};
+    document.getElementById("dateNext").onclick = () => {
+      date.value = map.dataset.renderDate = "2024-08-06";
+      map.dataset.viewKey = JSON.stringify([date.value, 127, 30.2, 1, "flat"]);
+      map.dataset.renderStatus = "partial";
+      setTimeout(() => { map.dataset.renderStatus = "ready"; }, 350);
+    };
+    </script>`);
+  const result = spawnSync(process.execPath, [resolve("tools/benchmark-map.mjs"),
+    "--page", pathToFileURL(page).href, "--runs", "1", "--timeout-ms", "1200",
+    "--sample-kind", "controlled-fixture", "--out", out], { encoding: "utf8", timeout: 25000 });
+  const report = JSON.parse(readFileSync(out, "utf8"));
+  const attempt = report.attempts.find(item => item.scenario === "date-change");
+  assert.equal(attempt.last_observed.date, "2024-08-06");
+  assert.equal(attempt.last_observed.status, "ready");
+  assert.equal(attempt.status, "timeout");
+  assert.equal(attempt.first_partial_paint_ms, null);
+  assert.equal(attempt.elapsed_ms, null);
+  assert.equal(report.summary["date-change"].success, 0);
+  assert.equal(result.status, 1, result.stderr);
+});
+
 test("paint after the action budget does not count as successful completion", () => {
   const root = mkdtempSync(join(tmpdir(), "ocean-baseline-deadline-"));
   const page = join(root, "late-paint.html"), out = join(root, "baseline.json");
@@ -120,7 +154,8 @@ test("partial coverage has its own paint time and never enters full-success perc
   const page = join(root, "partial.html"), out = join(root, "baseline.json");
   writeFileSync(page, `<!doctype html>
     <input id="timeDate" value="2024-08-05"><button id="dateNext">next</button>
-    <svg id="mapSvg" width="600" height="400" data-render-date="2024-08-04" data-render-status="partial" data-view-key="initial"></svg>
+    <svg id="mapSvg" width="600" height="400" data-render-date="2024-08-04" data-render-status="partial"
+      data-view-key='["2024-08-05",124.5,30.2,1,"flat"]'></svg>
     <script>
     const map = document.getElementById('mapSvg');
     const date = document.getElementById('timeDate');
@@ -137,7 +172,7 @@ test("partial coverage has its own paint time and never enters full-success perc
     document.getElementById('dateNext').onclick=()=>{
       date.value='2024-08-06';
       // Leave the old render date visible before painting partial coverage for the new day.
-      setTimeout(()=>{map.dataset.renderDate=date.value}, 110);
+      setTimeout(()=>{map.dataset.renderDate=date.value;map.dataset.viewKey=JSON.stringify([date.value,124.5,30.2,1,'flat'])}, 110);
     };
     </script>`);
   const result = spawnSync(process.execPath, [resolve("tools/benchmark-map.mjs"),
