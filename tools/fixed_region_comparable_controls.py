@@ -7,7 +7,7 @@ from collections import Counter
 from pathlib import Path
 
 import audit_regional_support as p0
-from fixed_region_window_effects import FOLLOW_UPS, event_effect
+from fixed_region_window_effects import FOLLOW_UPS, event_effect, has_measures
 from fixed_region_window_qualification import (
     REQUEST_KEYS,
     json_object,
@@ -207,6 +207,15 @@ def pair_rows(target, control, days, minimum):
     return pairs
 
 
+def clearance_proven(row, radius, threshold):
+    lower = row.get("lower_km")
+    return (
+        row.get("phase") == "clear"
+        and p0.finite(lower)
+        and radius + lower >= radius + threshold
+    )
+
+
 def evaluate_candidate(candidate, target, dates, policy, target_covariates):
     anchor = target["anchor_date"]
     required = [*dates["pre7"], *dates["event_day"], *dates[policy["required_window"]]]
@@ -215,15 +224,12 @@ def evaluate_candidate(candidate, target, dates, policy, target_covariates):
     exposed, missing, weak_clearance = [], [], []
     for day in required:
         row = observations.get(day, {})
-        phase, lower = row.get("phase"), row.get("lower_km")
+        phase = row.get("phase")
         if phase in {"near", "between_thresholds"}:
             exposed.append(day)
         elif phase != "clear":
             missing.append(day)
-        elif (
-            not p0.finite(lower)
-            or radius + lower < radius + policy["control_clearance_km"]
-        ):
+        elif not clearance_proven(row, radius, policy["control_clearance_km"]):
             weak_clearance.append(day)
     evidence = {
         key: candidate[key]
@@ -334,20 +340,54 @@ def match_event(target, controls, policy, target_covariates):
             )
             candidates.append(evidence)
             if result is not None:
-                eligible.append((evidence, result))
-    selected, contrasts, control_days, paired_dates = (
+                eligible.append((evidence, result, candidate))
+    selected, contrasts, control_days, paired_dates, descriptive_dates = (
         None,
         dict.fromkeys(FOLLOW_UPS),
         {},
         set(),
+        set(),
     )
     if eligible:
-        evidence, control = min(
+        evidence, control, candidate = min(
             eligible, key=lambda item: (item[0]["distance_km"], item[0]["id"])
         )
         selected = {**evidence, "weight": 1, "scope": "retrospective_full_window"}
         paired_dates = {pair["date"] for pair in evidence["pair_checks"]}
+        if (
+            policy["required_window"] == "post3"
+            and target["changes"]["post7"]["status"] == "comparable"
+        ):
+            extended, qualified = evaluate_candidate(
+                candidate,
+                target,
+                dates,
+                {**policy, "required_window": "post7"},
+                target_covariates,
+            )
+            selected["same_control_post7"] = extended
+            if qualified is not None:
+                control = qualified
+                paired_dates = {row["date"] for row in extended["pair_checks"]}
         control_days = {row["date"]: row for row in control["daily"]}
+        eligible_dates = [
+            row["date"]
+            for row in target["daily"]
+            if has_measures(row)
+            and has_measures(control_days.get(row["date"], {}))
+            and clearance_proven(
+                candidate["observations"].get(row["date"], {}),
+                candidate["geometry"][2],
+                policy["control_clearance_km"],
+            )
+        ]
+        daily_checks = pair_rows(
+            target, control, eligible_dates, policy["minimum_area_ratio"]
+        )
+        descriptive_dates = {
+            row["date"] for row in daily_checks if row["reason"] is None
+        }
+        selected["descriptive_day_checks"] = daily_checks
         for part in FOLLOW_UPS:
             if (
                 target["changes"][part]["status"] != "comparable"
@@ -367,6 +407,7 @@ def match_event(target, controls, policy, target_covariates):
                 "target": row,
                 "control": control_days.get(row["date"]),
                 "matched_for_window": row["date"] in paired_dates,
+                "matched_for_descriptive_day": row["date"] in descriptive_dates,
             }
             for row in target["daily"]
         ],
