@@ -8,6 +8,7 @@ import platform
 import shutil
 import stat
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -35,21 +36,26 @@ def scan_budget(max_entries=100_000, max_seconds=10):
 def measure(root, relative, budget=None):
     if budget is None:
         budget = scan_budget()
+    supports_allocation = sys.platform == "linux"
+    unmeasured = {"status": "unavailable", "bytes": None, "observed_bytes": None}
     try:
         target = checked_path(root, relative)
         if not target.is_dir():
-            return {"status": "unavailable", "reason": "not_directory", "bytes": None, "files": None}
+            return {"status": "unavailable", "reason": "not_directory", "bytes": None, "files": None,
+                    "allocation": unmeasured}
     except FileNotFoundError:
-        return {"status": "missing", "bytes": None, "files": None}
+        return {"status": "missing", "bytes": None, "files": None, "allocation": unmeasured}
     except ValueError:
-        return {"status": "partial", "reason": "excluded_link", "bytes": None, "files": None}
+        return {"status": "partial", "reason": "excluded_link", "bytes": None, "files": None,
+                "allocation": unmeasured}
     except OSError:
-        return {"status": "unavailable", "bytes": None, "files": None}
+        return {"status": "unavailable", "bytes": None, "files": None, "allocation": unmeasured}
     size = count = 0
+    allocated = reported_allocations = 0
     reasons = set()
 
     def visit(folder, depth):
-        nonlocal size, count
+        nonlocal size, count, allocated, reported_allocations
         if depth >= 64:
             reasons.add("depth_budget")
             return
@@ -72,6 +78,9 @@ def measure(root, relative, budget=None):
                         elif stat.S_ISREG(info.st_mode):
                             size += info.st_size
                             count += 1
+                            if supports_allocation and (blocks := getattr(info, "st_blocks", -1)) >= 0:
+                                allocated += blocks * 512
+                                reported_allocations += 1
                         else:
                             reasons.add("non_regular_entry")
                     except OSError:
@@ -80,9 +89,15 @@ def measure(root, relative, budget=None):
             reasons.add("unreadable_directory")
 
     visit(target, 0)
+    allocation = unmeasured
+    if supports_allocation and not reasons and reported_allocations == count:
+        allocation = {"status": "measured", "bytes": allocated, "observed_bytes": allocated}
+    elif reported_allocations:
+        allocation = {"status": "partial", "bytes": None, "observed_bytes": allocated}
     return {"status": "partial" if reasons else "measured",
             "bytes": None if reasons else size, "files": None if reasons else count,
-            "observed_bytes": size, "observed_files": count, "reasons": sorted(reasons)}
+            "observed_bytes": size, "observed_files": count, "reasons": sorted(reasons),
+            "allocation": allocation}
 
 
 def inventory(root, snapshot, max_entries=100_000, max_seconds=10, *, layout="checkout"):
@@ -143,7 +158,9 @@ def inventory(root, snapshot, max_entries=100_000, max_seconds=10, *, layout="ch
                            "disk": None, "io": None, "bandwidth": None, "workers": None, "load": None},
             "capacity": {"current_demo": "local bytes only", "east_china_sea_multiyear": "unknown",
                          "global_archive": "unknown", "concurrency_budget": None, "cache_budget_bytes": None},
-            "limitations": ["Logical file lengths, not allocated disk or decompressed working arrays.",
+            "limitations": ["Layer bytes are logical file lengths, not decompressed working arrays.",
+                            "Linux allocation counts reported blocks of regular files per directory entry. "
+                            "It excludes directory overhead and is not unique physical usage or account quota.",
                             *platform_limitations,
                             "One snapshot cannot measure growth or peak concurrent memory.",
                             "Use deploy/inventory-server.sh privately on the server; publish only reviewed summaries.",
