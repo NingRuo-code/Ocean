@@ -51,3 +51,30 @@ test("basemap-only and wrong-date attempts remain timeouts in the report", () =>
   assert.ok(report.attempts.every(a => a.status !== "success" && a.elapsed_ms === null));
   assert.equal(report.summary.navigation.timeout, 1);
 });
+
+test("paint after the action budget does not count as successful completion", () => {
+  const root = mkdtempSync(join(tmpdir(), "ocean-baseline-deadline-"));
+  const page = join(root, "late-paint.html"), out = join(root, "baseline.json");
+  writeFileSync(page, `<!doctype html><meta charset="utf-8">
+    <input id="timeDate" value="2024-08-05"><button id="dateNext">next</button>
+    <svg id="mapSvg" width="600" height="400" data-render-date="2024-08-05" data-render-status="ready" data-view-key="initial"></svg>
+    <script>
+    const nativeFrame = window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = (callback) => setTimeout(() => nativeFrame(callback), 400);
+    </script>`);
+  const result = spawnSync(process.execPath, [resolve("tools/benchmark-map.mjs"), "--page", pathToFileURL(page).href,
+    "--runs", "1", "--timeout-ms", "500", "--sample-kind", "controlled-fixture", "--out", out],
+  { encoding: "utf8", timeout: 25000 });
+  assert.equal(result.status, 1, result.stderr);
+  const report = JSON.parse(readFileSync(out, "utf8"));
+  const navigation = report.attempts.find((attempt) => attempt.scenario === "navigation");
+  assert.equal(navigation.last_observed?.status, "ready", "Readiness must be observed before checking paint");
+  assert.equal(navigation.status, "timeout");
+  assert.equal(navigation.observed, null);
+  assert.equal(navigation.elapsed_ms, null);
+  assert.equal(navigation.after_action_ms, null);
+  assert.ok(navigation.attempt_duration_ms >= report.protocol.timeout_ms);
+  assert.equal(report.summary.navigation.success, 0);
+  assert.equal(report.summary.navigation.timeout, 1);
+  assert.equal(report.summary.navigation.p50_ms, null);
+});

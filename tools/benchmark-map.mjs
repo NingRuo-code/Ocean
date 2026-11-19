@@ -123,14 +123,16 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
       const measure = async (scenario, cache, action, expected) => {
         requests.clear(); errors.length = 0;
         const started = performance.now();
+        const deadline = started + timeout;
         let actionEnded = null;
+        let completedAt = null;
         const record = { run, scenario, cache, action_attempted:true, status: "timeout", elapsed_ms: null, observed: null, requests: [], browser_errors: [] };
         try {
           await action();
           actionEnded = performance.now();
-          const deadline = started + timeout;
           while (performance.now() < deadline) {
             const value = await observed();
+            if (performance.now() >= deadline) break;
             record.last_observed=value;
             if(isolatedService&&value?.server_enabled&&["day-missing","forbidden","error","unprepared"].includes(value.layer_states.day)){
               record.status="failure";record.failure_reason=value.layer_states.day;break;
@@ -139,17 +141,27 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
               (!isolatedService || value.server_enabled && value.viewport_ready);
             if (matching(value)) {
               await cdp.evaluate("new Promise(done=>requestAnimationFrame(()=>requestAnimationFrame(done)))");
+              if (performance.now() >= deadline) break;
               const painted = await observed();
+              const confirmedAt = performance.now();
+              if (confirmedAt >= deadline) break;
+              record.last_observed = painted;
               if (matching(painted)) {
+                completedAt = confirmedAt;
                 record.status = "success"; record.observed = painted; break;
               }
             }
-            await sleep(25);
+            const remaining = deadline - performance.now();
+            if (remaining > 0) await sleep(Math.min(25, remaining));
           }
-        } catch { record.status = "failure";record.failure_reason="action_or_observation_failed"; }
+        } catch {
+          if (performance.now() < deadline) {
+            record.status = "failure"; record.failure_reason = "action_or_observation_failed";
+          }
+        }
         const ended = performance.now();
-        record.elapsed_ms = record.status === "success" ? ended - started : null;
-        record.after_action_ms = record.status === "success" && actionEnded !== null ? ended - actionEnded : null;
+        record.elapsed_ms = completedAt !== null ? completedAt - started : null;
+        record.after_action_ms = completedAt !== null && actionEnded !== null ? completedAt - actionEnded : null;
         record.action_dispatch_ms = actionEnded === null ? null : actionEnded - started;
         record.attempt_duration_ms = ended - started;
         record.requests = [...requests.values()].map((r) => ({ role: r.role, method: r.method, content_encoding: r.content_encoding ?? null, kind: r.kind, status: r.status, encoded_bytes: r.encoded_bytes, from_cache: r.from_cache ?? null,
@@ -218,6 +230,7 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
     page_sha256: artifactHashes.entry_document??null,
     commit, tracked_changes_present:trackedChanges, artifact_hashes: artifactHashes, environment, attempts, summary, targets_verified: false,
     protocol: { runs, timeout_ms: timeout, clock: "Node monotonic action dispatch to matching observed DOM plus two animation frames; 25ms polling overhead included",
+      completion_deadline: "Matching painted state must be confirmed before the action deadline; in-flight browser commands may take longer to return",
       segments: "Browser render/panel and network segments overlap; not added to elapsed time", canceled: "reported in request records; failed/timed-out attempts retained with null elapsed", cache_limitations: "no production cache purge; OS and storage warmth uncontrolled" },
     limitations: ["B0 activity layer still uses percentile/700-cell truncation; no valid acceleration ratio against a complete-support renderer.",
       "Managed Python inventory samples visible installed distribution metadata at service startup only; duplicates remain ambiguous, paths and direct URLs are excluded. This is not a dependency lock or installed-byte integrity check.",
