@@ -498,6 +498,20 @@ def available_install_space(versions, manifest, raw, reserve):
     }
 
 
+def inventory_allocation(record, layer_status):
+    reason = "invalid_inventory_report"
+    status, total, observed = record["status"], record["bytes"], record["observed_bytes"]
+    has_observation = type(observed) is int and observed >= 0
+    if status == "measured":
+        require(layer_status == "measured" and has_observation and type(total) is int
+                and total == observed, reason)
+    elif status == "partial":
+        require(layer_status in {"measured", "partial"} and has_observation and total is None, reason)
+    else:
+        require(status == "unavailable" and total is None and observed is None, reason)
+    return {"status": status, "bytes": total, "observed_bytes": observed}
+
+
 def inventory_context(path):
     reason = "invalid_inventory_report"
     try:
@@ -523,6 +537,8 @@ def inventory_context(path):
                     reason,
                 )
             layers[name] = {"status": status, "bytes": values[0], "files": values[1]}
+            if "allocation" in layer:
+                layers[name]["allocation"] = inventory_allocation(layer["allocation"], status)
     except (OSError, ValueError, KeyError, TypeError, RecursionError):
         raise ReleaseError(reason) from None
     return {
