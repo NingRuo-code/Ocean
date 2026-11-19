@@ -46,7 +46,8 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null) {
   const front = JSON.parse(frontSummary);
   assert.equal(front.result_id,JSON.parse(evidence).result_id);
   const makeSnapshot = (blocked, {frontVersion=front.source.front_source_version, blockedQuality=false, nullLicense=false,
-    days=11, hours=()=>0, varySupportAt=null, halfSupport=false, eventDate=anchor, processingVersion=null}={}) => {
+    days=11, hours=()=>0, varySupportAt=null, halfSupport=false, eventDate=anchor, processingVersion=null,
+    activitySource="effort-original"}={}) => {
     const claim = {state:"verified",evidence_id:"sha256:"+"c".repeat(64)};
     const cells = {schema:"ocean-regional-cells/v1",evidence_kind:"synthetic",days:Array.from({length:days},(_,i) => {
       const day = shift(eventDate,i-7);
@@ -54,14 +55,15 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null) {
         support_verified:true,duration_days:1,cells:[{bounds:[-0.4,-0.4,0.4,0.4],hours,support:"valid"}]});
       const frontLayer=layer("front","front-original","classification_code",null);
       if(halfSupport||i-7===varySupportAt) frontLayer.cells=[{bounds:[-0.4,-0.4,0,0.4],support:"valid"},{bounds:[0,-0.4,0.4,0.4],support:"land"}];
-      return {date:day,layers:[frontLayer,layer("activity","effort-original","fishing_hours",hours(i-7))]};
-    }),qualification_evidence:{schema:"ocean-support-evidence/v1",source_versions:{...(frontVersion?{"front-original":frontVersion}:{}),"effort-original":claim.evidence_id},
+      return {date:day,layers:[frontLayer,layer("activity",activitySource,"fishing_hours",hours(i-7))]};
+    }),qualification_evidence:{schema:"ocean-support-evidence/v1",source_versions:{...(frontVersion?{"front-original":frontVersion}:{}),"effort-original":claim.evidence_id,"effort-other":claim.evidence_id},
       processing_version:processingVersion ?? claim.evidence_id,license:nullLicense ? null : blocked ? {state:"blocked"} : claim,
       quality_rule:{id:"complete-common-support/v1",...(blockedQuality?{state:"blocked"}:claim)},geometry:{circle:{...claim,request_geometry:scope}}}};
     const output=join(directory,blocked?"blocked-support.json":"support.json");
     const conditions={schema:"ocean-support-request/v1",purpose:"B_event",event_date:eventDate,event_day_rule:"exclude_event_day/v1",
       month:eventDate.slice(0,7),layer_use:"front_effort",method_version:"wgs84-laea-uniform/v1",quality_rule:"complete-common-support/v1",
-      allocation:"overlap_uniform",geometries:[scope]};
+      allocation:"overlap_uniform",geometries:[scope],
+      ...(activitySource==="effort-original"?{}:{source_ids:{front:"front-original",activity:activitySource}})};
     run(audit,["--support-request",write("p0-conditions.json",conditions),"--regional-input",write("cells.json",cells),"--out",output]);
     return readFileSync(output,"utf8");
   };
@@ -246,6 +248,12 @@ test("distinct supported areas separate equal-event and pooled effects, and inco
     assert.equal(changed.pooled.post3.pooled_status,"incompatible_provenance");
     assert.equal(changed.pooled.post3.equal_event_difference,null);
     assert.equal(changed.pooled.post3.pooled_density_difference,null);
+
+    const selected=windowEffects([first,makeSnapshot(false,{...half,activitySource:"effort-other"})],"source-choice-effect");
+    assert.ok(selected.events.every(event=>event.changes.post3.status==="comparable"));
+    assert.deepEqual(selected.events[0].provenance.source_versions,selected.events[1].provenance.source_versions);
+    assert.notEqual(selected.events[0].provenance.selected_source_ids.activity,selected.events[1].provenance.selected_source_ids.activity);
+    assert.equal(selected.pooled.post3.pooled_status,"incompatible_provenance");
   } finally {
     if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
   }

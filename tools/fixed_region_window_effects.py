@@ -137,6 +137,9 @@ def event_effect(event):
                 for key in ("layer_use", "method_version", "quality_rule", "allocation")
             },
             "source_versions": source["source_versions"],
+            "selected_source_ids": conditions.get(
+                "source_ids", {"front": "front-original", "activity": "effort-original"}
+            ),
             "processing_version": source["processing_version"],
             "evidence_scope": source["scope"],
             **{
