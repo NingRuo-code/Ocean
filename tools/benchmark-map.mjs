@@ -119,14 +119,19 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
         if (event.method === "Network.loadingFinished" && requests.has(p.requestId)) Object.assign(requests.get(p.requestId), { finished: performance.now(), encoded_bytes: p.encodedDataLength > 0 ? p.encodedDataLength : null });
         if (event.method === "Network.loadingFailed" && requests.has(p.requestId)) Object.assign(requests.get(p.requestId), { failed: true, canceled: !!p.canceled, finished: performance.now() });
       });
-      const observed = () => cdp.evaluate(`(()=>{const m=document.getElementById('mapSvg'),d=document.getElementById('timeDate');return m&&d?{time_origin:performance.timeOrigin,date:d.value,render_date:m.dataset.renderDate,status:m.dataset.renderStatus,view:m.dataset.viewKey,map_ms:Number(m.dataset.mapMs)||null,panel_ms:Number(m.dataset.panelMs)||null,step:Number(m.dataset.dataStep)||null,server_enabled:!!window.OFData?.serverEnabled(),viewport_ready:!!window.OFData?.viewportReady(d.value),layer_states:Object.fromEntries(Object.entries(window.OFData?.loadState?.()||{}).map(([k,v])=>[k,v.status]))}:null})()`);
+      const observed = () => cdp.evaluate(`(()=>{
+        const m=document.getElementById('mapSvg'),d=document.getElementById('timeDate');
+        if(!m||!d)return null;
+        const partial=m.dataset.renderStatus==='partial'?window.OFData?.viewportState?.(d.value):null;
+        return {time_origin:performance.timeOrigin,date:d.value,render_date:m.dataset.renderDate,status:m.dataset.renderStatus,view:m.dataset.viewKey,map_ms:Number(m.dataset.mapMs)||null,panel_ms:Number(m.dataset.panelMs)||null,step:Number(m.dataset.dataStep)||null,server_enabled:!!window.OFData?.serverEnabled(),viewport_ready:!!window.OFData?.viewportReady(d.value),viewport_partial_usable:partial?.status==='partial'&&partial.usable===true,layer_states:Object.fromEntries(Object.entries(window.OFData?.loadState?.()||{}).map(([k,v])=>[k,v.status]))};
+      })()`);
       const measure = async (scenario, cache, action, expected) => {
         requests.clear(); errors.length = 0;
         const started = performance.now();
         const deadline = started + timeout;
         let actionEnded = null;
         let completedAt = null;
-        const record = { run, scenario, cache, action_attempted:true, status: "timeout", elapsed_ms: null, observed: null, requests: [], browser_errors: [] };
+        const record = { run, scenario, cache, action_attempted:true, status: "timeout", elapsed_ms: null, first_partial_paint_ms: null, observed: null, requests: [], browser_errors: [] };
         try {
           await action();
           actionEnded = performance.now();
@@ -137,18 +142,25 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
             if(isolatedService&&value?.server_enabled&&["day-missing","forbidden","error","unprepared"].includes(value.layer_states.day)){
               record.status="failure";record.failure_reason=value.layer_states.day;break;
             }
-            const matching = value => value && value.status === "ready" && value.render_date === value.date && expected(value) &&
-              (!isolatedService || value.server_enabled && value.viewport_ready);
-            if (matching(value)) {
+            const matchingIdentity = state => state && state.render_date === state.date && expected(state);
+            const ready = state => matchingIdentity(state) && state.status === "ready" &&
+              (!isolatedService || state.server_enabled && state.viewport_ready);
+            const partial = state => matchingIdentity(state) && state.status === "partial" &&
+              state.server_enabled && state.viewport_partial_usable && !!state.view;
+            if (ready(value) || (record.first_partial_paint_ms === null && partial(value))) {
               await cdp.evaluate("new Promise(done=>requestAnimationFrame(()=>requestAnimationFrame(done)))");
               if (performance.now() >= deadline) break;
               const painted = await observed();
               const confirmedAt = performance.now();
               if (confirmedAt >= deadline) break;
               record.last_observed = painted;
-              if (matching(painted)) {
+              if (ready(painted)) {
                 completedAt = confirmedAt;
                 record.status = "success"; record.observed = painted; break;
+              }
+              if (record.first_partial_paint_ms === null && partial(value) && partial(painted) &&
+                  value.time_origin === painted.time_origin && value.date === painted.date && value.view === painted.view) {
+                record.first_partial_paint_ms = confirmedAt - started;
               }
             }
             const remaining = deadline - performance.now();
@@ -193,7 +205,7 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
       for(const scenario of scenarios){
         if(attempts.some(a=>a.run===run&&a.scenario===scenario))continue;
         attempts.push({run,scenario,cache:scenario==='navigation'?'fresh-profile':'same-profile',
-          status:'failure',elapsed_ms:null,after_action_ms:null,action_dispatch_ms:null,
+          status:'failure',elapsed_ms:null,first_partial_paint_ms:null,after_action_ms:null,action_dispatch_ms:null,
           attempt_duration_ms:null,action_attempted:false,lifecycle_failure_ms:performance.now()-lifecycleStarted,failure_phase:startupFailed?'service_startup':browser?'session_observation':'browser_startup',
           observed:null,last_observed:null,requests:[],browser_errors:[]});
       }
@@ -214,6 +226,7 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
   const identityAfterMs=performance.now()-identityAfterStarted;
   const artifactIntegrity=JSON.stringify(afterHashes)===JSON.stringify(artifactHashes)?"unchanged":"changed";
   if(artifactIntegrity!=="unchanged")for(const attempt of attempts){
+    attempt.first_partial_paint_ms=null;
     if(attempt.status==="success"){attempt.status="failure";attempt.failure_reason="artifact_changed";attempt.elapsed_ms=null;attempt.after_action_ms=null;}
   }
   const quantile = (values, q) => values[Math.max(0, Math.ceil(q * values.length) - 1)];
@@ -222,7 +235,9 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
     const group = attempts.filter((a) => a.scenario === scenario);
     const good = group.filter((a) => a.status === "success").map((a) => a.elapsed_ms).sort((a, b) => a - b);
     summary[scenario] = { attempts: group.length, success: good.length, failure: group.filter((a) => a.status === "failure").length,
-      timeout: group.filter((a) => a.status === "timeout").length, p50_ms: good.length ? quantile(good, .5) : null,
+      timeout: group.filter((a) => a.status === "timeout").length,
+      partial_paint_observations: group.filter((a) => a.first_partial_paint_ms !== null).length,
+      p50_ms: good.length ? quantile(good, .5) : null,
       p95_ms: good.length >= 20 ? quantile(good, .95) : null, tail_note: good.length < 20 ? "insufficient samples for stable tail claim" : "empirical nearest-rank; this environment only" };
   }
   const report = { service, ...(input ? {input} : {}), artifact_integrity:artifactIntegrity, identity_collection_ms:{before:identityBeforeMs,after:identityAfterMs}, b1_qualified: false, schema: "ocean-map-baseline/v1", generated_at: new Date().toISOString(), sample_kind: sampleKind,
@@ -231,6 +246,7 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
     commit, tracked_changes_present:trackedChanges, artifact_hashes: artifactHashes, environment, attempts, summary, targets_verified: false,
     protocol: { runs, timeout_ms: timeout, clock: "Node monotonic action dispatch to matching observed DOM plus two animation frames; 25ms polling overhead included",
       completion_deadline: "Matching painted state must be confirmed before the action deadline; in-flight browser commands may take longer to return",
+      partial_paint: "First matching usable partial viewport confirmed across two frames, observed separately from full readiness and excluded from success quantiles",
       segments: "Browser render/panel and network segments overlap; not added to elapsed time", canceled: "reported in request records; failed/timed-out attempts retained with null elapsed", cache_limitations: "no production cache purge; OS and storage warmth uncontrolled" },
     limitations: ["B0 activity layer still uses percentile/700-cell truncation; no valid acceleration ratio against a complete-support renderer.",
       "Managed Python inventory samples visible installed distribution metadata at service startup only; duplicates remain ambiguous, paths and direct URLs are excluded. This is not a dependency lock or installed-byte integrity check.",
