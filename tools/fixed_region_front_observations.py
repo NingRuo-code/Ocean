@@ -17,6 +17,7 @@ import compute_monthly_distance as distance
 METHOD = "observed-fixed-exposure/v1"
 PARAMETER = "front-continuity/v1"
 DAY = timedelta(days=1)
+PHASES = ("near", "between_thresholds", "clear", "unknown")
 
 
 def require(condition, reason):
@@ -154,7 +155,7 @@ def front_rows(source, first, last):
             ids.append(front["id"])
             lines.append(front["points"])
         require(len(ids) == len(set(ids)), "duplicate_daily_front_object")
-        objects[when] = sorted(ids)
+        objects[when] = ids
         converted.append(
             {"date": row["date"], "source_id": row["source_id"], "lines": lines}
         )
@@ -168,6 +169,13 @@ def front_rows(source, first, last):
     return objects, lines
 
 
+def circle_distance(radius, lower, upper):
+    return {
+        "lower": None if lower is None else max(0, lower - radius),
+        "upper": None if upper is None else max(0, upper - radius),
+    }
+
+
 def observe(
     when, layers, lines, object_ids, source, centre, circle, plane, edges, radius
 ):
@@ -176,7 +184,15 @@ def observe(
         "state": "unknown",
         "phase": "unknown",
         "reasons": [],
-        "object_ids": object_ids,
+        "object_ids": sorted(object_ids),
+        "objects": [
+            {
+                "id": key,
+                "phase": "unknown",
+                "distance_km": circle_distance(radius, None, None),
+            }
+            for key in sorted(object_ids)
+        ],
         "competing_objects": None,
         "distance_km": {"lower": None, "upper": None},
     }
@@ -207,19 +223,34 @@ def observe(
     band, reason, lower, upper = distance.classify(
         centre, sampled, valid, plane, edges, error
     )
-    row["phase"] = ("near", "between_thresholds", "clear", "unknown")[band]
+    row["phase"] = PHASES[band]
     row["state"] = ("satisfies", "does_not_satisfy", "does_not_satisfy", "unknown")[
         band
     ]
     row["reasons"].append(reason)
-    row["distance_km"] = {
-        "lower": None if lower is None else max(0, lower - radius),
-        "upper": None if upper is None else max(0, upper - radius),
-    }
+    row["distance_km"] = circle_distance(radius, lower, upper)
     if sampled is not None:
         row["competing_objects"] = distance.has_competing_fronts(
             centre, per_object, error
         )
+        aliases = {}
+        for key, line in zip(object_ids, lines, strict=True):
+            path = tuple(map(tuple, line))
+            aliases.setdefault(min(path, path[::-1]), []).append(key)
+        relations = []
+        for keys, samples in zip(aliases.values(), per_object, strict=True):
+            object_band, _, low, high = distance.classify(
+                centre, samples, valid, plane, edges, error
+            )
+            relations.extend(
+                {
+                    "id": key,
+                    "phase": PHASES[object_band],
+                    "distance_km": circle_distance(radius, low, high),
+                }
+                for key in keys
+            )
+        row["objects"] = sorted(relations, key=lambda relation: relation["id"])
     return row
 
 
@@ -344,8 +375,22 @@ def evaluate(request, source, source_hash):
     ]
     events = continuity(observations, first, last, policy)
     accepted = sum(event["accepted"] for event in events)
-    uncertain = any(row["state"] == "unknown" for row in observations) or any(
-        event["left_truncated"] or event["right_truncated"] for event in events
+    first_iso, last_iso = first.isoformat(), last.isoformat()
+    uncertain = any(
+        row["state"] == "unknown" and first_iso <= row["date"] <= last_iso
+        for row in observations
+    ) or any(
+        (
+            event["left_truncated"]
+            or event["right_truncated"]
+            or event["continuity_uncertain"]
+        )
+        and event["first_near_date"] <= last_iso
+        and (
+            event["exit_observed_date"] is None
+            or event["exit_observed_date"] >= first_iso
+        )
+        for event in events
     )
     result = {
         "schema_version": "fixed-region-front-observation/v1",

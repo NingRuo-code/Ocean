@@ -48,13 +48,14 @@ function scenario(days, work, updateSource = () => {}) {
 }
 
 test("registered fixed-circle observations identify continuity, named gaps, re-entry and censored ends", () => {
-  scenario([[],[],near,relabelled,null,[],near,[],[],near,near,between,near,null], (result, files) => {
+  scenario([[],[],[...near,line("F5",0.18)],relabelled,null,[],near,[],[],near,near,between,near,null], (result, files) => {
     assert.deepEqual(result.read_range,{start:"2024-08-28",end:"2024-09-10"});
     assert.equal(result.research_ready,false);
     assert.ok(Math.abs(result.geometry.area_km2 - Math.PI*100)<0.1);
     const {observations,events} = result.selection;
     assert.equal(observations.length,14);
-    assert.deepEqual(observations[2].object_ids,["F3","F7"]);
+    assert.deepEqual(observations[2].object_ids,["F3","F5","F7"]);
+    assert.deepEqual(observations[2].objects.map(object => [object.id,object.phase]),[["F3","near"],["F5","clear"],["F7","near"]]);
     assert.equal(observations[2].competing_objects,true);
     assert.deepEqual(observations[3].object_ids,["F2","F9"]);
     assert.equal(observations[4].state,"unknown");
@@ -80,6 +81,11 @@ test("fully observed no event differs from a first sighting without entry contex
   scenario(dates.map(() => []), result => {
     assert.equal(result.status,"no_observed_entry");
     assert.deepEqual(result.selection.events,[]);
+  });
+  scenario(dates.map((_,i) => i===12 ? near : i===13 ? null : []), result => {
+    assert.equal(result.status,"no_observed_entry");
+    assert.equal(result.selection.events[0].right_truncated,true);
+    assert.equal(result.selection.events[0].accepted,false);
   });
   scenario(dates.map((_,i) => i===0 ? null : i<4 ? near : []), result => {
     assert.equal(result.status,"observation_incomplete");

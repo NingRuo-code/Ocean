@@ -84,7 +84,7 @@ export function runControlledExample(args, root, profile) {
       const source=opts["--input"] || join(root,"backend/app/examples",profile.inputName);
       const requestJson=boundedText(opts[profile.requestFlag],16_384);requestHash=hash(requestJson);
       const inputJson=boundedText(source);inputHash=hash(inputJson);
-      const pythonArgs=profile.pythonArgs?.(requestJson,root) ?? ["-m",profile.module];
+      const pythonArgs=profile.pythonArgs?.(requestJson,root,stage) ?? ["-m",profile.module];
       const computed=spawnSync(process.env.OCEAN_EXPERIMENT_PYTHON || "python",pythonArgs,{
         cwd:join(root,"backend"),encoding:"utf8",windowsHide:true,timeout:20_000,maxBuffer:4_194_304,
         input:JSON.stringify({request_json:requestJson,input_json:inputJson})});
@@ -130,8 +130,9 @@ export function runFixedRegionExample(args, root) {
     requestFlag: "--fixed-region-request", readFlag: "--read-fixed-region-result",
     purpose: "fixed_region_event_example", outputName: "fixed-region-example",
     inputName: "fixed-region-event.json", module: "app.fixed_region_example",
-    pythonArgs: (request, root) => JSON.parse(request).method_version === "observed-fixed-exposure/v1"
-      ? [join(root,"tools/fixed_region_front_observations.py")] : undefined,
+    pythonArgs: (request, root, stage) => JSON.parse(request).method_version === "observed-fixed-exposure/v1"
+      ? ["-B","-X",`pycache_prefix=${join(stage,"pycache")}`,join(root,"tools/fixed_region_front_observations.py")]
+      : undefined,
     errorCode: "controlled_event_failed", report,
   });
 }
