@@ -1,10 +1,16 @@
 """Connected monthly uncertainty checks with independently known block outcomes."""
 
+import hashlib
+import json
+import os
+import py_compile
 from copy import deepcopy
 
 import pytest
 from test_monthly_distance_background import comparison_fixture
 from test_monthly_distance_reference import AUTH, URL, case
+
+from app import monthly_distance_reference
 
 
 def fixture(
@@ -65,6 +71,61 @@ def test_fixed_calendar_blocks_keep_paired_area_and_have_known_outcomes(tmp_path
     assert page.status_code == 200
     assert "登记假设下的 90.0% 区间" in page.text
     assert f"[{interval['lower']}, {interval['upper']}]" in page.text
+
+
+def test_reuse_preserves_effect_interval_and_evidence_and_separates_policy_changes(tmp_path):
+    reference = fixture()
+    client, source, request = case(tmp_path, reference)
+    original = client.post(URL, headers=AUTH, json=request).json()
+    repeat = client.post(URL, headers=AUTH, json=request).json()
+    assert repeat == original and original["state"] == "completed"
+
+    fresh_path = tmp_path / "direct"
+    fresh_path.mkdir()
+    fresh, _, direct_request = case(fresh_path, reference)
+    direct = fresh.post(URL, headers=AUTH, json=direct_request).json()
+    assert direct["id"] != original["id"] and direct["result"] == original["result"]
+    result = direct["result"]
+    area = 0.002**2 * 111.31949 * 110.57428
+    contrast = result["month"]["distance_comparison"]
+    assert contrast["difference_hours_per_km2_day"] == pytest.approx(11 / (3 * area), rel=2e-5)
+    assert contrast["uncertainty"]["lower"] == pytest.approx(-1 / area, rel=2e-5)
+    proof = f"{URL}/{original['id']}/evidence?format=zip"
+    before = client.get(proof, headers=AUTH)
+    independent = fresh.get(f"{URL}/{direct['id']}/evidence?format=zip", headers=AUTH)
+    assert before.status_code == independent.status_code == 200
+    assert before.content == independent.content
+
+    reference["distance_comparison"]["minimum_area_ratio"] = 0.9
+    raw = json.dumps(reference).encode()
+    source.write_bytes(raw)
+    changed = client.post(URL, headers=AUTH, json={
+        **request, "input_version": "sha256:" + hashlib.sha256(raw).hexdigest(),
+    }).json()
+    assert changed["state"] == "completed" and changed["execution_id"] != original["execution_id"]
+    assert changed["result"]["month"]["distance_comparison"]["reason"] == "no_comparable_dates"
+    assert client.get(proof, headers=AUTH).content == before.content
+
+
+def test_same_metadata_helper_update_runs_the_fingerprinted_source(tmp_path, monkeypatch):
+    for name, raw in monthly_distance_reference.distance_execution_sources().items():
+        (tmp_path / name).write_bytes(raw)
+    monkeypatch.setattr(monthly_distance_reference, "REFERENCE_ENGINE", tmp_path / "compute_monthly_distance.py")
+    helper = tmp_path / "monthly_distance_background.py"
+    py_compile.compile(str(helper), doraise=True)
+    data = fixture()
+    data["distance_comparison"]["minimum_area_ratio"] = 0.9
+    client, _, request = case(tmp_path, data)
+    first = client.post(URL, headers=AUTH, json=request).json()
+    assert first["result"]["month"]["distance_comparison"]["reason"] == "no_comparable_dates"
+    stat = helper.stat()
+    raw = helper.read_bytes().replace(b"no_comparable_dates", b"no_comparable_pairs")
+    assert len(raw) == stat.st_size
+    helper.write_bytes(raw)
+    os.utime(helper, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+    second = client.post(URL, headers=AUTH, json=request).json()
+    assert second["state"] == "completed" and second["execution_id"] != first["execution_id"]
+    assert second["result"]["month"]["distance_comparison"]["reason"] == "no_comparable_pairs"
 
 
 @pytest.mark.parametrize(

@@ -27,6 +27,7 @@ from .monthly_distance_reference import (
     QualificationInputMismatch,
     calculate_distance_reference,
     distance_execution_environment,
+    distance_execution_sources,
     read_distance_input,
 )
 from .monthly_evidence import render_monthly_evidence, zip_monthly_evidence
@@ -216,7 +217,8 @@ def create_monthly_router(
                     coordinates = {key: getattr(request, key) or 0.0 for key in ("longitude", "latitude")}
                     request = request.model_copy(update=coordinates)
                     raw = read_distance_input(source)
-                    environment = distance_execution_environment()
+                    sources = distance_execution_sources()
+                    environment = distance_execution_environment(sources)
                     execution_id = content_id({
                         "request": request.model_dump(exclude_none=True),
                         "input_sha256": hashlib.sha256(raw).hexdigest(),
@@ -227,9 +229,12 @@ def create_monthly_router(
                         if (previous := reuse_index.get(execution_id)) is not None:
                             return copy.deepcopy(records[previous])
                     run_id = reserve(request)
-                    result = calculate_distance_reference(request, raw, qualification)
-                    if distance_execution_environment() != environment:
+                    result = calculate_distance_reference(request, raw, sources, qualification)
+                    if distance_execution_environment(sources) != environment:
                         return finish(run_id, error={"code": "distance_execution_environment_changed"})
+                    result["versions"]["execution_id"] = execution_id
+                    result["versions"]["direct_result_id"] = result.pop("result_id")
+                    result["result_id"] = content_id(result)
                 except QualificationInputMismatch:
                     return finish(
                         run_id or reserve(request),

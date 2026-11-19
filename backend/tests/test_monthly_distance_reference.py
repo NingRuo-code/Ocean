@@ -5,6 +5,7 @@ import hashlib
 import io
 import json
 import os
+import subprocess
 from xml.etree import ElementTree
 from zipfile import ZipFile
 
@@ -13,6 +14,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
+from app import monthly_analysis
 from app.config import settings
 from app.monthly_analysis import create_monthly_router
 
@@ -238,6 +240,41 @@ def test_same_path_replacement_never_reuses_old_result_or_indexes_failed_request
     old = client.get(f"{URL}/{first['id']}", headers=AUTH).json()
     assert old == first and old["source_freshness"] == "unknown"
     assert old["result"]["days"][0]["common"]["hours"] == pytest.approx(42)
+
+
+def test_runtime_version_change_updates_frozen_result_and_evidence(tmp_path, monkeypatch):
+    client, _, request = case(tmp_path)
+    first = client.post(URL, json=request, headers=AUTH).json()
+    updated = monthly_analysis.distance_execution_environment(monthly_analysis.distance_execution_sources())
+    updated["packages"]["shapely"] += ".1"
+    monkeypatch.setattr(monthly_analysis, "distance_execution_environment", lambda sources: updated)
+    second = client.post(URL, json=request, headers=AUTH).json()
+
+    assert first["state"] == second["state"] == "completed"
+    assert second["execution_id"] != first["execution_id"]
+    assert second["result"]["month"] == first["result"]["month"]
+    for run in (first, second):
+        assert run["result"]["versions"]["execution_id"] == run["execution_id"]
+        assert run["result"]["result_id"].encode() in client.get(
+            f"{URL}/{run['id']}/evidence", headers=AUTH
+        ).content
+    assert second["result"]["result_id"] != first["result"]["result_id"]
+
+
+def test_timed_out_calculation_never_becomes_a_reusable_result(tmp_path, monkeypatch):
+    client, _, request = case(tmp_path)
+
+    def timeout(*args):
+        raise subprocess.TimeoutExpired("controlled calculation", 25)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(monthly_analysis, "calculate_distance_reference", timeout)
+        failed = client.post(URL, json=request, headers=AUTH).json()
+    assert failed["state"] == "failed" and failed["result"] is None
+    retry = client.post(URL, json=request, headers=AUTH).json()
+    assert retry["state"] == "completed" and retry["id"] != failed["id"]
+    assert client.post(URL, json=request, headers=AUTH).json() == retry
+    assert client.get(f"{URL}/{failed['id']}", headers=AUTH).json() == failed
 
 
 @pytest.mark.parametrize(("latitude", "expected_band"), [(0, 1), (60, 0)])

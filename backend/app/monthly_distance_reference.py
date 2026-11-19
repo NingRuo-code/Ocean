@@ -5,6 +5,8 @@ import json
 import subprocess
 import sys
 from importlib.metadata import version
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from .analysis_support import read_regular_bytes
 from .config import PROJECT_ROOT
@@ -36,30 +38,38 @@ def read_distance_input(source):
     return read_regular_bytes(source, MAX_INPUT_BYTES)
 
 
-def distance_execution_environment():
+def distance_execution_sources():
+    return {
+        name: read_regular_bytes(REFERENCE_ENGINE.with_name(name), 1024 * 1024)
+        for name in EXECUTION_SOURCES
+    }
+
+
+def distance_execution_environment(sources):
     # The optional compiled dependencies are needed only for controlled distance work.
     import pyproj
     import shapely
 
     return {
-        "engines": {
-            name: hashlib.sha256(
-                read_regular_bytes(REFERENCE_ENGINE.with_name(name), 1024 * 1024)
-            ).hexdigest()
-            for name in EXECUTION_SOURCES
-        },
+        "engines": {name: hashlib.sha256(raw).hexdigest() for name, raw in sources.items()},
         "python": sys.version,
-        "packages": {name: version(name) for name in ("numpy", "pyproj", "shapely")},
+        "packages": {name: version(name) for name in ("numpy", "pyproj", "shapely", "xarray")},
         "geometry_runtime": (pyproj.proj_version_str, shapely.geos_version_string),
     }
 
 
-def calculate_distance_reference(request, raw, qualification=None):
-    command = [sys.executable, str(REFERENCE_ENGINE), request.model_dump_json(exclude_none=True)]
-    if qualification:
-        command.append(json.dumps(qualification))
+def calculate_distance_reference(request, raw, sources, qualification):
     try:
-        child = subprocess.run(command, input=raw, capture_output=True, timeout=25, check=True)
+        # Each child imports the same helper bytes used in its execution identity.
+        with TemporaryDirectory(prefix="ocean-month-engine-") as directory:
+            root = Path(directory)
+            for name, source in sources.items():
+                (root / name).write_bytes(source)
+            command = [sys.executable, "-B", str(root / REFERENCE_ENGINE.name),
+                       request.model_dump_json(exclude_none=True)]
+            if qualification:
+                command.append(json.dumps(qualification))
+            child = subprocess.run(command, input=raw, capture_output=True, timeout=25, check=True)
     except subprocess.CalledProcessError as error:
         if error.stderr.strip() == b"qualification_input_or_conditions_mismatch":
             raise QualificationInputMismatch from None
