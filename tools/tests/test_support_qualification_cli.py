@@ -95,7 +95,8 @@ def test_full_calendar_arithmetic_does_not_replace_license_or_granularity_eviden
 
 
 def test_fixed_event_windows_cross_month_and_post3_cannot_stand_for_post7(tmp_path):
-    data = support(
+    report_path = tmp_path / "support.md"
+    run = run_support(
         tmp_path,
         conditions(
             purpose="B_event",
@@ -103,7 +104,10 @@ def test_fixed_event_windows_cross_month_and_post3_cannot_stand_for_post7(tmp_pa
             event_day_rule="exclude_event_day/v1",
         ),
         known_days("2024-08-24", "2024-09-03"),
+        extra=["--report-out", str(report_path)],
     )
+    assert run.returncode == 0, run.stderr
+    data = json.loads((tmp_path / "support.json").read_text(encoding="utf-8"))
     region = data["regions"][0]
     windows = region["windows"]
     assert windows["pre7"]["dates"] == [
@@ -130,6 +134,9 @@ def test_fixed_event_windows_cross_month_and_post3_cannot_stand_for_post7(tmp_pa
         day for window in windows.values() for day in window["dates"]
     ]
     assert data["resolved_conditions"]["geometries"] == data["conditions"]["geometries"]
+    report = report_path.read_text(encoding="utf-8")
+    assert "| cell | post7 | missing_required_activity_layer | 4 |" in report
+    assert "| cell | post3 | missing_required_activity_layer |" not in report
 
 
 def verified_evidence():
@@ -361,7 +368,12 @@ def test_real_daily_source_evidence_remains_unverified_for_actual_august(tmp_pat
     assert region["month"]["summary"]["area_time_km2_days"] is None
     assert data["input_daily_snapshot_id"].startswith("sha256:")
     assert data["research_ready"] is False and data["qualification_evidence"] is None
-    assert "unverified" in (tmp_path / "support.md").read_text(encoding="utf-8")
+    report = (tmp_path / "support.md").read_text(encoding="utf-8")
+    assert "| cell | month | front | unprepared=28, unverified=3 |" in report
+    assert "| cell | month | activity | missing=3, unprepared=28 |" in report
+    assert "| cell | month | activity_source_day_missing | 3 |" in report
+    assert "| cell | month | front_source_day_unverified | 3 |" in report
+    assert "| cell | month | missing_required_activity_layer | 28 |" in report
 
 
 def test_descriptive_use_can_be_limited_when_research_granularity_is_blocked(tmp_path):

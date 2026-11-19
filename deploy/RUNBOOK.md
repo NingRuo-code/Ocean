@@ -8,6 +8,8 @@ Use the existing CPU instance for the current #47 → #228 → #11 batch. Record
 
 The ordinary-user manual documents WebShell, the Jupyter shortcut, and the service-port field. Confirm with the platform how an arbitrary application can receive a campus or aTrust URL and which users can reach it. Through that approved URL verify the same release in `/api/release`, a successful `/api/health`, the map and assets, and the read-only viewport and known-case behavior. The reviewer changes a map date or layer, opens a known synthetic case, and checks its evidence and missing-data notices on their device. If access fails on the day, give the walkthrough by screen sharing and reschedule hands-on verification.
 
+While controlled ingress and independent backup are deferred, rehearse and present on the workstation using the [fixed local read-only release](../docs/data/isolated-release.md#小范围操作). Share the workstation screen, exercise the map and the registered synthetic case, and stop the loopback process after the session. This is a demonstration path; reviewer-device and formal admission checks remain open. Continue work that does not depend on those checks, as recorded in the implementation plan.
+
 SothisAI has passed application startup, fallback and recovery on loopback. The project URL and reviewer-side access are pending. Put the campus review result in #11. Record actual target admission and backup/restore for the declared service scope under #228 and the applicable OPS tasks. See the [current implementation order](../docs/plans/ocean-current-execution-order-2026-11-04.md#2026-11-18-服务器优先执行).
 
 ## Current execution decision — 2026-10-27
