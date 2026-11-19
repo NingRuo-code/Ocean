@@ -2005,6 +2005,7 @@ function switchTab(name) {
     b.setAttribute("aria-selected", on ? "true" : "false");
   });
   document.querySelectorAll(".pane").forEach((p) => p.classList.toggle("active", p.id === "pane-" + name));
+  window.dispatchEvent(new CustomEvent("ocean-result-tab", {detail:name}));
 }
 
 // ==================== 视野：中心 + 缩放（两档投影自动切换） ====================

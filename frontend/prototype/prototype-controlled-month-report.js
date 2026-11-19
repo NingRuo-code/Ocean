@@ -59,8 +59,12 @@
     update();
   }
 
+  function visible() {
+    return state.tab === "clim" && root.open && root.getClientRects().length > 0;
+  }
+
   async function read(path, message, consume) {
-    if (!sameSource(from, privateSource()) || from.kind !== "server" || !token.value) return;
+    if (!sameSource(from, privateSource()) || from.kind !== "server" || !token.value || !visible()) return;
     const active = new AbortController();
     controller = active;
     update();
@@ -70,7 +74,7 @@
       const value = await json(from.base + "/query/monthly-analysis" + path, active.signal, {
         headers: {Authorization: "Bearer " + token.value}, redirect: "error",
       });
-      if (controller !== active || !sameSource(from, privateSource())) return;
+      if (controller !== active || !sameSource(from, privateSource()) || !visible()) return;
       if (active.signal.aborted) throw Error("timeout");
       consume(value);
     } catch (error) {
@@ -179,6 +183,12 @@
   window.addEventListener("ocean-result-closed", () => {
     token.value = "";
     reset();
+  });
+  window.addEventListener("ocean-result-tab", event => {
+    if (event.detail !== "clim") {
+      token.value = "";
+      reset();
+    }
   });
   update();
 })();

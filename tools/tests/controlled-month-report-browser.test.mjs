@@ -40,6 +40,8 @@ test("workbench previews the owner's frozen distance report through the real ser
   await unlink(distancePath);
   const browser = await launchBrowser(edge), c = browser.cdp, methods=[];
   c.onEvent(msg => {if(msg.method === "Network.requestWillBeSent" && msg.params.request.url.startsWith(base+api)) methods.push(msg.params.request.method);});
+  let pausedReport;
+  c.onEvent(msg => {if(msg.method === "Fetch.requestPaused") pausedReport = msg.params.requestId;});
   try {
     await c.send("Page.enable"); await c.send("Network.enable");
     await c.send("Page.navigate",{url:base+"/prototype-fishing.html"});
@@ -84,6 +86,14 @@ test("workbench previews the owner's frozen distance report through the real ser
     await c.send("Input.dispatchMouseEvent",{type:"mouseWheel",x:26,y:350,deltaX:0,deltaY:-220});
     await waitFor(c,`document.getElementById('mapSvg').getAttribute('viewBox')!==${JSON.stringify(mapBefore)}`);
     assert.equal(await c.evaluate("document.getElementById('controlledMonthReport').dataset.reportId"),report.report_id);
+    await c.send("Fetch.enable",{patterns:[{urlPattern:"*/report?result_id=*",requestStage:"Request"}]});
+    await c.evaluate("document.getElementById('distanceReportOpen').click()");
+    await waitFor(c,"document.getElementById('distanceReportStatus').textContent==='正在读取冻结报告…'");
+    await c.evaluate("document.querySelector('#tabs [data-pane=now]').click()");
+    if(pausedReport) await c.send("Fetch.continueRequest",{requestId:pausedReport}).catch(() => {});
+    await c.send("Fetch.disable");
+    assert.equal(await c.evaluate("document.getElementById('evidencePanel').hidden"),true);
+    assert.equal(await c.evaluate("document.getElementById('distanceReportFrame')"),null);
     await c.evaluate("document.getElementById('resultClose').click()");
     assert.equal(await c.evaluate("document.getElementById('distanceReportFrame')"),null);
     assert.equal(await c.evaluate("document.getElementById('distanceReportToken').value"),"");
