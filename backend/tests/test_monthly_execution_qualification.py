@@ -261,3 +261,7 @@ def test_p0_claims_cannot_launch_research_without_separate_exact_approval(tmp_pa
     assert "side_hours" not in record["result"]["days"][0]["common"]
     assert approved.get(f"{URL}/{record['id']}").status_code == 401
     assert approved.get(f"{URL}/{record['id']}", headers=AUTH).json() == record
+    evidence = f"{URL}/{record['id']}/evidence"
+    assert approved.get(evidence).status_code == 401
+    assert approved.get(evidence, headers=AUTH).status_code == 200
+    assert approved.get(evidence, headers=AUTH, params={"format": "zip"}).status_code == 403

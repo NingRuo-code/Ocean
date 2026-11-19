@@ -89,6 +89,22 @@ def test_disjoint_date_support_remains_descriptive(tmp_path):
     assert result["month"]["common"]["hours"] == pytest.approx(1004)
 
 
+@pytest.mark.parametrize(
+    ("near", "far", "only_unpaired", "message"),
+    [(8, 4, False, "目标距离带的活动密度较高"), (1, 4, False, "目标距离带的活动密度较低"),
+     (0, 0, False, "两个距离带的活动密度相同"), (8, 4, True, "无可比日期")],
+)
+def test_evidence_explains_registered_paired_difference_without_inventing_interval(
+    tmp_path, near, far, only_unpaired, message
+):
+    client, _, request = case(tmp_path, comparison_fixture(near, far, only_unpaired=only_unpaired))
+    run = client.post(URL, headers=AUTH, json=request).json()
+    page = client.get(f"{URL}/{run['id']}/evidence", headers=AUTH)
+    assert page.status_code == 200
+    assert message in page.text and "区间未估计" in page.text
+    assert "同日对照" in page.text and "面积时间" in page.text
+
+
 def test_area_imbalance_exclusion_is_independent_of_hours(tmp_path):
     reference = comparison_fixture(8, 0)
     reference["distance_comparison"]["minimum_area_ratio"] = 0.75

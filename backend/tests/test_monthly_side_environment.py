@@ -1,6 +1,7 @@
 """Monthly side and environment evidence through the existing owner endpoint."""
 
 import math
+import re
 
 import pytest
 from test_monthly_distance_reference import AUTH, URL, case, layer, reference_fixture
@@ -74,6 +75,11 @@ def test_monthly_side_and_sst_keep_independent_supported_subsets(tmp_path):
     assert month["sst"]["unit"] == "degree_C"
     assert result["month"]["common"]["hours"] == pytest.approx(46)
     assert client.get(f"{URL}/{record['id']}", headers=AUTH).json()["result"] == result
+    page = client.get(f"{URL}/{record['id']}/evidence", headers=AUTH)
+    assert page.status_code == 200
+    assert "<td>冷侧</td><td>16.0</td>" in page.text
+    temperature = re.search(r"<td>面积时间加权海温 \(°C\)</td><td>([^<]+)</td>", page.text)
+    assert temperature and float(temperature[1]) == pytest.approx(15)
 
 
 def test_unverified_sst_and_missing_line_material_are_local_to_their_subsets(tmp_path):

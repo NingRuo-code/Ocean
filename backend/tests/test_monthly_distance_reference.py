@@ -1,7 +1,11 @@
 """Independent checks through the original controlled monthly-analysis POST/GET."""
 
+import csv
 import hashlib
+import io
 import json
+from xml.etree import ElementTree
+from zipfile import ZipFile
 
 import pytest
 from fastapi import FastAPI
@@ -148,6 +152,46 @@ def test_outside_circle_front_is_paired_by_day_and_uses_same_support_exposure(tm
     assert client.get(saved_url).status_code == 401
     saved = client.get(saved_url, headers=AUTH)
     assert saved.json()["result"] == result and saved.headers["cache-control"] == "no-store"
+
+
+def test_completed_distance_evidence_keeps_zero_and_unknown_after_source_removal(tmp_path):
+    client, source, request = case(tmp_path)
+    run = client.post(URL, json=request, headers=AUTH).json()
+    assert run["state"] == "completed", run
+    source.unlink()
+    url = f"{URL}/{run['id']}/evidence"
+    assert client.get(url).status_code == 401
+    page = client.get(url, headers=AUTH)
+    assert page.status_code == 200
+    assert page.headers["cache-control"] == "no-store"
+    assert run["result"]["result_id"] in page.text
+    assert "距离带" in page.text and "未知" in page.text and "合成" in page.text
+    assert "<td>已观测但未纳入共同支持</td><td>7.0</td>" in page.text
+    response = client.get(url, headers=AUTH, params={"format": "zip"})
+    assert response.status_code == 200
+    assert client.get(url, headers=AUTH, params={"format": "zip"}).content == response.content
+    with ZipFile(io.BytesIO(response.content)) as bundle:
+        assert bundle.read("evidence.html") == page.content
+        manifest = json.loads(bundle.read("manifest.json"))
+        assert manifest["result_id"] == run["result"]["result_id"]
+        assert manifest["files"]["evidence.html"]["sha256"] == hashlib.sha256(page.content).hexdigest()
+        svg = ElementTree.fromstring(bundle.read("distance.svg"))
+        svg_text = " ".join(svg.itertext())
+        assert manifest["result_id"] in svg_text and "有效支持" in svg_text
+        assert "区间未估计" in svg_text and "未知" in svg_text
+        svg_bands = {g.attrib["data-band"]: g[0] for g in svg.iter() if "data-band" in g.attrib}
+        assert float(svg_bands["0"].get("width")) > 0
+        assert float(svg_bands["2"].get("width")) == 0
+        assert "1" not in svg_bands
+        rows = list(csv.DictReader(io.StringIO(bundle.read("daily.csv").decode("utf-8-sig"))))
+        assert len(rows) == 31
+        assert rows[0]["fishing_hours"] == "42.0"
+        assert rows[1]["fishing_hours"] == "0.0"
+        assert rows[3]["fishing_hours"] == ""
+        assert all(row["result_id"] == manifest["result_id"] for row in rows)
+        aggregates = list(csv.DictReader(io.StringIO(bundle.read("monthly.csv").decode("utf-8-sig"))))
+        assert aggregates[1]["group"] == "[0, 5)" and aggregates[1]["fishing_hours"] == "42.0"
+        assert aggregates[2]["fishing_hours"] == ""
 
 
 @pytest.mark.parametrize(("latitude", "expected_band"), [(0, 1), (60, 0)])
