@@ -39,6 +39,8 @@ function report(result) {
       `当次种子 ${policy.seed}，有效抽样 ${inference.valid_iterations}/${inference.requested_iterations}。`, "",
       "## 分组成员", ""];
     for (const group of result.groups) lines.push(`- 组 ${group.id} · ${group.members.join(", ")}`);
+    lines.push("", "## 已有单事件变化差", "");
+    for (const item of result.individual_effects) lines.push(`- ${item.event} · ${item.estimate} h/(km²·d)`);
     lines.push("", "分组登记保留相关证据，跨组独立性仍取决于登记假设。真实研究资格待验收。", "");
     return lines.join("\n");
   }

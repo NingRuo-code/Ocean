@@ -447,6 +447,7 @@ def evaluate(request, bundle, source_hash):
             )
         },
         "target_result_id": target["result_id"],
+        "front_lineage": target.get("front_lineage"),
         "front_candidate_count": target.get("front_candidate_count"),
         "policy": policy,
         "events": events,

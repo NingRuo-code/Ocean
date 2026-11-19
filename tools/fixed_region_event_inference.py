@@ -86,6 +86,26 @@ def registered_runs(bundle, request):
     return runs
 
 
+def variant_statuses(runs, primary_radius):
+    primary = runs[primary_radius]
+    expected = primary.get("front_lineage") or {}
+    statuses = {primary_radius: "primary"}
+    for radius, case in runs.items():
+        if radius == primary_radius:
+            continue
+        current = case.get("front_lineage") or {}
+        if not expected.get("source_version") or not current.get("source_version"):
+            status = "front_lineage_unverified"
+        elif expected != current:
+            status = "front_lineage_mismatch"
+        elif primary["policy"] != case["policy"]:
+            status = "control_policy_mismatch"
+        else:
+            status = "linked_variant"
+        statuses[radius] = status
+    return statuses
+
+
 def event_rows(runs, window, primary_radius):
     rows = []
     for radius, run in sorted(runs.items()):
@@ -227,8 +247,10 @@ def estimate(groups, policy):
     }
     if not rows:
         return {**result, "reason": "no_paired_support"}, usable
+    if any(row["provenance"] is None for row in rows):
+        return {**result, "reason": "event_provenance_unverified"}, usable
     reference = rows[0]["provenance"]
-    if reference is None or any(row["provenance"] != reference for row in rows):
+    if any(row["provenance"] != reference for row in rows):
         return {**result, "reason": "incompatible_event_provenance"}, usable
     if weighting == "pooled_area_time":
         used = Counter(
@@ -299,7 +321,13 @@ def evaluate(request, bundle, source_hash):
     )
     policy = validate_policy(bundle["policy"])
     runs = registered_runs(bundle, request)
-    rows = event_rows(runs, policy["window"], request["radius_km"])
+    statuses = variant_statuses(runs, request["radius_km"])
+    all_rows = event_rows(runs, policy["window"], request["radius_km"])
+    rows = [
+        row
+        for row in all_rows
+        if statuses[row["radius"]] in {"primary", "linked_variant"}
+    ]
     groups, links = group_rows(rows, policy["adjacency_days"])
     inference, usable = estimate(groups, policy)
     eligible = [row for row in rows if row["eligible"]]
@@ -322,6 +350,9 @@ def evaluate(request, bundle, source_hash):
         "control_result_ids": {
             str(radius): run["result_id"] for radius, run in sorted(runs.items())
         },
+        "radius_compatibility": {
+            str(radius): status for radius, status in sorted(statuses.items())
+        },
         "policy": policy,
         "counts": {
             "front_candidate_events": runs[request["radius_km"]].get(
@@ -329,7 +360,8 @@ def evaluate(request, bundle, source_hash):
             ),
             "candidate_events": len(runs[request["radius_km"]]["events"]),
             "eligible_events": len(eligible),
-            "event_radius_rows": len(rows),
+            "event_radius_rows": len(all_rows),
+            "grouped_radius_rows": len(rows),
             "groups": len(groups),
             "usable_groups": len(usable),
             "eligible_dates": len(
@@ -350,6 +382,14 @@ def evaluate(request, bundle, source_hash):
             for index, group in enumerate(groups)
         ],
         "dependence_links": links,
+        "individual_effects": [
+            {
+                "event": row["id"],
+                "estimate": row["contrast"]["change_difference"],
+                "provenance_available": row["provenance"] is not None,
+            }
+            for row in eligible
+        ],
         "inference": inference,
         "evidence_kind": "synthetic_example",
         "research_ready": False,

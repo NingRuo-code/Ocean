@@ -397,6 +397,11 @@ test("registered independent B groups give reproducible percentile endpoints and
     assert.equal(result.inference.valid_iterations,400);
     const repeated=eventInference("fixed-controls","repeat-interval");
     assert.deepEqual(repeated.inference,result.inference);
+    const pooled=eventInference("fixed-controls","pooled-interval",{estimand:"pooled_area_time"});
+    assert.equal(pooled.inference.status,"estimated_for_registered_assumptions");
+    assert.ok(Math.abs(pooled.inference.estimate-result.inference.estimate)<1e-12);
+    assert.ok(Math.abs(pooled.inference.lower-expected[0])<1e-12);
+    assert.ok(Math.abs(pooled.inference.upper-expected[1])<1e-12);
     const unverified=eventInference("fixed-controls","unverified-interval",{assumption:"unverified"});
     assert.equal(unverified.inference.reason,"between_group_assumptions_unverified");
     assert.equal(unverified.inference.lower,null);
@@ -404,6 +409,7 @@ test("registered independent B groups give reproducible percentile endpoints and
 
     const secondaryDir=join(directory,"radius20");mkdirSync(secondaryDir);
     const variant=controlled(secondaryDir,monthEnd,second,20);
+    assert.equal(variant.front.source.front_source_version,contrasts.front_lineage.source_version);
     variant.windowEffects([variant.makeSnapshot(false,{days:15,hours:offset=>offset<0 ? 10 : 20}),
       variant.makeSnapshot(false,{days:15,eventDate:second,hours:offset=>offset<0 ? 10 : 50})],"target-effects");
     variant.fixedControls([],"target-effects","fixed-controls");
@@ -413,6 +419,23 @@ test("registered independent B groups give reproducible percentile endpoints and
     assert.equal(combined.counts.usable_groups,2);
     assert.ok(combined.dependence_links.some(link=>link.reasons.includes("same_anchor_radius_variant")));
     assert.deepEqual(combined.inference,result.inference);
+    variant.fixedControls([],"target-effects","different-policy",{distance_to_coast_km:3},3);
+    const held=eventInference(["fixed-controls","radius20/different-policy"],"held-variant");
+    assert.equal(held.radius_compatibility["20"],"control_policy_mismatch");
+    assert.equal(held.counts.event_radius_rows,4);
+    assert.equal(held.counts.grouped_radius_rows,2);
+    assert.deepEqual(held.inference,result.inference);
+
+    const old=join(directory,"legacy-controls");mkdirSync(old);
+    const oldReport=structuredClone(contrasts);
+    for(const event of oldReport.events) delete event.target_provenance;
+    const oldText=JSON.stringify(oldReport);
+    const oldManifest=JSON.parse(readFileSync(join(directory,"fixed-controls","manifest.json"),"utf8"));
+    oldManifest.artifacts["summary.json"]=digest(oldText);
+    writeFileSync(join(old,"summary.json"),oldText);writeFileSync(join(old,"manifest.json"),JSON.stringify(oldManifest));
+    const legacy=eventInference("legacy-controls","legacy-interval");
+    assert.equal(legacy.inference.reason,"event_provenance_unverified");
+    assert.deepEqual(legacy.individual_effects.map(item=>item.estimate).sort((a,b)=>a-b),expected);
   } finally {
     if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
   }
