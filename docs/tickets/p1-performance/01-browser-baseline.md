@@ -48,7 +48,7 @@ node tools/benchmark-map.mjs --page "$base/prototype-fishing.html" \
 
 ## 用显式样本运行受管服务测量
 
-用现有命令直接启动回环原服务，并在新建的缓存和数据目录内测量。将 `sample_root` 设为恢复副本的 `data/raw`，将 `report` 设为样本目录之外的文件。
+用现有命令直接启动回环原服务，并在新建的缓存和数据目录内测量。将 `sample_root` 设为恢复副本的 `data/raw`，将 `report` 设为样本目录之外的全新文件。
 
 ```bash
 node tools/benchmark-map.mjs --isolated-service --sample-root "$sample_root" \

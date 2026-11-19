@@ -13,13 +13,14 @@ const maxEntries = 512;
 const maxFiles = 128;
 const maxBytes = 128 * 1024 ** 2;
 
-async function canonicalOutput(path) {
+async function canonicalOutput(path, mustBeNew = false) {
   try {
     await lstat(path);
   } catch (error) {
     if (error.code !== "ENOENT" || dirname(path) === path) throw error;
     return join(await canonicalOutput(dirname(path)), basename(path));
   }
+  if (mustBeNew) throw Error("Sample report must be a new file");
   return realpath(path);
 }
 
@@ -79,7 +80,7 @@ export async function stageBenchmarkSamples(sampleRoot, rawTarget, reportPath) {
   if (!(await lstat(root)).isDirectory() || relative(root, await realpath(root))) {
     throw Error("Invalid sample root");
   }
-  const out = relative(root, await canonicalOutput(resolve(reportPath)));
+  const out = relative(root, await canonicalOutput(resolve(reportPath), true));
   if (!isAbsolute(out) && !/^\.\.(?:[/\\]|$)/.test(out)) throw Error("Report overlaps sample root");
   const budget = {entries: 0, bytes: maxBytes, files: 0};
   const facts = [];

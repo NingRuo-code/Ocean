@@ -43,6 +43,9 @@ const scenarios = ["navigation", "reload", "date-change", "zoom", "drag"];
 async function runBaseline(page, isolatedService = false, serviceRuntime = null, startupFailed = false, input = null) {
   const sampleKind = option("--sample-kind", "B0-current");
   if (!["B0-current", "controlled-fixture"].includes(sampleKind)) throw new Error("Unsupported evidence claim");
+  const serviceArtifacts = ["backend/pyproject.toml", "backend/scripts/export_prototype_data.py"];
+  const runnerArtifacts = ["tools/benchmark-map.mjs","tools/lib/browser-driver.mjs","tools/lib/monthly-test-service.mjs"];
+  if (input) runnerArtifacts.push("tools/lib/benchmark-samples.mjs");
   const hashFile = async (path) => {
     const hash=createHash('sha256');let bytes=0;
     for await(const chunk of createReadStream(resolve(root,path))){
@@ -65,9 +68,11 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
       }
     }
     await visit("frontend/prototype");
-    if(isolatedService){await visit("backend/app");hashes["backend/pyproject.toml"]=await hashFile("backend/pyproject.toml");}
-    for(const path of ["tools/benchmark-map.mjs","tools/lib/browser-driver.mjs","tools/lib/monthly-test-service.mjs"])hashes[path]=await hashFile(path);
-    if(input)hashes["tools/lib/benchmark-samples.mjs"]=await hashFile("tools/lib/benchmark-samples.mjs");
+    if (isolatedService) {
+      await visit("backend/app");
+      for (const path of serviceArtifacts) hashes[path] = await hashFile(path);
+    }
+    for (const path of runnerArtifacts) hashes[path] = await hashFile(path);
     if(page.startsWith('file:'))hashes.entry_document=await hashFile(fileURLToPath(page));
     return Object.fromEntries(Object.entries(hashes).sort(([a],[b])=>a.localeCompare(b,'en')));
   }
@@ -76,7 +81,13 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
   let commit = null;
   let trackedChanges=null;
   try { commit = execFileSync("git", ["-c", `safe.directory=${root.replaceAll("\\", "/")}`, "rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(); } catch { /* unknown, not guessed */ }
-  try{execFileSync('git',['-c',`safe.directory=${root.replaceAll('\\','/')}`,'diff','--quiet','HEAD','--','tools/benchmark-map.mjs','tools/lib/monthly-test-service.mjs','tools/lib/browser-driver.mjs','tools/lib/benchmark-samples.mjs','frontend/prototype','backend/app','backend/pyproject.toml'],{cwd:root,stdio:'ignore'});trackedChanges=false;}catch(error){trackedChanges=error.status===1?true:null;}
+  try {
+    execFileSync("git", ["-c", `safe.directory=${root.replaceAll("\\","/")}`, "diff", "--quiet", "HEAD", "--",
+      ...runnerArtifacts, "frontend/prototype", "backend/app", ...serviceArtifacts], {cwd: root, stdio: "ignore"});
+    trackedChanges=false;
+  } catch(error) {
+    trackedChanges=error.status===1?true:null;
+  }
   const attempts = [];
   const environment = { node_version: process.version, run_environments: [], cache_layers: {browser: "fresh profile then same-profile reload", service: isolatedService ? "empty at start; shared across all browser runs" : "not controlled", os_storage: "uncontrolled"}, platform: platform(), release: release(), cpu_model: cpus()[0]?.model ?? null,
     cpu_count: cpus().length, ram_bytes: totalmem(), browser: null, gpu: null,
@@ -213,7 +224,7 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
       "Controlled fixtures verify timing/identity only, not real data coverage. This is not B1 numerical/coverage qualification.",
       "Local measured results do not establish production, server capacity, or 3/1/2-second targets."] };
   await mkdir(dirname(output), { recursive: true });
-  await writeFile(output, JSON.stringify(report, null, 2) + "\n");
+  await writeFile(output, JSON.stringify(report, null, 2) + "\n", {flag: input ? "wx" : "w"});
   console.log(JSON.stringify({ attempts: attempts.length, summary, targets_verified: false }));
   if (attempts.some((a) => a.status !== "success")) process.exitCode = 1;
 
