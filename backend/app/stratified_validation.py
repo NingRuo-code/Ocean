@@ -9,6 +9,7 @@ from pydantic import Field, model_validator
 
 from .analysis_support import content_id, decode_controlled_json, known_period_summary
 from .comparison_models import Identity, SnapshotPack
+from .g3_candidate_support import review_candidate_support
 from .monthly_models import ClosedModel, Finite, Month
 from .published_months import UNITS, project_public_month
 
@@ -211,10 +212,12 @@ def main():
         envelope = decode_controlled_json(sys.stdin.buffer.read(4_194_305), 4_194_304)
         if not isinstance(envelope, dict) or set(envelope) != {"request_json", "input_json"}:
             raise ValueError("Invalid G3 envelope")
-        result = validate_known_months(
-            decode_controlled_json(envelope["request_json"], 16_384),
-            decode_controlled_json(envelope["input_json"]),
-        )
+        request = decode_controlled_json(envelope["request_json"], 16_384)
+        pack = decode_controlled_json(envelope["input_json"])
+        if isinstance(request, dict) and request.get("purpose") == "g3_candidate_support":
+            result = review_candidate_support(request, pack)
+        else:
+            result = validate_known_months(request, pack)
         print(json.dumps({"state": "completed", "result": result}, allow_nan=False))
     except (OSError, ValueError, TypeError, ArithmeticError, RecursionError):
         print(json.dumps({"state": "failed", "error": {"code": "controlled_validation_failed"}}))

@@ -16,6 +16,87 @@ function scenario(work) {
  finally {if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith("ocean-strata-cli-"))rmSync(root,{recursive:true,force:true});}
 }
 
+test("G3 coverage review reads native P0 snapshots, keeps missing candidates and excludes effect values", () =>
+ scenario(({root,request,source,out,call})=>{
+  const layer = (kind, hours) => ({
+   id: kind === "activity" ? "effort-original" : "front-original",
+   kind, role: "analysis_source", unit: kind === "activity" ? "fishing_hours" : "classification_code",
+   time_verified: true, bounds_verified: true, support_verified: true, duration_days: 1,
+   cells: [{bounds: [-1,-1,1,1], hours, support: "valid", side: "unknown"}],
+  });
+  const cells = join(root,"cells.json"), conditionPath = join(root,"conditions.json");
+  const dates = ["2023-12-24","2023-12-25","2023-12-26","2023-12-27","2023-12-28","2023-12-29",
+   "2023-12-30","2023-12-31","2024-01-01","2024-01-02","2024-01-03"];
+  writeFileSync(cells, JSON.stringify({schema:"ocean-regional-cells/v1", evidence_kind:"synthetic",
+   days:dates.map(date=>({date,layers:[layer("front",null),layer("activity",date==="2023-12-31"?0:42)]}))}));
+  const conditions = {
+   schema:"ocean-support-request/v1", month:"2023-12", layer_use:"front_effort",
+   method_version:"wgs84-laea-uniform/v1", quality_rule:"complete-common-support/v1",
+   allocation:"overlap_uniform", geometries:[{id:"central",type:"circle",center:[0,0],radius_km:20}],
+  };
+  const readAudit = (purpose, options = {}) => {
+   const snapshot = join(root, purpose+".json");
+   writeFileSync(conditionPath, JSON.stringify({...conditions,purpose,...options}));
+   const audit = spawnSync(process.execPath, [resolve("tools/audit-research-baseline.mjs"),
+    "--support-request",conditionPath,"--regional-input",cells,"--out",snapshot],
+   {encoding:"utf8",windowsHide:true,timeout:20000});
+   assert.equal(audit.status,0,audit.stderr);
+   return readFileSync(snapshot,"utf8").trim();
+  };
+  // P0 permits December cells only in an A-month input.
+  const fullCells = readFileSync(cells,"utf8");
+  const decemberCells = JSON.parse(fullCells);
+  decemberCells.days = decemberCells.days.filter(day => day.date.startsWith("2023-12"));
+  writeFileSync(cells,JSON.stringify(decemberCells));
+  const monthly = readAudit("A_month");
+  writeFileSync(cells,fullCells);
+  const event = readAudit("B_event",{event_date:"2023-12-31",event_day_rule:"exclude_event_day/v1"});
+  const monthlyId = JSON.parse(monthly).support_snapshot_id, eventId = JSON.parse(event).support_snapshot_id;
+  const badId = "sha256:" + "b".repeat(64);
+  const invalid = JSON.stringify({schema:"ocean-support-qualification/v1", support_snapshot_id:badId});
+  writeFileSync(source,`{"schema":"ocean-g3-support-pack/v1","snapshots":[${monthly},${event},${invalid}]}`);
+  writeFileSync(request,JSON.stringify({
+   purpose:"g3_candidate_support", method_version:"candidate-support/v1", season_year_rule:"calendar_year",
+   layer_use:"front_effort", seasons:{winter:[12,1,2],summer:[6,7,8]},
+   regions:[{id:"central",name:"Central",longitude:0,latitude:0},
+    {id:"east",name:"East",longitude:2,latitude:0}],
+   candidates:[
+    {id:"dec",month:"2023-12",season:"winter",region_id:"central",radius_km:20,monthly_snapshot_id:monthlyId,
+     event:{date:"2023-12-31",snapshot_id:eventId}},
+    {id:"jan",month:"2024-01",season:"winter",region_id:"central",radius_km:20},
+    {id:"dec-east",month:"2023-12",season:"winter",region_id:"east",radius_km:20,monthly_snapshot_id:monthlyId,
+     event:{date:"2023-12-31",snapshot_id:monthlyId}},
+    {id:"feb",month:"2024-02",season:"winter",region_id:"east",radius_km:20,monthly_snapshot_id:badId},
+   ],
+  }));
+  const run=call(["--g3-candidate-support-request",request,"--input",source,"--output",out]);
+  assert.equal(run.status,0,run.stderr);
+  const result=JSON.parse(readFileSync(join(out,"summary.json"),"utf8"));
+  assert.equal(result.evidence_kind,"coverage_metadata");
+  assert.equal(result.research_ready,false);
+  assert.equal(result.rows[0].monthly.snapshot_id,monthlyId);
+  assert.equal(result.rows[0].monthly.calendar.expected_days,31);
+  assert.equal(result.rows[0].monthly.calendar.included_days,8);
+  assert.equal(result.rows[0].event.snapshot_id,eventId);
+  assert.deepEqual(result.rows[0].event.windows.post3.dates,["2024-01-01","2024-01-02","2024-01-03"]);
+  assert.equal(result.rows[0].event.windows.post3.included_days,3);
+  assert.equal(result.rows[0].event.windows.post7.expected_days,7);
+  assert.equal(result.rows[0].event.windows.post7.included_days,3);
+  assert.equal(result.rows[0].event.event_day.date,"2023-12-31");
+  assert.equal(result.rows[1].monthly.status,"not_prepared");
+  assert.equal(result.rows[1].event.identification,"not_evaluated");
+  assert.equal(result.rows[2].monthly.reason,"requested_geometry_not_in_snapshot");
+  assert.equal(result.rows[2].event.reason,"requested_conditions_not_in_snapshot");
+  assert.equal(result.rows[3].monthly.status,"invalid_snapshot");
+  assert.equal(result.strata.length,8);
+  assert.equal(result.strata.find(s=>s.year===2024&&s.season==="summer").status,"no_candidates");
+  assert.doesNotMatch(JSON.stringify(result),/total_hours|density_hours|area_time_km2_days|"hours":/);
+  unlinkSync(source);
+  const read=call(["--read-g3-candidate-support-result",out],{OCEAN_EXPERIMENT_PYTHON:"not-available"});
+  assert.equal(read.status,0,read.stderr);
+  assert.deepEqual(JSON.parse(read.stdout),result);
+ }));
+
 test("explicit G3 request reads native A months into all year-season cells and retains missing candidates",()=>scenario(({out,submit})=>{
  const run=submit();assert.equal(run.status,0,run.stderr);
  const result=JSON.parse(readFileSync(join(out,"summary.json"),"utf8"));

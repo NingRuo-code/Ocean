@@ -23,3 +23,16 @@
 
 - #142 (https://github.com/NingRuo-code/Ocean/issues/142)
 - #41 (https://github.com/NingRuo-code/Ocean/issues/41)
+
+## 本机冻结资格元信息读取
+
+沿用 V01 的实验命令、冻结发布和回读。显式提供候选请求和包含原 P0 资格快照的 `ocean-g3-support-pack/v1`，无需准备或下载原始资料。
+
+```powershell
+node tools/run-front-response-experiment.mjs --g3-candidate-support-request request.json --input support-pack.json --output outputs/experiments/g3-support-review
+node tools/run-front-response-experiment.mjs --read-g3-candidate-support-result outputs/experiments/g3-support-review
+```
+
+- 请求用途为 `g3_candidate_support`，方法为 `candidate-support/v1`。声明 `layer_use`、`season_year_rule=calendar_year`、`seasons` 月份映射和带稳定 ID、名称、经纬度的 `regions`。每个候选登记 ID、年月、季节、区域 ID 和半径。可选 `monthly_snapshot_id`，可选 `event` 对象登记日期及 `snapshot_id`。
+- 来源包以 `snapshots` 数组保留 P0 输出。每项复用原资格的身份、条件匹配和许可投影，源版本和粒度在 JSON 中可追溯。输入沿用 1 MiB 上限。月与事件的资格分开。事件锚日标为未做事件识别，单列当日与前七、后 1–3、后 1–7 天；日历跨年自然保留。原 P0 输入缺席、条件不符或身份无效分别登记，不填入活动值。
+- 合成小例通过原 P0 CLI 写出跨年窗口，验证 1 月 1–3 日支持和真实后七日的四天缺口。用既有东海冻结审计执行一次本机元信息回读，10、20、30 公里三个半径均为 0/31 天，B 窗口未登记。报告不输出小时、密度或效应，也不据此确定正式月份、事件或真实独立复核资格。

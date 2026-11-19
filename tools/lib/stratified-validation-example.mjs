@@ -25,7 +25,42 @@ function report(result) {
  return lines.join("\n");
 }
 
+function coverageReport(result) {
+ const lines=["# G3 候选联合覆盖核查", "", `冻结结果 ${result.result_id}。`,
+  "A 整月与 B 事件窗口分别核对。年份按各月的日历年归属。报告只显示覆盖元信息及许可依据。", "",
+  "| 候选 | 年月 | 季节 | 海域/半径 | A 全月 | B 窗口 |", "|---|---|---|---|---|---|"];
+ for (const {candidate, monthly, event} of result.rows) {
+  const a = monthly.calendar;
+  const b = event.windows;
+  lines.push(`| ${candidate.id} | ${candidate.month} | ${candidate.season} | ${candidate.region_id} / ${candidate.radius_km} km | ${a ? a.included_days+"/"+a.expected_days : monthly.reason} | ${b ? Object.entries(b).map(([name, p]) => name+" "+p.included_days+"/"+p.expected_days).join("，") : event.reason} |`);
+ }
+ lines.push("", "## 逐候选依据", "");
+ for (const {candidate, monthly, event} of result.rows) {
+  lines.push(`- ${candidate.id}。A ${monthly.snapshot_id ?? monthly.reason}，B ${event.snapshot_id ?? event.reason}。`);
+  for (const [purpose, audit] of [["A", monthly], ["B", event]]) {
+   if (!audit.evidence) continue;
+   const periods = audit.windows ?? {month: audit.calendar};
+   lines.push(`  - ${purpose} 证据类型 ${audit.evidence_kind}，必需层 ${audit.required_layers.join("、")}，许可 ${audit.evidence.license?.state ?? "未核"}，粒度 ${audit.evidence.granularity?.state ?? "未核"}。`);
+   for (const [name, period] of Object.entries(periods)) {
+    lines.push(`  - ${name} ${period.computational_support}，缺项 ${period.missing_prerequisites.join("、") || "无已记录缺项"}，排除 ${text(JSON.stringify(period.exclusion_reason_counts))}。`);
+   }
+  }
+ }
+ lines.push("", "## 使用限制", "", ...result.caveats.map(note=>"- "+note), "");
+ return lines.join("\n");
+}
+
+const coverageRequest = "--g3-candidate-support-request";
+const coverageRead = "--read-g3-candidate-support-result";
+
 export function runStratifiedValidation(args,root) {
+ if (args.includes(coverageRequest) || args.includes(coverageRead)) {
+  return runControlledExample(args,root,{
+   requestFlag:coverageRequest,readFlag:coverageRead,purpose:"g3_candidate_support",
+   evidenceKind:"coverage_metadata",outputName:"g3-candidate-support",
+   module:"app.stratified_validation",errorCode:"controlled_validation_failed",report:coverageReport,
+  });
+ }
  return runControlledExample(args,root,{
   requestFlag:"--g3-validation-request",readFlag:"--read-g3-validation-result",
   purpose:"stratified_validation_example",outputName:"g3-known-validation",
