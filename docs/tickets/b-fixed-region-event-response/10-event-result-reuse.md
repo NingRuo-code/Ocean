@@ -23,3 +23,9 @@
 
 - #75 (https://github.com/NingRuo-code/Ocean/issues/75)
 - #70 (https://github.com/NingRuo-code/Ocean/issues/70)
+
+## 实施记录 · 2026-11-19
+
+在 `--fixed-region-request` 的既有命令后添加 `--reuse-result <已完成目录>`，可复用显式指定的冻结结果。执行先核对当前请求和输入的完整字节、受控工具代码、Python/Node 与适用运行库，再验证原摘要、报告和全部声明产物。通过时返回原 `run_id`、`result_id` 和 `execution_id`，`reused` 为 `true`。请求与输入采用字节身份，两者格式变化也会要求新运行。
+
+未匹配时用新的 `--output` 路径执行。合成输入版本、事件/窗口条件、对照、P0 快照及种子均随登记输入进入执行身份。普通 `--read-fixed-region-result` 仅读取并校验原成果，清单的 `source_freshness` 为 `unknown`。旧预览继续可读，缺少执行身份的历史目录、失败结果或损坏产物无法复用。该入口处理受控本地成果，真实批准和持久任务管理仍按原任务执行。

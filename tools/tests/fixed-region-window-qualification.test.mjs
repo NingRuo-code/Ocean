@@ -71,21 +71,29 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null, radius = 10
     run(audit,["--support-request",write("p0-conditions.json",conditions),"--regional-input",write("cells.json",cells),"--out",output]);
     return readFileSync(output,"utf8");
   };
-  function windowReport(snapshot, name, failure = false) {
+  function windowReport(snapshot, name, failure = false, {reuseFrom=null,verifyReuse=false}={}) {
     const source = write(`${name}.json`,{schema:"ocean-fixed-region-window-evidence/v1",
       front_summary_json:frontSummary,front_manifest_json:frontManifest,support_snapshots:[snapshot].flat()});
     const request = write(`${name}-request.json`,{...base,input_version:digest(readFileSync(source)),
       method_version:"fixed-event-window-qualification/v1",parameter_version:"p0-event-calendar/v1"});
     const output = join(directory,name);
+    const args=["--fixed-region-request",request,"--input",source,"--output",output];
+    if(reuseFrom) args.push("--reuse-result",join(directory,reuseFrom));
     if (failure) {
-      const processResult=spawnSync(process.execPath,[experiment,"--fixed-region-request",request,"--input",source,"--output",output],{encoding:"utf8",windowsHide:true});
+      const processResult=spawnSync(process.execPath,[experiment,...args],{encoding:"utf8",windowsHide:true});
       assert.equal(processResult.status,2,processResult.stdout);
       const manifest=JSON.parse(readFileSync(join(output,"manifest.json"),"utf8"));
       assert.equal(manifest.state,"failed");
       assert.deepEqual(manifest.artifacts,{});
       return null;
     }
-    run(experiment,["--fixed-region-request",request,"--input",source,"--output",output]);
+    const current=JSON.parse(run(experiment,args));
+    if(verifyReuse) {
+      const repeated=JSON.parse(run(experiment,[...args,"--reuse-result",output]));
+      assert.equal(repeated.reused,true);
+      assert.equal(repeated.run_id,current.run_id);
+      assert.equal(repeated.execution_id,current.execution_id);
+    }
     unlinkSync(source);unlinkSync(request);
     return JSON.parse(run(experiment,["--read-fixed-region-result",output],{OCEAN_EXPERIMENT_PYTHON:"unavailable"}));
   }
@@ -197,7 +205,7 @@ test("B uses the matching P0 B_event audit for cross-month windows and holds unl
   try {
     const {front,makeSnapshot,windowReport}=controlled(directory);
     const snapshot=makeSnapshot(false);
-    const result=windowReport(snapshot,"window-result");
+    const result=windowReport(snapshot,"window-result",false,{verifyReuse:true});
     assert.equal(result.front_result_id,front.result_id);
     assert.equal(result.research_ready,false);
     const event=result.events[0], primary=event.support.front_effort;
@@ -235,7 +243,7 @@ test("B uses the matching P0 B_event audit for cross-month windows and holds unl
     const unlicensed=windowReport(makeSnapshot(false,{nullLicense:true}),"unknown-license-result").events[0].support.front_effort;
     assert.equal(unlicensed.windows.post3.status,"license_unverified");
     assert.equal(unlicensed.windows.post3.hours_available,false);
-    windowReport(snapshot.replace("exclude_event_day/v1","include_event_day/v1"),"tampered-result",true);
+    windowReport(snapshot.replace("exclude_event_day/v1","include_event_day/v1"),"tampered-result",true,{reuseFrom:"window-result"});
   } finally {
     if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
   }

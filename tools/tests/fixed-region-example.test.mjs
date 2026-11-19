@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, readFileSync, rmSync, unlinkSync, existsSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readFileSync, rmSync, unlinkSync, existsSync, statSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join, dirname, basename } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -55,6 +55,38 @@ test("frozen reading needs neither source nor Python, rejects tampering and neve
   assert.deepEqual(JSON.parse(read.stdout),JSON.parse(frozen));
   writeFileSync(join(out,"report.md"),"tampered report");
   assert.equal(call(["--read-fixed-region-result",out]).status,2);
+}));
+
+test("explicit fixed-region reuse requires identical current bytes and preserves old completed results",()=>scenario(({root,params,out,source,call,execute})=>{
+  const first=execute();assert.equal(first.status,0,first.stdout);
+  const original=JSON.parse(first.stdout), frozen=readFileSync(join(out,"summary.json"),"utf8");
+  const command=(folder,extra=[])=>call(["--fixed-region-request",params,"--input",source,"--output",folder,...extra]);
+  const direct=join(root,"independent");
+  assert.equal(command(direct).status,0);
+  assert.equal(readFileSync(join(direct,"summary.json"),"utf8"),frozen);
+  const reused=command(out,["--reuse-result",out]);
+  assert.equal(reused.status,0,reused.stderr);
+  assert.equal(JSON.parse(reused.stdout).run_id,original.run_id);
+  assert.equal(JSON.parse(reused.stdout).reused,true);
+  assert.equal(JSON.parse(readFileSync(join(out,"manifest.json"),"utf8")).source_freshness,"unknown");
+
+  const stat=statSync(source), current=readFileSync(source,"utf8");
+  const replaced=current.replace(/"hours": [1-8](?!\d)/,'"hours": 9');
+  assert.notEqual(replaced,current);
+  assert.equal(Buffer.byteLength(replaced),stat.size);
+  writeFileSync(source,replaced);utimesSync(source,stat.atime,stat.mtime);
+  const changed=join(root,"changed");
+  const missed=command(changed,["--reuse-result",out]);assert.equal(missed.status,0,missed.stdout);
+  assert.notEqual(JSON.parse(missed.stdout).result_id,original.result_id);
+  assert.notEqual(JSON.parse(readFileSync(join(changed,"manifest.json"),"utf8")).execution_id,
+    JSON.parse(readFileSync(join(out,"manifest.json"),"utf8")).execution_id);
+  assert.equal(readFileSync(join(out,"summary.json"),"utf8"),frozen);
+
+  unlinkSync(source);
+  const failed=join(root,"failed-retry");
+  assert.equal(command(failed,["--reuse-result",changed]).status,2);
+  assert.equal(JSON.parse(readFileSync(join(failed,"manifest.json"),"utf8")).state,"failed");
+  assert.deepEqual(JSON.parse(call(["--read-fixed-region-result",out],{OCEAN_EXPERIMENT_PYTHON:"unavailable"}).stdout),JSON.parse(frozen));
 }));
 
 test("missing, duplicate-key and unqualified sources publish failed manifests with no half result",()=>{
