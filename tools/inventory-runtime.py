@@ -122,7 +122,11 @@ def inventory(root, snapshot, max_entries=100_000, max_seconds=10, *, layout="ch
             route_status[name] = reason if reason in {"excluded_link", "not_regular_file", "file_budget"} else "unavailable"
         except OSError:
             route_status[name] = "unavailable"
-    scope = "SothisAI research workspace; production unverified" if sothisai else "local checkout only; production unverified"
+    scope = ("selected root using SothisAI layout; production unverified"
+             if sothisai else "local checkout only; production unverified")
+    platform_limitations = [
+        "CPU count and disk free describe the local OS and mounted filesystem; container allocation and account quota remain unverified."
+    ] if sothisai else []
     return {"schema": "ocean-runtime-inventory/v1", "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "scope": scope, "source_snapshot_id": snapshot["snapshot_id"],
             **({"layout": layout} if sothisai else {}),
@@ -140,6 +144,7 @@ def inventory(root, snapshot, max_entries=100_000, max_seconds=10, *, layout="ch
             "capacity": {"current_demo": "local bytes only", "east_china_sea_multiyear": "unknown",
                          "global_archive": "unknown", "concurrency_budget": None, "cache_budget_bytes": None},
             "limitations": ["Logical file lengths, not allocated disk or decompressed working arrays.",
+                            *platform_limitations,
                             "One snapshot cannot measure growth or peak concurrent memory.",
                             "Use deploy/inventory-server.sh privately on the server; publish only reviewed summaries.",
                             "No downloads, load tests, cache clearing or procurement recommendation."]}

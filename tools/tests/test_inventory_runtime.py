@@ -258,6 +258,8 @@ def test_cli_sothisai_layout_measures_checkout_assets_and_shared_results(cli_wor
     assert result.returncode == 0, result.stderr
     report = json.loads((root / "inventory.json").read_text(encoding="utf-8"))
     assert report["layout"] == "sothisai"
+    assert report["scope"] == "selected root using SothisAI layout; production unverified"
+    assert any("account quota remain unverified" in note for note in report["limitations"])
     assert report["source_snapshot_id"] == json.loads(snapshot.read_text(encoding="utf-8"))["snapshot_id"]
     assert {name: report["layers"][name]["bytes"] for name in ("raw", "hot_display", "results")} == {
         "raw": 3, "hot_display": 3, "results": 6,
