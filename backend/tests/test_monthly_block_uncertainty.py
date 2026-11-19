@@ -61,6 +61,10 @@ def test_fixed_calendar_blocks_keep_paired_area_and_have_known_outcomes(tmp_path
     assert interval["upper"] == pytest.approx(6 / area, rel=2e-5)
     assert interval["estimate"] == pytest.approx((6 + 6 - 1) / (3 * area), rel=2e-5)
     assert interval["permutation"] == "not_performed"
+    page = client.get(f"{URL}/{first.json()['id']}/evidence", headers=AUTH)
+    assert page.status_code == 200
+    assert "登记假设下的 90.0% 区间" in page.text
+    assert f"[{interval['lower']}, {interval['upper']}]" in page.text
 
 
 @pytest.mark.parametrize(

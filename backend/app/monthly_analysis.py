@@ -7,7 +7,7 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import Lock, RLock
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -23,6 +23,7 @@ from .analysis_support import (
 from .config import Settings
 from .monthly_capability import create_capability_router
 from .monthly_distance_reference import QualificationInputMismatch, calculate_distance_reference
+from .monthly_evidence import render_monthly_evidence, zip_monthly_evidence
 from .monthly_execution_qualification import qualify_execution
 from .monthly_models import (
     KnownCircle,
@@ -261,5 +262,30 @@ def create_monthly_router(
                 require_owner(credentials)
                 response.headers["Cache-Control"] = "no-store"
             return copy.deepcopy(records[run_id])
+
+    @router.get("/{run_id}/evidence", dependencies=[Depends(require_owner)])
+    def evidence(run_id: str, format: Literal["html", "zip"] = "html"):
+        headers = {"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"}
+        with lock:
+            record = records.get(run_id)
+            if record is None:
+                raise HTTPException(404, "Run unavailable in this process", headers=headers)
+            if record["state"] != "completed":
+                raise HTTPException(409, "Only completed runs have evidence", headers=headers)
+            result = record["result"]
+            if result["kind"] not in {"monthly_distance_reference", "monthly_spatial_research"}:
+                raise HTTPException(409, "Distance evidence is unavailable for this run", headers=headers)
+        if format == "zip" and result["evidence_kind"] != "synthetic":
+            raise HTTPException(403, "An export license is required for this result", headers=headers)
+        page, figure, daily, monthly = render_monthly_evidence(result)
+        if format == "html":
+            headers["Content-Security-Policy"] = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+            return Response(page, media_type="text/html", headers=headers)
+        headers["Content-Disposition"] = 'attachment; filename="ocean-month-evidence.zip"'
+        return Response(
+            zip_monthly_evidence(result, page, figure, daily, monthly),
+            media_type="application/zip",
+            headers=headers,
+        )
 
     return router
