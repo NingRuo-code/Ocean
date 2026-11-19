@@ -65,7 +65,9 @@ def read_frozen_input(summary_text, manifest_text, request, schema):
     )
     conditions = (*GEOMETRY_KEYS, "search_start", "search_end")
     require(
-        all(request[key] == summary["parameters"][key] for key in conditions),
+        all(p0.finite(request[key]) for key in ("longitude", "latitude"))
+        and type(request["radius_km"]) is int
+        and all(request[key] == summary["parameters"][key] for key in conditions),
         "frozen_experiment_conditions_mismatch",
     )
     return summary

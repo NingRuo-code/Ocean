@@ -127,10 +127,32 @@ def event_effect(event):
         name: summarize_window(anchor, phase, audited["windows"][name], daily)
         for name, phase in dates.items()
     }
+    provenance = None
+    if conditions := audited.get("conditions"):
+        source = audited["source_provenance"]
+        versions = audited["p0_versions"]
+        provenance = {
+            **{
+                key: conditions[key]
+                for key in ("layer_use", "method_version", "quality_rule", "allocation")
+            },
+            "source_versions": source["source_versions"],
+            "processing_version": source["processing_version"],
+            "evidence_scope": source["scope"],
+            **{
+                key: versions[key]
+                for key in (
+                    "regional_engine_sha256",
+                    "source_reader_sha256",
+                    "auditor_sha256",
+                )
+            },
+        }
     return {
         "anchor_date": anchor,
         "front_event": event["front_event"],
         "support_snapshot_id": audited["support_snapshot_id"],
+        "provenance": provenance,
         "daily": audited["daily"],
         "windows": windows,
         "changes": {
@@ -159,6 +181,10 @@ def aggregate(events, phase):
         "pooled_status": "no_comparable_events",
     }
     if not eligible:
+        return effect
+    reference = eligible[0]["provenance"]
+    if reference is None or any(event["provenance"] != reference for event in eligible):
+        effect["pooled_status"] = "incompatible_provenance"
         return effect
     effect["equal_event_difference"] = math.fsum(
         event["changes"][phase]["absolute_density_change"] for event in eligible

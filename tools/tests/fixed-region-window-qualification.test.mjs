@@ -46,17 +46,17 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null) {
   const front = JSON.parse(frontSummary);
   assert.equal(front.result_id,JSON.parse(evidence).result_id);
   const makeSnapshot = (blocked, {frontVersion=front.source.front_source_version, blockedQuality=false, nullLicense=false,
-    days=11, hours=()=>0, varySupportAt=null, eventDate=anchor}={}) => {
+    days=11, hours=()=>0, varySupportAt=null, halfSupport=false, eventDate=anchor, processingVersion=null}={}) => {
     const claim = {state:"verified",evidence_id:"sha256:"+"c".repeat(64)};
     const cells = {schema:"ocean-regional-cells/v1",evidence_kind:"synthetic",days:Array.from({length:days},(_,i) => {
       const day = shift(eventDate,i-7);
       const layer = (kind,id,unit,hours) => ({kind,id,unit,role:"analysis_source",time_verified:true,bounds_verified:true,
         support_verified:true,duration_days:1,cells:[{bounds:[-0.4,-0.4,0.4,0.4],hours,support:"valid"}]});
       const frontLayer=layer("front","front-original","classification_code",null);
-      if(i-7===varySupportAt) frontLayer.cells=[{bounds:[-0.4,-0.4,0,0.4],support:"valid"},{bounds:[0,-0.4,0.4,0.4],support:"land"}];
+      if(halfSupport||i-7===varySupportAt) frontLayer.cells=[{bounds:[-0.4,-0.4,0,0.4],support:"valid"},{bounds:[0,-0.4,0.4,0.4],support:"land"}];
       return {date:day,layers:[frontLayer,layer("activity","effort-original","fishing_hours",hours(i-7))]};
     }),qualification_evidence:{schema:"ocean-support-evidence/v1",source_versions:{...(frontVersion?{"front-original":frontVersion}:{}),"effort-original":claim.evidence_id},
-      processing_version:claim.evidence_id,license:nullLicense ? null : blocked ? {state:"blocked"} : claim,
+      processing_version:processingVersion ?? claim.evidence_id,license:nullLicense ? null : blocked ? {state:"blocked"} : claim,
       quality_rule:{id:"complete-common-support/v1",...(blockedQuality?{state:"blocked"}:claim)},geometry:{circle:{...claim,request_geometry:scope}}}};
     const output=join(directory,blocked?"blocked-support.json":"support.json");
     const conditions={schema:"ocean-support-request/v1",purpose:"B_event",event_date:eventDate,event_day_rule:"exclude_event_day/v1",
@@ -221,6 +221,31 @@ test("overlapping calendars keep event weights while withholding pooled exposure
     }
     assert.deepEqual(result.pooled.post3.overlapping_dates,["2024-09-03"]);
     assert.deepEqual(result.pooled.post7.overlapping_dates,["2024-09-03","2024-09-04","2024-09-05","2024-09-06","2024-09-07"]);
+  } finally {
+    if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
+  }
+});
+
+test("distinct supported areas separate equal-event and pooled effects, and incompatible provenance holds both",()=>{
+  const directory=mkdtempSync(join(tmpdir(),"ocean-b03-"));
+  const second="2024-09-20";
+  try {
+    const {makeSnapshot,windowEffects}=controlled(directory,monthEnd,second);
+    const first=makeSnapshot(false,{days:15,hours:d=>d<0 ? 10 : 20});
+    const half={days:15,eventDate:second,halfSupport:true,hours:d=>d<0 ? 10 : 40};
+    const result=windowEffects([first,makeSnapshot(false,half)],"weights-effect");
+    const [a,b]=result.events;
+    assert.ok(Math.abs(b.windows.pre7.area_time_km2_days/a.windows.pre7.area_time_km2_days-0.5)<1e-6);
+    assert.ok(Math.abs(b.changes.post3.absolute_density_change/a.changes.post3.absolute_density_change-3)<1e-8);
+    const pooled=result.pooled.post3;
+    assert.equal(pooled.pooled_status,"available");
+    assert.ok(Math.abs(pooled.pooled_density_difference/pooled.equal_event_difference-5/6)<1e-6);
+
+    const changed=windowEffects([first,makeSnapshot(false,{...half,processingVersion:digest("other processing")})],"provenance-effect");
+    assert.ok(changed.events.every(event=>event.changes.post3.status==="comparable"));
+    assert.equal(changed.pooled.post3.pooled_status,"incompatible_provenance");
+    assert.equal(changed.pooled.post3.equal_event_difference,null);
+    assert.equal(changed.pooled.post3.pooled_density_difference,null);
   } finally {
     if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
   }
