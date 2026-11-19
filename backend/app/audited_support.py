@@ -22,6 +22,16 @@ METRICS = [
 PROTOCOL_HASHES = ("auditor_sha256", "regional_engine_sha256", "source_reader_sha256")
 GEOMETRY_RUNTIME_KEYS = ("shapely", "pyproj", "GEOS", "PROJ")
 OBSERVED_ROLES = {"request", "prepared_source", "auditor", "regional_engine", "source_reader"}
+SNAPSHOT_ERRORS = (
+    OSError,
+    ValueError,
+    TypeError,
+    KeyError,
+    IndexError,
+    AttributeError,
+    OverflowError,
+    RecursionError,
+)
 
 
 def require(value):
@@ -244,6 +254,162 @@ def observed_files_status(state):
     return None
 
 
+def _project_audited_snapshot(snapshot, request, ready=None):
+    require(
+        isinstance(snapshot, dict) and snapshot.get("schema") == "ocean-support-qualification/v1"
+    )
+    require(
+        snapshot.get("research_ready") is False
+        and type(snapshot.get("public_release_approved")) is bool
+    )
+    require(snapshot.get("evidence_kind") in {"synthetic", "audited_cells", "real_source_audit"})
+    identity = fingerprint(snapshot["support_snapshot_id"])
+    payload = {k: v for k, v in snapshot.items() if k != "support_snapshot_id"}
+    require(identity == snapshot_digest(payload))
+    conditions = snapshot["conditions"]
+    if ready is not None and (
+        identity != ready["snapshot_id"]
+        or "sha256:" + snapshot["input_sha256"] != ready["input_sha256"]
+        or snapshot_digest(conditions) != ready["conditions_id"]
+        or any("sha256:" + snapshot[k] != ready["protocol"][k] for k in PROTOCOL_HASHES)
+    ):
+        return unavailable("expired", "audit_snapshot_identity_mismatch", "stale")
+    require(conditions.get("schema") == "ocean-support-request/v1")
+    if (
+        conditions["purpose"] != request.get("purpose", "A_month")
+        or conditions["month"] != request["month"]
+        or conditions["layer_use"] != request.get("layer_use", "front_effort")
+    ):
+        return unavailable("not_audited", "requested_conditions_not_in_snapshot")
+    if conditions["purpose"] == "B_event" and (
+        conditions.get("event_date") != request.get("event_date")
+        or conditions.get("event_day_rule") != "exclude_event_day/v1"
+    ):
+        return unavailable("not_audited", "requested_event_not_in_snapshot")
+    require(
+        conditions["method_version"] == "wgs84-laea-uniform/v1"
+        and conditions["quality_rule"] == "complete-common-support/v1"
+        and conditions["allocation"] in {"overlap_uniform", "cell_center"}
+    )
+    require(isinstance(snapshot["regions"], list) and 1 <= len(snapshot["regions"]) <= 3)
+    matches = [
+        r
+        for r in snapshot["regions"]
+        if r["geometry"]["type"] == "circle"
+        and r["geometry"]["center"] == [request["longitude"], request["latitude"]]
+        and r["geometry"]["radius_km"] == request["radius_km"]
+    ]
+    if not matches:
+        return unavailable("not_audited", "requested_geometry_not_in_snapshot")
+    require(len(matches) == 1)
+    region = matches[0]
+    disclose = (
+        snapshot["evidence_kind"] == "synthetic" and snapshot["public_release_approved"] is True
+    )
+    required = snapshot["required_layers"]
+    require(
+        isinstance(required, list)
+        and required
+        == ["front", "activity"]
+        + (["sst"] if conditions["layer_use"] == "front_effort_sst" else [])
+    )
+    require(isinstance(region["days"], list) and 1 <= len(region["days"]) <= 367)
+    rows = [day_projection(row, disclose) for row in region["days"]]
+    require(len({r["date"] for r in rows}) == len(rows))
+    actual = {
+        k: conditions[k]
+        for k in [
+            "purpose",
+            "month",
+            "layer_use",
+            "allocation",
+            "method_version",
+            "quality_rule",
+        ]
+    }
+    actual["geometry"] = {
+        "type": "circle",
+        "center": [request["longitude"], request["latitude"]],
+        "radius_km": request["radius_km"],
+    }
+    if conditions["purpose"] == "B_event":
+        actual.update(
+            event_date=conditions["event_date"], event_day_rule=conditions["event_day_rule"]
+        )
+    versions = {k: fingerprint("sha256:" + snapshot[k]) for k in ("input_sha256", *PROTOCOL_HASHES)}
+    versions.update(
+        method=conditions["method_version"],
+        quality_rule=conditions["quality_rule"],
+        parameter=content_id(snapshot["resolved_conditions"]),
+    )
+    runtime = {key: snapshot.get("method", {}).get(key) for key in GEOMETRY_RUNTIME_KEYS}
+    if all(
+        isinstance(value, str) and re.fullmatch(r"[a-zA-Z0-9.+_-]{1,60}", value)
+        for value in runtime.values()
+    ):
+        versions["geometry_runtime"] = runtime
+    daily = snapshot.get("input_daily_snapshot_id")
+    versions["daily_snapshot_id"] = None if daily is None else fingerprint(daily)
+    references, versions["sources"], versions["processing"] = evidence_projection(
+        snapshot, region["geometry"], required
+    )
+    period = period_projection(region["month"], disclose)
+    is_event = conditions["purpose"] == "B_event"
+    result = {
+        "status": "audited_snapshot",
+        "snapshot_schema": "ocean-support-qualification/v1",
+        "snapshot_id": identity,
+        "audited_at": None,
+        "qualification_scope": "frozen_snapshot_only",
+        "requested_conditions": request,
+        "actual_conditions": actual,
+        "required_layers": required,
+        "support_level": None if is_event else period["support_level"],
+        "month": period,
+        "days": rows,
+        "versions": versions,
+        "evidence": references,
+        "freshness": "unknown",
+        "freshness_reason": "current_source_identity_not_checked",
+        "research_ready": False,
+        "numeric_visibility": "approved_aggregate" if disclose else "withheld_public_boundary",
+        "evidence_kind": snapshot["evidence_kind"],
+        "evidence_scope": "frozen_audit_summary_not_independent_source_verification",
+    }
+    if is_event:
+        windows = region["windows"]
+        require(set(windows) == {"pre7", "post3", "post7"})
+        require(region["month"]["scope"] == "month_calendar_only_not_event_eligibility")
+        period["scope"] = "month_calendar_only_not_event_eligibility"
+        event_gates = region["event_data_gate_passed"]
+        require(
+            set(event_gates) == {"post3", "post7"}
+            and all(type(v) is bool for v in event_gates.values())
+        )
+        result["event_data_gate_passed"] = event_gates
+        result["windows"] = {}
+        event = date.fromisoformat(conditions["event_date"])
+        for key, offsets in {
+            "pre7": range(-7, 0),
+            "post3": range(1, 4),
+            "post7": range(1, 8),
+        }.items():
+            projected = period_projection(windows[key], disclose)
+            require(
+                projected["dates"] == [(event + timedelta(days=i)).isoformat() for i in offsets]
+            )
+            result["windows"][key] = projected
+    return result
+
+
+def project_frozen_support(snapshot, request):
+    """Project an explicit frozen audit without consulting files or original sources."""
+    try:
+        return _project_audited_snapshot(snapshot, request)
+    except SNAPSHOT_ERRORS:
+        return unavailable("invalid_snapshot", "audit_snapshot_invalid_or_unreadable")
+
+
 def read_audited_support(path, request, state_path=None):
     try:
         ready = None
@@ -281,155 +447,9 @@ def read_audited_support(path, request, state_path=None):
         if path is None:
             return unavailable("not_prepared", "audit_snapshot_not_configured")
         snapshot = read_json(path, 16 * 1024 * 1024)
-        require(
-            isinstance(snapshot, dict)
-            and snapshot.get("schema") == "ocean-support-qualification/v1"
-        )
-        require(
-            snapshot.get("research_ready") is False
-            and type(snapshot.get("public_release_approved")) is bool
-        )
-        require(
-            snapshot.get("evidence_kind") in {"synthetic", "audited_cells", "real_source_audit"}
-        )
-        identity = fingerprint(snapshot["support_snapshot_id"])
-        payload = {k: v for k, v in snapshot.items() if k != "support_snapshot_id"}
-        require(identity == snapshot_digest(payload))
-        conditions = snapshot["conditions"]
-        if ready is not None and (
-            identity != ready["snapshot_id"]
-            or "sha256:" + snapshot["input_sha256"] != ready["input_sha256"]
-            or snapshot_digest(conditions) != ready["conditions_id"]
-            or any("sha256:" + snapshot[k] != ready["protocol"][k] for k in PROTOCOL_HASHES)
-        ):
-            return unavailable("expired", "audit_snapshot_identity_mismatch", "stale")
-        require(conditions.get("schema") == "ocean-support-request/v1")
-        if (
-            conditions["purpose"] != request.get("purpose", "A_month")
-            or conditions["month"] != request["month"]
-            or conditions["layer_use"] != request.get("layer_use", "front_effort")
-        ):
-            return unavailable("not_audited", "requested_conditions_not_in_snapshot")
-        if conditions["purpose"] == "B_event" and (
-            conditions.get("event_date") != request.get("event_date")
-            or conditions.get("event_day_rule") != "exclude_event_day/v1"
-        ):
-            return unavailable("not_audited", "requested_event_not_in_snapshot")
-        require(
-            conditions["method_version"] == "wgs84-laea-uniform/v1"
-            and conditions["quality_rule"] == "complete-common-support/v1"
-            and conditions["allocation"] in {"overlap_uniform", "cell_center"}
-        )
-        require(isinstance(snapshot["regions"], list) and 1 <= len(snapshot["regions"]) <= 3)
-        matches = [
-            r
-            for r in snapshot["regions"]
-            if r["geometry"]["type"] == "circle"
-            and r["geometry"]["center"] == [request["longitude"], request["latitude"]]
-            and r["geometry"]["radius_km"] == request["radius_km"]
-        ]
-        if not matches:
-            return unavailable("not_audited", "requested_geometry_not_in_snapshot")
-        require(len(matches) == 1)
-        region = matches[0]
-        disclose = (
-            snapshot["evidence_kind"] == "synthetic" and snapshot["public_release_approved"] is True
-        )
-        required = snapshot["required_layers"]
-        require(
-            isinstance(required, list)
-            and required
-            == ["front", "activity"]
-            + (["sst"] if conditions["layer_use"] == "front_effort_sst" else [])
-        )
-        require(isinstance(region["days"], list) and 1 <= len(region["days"]) <= 367)
-        rows = [day_projection(row, disclose) for row in region["days"]]
-        require(len({r["date"] for r in rows}) == len(rows))
-        actual = {
-            k: conditions[k]
-            for k in [
-                "purpose",
-                "month",
-                "layer_use",
-                "allocation",
-                "method_version",
-                "quality_rule",
-            ]
-        }
-        actual["geometry"] = {
-            "type": "circle",
-            "center": [request["longitude"], request["latitude"]],
-            "radius_km": request["radius_km"],
-        }
-        if conditions["purpose"] == "B_event":
-            actual.update(
-                event_date=conditions["event_date"], event_day_rule=conditions["event_day_rule"]
-            )
-        versions = {
-            k: fingerprint("sha256:" + snapshot[k]) for k in ("input_sha256", *PROTOCOL_HASHES)
-        }
-        versions.update(
-            method=conditions["method_version"],
-            quality_rule=conditions["quality_rule"],
-            parameter=content_id(snapshot["resolved_conditions"]),
-        )
-        runtime = {key: snapshot.get("method", {}).get(key) for key in GEOMETRY_RUNTIME_KEYS}
-        if all(
-            isinstance(value, str) and re.fullmatch(r"[a-zA-Z0-9.+_-]{1,60}", value)
-            for value in runtime.values()
-        ):
-            versions["geometry_runtime"] = runtime
-        daily = snapshot.get("input_daily_snapshot_id")
-        versions["daily_snapshot_id"] = None if daily is None else fingerprint(daily)
-        references, versions["sources"], versions["processing"] = evidence_projection(
-            snapshot, region["geometry"], required
-        )
-        period = period_projection(region["month"], disclose)
-        is_event = conditions["purpose"] == "B_event"
-        result = {
-            "status": "audited_snapshot",
-            "snapshot_schema": "ocean-support-qualification/v1",
-            "snapshot_id": identity,
-            "audited_at": None,
-            "qualification_scope": "frozen_snapshot_only",
-            "requested_conditions": request,
-            "actual_conditions": actual,
-            "required_layers": required,
-            "support_level": None if is_event else period["support_level"],
-            "month": period,
-            "days": rows,
-            "versions": versions,
-            "evidence": references,
-            "freshness": "unknown",
-            "freshness_reason": "current_source_identity_not_checked",
-            "research_ready": False,
-            "numeric_visibility": "approved_aggregate" if disclose else "withheld_public_boundary",
-            "evidence_kind": snapshot["evidence_kind"],
-            "evidence_scope": "frozen_audit_summary_not_independent_source_verification",
-        }
-        if is_event:
-            windows = region["windows"]
-            require(set(windows) == {"pre7", "post3", "post7"})
-            require(region["month"]["scope"] == "month_calendar_only_not_event_eligibility")
-            period["scope"] = "month_calendar_only_not_event_eligibility"
-            event_gates = region["event_data_gate_passed"]
-            require(
-                set(event_gates) == {"post3", "post7"}
-                and all(type(v) is bool for v in event_gates.values())
-            )
-            result["event_data_gate_passed"] = event_gates
-            result["windows"] = {}
-            event = date.fromisoformat(conditions["event_date"])
-            for key, offsets in {
-                "pre7": range(-7, 0),
-                "post3": range(1, 4),
-                "post7": range(1, 8),
-            }.items():
-                projected = period_projection(windows[key], disclose)
-                require(
-                    projected["dates"] == [(event + timedelta(days=i)).isoformat() for i in offsets]
-                )
-                result["windows"][key] = projected
+        result = _project_audited_snapshot(snapshot, request, ready)
+        if result["status"] != "audited_snapshot":
+            return result
         if ready is not None:
             if read_json(state_path, 4096) != ready:
                 return unavailable("refresh_changed", "audit_state_changed_during_read")
@@ -446,14 +466,5 @@ def read_audited_support(path, request, state_path=None):
         return unavailable("permission_denied", "audit_snapshot_permission_denied")
     except FileNotFoundError:
         return unavailable("not_prepared", "audit_snapshot_unavailable")
-    except (
-        OSError,
-        ValueError,
-        TypeError,
-        KeyError,
-        IndexError,
-        AttributeError,
-        OverflowError,
-        RecursionError,
-    ):
+    except SNAPSHOT_ERRORS:
         return unavailable("invalid_snapshot", "audit_snapshot_invalid_or_unreadable")

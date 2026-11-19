@@ -274,7 +274,8 @@ function lagChart(result) {
 function readFrozen(folder, profile, withManifest=false) {
   if (!lstatSync(folder).isDirectory() || lstatSync(folder).isSymbolicLink()) throw Error("invalid_directory");
   const manifest=JSON.parse(boundedText(join(folder,"manifest.json")));
-  if (manifest.schema_version !== "front-response-experiment-manifest/v2" || manifest.purpose !== profile.purpose || manifest.evidence_kind !== "synthetic_example" || manifest.research_ready !== false) throw Error("wrong_manifest");
+  const evidenceKind = profile.evidenceKind ?? "synthetic_example";
+  if (manifest.schema_version !== "front-response-experiment-manifest/v2" || manifest.purpose !== profile.purpose || manifest.evidence_kind !== evidenceKind || manifest.research_ready !== false) throw Error("wrong_manifest");
   if (manifest.state === "failed") return {state:"failed",error:manifest.error,run_id:manifest.run_id};
   if (manifest.state !== "completed" || !manifest.artifacts) throw Error("incomplete_manifest");
   const text=boundedText(join(folder,"summary.json"));
@@ -286,9 +287,9 @@ function readFrozen(folder, profile, withManifest=false) {
   for (const name of names.filter(name=>name!=="summary.json")) {
     if (hash(boundedText(join(folder,name))) !== manifest.artifacts[name]) throw Error("artifact_mismatch");
   }
-  if (summary.kind !== profile.purpose || summary.evidence_kind !== "synthetic_example" || summary.research_ready !== false || summary.result_id !== manifest.result_id) throw Error("result_mismatch");
+  if (summary.kind !== profile.purpose || summary.evidence_kind !== evidenceKind || summary.research_ready !== false || summary.result_id !== manifest.result_id) throw Error("result_mismatch");
   if (!isDeepStrictEqual(summary.parameters,manifest.parameters) || manifest.inputs?.length !== 1 || !isDeepStrictEqual(summary.source,manifest.inputs[0])) throw Error("identity_mismatch");
-  if(profile.reuseFlag) {
+  if(profile.versionedExecution) {
     if(summary.execution_id!==undefined || manifest.execution_id!==undefined) {
       fixedSummary(summary);
       if(!isDigest(manifest.execution_id) || manifest.execution_id!==summary.execution_id ||
@@ -316,14 +317,15 @@ export function runControlledExample(args, root, profile) {
     let state="failed",result,error={code:profile.errorCode},requestHash=null,inputHash=null,executionId=null;
     const python=process.env.OCEAN_EXPERIMENT_PYTHON || "python";
     const engine=join(stage,"engine");
-    const backend=join(profile.reuseFlag ? engine : root,"backend");
+    const backend=join(profile.versionedExecution ? engine : root,"backend");
     try {
-      const source=opts["--input"] || join(root,"backend/app/examples",profile.inputName);
+      const source=opts["--input"] ?? (profile.inputName && join(root,"backend/app/examples",profile.inputName));
+      if (!source) throw Error("explicit_input_required");
       const requestJson=boundedText(opts[profile.requestFlag],16_384);requestHash=hash(requestJson);
       const inputJson=boundedText(source);inputHash=hash(inputJson);
       const transport={request_sha256:requestHash,input_sha256:inputHash};
       let method, engineSources, fingerprint;
-      if(profile.reuseFlag) {
+      if(profile.versionedExecution) {
         method=JSON.parse(requestJson).method_version;
         if(!fixedMethods.has(method)) throw Error("invalid_method");
         engineSources=fixedEngineSources(root,method,boundedText);
@@ -342,13 +344,24 @@ export function runControlledExample(args, root, profile) {
           }
         }
       }
-      if(existsSync(output)) throw Error("output_already_exists");
+      if(existsSync(output) && (!reuse || profile.versionedExecution)) throw Error("output_already_exists");
       const pythonArgs=profile.pythonArgs?.(method,engine,stage) ?? ["-m",profile.module];
       const computed=spawnSync(python,pythonArgs,{
         cwd:backend,encoding:"utf8",windowsHide:true,timeout:20_000,maxBuffer:4_194_304,
         input:JSON.stringify({request_json:requestJson,input_json:inputJson})});
       const value=JSON.parse(computed.stdout || "{}");
-      if (computed.status === 0 && value.state === "completed" && value.result?.kind === profile.purpose) {
+      if (computed.status === 0 && value.state === "completed" && value.result?.kind === profile.purpose &&
+          value.result.evidence_kind === (profile.evidenceKind ?? "synthetic_example")) {
+        if (reuse && !profile.versionedExecution) {
+          let previous;
+          try { previous = readFrozen(reuse, profile, true); } catch { /* Rebuild when no valid prior result exists. */ }
+          if (previous?.manifest && isDeepStrictEqual(previous.summary, value.result) &&
+              previous.manifest.artifacts["report.md"] === hash(profile.report(value.result))) {
+            console.log(JSON.stringify({state:"completed",run_id:previous.manifest.run_id,
+              result_id:previous.summary.result_id,reused:true,source_freshness:"unknown",error:null}));
+            return 0;
+          }
+        }
         if(executionId) {
           fixedSummary(value.result);
           if(!isDeepStrictEqual(value.result.parameters,JSON.parse(requestJson))) throw Error("conditions_mismatch");
@@ -372,13 +385,14 @@ export function runControlledExample(args, root, profile) {
       } catch { state="failed";result=null;error={code:profile.errorCode}; }
     }
     const manifest={schema_version:"front-response-experiment-manifest/v2",purpose:profile.purpose,
-      run_id:randomUUID(),state,created_at:new Date().toISOString(),evidence_kind:"synthetic_example",research_ready:false,
+      run_id:randomUUID(),state,created_at:new Date().toISOString(),evidence_kind:profile.evidenceKind ?? "synthetic_example",research_ready:false,
       transport_identity:{request_sha256:requestHash,input_sha256:inputHash},error,artifacts:{}};
     if (result) {
       manifest.result_id=result.result_id;manifest.parameters=result.parameters;manifest.inputs=[result.source];
       manifest.artifacts=Object.fromEntries(Object.entries(artifacts).map(([name, content])=>[name,hash(content)]));
+      if(profile.reuseFlag) manifest.source_freshness="unknown";
       if(executionId) Object.assign(manifest,{execution_id:executionId,
-        versioned_result_id:result.versioned_result_id,source_freshness:"unknown"});
+        versioned_result_id:result.versioned_result_id});
     }
     if (Buffer.byteLength(JSON.stringify(manifest,null,2)+"\n","utf8")>ARTIFACT_BYTES) {
       state="failed";result=null;error={code:profile.errorCode};
@@ -395,7 +409,8 @@ export function runControlledExample(args, root, profile) {
     renameSync(stage,output);stage=null;
     console.log(JSON.stringify({state,run_id:manifest.run_id,result_id:manifest.result_id,error,
       ...(manifest.execution_id ? {execution_id:manifest.execution_id,versioned_result_id:manifest.versioned_result_id,
-        reused:false,source_freshness:"unknown"} : {})}));
+        reused:false,source_freshness:"unknown"} : profile.reuseFlag && result ?
+        {reused:false,source_freshness:"unknown"} : {})}));
     return state === "completed" ? 0 : 2;
   } catch { console.error("Controlled example rejected; no completed result was published.");return 2; }
   finally {
@@ -406,6 +421,7 @@ export function runControlledExample(args, root, profile) {
 export function runFixedRegionExample(args, root) {
   return runControlledExample(args, root, {
     requestFlag: "--fixed-region-request", readFlag: "--read-fixed-region-result", reuseFlag:"--reuse-result",
+    versionedExecution: true,
     purpose: "fixed_region_event_example", outputName: "fixed-region-example",
     inputName: "fixed-region-event.json", module: "app.fixed_region_example",
     pythonArgs: (method, root, stage) => {

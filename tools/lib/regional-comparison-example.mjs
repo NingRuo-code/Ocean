@@ -24,7 +24,7 @@ function compatibilityReport(result) {
   lines.push("", "## 原支持与逐源证据", "");
   for (const row of result.rows) {
     const c=row.candidate;
-    lines.push(`- ${text(c.name)} (${c.id})，点 ${c.longitude}, ${c.latitude}；源结果 ${c.result_id}。`,
+    lines.push(`- ${text(c.name)} (${c.id})，点 ${c.longitude}, ${c.latitude}；源结果 ${text(c.result_id)}。`,
       `  支持（日期、面积、H/E、有效日、排除及海域面积）：${text(JSON.stringify(row.effective_support))}`);
     if(row.source) {
       lines.push(`  来源 ${text(row.source.id)} / ${text(row.source.version)} / ${row.source.input_sha256}；许可 ${text(row.source.license)}。`,
@@ -67,7 +67,7 @@ function report(result) {
   for (const row of result.rows) {
     const c = row.candidate;
     lines.push(`- ${text(c.name)} (${c.id})：${row.status} / ${row.reason}。`,
-      `  位置 ${c.longitude}, ${c.latitude}；共同半径 ${p.radius_km} km；请求源结果 ${c.result_id}。`);
+      `  位置 ${c.longitude}, ${c.latitude}；共同半径 ${p.radius_km} km；请求源结果 ${text(c.result_id)}。`);
     if (row.source) {
       lines.push(`  来源 ${text(row.source.id)} / ${text(row.source.version)}；${row.source.input_sha256}；${text(row.source.license)}。`,
         `  实际方法 ${text(row.original_parameters.method_version)} / ${text(row.original_parameters.parameter_version)}；${text(row.support_scope)}。`);
@@ -82,6 +82,7 @@ function report(result) {
 export function runRegionalComparison(args, root) {
   return runControlledExample(args, root, {
     requestFlag: "--regional-comparison-request", readFlag: "--read-regional-comparison-result",
+    reuseFlag: "--reuse-regional-comparison-result",
     purpose: "regional_comparison_example", outputName: "regional-comparison-example",
     inputName: "regional-known-snapshots.json", module: "app.regional_comparison",
     errorCode: "controlled_comparison_failed", report,

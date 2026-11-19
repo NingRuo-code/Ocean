@@ -48,6 +48,20 @@ function followingDate(iso) {
   return day.toISOString().slice(0, 10);
 }
 
+function nextDayView(before, nextDate) {
+  if (!nextDate || typeof before?.view !== "string") return null;
+  try {
+    const view = JSON.parse(before.view);
+    if (!Array.isArray(view) || view.length !== 5) return null;
+    const [date, lon, lat, zoom, projection] = view;
+    if (date !== before.date || ![lon, lat, zoom].every(Number.isFinite) ||
+        typeof projection !== "string" || !projection) return null;
+    return JSON.stringify([nextDate, lon, lat, zoom, projection]);
+  } catch {
+    return null;
+  }
+}
+
 function matchesViewChange(current, before) {
   return !!before?.view && !!current.view && current.view !== before.view &&
     current.time_origin === before.time_origin && current.date === before.date;
@@ -211,8 +225,10 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
       await measure("reload", "same-profile", () => cdp.send("Page.reload", { ignoreCache: false }), (v) => !!v.date && v.time_origin !== navigationDocument?.time_origin);
       const beforeDateChange = await observed();
       const nextDate = followingDate(beforeDateChange?.date);
+      const expectedDateView = nextDayView(beforeDateChange, nextDate);
       await measure("date-change", "same-profile", () => cdp.evaluate("document.getElementById('dateNext').click()"),
-        (v) => v.date === nextDate && v.time_origin === beforeDateChange?.time_origin);
+        (v) => expectedDateView !== null && v.date === nextDate && v.view === expectedDateView &&
+          v.time_origin === beforeDateChange?.time_origin);
       const beforeZoom = await observed();
       const center = () => cdp.evaluate("(()=>{const r=document.getElementById('mapSvg').getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}})()");
       await measure("zoom", "same-profile", async () => {
@@ -271,7 +287,7 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
     commit, tracked_changes_present:trackedChanges, artifact_hashes: artifactHashes, environment, attempts, summary, targets_verified: false,
     protocol: { runs, timeout_ms: timeout, clock: "Node monotonic action dispatch to matching observed DOM plus two animation frames; 25ms polling overhead included",
       completion_deadline: "Matching painted state must be confirmed before the action deadline; in-flight browser commands may take longer to return",
-      action_identity: "Next-day action requires the following calendar date in the same document; zoom and drag require a changed view in the original document and date",
+      action_identity: "Next-day action requires the following calendar date with the original document, center, scale and projection; zoom and drag require a changed view in the original document and date",
       partial_paint: "First matching usable partial viewport confirmed across two frames, observed separately from full readiness and excluded from success quantiles",
       segments: "Browser render/panel and network segments overlap; not added to elapsed time", canceled: "reported in request records; failed/timed-out attempts retained with null elapsed", cache_limitations: "no production cache purge; OS and storage warmth uncontrolled" },
     limitations: ["B0 activity layer still uses percentile/700-cell truncation; no valid acceleration ratio against a complete-support renderer.",

@@ -9,19 +9,12 @@ from pydantic import Field, model_validator
 
 from .analysis_support import content_id, decode_controlled_json, known_period_summary
 from .comparison_models import Identity, SnapshotPack
-from .monthly_models import ClosedModel, Finite, Month
+from .g3_candidate_support import review_candidate_support
+from .g3_models import G3Region, Label, Seasons
+from .monthly_models import ClosedModel, Month
 from .published_months import UNITS, project_public_month
 
-Label = Annotated[str, Field(pattern=r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")]
 Reference = Annotated[str, Field(pattern=r"^[A-Za-z][A-Za-z0-9_.-]{0,63}/v[1-9][0-9]*$")]
-MonthNumber = Annotated[int, Field(strict=True, ge=1, le=12)]
-
-
-class ValidationRegion(ClosedModel):
-    id: Label
-    name: Annotated[str, Field(pattern=r"^[\w .-]{1,80}$")]
-    longitude: Annotated[Finite, Field(ge=-180, le=180)]
-    latitude: Annotated[Finite, Field(ge=-90, le=90)]
 
 
 class ValidationCandidate(ClosedModel):
@@ -39,13 +32,10 @@ class ValidationRequest(ClosedModel):
     protocol_ref: Reference
     partition_ref: Reference
     source_ref: Identity
-    region: ValidationRegion
+    region: G3Region
     radius_km: Literal[10, 20, 30]
     season_year_rule: Literal["calendar_year"]
-    seasons: Annotated[
-        dict[Label, Annotated[list[MonthNumber], Field(min_length=1, max_length=12)]],
-        Field(min_length=1, max_length=12),
-    ]
+    seasons: Seasons
     aggregation: Literal["sum_known_nonoverlapping_H_over_E"]
     candidates: Annotated[list[ValidationCandidate], Field(min_length=1, max_length=12)]
 
@@ -211,10 +201,12 @@ def main():
         envelope = decode_controlled_json(sys.stdin.buffer.read(4_194_305), 4_194_304)
         if not isinstance(envelope, dict) or set(envelope) != {"request_json", "input_json"}:
             raise ValueError("Invalid G3 envelope")
-        result = validate_known_months(
-            decode_controlled_json(envelope["request_json"], 16_384),
-            decode_controlled_json(envelope["input_json"]),
-        )
+        request = decode_controlled_json(envelope["request_json"], 16_384)
+        pack = decode_controlled_json(envelope["input_json"])
+        if isinstance(request, dict) and request.get("purpose") == "g3_candidate_support":
+            result = review_candidate_support(request, pack)
+        else:
+            result = validate_known_months(request, pack)
         print(json.dumps({"state": "completed", "result": result}, allow_nan=False))
     except (OSError, ValueError, TypeError, ArithmeticError, RecursionError):
         print(json.dumps({"state": "failed", "error": {"code": "controlled_validation_failed"}}))

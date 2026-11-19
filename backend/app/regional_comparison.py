@@ -158,8 +158,9 @@ def _read_candidate(candidate, request, snapshots):
             if state and state != "completed":
                 return {**row, "reason": "source_" + state, "required": "completed_source_result"}
         source = SnapshotSource.model_validate(snapshot["source"])
+        public_license = source.license.split(";", 1)[0].strip() == "CC0-1.0"
         if request.method_version == "known-snapshots/v2":
-            if not source.license.startswith("CC0-1.0"):
+            if not public_license:
                 return {
                     **row,
                     "reason": "source_license_unverified",
@@ -191,7 +192,7 @@ def _read_candidate(candidate, request, snapshots):
         if (
             source != candidate.source
             or snapshot.get("kind") != request.analysis_kind
-            or not source.license.startswith("CC0-1.0")
+            or not public_license
             or source.version != snapshot["parameters"]["input_version"]
         ):
             raise ValueError("Snapshot source identity or purpose changed")
@@ -265,13 +266,14 @@ def compare_known_snapshots(request_payload, pack_payload):
     pack = SnapshotPack.model_validate(pack_payload)
     snapshots = {entry.result["result_id"]: entry for entry in pack.snapshots}
     rows = [_read_candidate(candidate, request, snapshots) for candidate in request.candidates]
+    parameters = request.model_dump(exclude_none=True)
     result = {
         "kind": request.purpose,
         "analysis_kind": request.analysis_kind,
         "status": "limited_side_by_side"
         if any(row["status"] == "limited_side_by_side" for row in rows)
         else "not_ready",
-        "parameters": request.model_dump(exclude_none=True),
+        "parameters": parameters,
         "evidence_kind": "synthetic_example",
         "research_ready": False,
         "source": {
@@ -292,6 +294,14 @@ def compare_known_snapshots(request_payload, pack_payload):
     if request.method_version == "known-snapshots/v2":
         result["source"]["version"] = request.method_version
         add_compatibility(result, request, snapshots)
+    withheld = [index for index, row in enumerate(rows) if "source_result_id" not in row]
+    if withheld:
+        # Bind the original request even when the public projection omits source details.
+        result["request_identity"] = content_id(parameters)
+        for index in withheld:
+            for key in ("source", "result_id", "snapshot_sha256"):
+                del rows[index]["candidate"][key]
+                del parameters["candidates"][index][key]
     result["result_id"] = content_id(result)
     return result
 

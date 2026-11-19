@@ -363,7 +363,8 @@ function buildManifest(summary, artifacts) {
   };
 }
 
-if (process.argv.includes("--g3-validation-request") || process.argv.includes("--read-g3-validation-result")) {
+if (["--g3-validation-request", "--read-g3-validation-result", "--g3-candidate-support-request",
+  "--read-g3-candidate-support-result"].some(flag => process.argv.includes(flag))) {
   const { runStratifiedValidation } = await import("./lib/stratified-validation-example.mjs");
   process.exitCode = runStratifiedValidation(process.argv.slice(2), ROOT);
 } else if (process.argv.includes("--regional-comparison-request") || process.argv.includes("--read-regional-comparison-result")) {
