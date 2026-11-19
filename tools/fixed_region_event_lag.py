@@ -63,9 +63,12 @@ def project_event(event, group_id):
             "target": measured(day.get("target")),
             "control": measured(day.get("control")),
             "registered_pair": day.get("matched_for_window", False),
+            "descriptive_pair": day.get(
+                "matched_for_descriptive_day", day.get("matched_for_window", False)
+            ),
         }
         row["pair_available"] = has_pair_value(row) and (
-            row["registered_pair"] or offset == 0
+            row["descriptive_pair"] or offset == 0
         )
         rows.append(row)
     return {
@@ -86,7 +89,7 @@ def phase_cohort(events, window):
         event
         for event in matched
         if all(
-            row["pair_available"]
+            row["pair_available"] and row["registered_pair"]
             for row in event["daily"]
             if -7 <= row["offset"] <= (3 if window == "post3" else 7)
             and row["offset"] != 0

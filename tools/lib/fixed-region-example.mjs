@@ -35,7 +35,7 @@ function report(result) {
     const lines=["# 锚日前后逐日变化与共同队列 · 合成样例", "", `来源 ${result.control_result_id}。`,
       `短期 ${cohorts.post3.event_count} 个事件，后七日 ${cohorts.post7.event_count} 个事件，具有完整同日证据的共同队列 ${cohorts.common.event_count} 个事件。`,
       `共同队列的等权变化差。后 1–3 日 ${cohorts.common.equal_event_window_effects.post3 ?? "未知"}，后 1–7 日 ${cohorts.common.equal_event_window_effects.post7 ?? "未知"} h/(km²·d)。`,
-      "逐日可用案例与共同队列分别绘制。锚日为诊断记录，断点保留未知。", "", "![逐日活动密度差](lag.svg)", ""];
+      "逐日图按当日可用成员分别合并 H/E。锚日为诊断记录，断点保留未知。", "", "![逐日活动密度差](lag.svg)", ""];
     for(const [key,title] of [["common","共同队列"],["available","逐日可用案例"]]) {
       lines.push(`## ${title}`, "", "| 相对日 | 事件数 | 相关组 | 目标 H | 目标 E | 对照 H | 对照 E | 密度差 | 状态 |",
         "| --- | --- | --- | --- | --- | --- | --- | --- | --- |");

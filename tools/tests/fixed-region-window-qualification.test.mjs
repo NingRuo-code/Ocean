@@ -49,17 +49,18 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null, radius = 10
   assert.equal(front.result_id,JSON.parse(evidence).result_id);
   const makeSnapshot = (blocked, {frontVersion=front.source.front_source_version, blockedQuality=false, nullLicense=false,
     days=11, hours=()=>0, varySupportAt=null, halfSupport=false, eventDate=anchor, processingVersion=null,
-    activitySource="effort-original", longitude=0}={}) => {
+    activitySource="effort-original", longitude=0, omitAt=null}={}) => {
     const claim = {state:"verified",evidence_id:"sha256:"+"c".repeat(64)};
     const region={...scope,center:[longitude,0],radius_km:radius};
     const cells = {schema:"ocean-regional-cells/v1",evidence_kind:"synthetic",days:Array.from({length:days},(_,i) => {
+      if(i-7===omitAt) return null;
       const day = shift(eventDate,i-7);
       const layer = (kind,id,unit,hours) => ({kind,id,unit,role:"analysis_source",time_verified:true,bounds_verified:true,
         support_verified:true,duration_days:1,cells:[{bounds:[-0.4,-0.4,0.4,0.4],hours,support:"valid"}]});
       const frontLayer=layer("front","front-original","classification_code",null);
       if(halfSupport||i-7===varySupportAt) frontLayer.cells=[{bounds:[-0.4,-0.4,longitude,0.4],support:"valid"},{bounds:[longitude,-0.4,0.4,0.4],support:"land"}];
       return {date:day,layers:[frontLayer,layer("activity",activitySource,"fishing_hours",hours(i-7))]};
-    }),qualification_evidence:{schema:"ocean-support-evidence/v1",source_versions:{...(frontVersion?{"front-original":frontVersion}:{}),"effort-original":claim.evidence_id,"effort-other":claim.evidence_id},
+    }).filter(Boolean),qualification_evidence:{schema:"ocean-support-evidence/v1",source_versions:{...(frontVersion?{"front-original":frontVersion}:{}),"effort-original":claim.evidence_id,"effort-other":claim.evidence_id},
       processing_version:processingVersion ?? claim.evidence_id,license:nullLicense ? null : blocked ? {state:"blocked"} : claim,
       quality_rule:{id:"complete-common-support/v1",...(blockedQuality?{state:"blocked"}:claim)},geometry:{circle:{...claim,request_geometry:region}}}};
     const output=join(directory,blocked?"blocked-support.json":"support.json");
@@ -518,8 +519,18 @@ test("lag plots preserve short-only cases and verify a fixed common cohort witho
     const onlyShort=eventLag("short-only-controls","short-only-lag").result;
     assert.equal(onlyShort.cohorts.common.event_count,0);
     assert.equal(onlyShort.cohorts.post3.event_count,2);
-    assert.equal(onlyShort.profiles.available.find(day=>day.offset===4).density_difference,null);
+    assert.equal(onlyShort.profiles.available.find(day=>day.offset===4).event_count,1);
+    assert.equal(onlyShort.profiles.available.find(day=>day.offset===5).density_difference,null);
+    assert.equal(onlyShort.profiles.available.find(day=>day.offset===6).event_count,1);
     assert.ok(onlyShort.profiles.common.every(day=>day.density_difference===null));
+
+    const missing=registerControl("missing",0.24,null,{omitAt:5});
+    fixedControls([missing,short],"target-effects","control-gap",undefined,2,"post3");
+    const gap=eventLag("control-gap","gap-lag").result;
+    assert.equal(gap.cohorts.common.event_count,0);
+    assert.equal(gap.profiles.available.find(day=>day.offset===4).event_count,1);
+    assert.equal(gap.profiles.available.find(day=>day.offset===5).density_difference,null);
+    assert.equal(gap.profiles.available.find(day=>day.offset===6).event_count,1);
   } finally {
     if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
   }
