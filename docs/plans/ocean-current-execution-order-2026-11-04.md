@@ -17,7 +17,7 @@
 
 | 交付 | 沿用的票据 | 下一步与完成条件 |
 | --- | --- | --- |
-| 首个真实 A 月 | [#37](https://github.com/NingRuo-code/Ocean/issues/37)、[#38](https://github.com/NingRuo-code/Ocean/issues/38) 的来源审计，复跑 [#44](https://github.com/NingRuo-code/Ocean/issues/44)、[#64](https://github.com/NingRuo-code/Ocean/issues/64)，再按 [#67](https://github.com/NingRuo-code/Ocean/issues/67) → [#68](https://github.com/NingRuo-code/Ocean/issues/68) | 首先取得 2024-08 锋面时间写出与格网依据、固定 GFW v3 的 UTC 日界和逐日逐格有效支持，核对原档、粒度和许可后重审同一请求。两套原档本地各匹配 3 日、缺 28 日，既有审计的三个半径均为 0/31 天。准入通过后先冻结方案，再计算真实整月。公开固定版取数无需另等令牌。[补档与复跑入口](../reports/ocean-august-source-readiness-2026-11-06.md) |
+| 首个真实 A 月 | [#37](https://github.com/NingRuo-code/Ocean/issues/37)、[#38](https://github.com/NingRuo-code/Ocean/issues/38) 的来源审计，复跑 [#44](https://github.com/NingRuo-code/Ocean/issues/44)、[#64](https://github.com/NingRuo-code/Ocean/issues/64)，再按 [#67](https://github.com/NingRuo-code/Ocean/issues/67) → [#68](https://github.com/NingRuo-code/Ocean/issues/68) | 首先取得 2024-08 锋面时间写出与格网依据、固定 GFW v3 的 UTC 日界和逐日逐格有效支持，核对原档、粒度和许可后重审同一请求。11 月 19 日复核锋面 8/31、GFW 4/31，三个半径均为 0/31 天。准入通过后先冻结方案，再计算真实整月。公开固定版取数无需另等令牌。[补档与复跑入口](../reports/ocean-august-source-readiness-2026-11-06.md) |
 | 真实 A 结果展示与证据交接 | [#69](https://github.com/NingRuo-code/Ocean/issues/69)、[#70](https://github.com/NingRuo-code/Ocean/issues/70) 与 #68 汇合到 [#71](https://github.com/NingRuo-code/Ocean/issues/71) → [#98](https://github.com/NingRuo-code/Ocean/issues/98) | 主图、说明、逐日证据、允许导出的基础图表和复算使用同一结果身份，再接入工作台只读展示。保存、保护及正式 PDF、PNG、CSV 成果包沿 [REPORT #125](https://github.com/NingRuo-code/Ocean/issues/125) 的 [#126–#140](../tickets/report-case-and-export/README.md)，其中 [#134](https://github.com/NingRuo-code/Ocean/issues/134) 承接真实 A 案例包。 |
 | 真实 B/C 与后续能力 | [B #72](https://github.com/NingRuo-code/Ocean/issues/72) 的 #74–#84，[C #85](https://github.com/NingRuo-code/Ocean/issues/85) 的 [#86–#94](../tickets/c-regional-evidence-comparison/README.md)，以及本页后续与条件性能力 | B 实际运行固定区完整前后窗，#83 消费 #71，#84 交接真实事件成果。C 等可比真实成果。独立复核、预测、AI、任务、报告和运维按各自已有前置进入。 |
 | 校内研究复跑与预约验收 | 取数和复跑沿 #67/#68，小范围只读发布复用 [#227](https://github.com/NingRuo-code/Ocean/issues/227) 与 [PR #351](https://github.com/NingRuo-code/Ocean/pull/351) 的 Linux 隔离验证 | SothisAI 已完成三日复跑和容器内只读启动、回退、恢复。预约前确认获准的校园网或 aTrust 项目网页入口。约定时段由助教或老师从自己的电脑打开页面，切换日期或图层，打开一个已知合成案例，找到证据与缺失提示。当天无法访问时先共享屏幕讲解，再补独立实操。项目网页入口和实操待验。 |
@@ -41,7 +41,7 @@
 
 研究的内部顺序是 **真实源证据 → 首选月准入复核 → 正式 #67 → 真实 #68**。先取得锋面时间起点与 GFW 日期分配、有效支持和零/未知的依据，再用固定版本补齐月历、核对格网粒度与用途许可，重新运行 #44/#64 的具体点位和半径。2024-08 中心 10/20/30 km 都是 0/31 天通过共同支持。GFW 已有固定版本官方原包，不需等待令牌；准入通过后才冻结正式主方案与变体，再计算真实效果。已有合成例用于校验软件，不作为真实月输入。
 
-[八月原档预检](../reports/ocean-august-source-readiness-2026-11-06.md)已核对固定锋面与 GFW 归档各有 31 日、可选海温有 31 个官方 UTC 坐标，并为显式逐文件审计解除容量限制。两包剩余日文件约需 322 MB 压缩流量。先按预检所列字段取得可归档的提供方依据，再执行批量获取和真实资格复核；不借用其他年代的接收质量估计或新版地图/API 说明替代固定版本的依据。
+[八月原档预检](../reports/ocean-august-source-readiness-2026-11-06.md)已核对固定锋面与 GFW 归档各有 31 日、可选海温有 31 个官方 UTC 坐标，并为显式逐文件审计解除容量限制。11 月 19 日重算缺失成员压缩流量约 304.5 MB，不含 HTTP 开销和海温。先按预检所列字段取得可归档的提供方依据，再执行批量获取和真实资格复核；不借用其他年代的接收质量估计或新版地图/API 说明替代固定版本的依据。
 
 每次领取前读取 Issue 正文、评论及原生依赖，核对实际输入。里程碑表示范围，`ready-for-agent` 才表示当前可领取；标签也不能替代事实核对。一次优先完成一个可验收切片，最多同时推进两个不冲突的切片。真实数据、科学验收、软件完成与生产部署分别记录。
 
