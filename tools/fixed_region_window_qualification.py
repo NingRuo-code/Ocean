@@ -46,14 +46,13 @@ def text_digest(text):
     return "sha256:" + hashlib.sha256(text.encode()).hexdigest()
 
 
-def read_front(bundle, request):
-    summary = json_object(bundle["front_summary_json"])
-    manifest = json_object(bundle["front_manifest_json"])
+def read_frozen_input(summary_text, manifest_text, request, schema):
+    summary = json_object(summary_text)
+    manifest = json_object(manifest_text)
     require(
         manifest["schema_version"] == "front-response-experiment-manifest/v2"
         and manifest["state"] == "completed"
-        and manifest["artifacts"]["summary.json"]
-        == text_digest(bundle["front_summary_json"])
+        and manifest["artifacts"]["summary.json"] == text_digest(summary_text)
         and manifest["result_id"] == summary["result_id"]
         and manifest["parameters"] == summary["parameters"]
         and manifest["inputs"] == [summary["source"]]
@@ -61,14 +60,13 @@ def read_front(bundle, request):
         and manifest["evidence_kind"] == summary["evidence_kind"] == "synthetic_example"
         and manifest["research_ready"] is False
         and summary["research_ready"] is False
-        and summary["schema_version"] == "fixed-region-front-observation/v1"
-        and summary["source"]["license"] == "CC0-1.0",
-        "invalid_frozen_front_result",
+        and summary["schema_version"] == schema,
+        "invalid_frozen_experiment_result",
     )
     conditions = (*GEOMETRY_KEYS, "search_start", "search_end")
     require(
         all(request[key] == summary["parameters"][key] for key in conditions),
-        "front_conditions_mismatch",
+        "frozen_experiment_conditions_mismatch",
     )
     return summary
 
@@ -302,7 +300,13 @@ def evaluate(request, bundle, source_hash):
         and len(bundle["support_snapshots"]) <= 32,
         "window_input_schema",
     )
-    front = read_front(bundle, request)
+    front = read_frozen_input(
+        bundle["front_summary_json"],
+        bundle["front_manifest_json"],
+        request,
+        "fixed-region-front-observation/v1",
+    )
+    require(front["source"]["license"] == "CC0-1.0", "invalid_frozen_front_license")
     observed_events = front["selection"]["events"]
     candidates = [event for event in observed_events if event["accepted"]]
     anchors = {event["anchor_date"] for event in candidates}

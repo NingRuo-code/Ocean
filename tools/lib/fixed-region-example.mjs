@@ -30,6 +30,24 @@ function boundedText(path, bytes=ARTIFACT_BYTES) {
   } finally { closeSync(fd); }
 }
 function report(result) {
+  if (result.schema_version === "fixed-region-window-effects/v1") {
+    const lines = ["# 固定海域事件活动变化 · 合成样例", "", `窗口资格结果 ${result.window_result_id}。`,
+      "变化为相同有效支持上的表观捕捞活动密度差。单位 h/(km²·d)，锚日单列。", "",
+      "| 锚日 | 窗口 | 活动小时 H | 面积时间 E (km²·d) | 有效日 | H/E | 密度差 | 相对变化 (%) | 比较状态 |",
+      "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"];
+    for (const event of result.events) {
+      for (const [name, window] of Object.entries(event.windows)) {
+        const change=event.changes[name];
+        lines.push(`| ${event.anchor_date} | ${name} | ${window.total_hours ?? "未知"} | ${window.area_time_km2_days ?? "未知"} | ${window.supported_days}/${window.requested_days} | ${window.density_hours_per_km2_day ?? "未知"} | ${change?.absolute_density_change ?? "—"} | ${change?.relative_change_percent ?? "—"} | ${change?.relative_reason ?? change?.status ?? window.p0_status} |`);
+      }
+    }
+    lines.push("", "## 汇总", "");
+    for (const [name, pooled] of Object.entries(result.pooled)) {
+      lines.push(`- ${name} 共 ${pooled.event_count} 个事件。事件等权差 ${pooled.equal_event_difference ?? "未知"}；按面积时间合并的差 ${pooled.pooled_density_difference ?? "未知"}；合并状态 ${pooled.pooled_status}。`);
+    }
+    lines.push("", "混合覆盖范围或缺少前后支持时保留描述值。真实研究、对照效应和不确定性待验收。", "");
+    return lines.join("\n");
+  }
   if (result.schema_version === "fixed-region-window-qualification/v1") {
     const lines = ["# 固定海域事件窗口资格 · 合成样例", "", `锋面结果 ${result.front_result_id}。`,
       "事件日单列。真实研究资格待验证。", ""];
@@ -150,6 +168,7 @@ export function runFixedRegionExample(args, root) {
       const scripts = new Map([
         ["observed-fixed-exposure/v1","fixed_region_front_observations.py"],
         ["fixed-event-window-qualification/v1","fixed_region_window_qualification.py"],
+        ["fixed-event-window-effects/v1","fixed_region_window_effects.py"],
       ]);
       const script = scripts.get(JSON.parse(request).method_version);
       return script ? ["-B","-X",`pycache_prefix=${join(stage,"pycache")}`,join(root,"tools",script)] : undefined;
