@@ -30,6 +30,33 @@ def run_cli(workspace, *options):
     return subprocess.run([sys.executable, str(ROOT / "tools/inventory-runtime.py"), "--root", str(root), "--snapshot", str(snapshot), "--out", str(root / "inventory.json"), *options], capture_output=True, text=True, encoding="utf-8", timeout=30)
 
 
+def test_cli_reports_allocated_file_bytes_separately_from_logical_size(cli_workspace):
+    root, _ = cli_workspace
+    raw = root / "data/raw"
+    raw.mkdir(parents=True)
+    (root / "data/cache").mkdir()
+    example = raw / "example.bin"
+    example.write_bytes(b"abc")
+    alias = raw / "alias.bin"
+    os.link(example, alias)
+    result = run_cli(cli_workspace, "--layout", "sothisai")
+    assert result.returncode == 0, result.stderr
+    report = json.loads((root / "inventory.json").read_text(encoding="utf-8"))
+    layers = report["layers"]
+    assert layers["raw"]["bytes"] == 6
+    allocation = layers["raw"]["allocation"]
+    if sys.platform == "linux":
+        # Independent CLI reports only the two regular file entries, without directory overhead.
+        reference = subprocess.check_output(["du", "-B1", "-l", str(example), str(alias)], text=True)
+        expected = sum(int(line.split()[0]) for line in reference.splitlines())
+        assert allocation == {"status": "measured", "bytes": expected, "observed_bytes": expected}
+        assert layers["cache"]["allocation"]["bytes"] == 0
+    else:
+        assert allocation == {"status": "unavailable", "bytes": None, "observed_bytes": None}
+        assert layers["cache"]["allocation"]["bytes"] is None
+    assert layers["backup"]["allocation"]["bytes"] is None
+
+
 def directory_link(target, link):
     try:
         os.symlink(target, link, target_is_directory=True)
@@ -112,6 +139,13 @@ def test_cli_two_partial_observations_do_not_turn_equal_lower_bounds_into_zero_c
     observations = report["observations"]
     assert observations["before"]["layers"]["raw"]["observed_bytes"] == 3
     assert report["layers"]["raw"]["observed_bytes"] == 3
+    allocation = report["layers"]["raw"]["allocation"]
+    assert allocation["bytes"] is None
+    if sys.platform == "linux":
+        assert allocation["status"] == "partial"
+        assert isinstance(allocation["observed_bytes"], int)
+    else:
+        assert allocation["observed_bytes"] is None
     assert observations["changes"]["raw"]["status"] == "unavailable"
     assert observations["changes"]["raw"]["bytes_delta"] is None
     assert observations["changes"]["raw"]["files_delta"] is None
