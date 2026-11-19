@@ -165,7 +165,12 @@ def project_day(row, disclose):
         "reasons": row["exclusion_reasons"],
         **{
             key: row[key] if disclose else None
-            for key in ("hours", "area_time_km2_days", "common_support_id")
+            for key in (
+                "hours",
+                "area_time_km2_days",
+                "common_support_id",
+                "outside_request_selected_area_km2",
+            )
         },
     }
 
