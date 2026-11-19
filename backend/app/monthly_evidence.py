@@ -253,10 +253,11 @@ def render_monthly_evidence(result):
     day_table = table(DAILY_COLUMNS.values(), ([row[key] for key in DAILY_COLUMNS] for row in days))
     page = f"""<!DOCTYPE html>
 <html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
 <title>月度距离与活动证据</title><style>
-body{{margin:2rem auto;max-width:72rem;padding:0 1rem;font:16px/1.55 system-ui;color:#17333e}}
+body{{margin:1rem auto;max-width:72rem;padding:0 .75rem;font:16px/1.55 system-ui;color:#17333e;background:#fff}}
 svg{{display:block;width:100%;max-width:55rem}}table{{border-collapse:collapse;width:100%}}
-th,td{{padding:.5rem;text-align:left;vertical-align:top;border-bottom:1px solid #c7d7dc}}
+th,td{{padding:.4rem;text-align:left;vertical-align:top;border-bottom:1px solid #c7d7dc;overflow-wrap:anywhere}}
 details{{margin:1rem 0;overflow:auto}}summary{{cursor:pointer}}code{{overflow-wrap:anywhere}}
 </style><body><main>
 <h1>月度距离与活动证据</h1><p>{review}。表观捕捞活动按小时计。正式研究资格未通过。</p>

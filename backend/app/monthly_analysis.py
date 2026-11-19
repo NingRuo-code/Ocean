@@ -30,6 +30,7 @@ from .monthly_distance_reference import (
     distance_execution_sources,
     read_distance_input,
 )
+from .monthly_evidence import VERSION as EVIDENCE_VERSION
 from .monthly_evidence import render_monthly_evidence, zip_monthly_evidence
 from .monthly_execution_qualification import qualify_execution
 from .monthly_models import (
@@ -38,6 +39,7 @@ from .monthly_models import (
     MonthlyExample,
     MonthlyRequest,
     MonthlyResearchRequest,
+    SnapshotId,
 )
 from .owner_access import owner_requirement
 from .published_months import PUBLISHED_PATH, create_published_router
@@ -280,6 +282,28 @@ def create_monthly_router(
             return finish(run_id, error={"code": "calculation_failed"})
         return finish(run_id, result=result)
 
+    def completed_distance(record):
+        return record["state"] == "completed" and record["result"]["kind"] in {
+            "monthly_distance_reference", "monthly_spatial_research",
+        }
+
+    @router.get("/reports", dependencies=[Depends(require_owner)])
+    def report_catalog(response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        with lock:
+            return {
+                "schema_version": "ocean-distance-report-catalog/v1",
+                "runs": [
+                    {
+                        "id": record["id"],
+                        "result_id": record["result"]["result_id"],
+                        "evidence_kind": record["result"]["evidence_kind"],
+                        "parameters": record["result"]["parameters"],
+                    }
+                    for record in reversed(records.values()) if completed_distance(record)
+                ],
+            }
+
     @router.get("/{run_id}")
     def read(
         run_id: str,
@@ -297,18 +321,43 @@ def create_monthly_router(
                 response.headers["Cache-Control"] = "no-store"
             return copy.deepcopy(records[run_id])
 
-    @router.get("/{run_id}/evidence", dependencies=[Depends(require_owner)])
-    def evidence(run_id: str, format: Literal["html", "zip"] = "html"):
-        headers = {"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"}
+    def distance_result(run_id):
+        headers = {"Cache-Control": "no-store"}
         with lock:
             record = records.get(run_id)
             if record is None:
                 raise HTTPException(404, "Run unavailable in this process", headers=headers)
             if record["state"] != "completed":
                 raise HTTPException(409, "Only completed runs have evidence", headers=headers)
-            result = record["result"]
-            if result["kind"] not in {"monthly_distance_reference", "monthly_spatial_research"}:
+            if not completed_distance(record):
                 raise HTTPException(409, "Distance evidence is unavailable for this run", headers=headers)
+            return record["result"]
+
+    @router.get("/{run_id}/report", dependencies=[Depends(require_owner)])
+    def report_preview(run_id: str, result_id: SnapshotId, response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        result = distance_result(run_id)
+        if result["result_id"] != result_id:
+            raise HTTPException(409, "Selected result identity has changed", headers={"Cache-Control": "no-store"})
+        page, _, _, _ = render_monthly_evidence(result)
+        identity = {
+            "schema_version": "ocean-distance-report/v1",
+            "evidence_version": EVIDENCE_VERSION,
+            "result_id": result_id,
+            "content_sha256": "sha256:" + hashlib.sha256(page).hexdigest(),
+        }
+        return {
+            **identity,
+            "report_id": content_id(identity),
+            "parameters": result["parameters"],
+            "evidence_kind": result["evidence_kind"],
+            "html": page.decode("utf-8"),
+        }
+
+    @router.get("/{run_id}/evidence", dependencies=[Depends(require_owner)])
+    def evidence(run_id: str, format: Literal["html", "zip"] = "html"):
+        headers = {"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"}
+        result = distance_result(run_id)
         if format == "zip" and result["evidence_kind"] != "synthetic":
             raise HTTPException(403, "An export license is required for this result", headers=headers)
         page, figure, daily, monthly = render_monthly_evidence(result)

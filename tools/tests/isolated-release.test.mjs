@@ -52,6 +52,7 @@ test('fixed release starts original API from an independently installed no-Git p
   assert.equal(status.layers.models.state,'disabled_by_profile');assert.equal(status.layers.analysis_execution.state,'disabled_by_profile');
   assert.equal(status.layers.published_read.state,'readable_example');assert.equal(status.layers.map_index.front.registered_days,62);
   assert.equal((await fetch(base+'/api/query/monthly-analysis/cases')).status,403);
+  for(const path of ['/reports','/'+'a'.repeat(32)+'/report?result_id=sha256:'+'0'.repeat(64)])assert.equal((await fetch(base+'/api/query/monthly-analysis'+path)).status,403);
   for(const suffix of ['', '/options', '/'+ 'a'.repeat(32), '/intents/'+ 'a'.repeat(32)])assert.equal((await fetch(base+'/api/query/monthly-analysis/owner-runs'+suffix)).status,403);
   assert.equal((await fetch(base+'/api/query/monthly-analysis/owner-runs',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).status,403);
   for(const format of ['markdown','csv'])assert.equal((await fetch(base+'/api/query/monthly-analysis/owner-runs/'+'a'.repeat(32)+'/exports/'+format+'?record_id=sha256:'+'0'.repeat(64)+'&result_id=sha256:'+'0'.repeat(64))).status,403);
@@ -67,7 +68,7 @@ test('fixed release starts original API from an independently installed no-Git p
    assert.equal(file.status,200);assert.equal(file.headers.get('X-Ocean-Release'),built.release_id);
    assert.match(await file.text(),/真实研究资格未通过/);
   }
-  for(const asset of ['prototype-month-evidence.js','prototype-month-report.js','data/known-month-reports.js'])assert.equal((await fetch(base+'/'+asset)).status,200);
+  for(const asset of ['prototype-month-evidence.js','prototype-month-report.js','prototype-controlled-month-report.js','data/known-month-reports.js'])assert.equal((await fetch(base+'/'+asset)).status,200);
   t.diagnostic(JSON.stringify({evidence:'O07_fixed_release_status',source_commit:f.commit,release_id:built.release_id,
    policy_version:status.policy_version,map_days:status.layers.map_index.front.registered_days,
    published_read:status.layers.published_read.state,models:status.layers.models.state,
