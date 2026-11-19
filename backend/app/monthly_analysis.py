@@ -30,8 +30,11 @@ from .monthly_distance_reference import (
     distance_execution_sources,
     read_distance_input,
 )
-from .monthly_evidence import VERSION as EVIDENCE_VERSION
-from .monthly_evidence import render_monthly_evidence, zip_monthly_evidence
+from .monthly_evidence import (
+    project_monthly_evidence,
+    render_monthly_evidence,
+    zip_monthly_evidence,
+)
 from .monthly_execution_qualification import qualify_execution
 from .monthly_models import (
     KnownCircle,
@@ -339,18 +342,13 @@ def create_monthly_router(
         result = distance_result(run_id)
         if result["result_id"] != result_id:
             raise HTTPException(409, "Selected result identity has changed", headers={"Cache-Control": "no-store"})
-        page, _, _, _ = render_monthly_evidence(result)
-        identity = {
-            "schema_version": "ocean-distance-report/v1",
-            "evidence_version": EVIDENCE_VERSION,
-            "result_id": result_id,
-            "content_sha256": "sha256:" + hashlib.sha256(page).hexdigest(),
-        }
+        content = project_monthly_evidence(result)
+        page, _, _, _ = render_monthly_evidence(content)
         return {
-            **identity,
-            "report_id": content_id(identity),
-            "parameters": result["parameters"],
-            "evidence_kind": result["evidence_kind"],
+            "schema_version": "ocean-distance-report/v1",
+            "report_id": content_id(content),
+            "content": content,
+            "html_sha256": "sha256:" + hashlib.sha256(page).hexdigest(),
             "html": page.decode("utf-8"),
         }
 
@@ -360,7 +358,7 @@ def create_monthly_router(
         result = distance_result(run_id)
         if format == "zip" and result["evidence_kind"] != "synthetic":
             raise HTTPException(403, "An export license is required for this result", headers=headers)
-        page, figure, daily, monthly = render_monthly_evidence(result)
+        page, figure, daily, monthly = render_monthly_evidence(project_monthly_evidence(result))
         if format == "html":
             headers["Content-Security-Policy"] = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
             return Response(page, media_type="text/html", headers=headers)

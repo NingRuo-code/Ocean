@@ -268,8 +268,10 @@ def test_p0_claims_cannot_launch_research_without_separate_exact_approval(tmp_pa
     preview = approved.get(f"{URL}/{record['id']}/report", headers=AUTH,
                            params={"result_id": record["result"]["result_id"]})
     assert preview.status_code == 200 and preview.headers["Cache-Control"] == "no-store"
-    assert preview.json()["evidence_kind"] == "audited_cells"
-    assert preview.json()["html"] == approved.get(evidence, headers=AUTH).text
+    report = preview.json()
+    assert report["content"]["evidence_kind"] == "audited_cells"
+    assert report["content"]["audience"] == "owner_aggregate"
+    assert report["html"] == approved.get(evidence, headers=AUTH).text
     assert approved.post(URL, headers=AUTH, json=request).json() == record
     (tmp_path / "support.json").unlink()
     assert approved.post(URL, headers=AUTH, json=request).status_code == 409

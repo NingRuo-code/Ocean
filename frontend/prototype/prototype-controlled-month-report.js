@@ -9,7 +9,7 @@
     <label class="monthly-select">已有结果 <select id="distanceReportSelect" disabled></select></label>
     <button type="button" id="distanceReportOpen" aria-controls="evidencePanel" aria-expanded="false" disabled>预览所选报告</button>
     <p id="distanceReportStatus" role="status"></p>`;
-  $("monthlyResult").after(root);
+  $("monthlyResult").append(root);
   const token = $("distanceReportToken"), list = $("distanceReportList");
   const select = $("distanceReportSelect"), open = $("distanceReportOpen"), status = $("distanceReportStatus");
   const content = document.createElement("article");
@@ -19,7 +19,16 @@
   const documentStart = "<!DOCTYPE html>";
   const policy = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">`;
   const conditionKeys = ["month", "longitude", "latitude", "radius_km"];
-  let from = source(), catalog = [], report = null, draft = null, controller = null;
+  let from = privateSource(), catalog = [], report = null, draft = null, controller = null;
+
+  function privateSource() {
+    const current = source();
+    if (current.kind === "server" && ["http:", "https:"].includes(location.protocol)) {
+      const api = new URL(current.base, location.href);
+      if (api.origin === location.origin && api.pathname === "/api" && !api.search && !api.hash) return current;
+    }
+    return {kind:"offline", base:null};
+  }
 
   function describe(item) {
     const p = item.parameters;
@@ -51,7 +60,7 @@
   }
 
   async function read(path, message, consume) {
-    if (!sameSource(from, source()) || from.kind !== "server" || !token.value) return;
+    if (!sameSource(from, privateSource()) || from.kind !== "server" || !token.value) return;
     const active = new AbortController();
     controller = active;
     update();
@@ -61,7 +70,7 @@
       const value = await json(from.base + "/query/monthly-analysis" + path, active.signal, {
         headers: {Authorization: "Bearer " + token.value}, redirect: "error",
       });
-      if (controller !== active || !sameSource(from, source())) return;
+      if (controller !== active || !sameSource(from, privateSource())) return;
       if (active.signal.aborted) throw Error("timeout");
       consume(value);
     } catch (error) {
@@ -88,9 +97,10 @@
   }
 
   function show(value, chosen) {
-    if (value?.schema_version !== "ocean-distance-report/v1" || !hash.test(value.report_id) ||
-        value.result_id !== chosen.result_id || value.evidence_kind !== chosen.evidence_kind ||
-        !conditionKeys.every(key => value.parameters?.[key] === chosen.parameters[key]) ||
+    const evidence = value?.content;
+    if (value?.schema_version !== "ocean-distance-report/v1" || !hash.test(value.report_id) || !hash.test(value.html_sha256) ||
+        evidence?.audience !== "owner_aggregate" || evidence.result_id !== chosen.result_id || evidence.evidence_kind !== chosen.evidence_kind ||
+        !conditionKeys.every(key => evidence.parameters?.[key] === chosen.parameters[key]) ||
         typeof value.html !== "string" || !value.html.startsWith(documentStart)) throw Error("contract");
     const frame = document.createElement("iframe");
     frame.id = "distanceReportFrame";
@@ -107,7 +117,7 @@
       });
     });
     frame.srcdoc = documentStart + policy + value.html.slice(documentStart.length);
-    report = value;
+    report = evidence;
     content.dataset.reportId = value.report_id;
     const boundary = document.createElement("p");
     boundary.textContent = "本报告为月度距离分析。事件与区域比较报告待接入。";
@@ -153,7 +163,7 @@
   token.addEventListener("input", () => reset());
   select.addEventListener("change", () => {clearReport(); status.textContent = "请选择预览。"; update();});
   window.addEventListener("ocean-load-state", () => {
-    const next = source();
+    const next = privateSource();
     if (sameSource(from, next)) return;
     from = next;
     token.value = "";
@@ -165,6 +175,10 @@
   });
   window.addEventListener("ocean-workbench-task", () => {
     if (controller) {clearReport(); status.textContent = ""; update();}
+  });
+  window.addEventListener("ocean-result-closed", () => {
+    token.value = "";
+    reset();
   });
   update();
 })();

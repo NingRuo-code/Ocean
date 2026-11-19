@@ -64,7 +64,9 @@ test("workbench previews the owner's frozen distance report through the real ser
     assert.match(content,/wgs84-distance-bands\/v1/);
     assert.equal(await c.evaluate("document.getElementById('distanceReportFrame').contentDocument.querySelectorAll('svg').length"),1);
     const report = await fetch(reportUrl+encodeURIComponent(run.result.result_id),{headers:auth}).then(response => response.json());
-    assert.equal(report.content_sha256,"sha256:"+createHash("sha256").update(report.html).digest("hex"));
+    assert.equal(report.html_sha256,"sha256:"+createHash("sha256").update(report.html).digest("hex"));
+    assert.equal(report.content.audience,"owner_aggregate");
+    assert.equal(report.content.daily[2].fishing_hours,null);
     assert.equal(await c.evaluate("document.getElementById('controlledMonthReport').dataset.reportId"),report.report_id);
     await c.evaluate("window.dispatchEvent(new CustomEvent('ocean-month-draft',{detail:{month:'2024-09',longitude:5,latitude:2,radius_km:20}}))");
     assert.equal(await c.evaluate("document.getElementById('controlledMonthReport').dataset.reportId"),report.report_id);
@@ -82,8 +84,16 @@ test("workbench previews the owner's frozen distance report through the real ser
     await c.send("Input.dispatchMouseEvent",{type:"mouseWheel",x:26,y:350,deltaX:0,deltaY:-220});
     await waitFor(c,`document.getElementById('mapSvg').getAttribute('viewBox')!==${JSON.stringify(mapBefore)}`);
     assert.equal(await c.evaluate("document.getElementById('controlledMonthReport').dataset.reportId"),report.report_id);
-    await c.evaluate("document.getElementById('distanceReportToken').value='';document.getElementById('distanceReportToken').dispatchEvent(new Event('input'))");
+    await c.evaluate("document.getElementById('resultClose').click()");
     assert.equal(await c.evaluate("document.getElementById('distanceReportFrame')"),null);
+    assert.equal(await c.evaluate("document.getElementById('distanceReportToken').value"),"");
     assert.ok(methods.length>=2 && methods.every(method => method === "GET"));
+
+    const alternate = base.replace("127.0.0.1", "localhost") + "/api";
+    await c.send("Page.navigate",{url:base+"/prototype-fishing.html?api="+encodeURIComponent(alternate)});
+    await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
+    await c.evaluate("document.getElementById('workbenchToggle').click();document.getElementById('monthlyOpen').click()");
+    assert.equal(await c.evaluate("document.getElementById('distanceReportControls').hidden"),true);
+    assert.equal(await c.evaluate("document.getElementById('distanceReportList').disabled"),true);
   } finally {await browser.close();}
 },{caseOwnerToken:owner,distanceFixtureText:input}));
