@@ -57,4 +57,4 @@ node tools/benchmark-map.mjs --isolated-service --sample-root "$sample_root" \
 
 受管服务从本次复制的单日 NetCDF 读取数据。入口识别 `front/<year>/front_locationYYYYMMDD.nc` 和 `sst/<year>/sst_YYYYMMDD.nc`，支持至多 128 份文件、128 MiB。报告记录两层文件数、字节数及绑定文件相对位置、长度和 SHA-256 的快照身份。输出不含样本路径或原档内容。临时服务结束后释放本次副本和缓存。
 
-省略 `--sample-root` 时仍可用原空数据场景复测。显式样本用于 B0，完整覆盖和 B1 继续按实际证据核实。
+受管服务在开始浏览器计时前，最多等待 45 秒取得健康响应。省略 `--sample-root` 时仍可用原空数据场景复测。显式样本用于 B0，完整覆盖和 B1 继续按实际证据核实。

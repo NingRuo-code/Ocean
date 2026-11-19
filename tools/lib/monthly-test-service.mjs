@@ -1,4 +1,3 @@
-import assert from "node:assert/strict";
 import {resolve,dirname,basename,join} from "node:path";
 import {spawn} from "node:child_process";
 import {mkdtemp,mkdir,rm,writeFile} from "node:fs/promises";
@@ -72,9 +71,28 @@ uvicorn.Server(uvicorn.Config(app,log_level='error')).run(sockets=[s])`;
     child.on('error',()=>{startError=true;});
     child.stdout.on("data",b=>{output+=b.toString();try{const info=JSON.parse(output.split("\n")[0]);port=info.port;runtime=info.runtime;}catch{}});
     child.stderr.resume();
-    for(let n=0;n<150&&!port;n++){if(startError||child.exitCode!==null)throw Error("Actual API did not start");await delay(50);}
-    assert.ok(port,"Actual API listening port");const base=`http://127.0.0.1:${port}`;
-    for(let n=0;n<100;n++){try{if((await fetch(base+"/api/health")).ok)break;}catch{}await delay(50);}
+    const startupDeadline = performance.now() + 45_000;
+    let base;
+    for (;;) {
+      if (startError || child.exitCode !== null || child.signalCode !== null) {
+        throw Error("Actual API did not start");
+      }
+      const remaining = startupDeadline - performance.now();
+      if (remaining <= 0) throw Error("Actual API did not become healthy");
+      if (port) {
+        base = `http://127.0.0.1:${port}`;
+        try {
+          const health = await fetch(base+"/api/health", {
+            signal: AbortSignal.timeout(Math.max(1, Math.min(1000, Math.floor(remaining)))),
+          });
+          await health.body?.cancel();
+          if (health.ok) break;
+        } catch {
+          // The listener can be published before Uvicorn finishes startup.
+        }
+      }
+      await delay(Math.min(50, remaining));
+    }
     await work(base,{runtime,distancePath});
   }finally{if(child){child.kill();await Promise.race([new Promise(r=>child.once("exit",r)),delay(2000)]);}
     if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith("ocean-month-service-"))await rm(root,{recursive:true,force:true}).catch(()=>{});

@@ -162,6 +162,24 @@ test('service startup and runtime configuration failures are safe reports withou
  }finally{if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith('ocean-service-baseline-'))await rm(root,{recursive:true,force:true});}
 });
 
+test('managed benchmark waits for a slow original-app startup before recording browser attempts',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'ocean-service-baseline-')),out=join(root,'report.json');
+ try{
+  await writeFile(join(root,'sitecustomize.py'),'import time\ntime.sleep(8.25)\n');
+  const execution=await execute(process.execPath,[
+   'tools/benchmark-map.mjs','--isolated-service','--runs','1','--timeout-ms','1500','--out',out,
+  ],{windowsHide:true,timeout:55000,env:{...process.env,PYTHONPATH:root}}).catch(error=>error);
+  assert.equal(execution.code,1);
+  const report=JSON.parse(await readFile(out,'utf8'));
+  assert.equal(report.service.status?.layers.process,'responding');
+  assert.ok(report.attempts[0].action_attempted);
+  assert.ok(report.attempts[0].requests.some(request=>request.role==='health'&&request.status===200));
+  assert.equal(report.attempts[0].elapsed_ms,null);
+ }finally{
+  if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith('ocean-service-baseline-'))await rm(root,{recursive:true,force:true});
+ }
+});
+
 test('original-service baseline identifies installed package versions without recording installation paths or direct URLs',async()=>{
  const root=await mkdtemp(join(tmpdir(),'ocean-service-baseline-')),out=join(root,'report.json');
  try{
