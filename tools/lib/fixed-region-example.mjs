@@ -3,11 +3,25 @@ import { spawnSync } from "node:child_process";
 import { closeSync, existsSync, lstatSync, mkdirSync, openSync, readSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
+import { fixedEngineSources, fixedExecutionFingerprint, stageFixedEngine } from "./fixed-region-reuse.mjs";
 
 const hash = value => "sha256:" + createHash("sha256").update(value).digest("hex");
 const ARTIFACT_BYTES = 1_048_576;
+const isDigest = value => typeof value==="string" && /^sha256:[a-f0-9]{64}$/.test(value);
+const isObject = value => value!==null && typeof value==="object" && !Array.isArray(value);
+const fixedMethods = new Map([
+  ["observed-entry-example/v1",{schema:"fixed-region-event-example/v1",records:["windows","changes","selection"],lists:["daily"]}],
+  ["observed-fixed-exposure/v1",{schema:"fixed-region-front-observation/v1",script:"fixed_region_front_observations.py",records:["selection","geometry","read_range"]}],
+  ["fixed-event-window-qualification/v1",{schema:"fixed-region-window-qualification/v1",script:"fixed_region_window_qualification.py",records:["front_lineage"],lists:["events"]}],
+  ["fixed-event-window-effects/v1",{schema:"fixed-region-window-effects/v1",script:"fixed_region_window_effects.py",records:["pooled"],lists:["events"]}],
+  ["fixed-event-comparable-controls/v1",{schema:"fixed-region-comparable-controls/v1",script:"fixed_region_comparable_controls.py",records:["policy"],lists:["events"]}],
+  ["fixed-event-group-uncertainty/v1",{schema:"fixed-region-event-group-uncertainty/v1",script:"fixed_region_event_inference.py",records:["inference","counts","policy"],lists:["groups","individual_effects"]}],
+  ["fixed-event-lag-cohort/v1",{schema:"fixed-region-event-lag/v1",script:"fixed_region_event_lag.py",records:["cohorts","profiles"],lists:["events"]}],
+  ["fixed-event-reading-pack/v1",{schema:"fixed-region-event-reading-pack/v1",script:"fixed_region_event_evidence.py",records:["source_results","cohorts","inference"],lists:["events"]}],
+]);
 function options(args, profile) {
   const allowed = new Set([profile.requestFlag, profile.readFlag, "--input", "--output"]);
+  if(profile.reuseFlag) allowed.add(profile.reuseFlag);
   const result = {};
   for (let i=0;i<args.length;i+=2) {
     if (!allowed.has(args[i]) || !args[i+1] || args[i+1].startsWith("--") || result[args[i]]) throw Error("invalid_options");
@@ -181,16 +195,16 @@ function csv(rows) {
 
 function dailyCsv(result) {
   return csv([["anchor_date","date","relative_day","target_hours","target_area_time_km2_days","control_hours",
-    "control_area_time_km2_days","target_front_state","control_front_state","matched_day","lag_group_id","inference_group_id","result_id"],
+    "control_area_time_km2_days","target_front_state","control_front_state","matched_day","lag_group_id","inference_group_id","result_id","versioned_result_id"],
     ...result.events.flatMap(event=>event.daily.map(day=>[event.anchor_date,day.date,day.offset,day.target.hours,
       day.target.area_time,day.control.hours,day.control.area_time,day.target.front_exposure,day.control.front_exposure,
-      day.pair_available,event.lag_group_id,event.inference_group_id,result.result_id]))]);
+      day.pair_available,event.lag_group_id,event.inference_group_id,result.result_id,result.versioned_result_id]))]);
 }
 
 function windowsCsv(result) {
   return csv([["anchor_date","window","phase","window_start","window_end","target_expected_days","target_supported_days",
     "target_excluded_dates","target_known_subset_hours","target_known_subset_area_time_km2_days","target_hours","target_area_time_km2_days","control_hours",
-    "control_area_time_km2_days","same_day_density_difference","target_before_after_difference","difference_of_changes","state","result_id"],
+    "control_area_time_km2_days","same_day_density_difference","target_before_after_difference","difference_of_changes","state","result_id","versioned_result_id"],
     ...result.events.flatMap(event=>Object.entries(event.windows).flatMap(([name,value])=>["pre7","post"].map(phase=>{
       const row=value?.[phase];
       const target=event.target_windows[phase==="pre7"?"pre7":name];
@@ -198,8 +212,27 @@ function windowsCsv(result) {
         target?.requested_days,target?.supported_days,target?.excluded_dates.join(";"),target?.known_subset.total_hours,
         target?.known_subset.area_time_km2_days,target?.total_hours ?? row?.target_hours,target?.area_time_km2_days ?? row?.target_area_time,
         row?.control_hours,row?.control_area_time,
-        row?.same_day_density_difference,event.target_changes[name].absolute_density_change,value?.change_difference,event.interpretation,result.result_id];
+        row?.same_day_density_difference,event.target_changes[name].absolute_density_change,value?.change_difference,event.interpretation,
+        result.result_id,result.versioned_result_id];
     }))) ]);
+}
+
+function fixedSummary(summary) {
+  const method=fixedMethods.get(summary.parameters?.method_version);
+  if(!method || summary.schema_version!==method.schema || !isDigest(summary.result_id) ||
+    !isObject(summary.source) || !isDigest(summary.source.input_sha256) ||
+    method.records.some(name=>!isObject(summary[name])) ||
+    method.lists?.some(name=>!Array.isArray(summary[name]))) throw Error("invalid_fixed_result");
+  if(method.schema==="fixed-region-event-example/v1" &&
+    (!["available","partial","multiple_candidates","unknown","no_observed_entry"].includes(summary.status) ||
+      !Object.hasOwn(summary,"event") ||
+      (summary.event!==null && (!isObject(summary.event) || !summary.windows.pre7 || !summary.changes.post1_3)))) {
+    throw Error("invalid_fixed_result");
+  }
+}
+
+function versionedResultId(resultId, executionId) {
+  return hash(JSON.stringify({result_id:resultId,execution_id:executionId}));
 }
 
 function lagChart(result) {
@@ -238,7 +271,7 @@ function lagChart(result) {
     '<text x="790" y="350" text-anchor="end">相对观测锚日</text></g></svg>', ""].join("\n");
 }
 
-function readFrozen(folder, profile) {
+function readFrozen(folder, profile, withManifest=false) {
   if (!lstatSync(folder).isDirectory() || lstatSync(folder).isSymbolicLink()) throw Error("invalid_directory");
   const manifest=JSON.parse(boundedText(join(folder,"manifest.json")));
   if (manifest.schema_version !== "front-response-experiment-manifest/v2" || manifest.purpose !== profile.purpose || manifest.evidence_kind !== "synthetic_example" || manifest.research_ready !== false) throw Error("wrong_manifest");
@@ -255,7 +288,16 @@ function readFrozen(folder, profile) {
   }
   if (summary.kind !== profile.purpose || summary.evidence_kind !== "synthetic_example" || summary.research_ready !== false || summary.result_id !== manifest.result_id) throw Error("result_mismatch");
   if (!isDeepStrictEqual(summary.parameters,manifest.parameters) || manifest.inputs?.length !== 1 || !isDeepStrictEqual(summary.source,manifest.inputs[0])) throw Error("identity_mismatch");
-  return summary;
+  if(profile.reuseFlag) {
+    if(summary.execution_id!==undefined || manifest.execution_id!==undefined) {
+      fixedSummary(summary);
+      if(!isDigest(manifest.execution_id) || manifest.execution_id!==summary.execution_id ||
+        manifest.versioned_result_id!==summary.versioned_result_id ||
+        summary.versioned_result_id!==versionedResultId(summary.result_id,summary.execution_id) ||
+        manifest.source_freshness!=="unknown" || summary.source_freshness!=="unknown") throw Error("execution_identity_mismatch");
+    }
+  }
+  return withManifest ? {summary,manifest} : summary;
 }
 
 export function runControlledExample(args, root, profile) {
@@ -266,28 +308,65 @@ export function runControlledExample(args, root, profile) {
       console.log(JSON.stringify(readFrozen(opts[profile.readFlag], profile))); return 0;
     }
     const output=opts["--output"] || join(root,"outputs/experiments",profile.outputName);
-    if (existsSync(output)) throw Error("output_already_exists");
+    const reuse=profile.reuseFlag && opts[profile.reuseFlag];
+    if (!reuse && existsSync(output)) throw Error("output_already_exists");
     const parent=dirname(output),prefix=basename(output)+".staging-";
     stageParent=resolve(parent);stagePrefix=prefix;
     mkdirSync(parent,{recursive:true});stage=join(stageParent,prefix+randomUUID());mkdirSync(stage);
-    let state="failed",result,error={code:profile.errorCode},requestHash=null,inputHash=null;
+    let state="failed",result,error={code:profile.errorCode},requestHash=null,inputHash=null,executionId=null;
+    const python=process.env.OCEAN_EXPERIMENT_PYTHON || "python";
+    const engine=join(stage,"engine");
+    const backend=join(profile.reuseFlag ? engine : root,"backend");
     try {
       const source=opts["--input"] || join(root,"backend/app/examples",profile.inputName);
       const requestJson=boundedText(opts[profile.requestFlag],16_384);requestHash=hash(requestJson);
       const inputJson=boundedText(source);inputHash=hash(inputJson);
-      const pythonArgs=profile.pythonArgs?.(requestJson,root,stage) ?? ["-m",profile.module];
-      const computed=spawnSync(process.env.OCEAN_EXPERIMENT_PYTHON || "python",pythonArgs,{
-        cwd:join(root,"backend"),encoding:"utf8",windowsHide:true,timeout:20_000,maxBuffer:4_194_304,
+      const transport={request_sha256:requestHash,input_sha256:inputHash};
+      let method, engineSources, fingerprint;
+      if(profile.reuseFlag) {
+        method=JSON.parse(requestJson).method_version;
+        if(!fixedMethods.has(method)) throw Error("invalid_method");
+        engineSources=fixedEngineSources(root,method,boundedText);
+        stageFixedEngine(engine,engineSources);
+        fingerprint=()=>fixedExecutionFingerprint(python,backend,method,engineSources,transport,hash);
+        executionId=fingerprint();
+        if(reuse) {
+          let old;
+          try {old=readFrozen(reuse,profile,true);} catch { /* Invalid/old candidates never count as completed reuse. */ }
+          if(old?.manifest?.execution_id===executionId && isDeepStrictEqual(old.manifest.transport_identity,transport) &&
+            fingerprint()===executionId) {
+            console.log(JSON.stringify({state:"completed",run_id:old.manifest.run_id,result_id:old.summary.result_id,
+              versioned_result_id:old.summary.versioned_result_id,
+              execution_id:executionId,reused:true,source_freshness:"unknown",error:null}));
+            return 0;
+          }
+        }
+      }
+      if(existsSync(output)) throw Error("output_already_exists");
+      const pythonArgs=profile.pythonArgs?.(method,engine,stage) ?? ["-m",profile.module];
+      const computed=spawnSync(python,pythonArgs,{
+        cwd:backend,encoding:"utf8",windowsHide:true,timeout:20_000,maxBuffer:4_194_304,
         input:JSON.stringify({request_json:requestJson,input_json:inputJson})});
       const value=JSON.parse(computed.stdout || "{}");
       if (computed.status === 0 && value.state === "completed" && value.result?.kind === profile.purpose) {
+        if(executionId) {
+          fixedSummary(value.result);
+          if(!isDeepStrictEqual(value.result.parameters,JSON.parse(requestJson))) throw Error("conditions_mismatch");
+          if(fingerprint()!==executionId) throw Error("execution_runtime_changed");
+          Object.assign(value.result,{execution_id:executionId,
+            versioned_result_id:versionedResultId(value.result.result_id,executionId),source_freshness:"unknown"});
+        }
         state="completed";result=value.result;error=null;
       }
     } catch { /* Failed inputs never expose private locations or partial output. */ }
+    if(existsSync(output)) throw Error("output_already_exists");
+    if(existsSync(engine)) rmSync(engine,{recursive:true,force:true});
     let artifacts;
     if (result) {
       try {
-        artifacts={"summary.json":JSON.stringify(result,null,2)+"\n","report.md":profile.report(result)};
+        const report=profile.report(result);
+        artifacts={"summary.json":JSON.stringify(result,null,2)+"\n",
+          "report.md":executionId ? report+`\n版本化结果 ${result.versioned_result_id}。\n` : report};
         for(const [name,render] of Object.entries(profile.extraArtifacts?.get(result.schema_version) ?? {})) artifacts[name]=render(result);
         if (Object.values(artifacts).some(value=>Buffer.byteLength(value,"utf8")>ARTIFACT_BYTES)) throw Error("output_budget");
       } catch { state="failed";result=null;error={code:profile.errorCode}; }
@@ -298,18 +377,25 @@ export function runControlledExample(args, root, profile) {
     if (result) {
       manifest.result_id=result.result_id;manifest.parameters=result.parameters;manifest.inputs=[result.source];
       manifest.artifacts=Object.fromEntries(Object.entries(artifacts).map(([name, content])=>[name,hash(content)]));
+      if(executionId) Object.assign(manifest,{execution_id:executionId,
+        versioned_result_id:result.versioned_result_id,source_freshness:"unknown"});
     }
     if (Buffer.byteLength(JSON.stringify(manifest,null,2)+"\n","utf8")>ARTIFACT_BYTES) {
       state="failed";result=null;error={code:profile.errorCode};
       Object.assign(manifest,{state,error,artifacts:{}});
       delete manifest.result_id;delete manifest.parameters;delete manifest.inputs;
+      delete manifest.execution_id;delete manifest.versioned_result_id;delete manifest.source_freshness;
     }
     if (result) {
       for(const [name,content] of Object.entries(artifacts)) writeFileSync(join(stage,name),content);
     }
     writeFileSync(join(stage,"manifest.json"),JSON.stringify(manifest,null,2)+"\n");
+    if(result && profile.reuseFlag) readFrozen(stage,profile);
+    if(existsSync(output)) throw Error("output_already_exists");
     renameSync(stage,output);stage=null;
-    console.log(JSON.stringify({state,run_id:manifest.run_id,result_id:manifest.result_id,error}));
+    console.log(JSON.stringify({state,run_id:manifest.run_id,result_id:manifest.result_id,error,
+      ...(manifest.execution_id ? {execution_id:manifest.execution_id,versioned_result_id:manifest.versioned_result_id,
+        reused:false,source_freshness:"unknown"} : {})}));
     return state === "completed" ? 0 : 2;
   } catch { console.error("Controlled example rejected; no completed result was published.");return 2; }
   finally {
@@ -319,21 +405,13 @@ export function runControlledExample(args, root, profile) {
 
 export function runFixedRegionExample(args, root) {
   return runControlledExample(args, root, {
-    requestFlag: "--fixed-region-request", readFlag: "--read-fixed-region-result",
+    requestFlag: "--fixed-region-request", readFlag: "--read-fixed-region-result", reuseFlag:"--reuse-result",
     purpose: "fixed_region_event_example", outputName: "fixed-region-example",
     inputName: "fixed-region-event.json", module: "app.fixed_region_example",
-    pythonArgs: (request, root, stage) => {
-      const scripts = new Map([
-        ["observed-fixed-exposure/v1","fixed_region_front_observations.py"],
-        ["fixed-event-window-qualification/v1","fixed_region_window_qualification.py"],
-        ["fixed-event-window-effects/v1","fixed_region_window_effects.py"],
-        ["fixed-event-comparable-controls/v1","fixed_region_comparable_controls.py"],
-        ["fixed-event-group-uncertainty/v1","fixed_region_event_inference.py"],
-        ["fixed-event-lag-cohort/v1","fixed_region_event_lag.py"],
-        ["fixed-event-reading-pack/v1","fixed_region_event_evidence.py"],
-      ]);
-      const script = scripts.get(JSON.parse(request).method_version);
-      return script ? ["-B","-X",`pycache_prefix=${join(stage,"pycache")}`,join(root,"tools",script)] : undefined;
+    pythonArgs: (method, root, stage) => {
+      const script = fixedMethods.get(method).script;
+      const cache=["-B","-X",`pycache_prefix=${join(stage,"pycache")}`];
+      return script ? [...cache,join(root,"tools",script)] : [...cache,"-m","app.fixed_region_example"];
     },
     errorCode: "controlled_event_failed", report,
     extraArtifacts:new Map([

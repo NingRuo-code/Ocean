@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
-import {mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync} from "node:fs";
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {basename, dirname, join, resolve} from "node:path";
 import {spawnSync} from "node:child_process";
@@ -71,21 +71,29 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null, radius = 10
     run(audit,["--support-request",write("p0-conditions.json",conditions),"--regional-input",write("cells.json",cells),"--out",output]);
     return readFileSync(output,"utf8");
   };
-  function windowReport(snapshot, name, failure = false) {
+  function windowReport(snapshot, name, failure = false, {reuseFrom=null,verifyReuse=false}={}) {
     const source = write(`${name}.json`,{schema:"ocean-fixed-region-window-evidence/v1",
       front_summary_json:frontSummary,front_manifest_json:frontManifest,support_snapshots:[snapshot].flat()});
     const request = write(`${name}-request.json`,{...base,input_version:digest(readFileSync(source)),
       method_version:"fixed-event-window-qualification/v1",parameter_version:"p0-event-calendar/v1"});
     const output = join(directory,name);
+    const args=["--fixed-region-request",request,"--input",source,"--output",output];
+    if(reuseFrom) args.push("--reuse-result",join(directory,reuseFrom));
     if (failure) {
-      const processResult=spawnSync(process.execPath,[experiment,"--fixed-region-request",request,"--input",source,"--output",output],{encoding:"utf8",windowsHide:true});
+      const processResult=spawnSync(process.execPath,[experiment,...args],{encoding:"utf8",windowsHide:true});
       assert.equal(processResult.status,2,processResult.stdout);
       const manifest=JSON.parse(readFileSync(join(output,"manifest.json"),"utf8"));
       assert.equal(manifest.state,"failed");
       assert.deepEqual(manifest.artifacts,{});
       return null;
     }
-    run(experiment,["--fixed-region-request",request,"--input",source,"--output",output]);
+    const current=JSON.parse(run(experiment,args));
+    if(verifyReuse) {
+      const repeated=JSON.parse(run(experiment,[...args,"--reuse-result",output]));
+      assert.equal(repeated.reused,true);
+      assert.equal(repeated.run_id,current.run_id);
+      assert.equal(repeated.execution_id,current.execution_id);
+    }
     unlinkSync(source);unlinkSync(request);
     return JSON.parse(run(experiment,["--read-fixed-region-result",output],{OCEAN_EXPERIMENT_PYTHON:"unavailable"}));
   }
@@ -144,7 +152,7 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null, radius = 10
     unlinkSync(source);unlinkSync(request);
     return JSON.parse(run(experiment,["--read-fixed-region-result",output],{OCEAN_EXPERIMENT_PYTHON:"unavailable"}));
   }
-  function eventInference(controlRuns, name, policyOptions={}) {
+  function eventInference(controlRuns, name, policyOptions={}, previous=null) {
     const artifacts=[controlRuns].flat().map(controlRun=>({summary_json:readFileSync(join(directory,controlRun,"summary.json"),"utf8"),
       manifest_json:readFileSync(join(directory,controlRun,"manifest.json"),"utf8")}));
     const source=write(`${name}.json`,{schema:"ocean-fixed-region-event-inference-input/v1",control_runs:artifacts,
@@ -153,9 +161,18 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null, radius = 10
     const request=write(`${name}-request.json`,{...base,input_version:digest(readFileSync(source)),
       method_version:"fixed-event-group-uncertainty/v1",parameter_version:"registered-group-percentile/v1"});
     const output=join(directory,name);
-    run(experiment,["--fixed-region-request",request,"--input",source,"--output",output]);
+    const previousPath=previous && join(directory,previous);
+    const extra=previousPath ? ["--reuse-result",previousPath] : [];
+    const executed=JSON.parse(run(experiment,["--fixed-region-request",request,"--input",source,"--output",output,...extra]));
     unlinkSync(source);unlinkSync(request);
-    return JSON.parse(run(experiment,["--read-fixed-region-result",output],{OCEAN_EXPERIMENT_PYTHON:"unavailable"}));
+    const resultPath=executed.reused ? previousPath : output;
+    const result=JSON.parse(run(experiment,["--read-fixed-region-result",resultPath],{OCEAN_EXPERIMENT_PYTHON:"unavailable"}));
+    if(previousPath) {
+      assert.equal(executed.reused,name==="match-reuse");
+      assert.equal(executed.versioned_result_id,result.versioned_result_id);
+      if(executed.reused) assert.equal(existsSync(output),false);
+    }
+    return result;
   }
   function eventLag(controlRun, name) {
     const root=join(directory,controlRun), output=join(directory,name);
@@ -197,7 +214,7 @@ test("B uses the matching P0 B_event audit for cross-month windows and holds unl
   try {
     const {front,makeSnapshot,windowReport}=controlled(directory);
     const snapshot=makeSnapshot(false);
-    const result=windowReport(snapshot,"window-result");
+    const result=windowReport(snapshot,"window-result",false,{verifyReuse:true});
     assert.equal(result.front_result_id,front.result_id);
     assert.equal(result.research_ready,false);
     const event=result.events[0], primary=event.support.front_effort;
@@ -235,7 +252,7 @@ test("B uses the matching P0 B_event audit for cross-month windows and holds unl
     const unlicensed=windowReport(makeSnapshot(false,{nullLicense:true}),"unknown-license-result").events[0].support.front_effort;
     assert.equal(unlicensed.windows.post3.status,"license_unverified");
     assert.equal(unlicensed.windows.post3.hours_available,false);
-    windowReport(snapshot.replace("exclude_event_day/v1","include_event_day/v1"),"tampered-result",true);
+    windowReport(snapshot.replace("exclude_event_day/v1","include_event_day/v1"),"tampered-result",true,{reuseFrom:"window-result"});
   } finally {
     if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
   }
@@ -430,6 +447,14 @@ test("registered independent B groups give reproducible percentile endpoints and
     assert.equal(result.inference.valid_iterations,400);
     const repeated=eventInference("fixed-controls","repeat-interval");
     assert.deepEqual(repeated.inference,result.inference);
+    const reused=eventInference("fixed-controls","match-reuse",{},"event-interval");
+    assert.deepEqual(reused,result);
+    const newSeed=eventInference("fixed-controls","seed-changed",{seed:23},"event-interval");
+    assert.equal(newSeed.policy.seed,23);
+    assert.notEqual(newSeed.versioned_result_id,result.versioned_result_id);
+    const newWindow=eventInference("fixed-controls","window-changed",{window:"post7"},"event-interval");
+    assert.equal(newWindow.policy.window,"post7");
+    assert.notEqual(newWindow.versioned_result_id,result.versioned_result_id);
     const pooled=eventInference("fixed-controls","pooled-interval",{estimand:"pooled_area_time"});
     assert.equal(pooled.inference.status,"estimated_for_registered_assumptions");
     assert.ok(Math.abs(pooled.inference.estimate-result.inference.estimate)<1e-12);
@@ -453,7 +478,8 @@ test("registered independent B groups give reproducible percentile endpoints and
     assert.ok(combined.dependence_links.some(link=>link.reasons.includes("same_anchor_radius_variant")));
     assert.deepEqual(combined.inference,result.inference);
     variant.fixedControls([],"target-effects","different-policy",{distance_to_coast_km:3},3);
-    const held=eventInference(["fixed-controls","radius20/different-policy"],"held-variant");
+    const held=eventInference(["fixed-controls","radius20/different-policy"],"held-variant",{},"multi-radius-interval");
+    assert.notEqual(held.versioned_result_id,combined.versioned_result_id);
     assert.equal(held.radius_compatibility["20"],"control_policy_mismatch");
     assert.equal(held.counts.event_radius_rows,4);
     assert.equal(held.counts.grouped_radius_rows,2);
@@ -469,6 +495,22 @@ test("registered independent B groups give reproducible percentile endpoints and
     const legacy=eventInference("legacy-controls","legacy-interval");
     assert.equal(legacy.inference.reason,"event_provenance_unverified");
     assert.deepEqual(legacy.individual_effects.map(item=>item.estimate).sort((a,b)=>a-b),expected);
+    const historical=join(directory,"historical-controls");mkdirSync(historical);
+    const historicalReport=structuredClone(contrasts),historicalManifest=structuredClone(oldManifest);
+    for(const key of ["execution_id","versioned_result_id","source_freshness"]) {
+      delete historicalReport[key];
+      delete historicalManifest[key];
+    }
+    delete historicalReport.front_lineage;
+    const historicalText=JSON.stringify(historicalReport);
+    historicalManifest.artifacts["summary.json"]=digest(historicalText);
+    writeFileSync(join(historical,"summary.json"),historicalText);
+    writeFileSync(join(historical,"manifest.json"),JSON.stringify(historicalManifest));
+    writeFileSync(join(historical,"report.md"),readFileSync(join(directory,"fixed-controls","report.md")));
+    const frozen=spawnSync(process.execPath,[experiment,"--read-fixed-region-result",historical],{encoding:"utf8",windowsHide:true,
+      env:{...process.env,OCEAN_EXPERIMENT_PYTHON:"unavailable"}});
+    assert.equal(frozen.status,0,frozen.stderr);
+    assert.deepEqual(JSON.parse(frozen.stdout),historicalReport);
   } finally {
     if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
   }
@@ -584,6 +626,7 @@ test("one reading pack binds original plot, aggregate tables, interval status an
     const csv=readFileSync(join(pack.output,"daily.csv"),"utf8");
     const original=b07.events[0].daily.find(day=>day.offset===1);
     assert.ok(csv.includes(`${monthEnd},2024-09-01,1,${original.target.hours},${original.target.area_time},0,`));
+    assert.ok(csv.includes(pack.result.versioned_result_id));
     const [header,...rows]=readFileSync(join(pack.output,"windows.csv"),"utf8").trimEnd().split("\n").map(line=>line.split(","));
     const windows=rows.map(row=>Object.fromEntries(header.map((key,index)=>[key,row[index]])));
     const unknownControl=windows.find(row=>row.anchor_date===second && row.window==="post3" && row.phase==="post");
