@@ -401,6 +401,7 @@ def match_event(target, controls, policy, target_covariates):
         "target_front_event": target["front_event"],
         "target_support_snapshot_id": target["support_snapshot_id"],
         "target_provenance": target["provenance"],
+        "target_windows": target["windows"],
         "daily": [
             {
                 "date": row["date"],

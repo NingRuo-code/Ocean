@@ -85,7 +85,7 @@ def interpretation(event):
     )
 
 
-def project_event(event, timed):
+def project_event(event, timed, inference_group_id):
     require(
         event["contrasts"] == timed["contrasts"]
         and event["target_changes"] == timed["target_changes"],
@@ -94,11 +94,13 @@ def project_event(event, timed):
     selected = event["matching"]["selected"]
     return {
         "anchor_date": event["anchor_date"],
-        "group_id": timed["group_id"],
+        "lag_group_id": timed["group_id"],
+        "inference_group_id": inference_group_id,
         "front_event": timed["front_event"],
         "target_support_snapshot_id": event.get("target_support_snapshot_id"),
         "target_changes": event["target_changes"],
         "windows": event["contrasts"],
+        "target_windows": event.get("target_windows", {}),
         "daily": timed["daily"],
         "selected_control": {
             key: selected[key]
@@ -165,9 +167,19 @@ def evaluate(request, bundle, source_hash):
         and by_anchor.keys() == {event["anchor_date"] for event in source_events},
         "reading_pack_event_identity",
     )
-    events = [
-        project_event(event, by_anchor[event["anchor_date"]]) for event in source_events
-    ]
+    inference_membership = {
+        member: group["id"]
+        for group in inference["groups"]
+        for member in group["members"]
+    }
+    lag_membership = {}
+    events = []
+    for event in source_events:
+        anchor = event["anchor_date"]
+        timed = by_anchor[anchor]
+        lag_membership.setdefault(timed["group_id"], []).append(anchor)
+        group_id = inference_membership.get(f"{anchor}/{request['radius_km']}km")
+        events.append(project_event(event, timed, group_id))
     result = {
         "schema_version": "fixed-region-event-reading-pack/v1",
         "kind": request["purpose"],
@@ -187,8 +199,21 @@ def evaluate(request, bundle, source_hash):
         "lag_svg": bundle["lag_svg"],
         "lag_svg_sha256": text_digest(bundle["lag_svg"]),
         "events": events,
-        "groups": inference["groups"],
-        "group_links": inference["dependence_links"],
+        "grouping": {
+            "inference": {
+                "policy": inference["policy"],
+                "groups": inference["groups"],
+                "links": inference["dependence_links"],
+            },
+            "lag": {
+                "policy": lag["policy"],
+                "groups": [
+                    {"id": key, "anchors": value}
+                    for key, value in sorted(lag_membership.items())
+                ],
+                "links": lag["dependence_links"],
+            },
+        },
         "inference": {
             **inference["inference"],
             "window": inference["policy"]["window"],

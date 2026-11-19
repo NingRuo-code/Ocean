@@ -34,12 +34,14 @@ function report(result) {
     const {heading,summary}=readingContext(result);
     const lines=[heading,"",summary,"", "![锚日前后活动密度差](lag.svg)","",
       `短窗 ${result.cohorts.post3.event_count} 个事件，后 7 日 ${result.cohorts.post7.event_count} 个事件，共同队列 ${result.cohorts.common.event_count} 个事件。`,
-      "逐日 H/E 和同日对照值见 [逐日表](daily.csv)；完整窗口和同日变化差见 [窗口表](windows.csv)。锚日用于诊断。", "",
+      "逐日图为描述性结果，逐日区间未登记；窗口区间及不可估原因见下文。锚日用于诊断。逐日 H/E 和同日对照值见 [逐日表](daily.csv)，完整窗口和同日变化差见 [窗口表](windows.csv)。", "",
       "## 事件、对照与窗口", ""];
     for(const event of result.events) {
       const meanings={no_fixed_control:"缺少合格对照",no_complete_post7:"后 7 日证据不足",equal_change:"目标与对照变化相同",
         negative_change_difference:"目标相对对照下降",positive_change_difference:"目标相对对照上升"};
-      lines.push(`- ${event.anchor_date}，相关组 ${event.group_id}，${meanings[event.interpretation]}。对照 ${event.selected_control?.id ?? "未知"}。`);
+      lines.push(`- ${event.anchor_date}，时滞组 ${event.lag_group_id}，区间组 ${event.inference_group_id ?? "未知"}，${meanings[event.interpretation]}。对照 ${event.selected_control?.id ?? "未知"}。`);
+      const exposed=event.daily.filter(day=>day.offset>0 && day.target.front_exposure==="near").map(day=>day.date);
+      if(exposed.length) lines.push(`  - 锚日之后仍观测到锋面接近。在 ${exposed.join("、")} 可核对持续暴露。`);
       for(const candidate of event.candidates) if(candidate.reason) lines.push(`  - ${candidate.id} · ${candidate.reason}`);
       for(const [window,comparison] of Object.entries(event.windows)) {
         const target=event.target_changes[window];
@@ -179,18 +181,23 @@ function csv(rows) {
 
 function dailyCsv(result) {
   return csv([["anchor_date","date","relative_day","target_hours","target_area_time_km2_days","control_hours",
-    "control_area_time_km2_days","target_front_state","control_front_state","matched_day","group_id","result_id"],
+    "control_area_time_km2_days","target_front_state","control_front_state","matched_day","lag_group_id","inference_group_id","result_id"],
     ...result.events.flatMap(event=>event.daily.map(day=>[event.anchor_date,day.date,day.offset,day.target.hours,
       day.target.area_time,day.control.hours,day.control.area_time,day.target.front_exposure,day.control.front_exposure,
-      day.pair_available,event.group_id,result.result_id]))]);
+      day.pair_available,event.lag_group_id,event.inference_group_id,result.result_id]))]);
 }
 
 function windowsCsv(result) {
-  return csv([["anchor_date","window","phase","target_hours","target_area_time_km2_days","control_hours",
+  return csv([["anchor_date","window","phase","window_start","window_end","target_expected_days","target_supported_days",
+    "target_excluded_dates","target_known_subset_hours","target_known_subset_area_time_km2_days","target_hours","target_area_time_km2_days","control_hours",
     "control_area_time_km2_days","same_day_density_difference","target_before_after_difference","difference_of_changes","state","result_id"],
     ...result.events.flatMap(event=>Object.entries(event.windows).flatMap(([name,value])=>["pre7","post"].map(phase=>{
       const row=value?.[phase];
-      return [event.anchor_date,name,phase,row?.target_hours,row?.target_area_time,row?.control_hours,row?.control_area_time,
+      const target=event.target_windows[phase==="pre7"?"pre7":name];
+      return [event.anchor_date,name,phase,target?.dates[0] ?? row?.dates[0],target?.dates.at(-1) ?? row?.dates.at(-1),
+        target?.requested_days,target?.supported_days,target?.excluded_dates.join(";"),target?.known_subset.total_hours,
+        target?.known_subset.area_time_km2_days,target?.total_hours ?? row?.target_hours,target?.area_time_km2_days ?? row?.target_area_time,
+        row?.control_hours,row?.control_area_time,
         row?.same_day_density_difference,event.target_changes[name].absolute_density_change,value?.change_difference,event.interpretation,result.result_id];
     }))) ]);
 }
