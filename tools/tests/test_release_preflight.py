@@ -151,13 +151,16 @@ def test_preflight_preserves_separate_layer_allocation_evidence(release_target):
 
 @pytest.mark.parametrize(("layer", "allocation"), [
     ("raw", {"status": "measured", "bytes": True, "observed_bytes": 1}),
+    ("raw", {"status": "measured", "bytes": 513, "observed_bytes": 513}),
     ("raw", {"status": "partial", "bytes": 4096, "observed_bytes": 4096}),
     ("raw", {"status": "unavailable", "bytes": None, "observed_bytes": 0}),
     ("backup", {"status": "measured", "bytes": 0, "observed_bytes": 0}),
+    ("cache", {"status": "measured", "bytes": 512, "observed_bytes": 512}),
 ])
 def test_preflight_rejects_inconsistent_allocation_evidence(release_target, layer, allocation):
     target, inventory, arguments, _ = release_target
     record = json.loads(inventory.read_bytes())
+    record["layers"]["cache"] = {"status": "measured", "bytes": 0, "files": 0}
     record["layers"][layer]["allocation"] = allocation
     inventory.write_bytes(encode(record))
     run = cli("preflight", *arguments, "--inventory", inventory, "--reserve-bytes", 0)
