@@ -1,5 +1,6 @@
 import {spawnSync} from "node:child_process";
-import {join} from "node:path";
+import {mkdirSync, writeFileSync} from "node:fs";
+import {dirname, join} from "node:path";
 
 const launcherFiles=[
   "tools/run-front-response-experiment.mjs",
@@ -30,19 +31,30 @@ else:
 print(json.dumps({'python': sys.version, **result}))
 `;
 
-export function fixedEngineSources(root, method, read, hash) {
+export function fixedEngineSources(root, method, read) {
   const phase=method==="observed-entry-example/v1" ? sampleFiles : referenceFiles;
-  return Object.fromEntries([...launcherFiles,...phase].map(name=>[name,hash(read(join(root,name)))]));
+  return Object.fromEntries([...launcherFiles,...phase].map(name=>[name,read(join(root,name))]));
 }
 
-export function fixedExecutionFingerprint(root, method, sources, transport, hash) {
-  const child=spawnSync(process.env.OCEAN_EXPERIMENT_PYTHON || "python",
+export function stageFixedEngine(engine, sources) {
+  mkdirSync(join(engine,"backend"),{recursive:true});
+  for(const [name,content] of Object.entries(sources)) {
+    if(!name.endsWith(".py")) continue;
+    const path=join(engine,name);
+    mkdirSync(dirname(path),{recursive:true});
+    writeFileSync(path,content);
+  }
+}
+
+export function fixedExecutionFingerprint(python, cwd, method, sources, transport, hash) {
+  const child=spawnSync(python,
     ["-B","-c",probe,method==="observed-entry-example/v1"?"sample":"reference"],{
-      cwd:join(root,"backend"),encoding:"utf8",windowsHide:true,timeout:15000,maxBuffer:16384,
+      cwd,encoding:"utf8",windowsHide:true,timeout:15000,maxBuffer:16384,
     });
   if(child.status!==0) throw Error("runtime_identity_unavailable");
   const runtime=JSON.parse(child.stdout);
   if(typeof runtime.python!=="string" || !runtime.packages) throw Error("runtime_identity_unavailable");
-  return hash(JSON.stringify({schema:"fixed-event-execution/v1",transport,sources,runtime,
+  const sourceHashes=Object.fromEntries(Object.entries(sources).map(([name,content])=>[name,hash(content)]));
+  return hash(JSON.stringify({schema:"fixed-event-execution/v1",transport,sources:sourceHashes,runtime,
     node:process.version,platform:process.platform,arch:process.arch}));
 }

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, readFileSync, rmSync, unlinkSync, existsSync, statSync, utimesSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, rmSync, unlinkSync, existsSync, statSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join, dirname, basename } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -67,6 +67,7 @@ test("explicit fixed-region reuse requires identical current bytes and preserves
   const reused=command(out,["--reuse-result",out]);
   assert.equal(reused.status,0,reused.stderr);
   assert.equal(JSON.parse(reused.stdout).run_id,original.run_id);
+  assert.equal(JSON.parse(reused.stdout).versioned_result_id,original.versioned_result_id);
   assert.equal(JSON.parse(reused.stdout).reused,true);
   assert.equal(JSON.parse(readFileSync(join(out,"manifest.json"),"utf8")).source_freshness,"unknown");
 
@@ -81,12 +82,50 @@ test("explicit fixed-region reuse requires identical current bytes and preserves
   assert.notEqual(JSON.parse(readFileSync(join(changed,"manifest.json"),"utf8")).execution_id,
     JSON.parse(readFileSync(join(out,"manifest.json"),"utf8")).execution_id);
   assert.equal(readFileSync(join(out,"summary.json"),"utf8"),frozen);
+  const occupied=join(root,"occupied");mkdirSync(occupied);
+  assert.equal(command(occupied,["--reuse-result",out]).status,2);
+  assert.deepEqual(readdirSync(occupied),[]);
 
   unlinkSync(source);
   const failed=join(root,"failed-retry");
   assert.equal(command(failed,["--reuse-result",changed]).status,2);
   assert.equal(JSON.parse(readFileSync(join(failed,"manifest.json"),"utf8")).state,"failed");
   assert.deepEqual(JSON.parse(call(["--read-fixed-region-result",out],{OCEAN_EXPERIMENT_PYTHON:"unavailable"}).stdout),JSON.parse(frozen));
+}));
+
+test("fixed execution uses staged sources, versions identical answers and withholds invalid engine output",()=>scenario(({root,params,source})=>{
+  const project=join(root,"workspace"),lib=join(project,"tools","lib"),app=join(project,"backend","app");
+  mkdirSync(lib,{recursive:true});mkdirSync(app,{recursive:true});
+  const copiedEntry=join(project,"tools","run-front-response-experiment.mjs");
+  cpSync(entry,copiedEntry);
+  for(const name of ["fixed-region-example.mjs","fixed-region-reuse.mjs"]) cpSync(join("tools","lib",name),join(lib,name));
+  for(const name of ["__init__.py","fixed_region_example.py","fixed_region_models.py","analysis_support.py","monthly_models.py","schemas.py"]) {
+    cpSync(join("backend","app",name),join(app,name));
+  }
+  const model=join(app,"fixed_region_models.py"),engine=join(app,"fixed_region_example.py");
+  const originalModel=readFileSync(model,"utf8"),originalEngine=readFileSync(engine,"utf8");
+  const call=(folder,extra=[])=>spawnSync(process.execPath,[copiedEntry,"--fixed-region-request",params,"--input",source,
+    "--output",folder,...extra],{encoding:"utf8",windowsHide:true});
+  writeFileSync(engine,`from pathlib import Path\nPath(${JSON.stringify(model)}).write_text("raise RuntimeError('live checkout changed')")\n`+originalEngine);
+  const first=join(root,"first");
+  const initial=call(first);assert.equal(initial.status,0,initial.stdout || initial.stderr);
+  assert.equal(readFileSync(model,"utf8"),"raise RuntimeError('live checkout changed')");
+  assert.deepEqual(readdirSync(first).sort(),["manifest.json","report.md","summary.json"]);
+  const original=JSON.parse(initial.stdout);
+  writeFileSync(model,originalModel+"\n# Versioned engine update with the same descriptive result.\n");
+  writeFileSync(engine,originalEngine);
+  const fresh=call(join(root,"fresh"),["--reuse-result",first]);
+  assert.equal(fresh.status,0,fresh.stdout || fresh.stderr);
+  assert.equal(JSON.parse(fresh.stdout).reused,false);
+  assert.equal(JSON.parse(fresh.stdout).result_id,original.result_id);
+  assert.notEqual(JSON.parse(fresh.stdout).versioned_result_id,original.versioned_result_id);
+
+  writeFileSync(engine,"import json\nprint(json.dumps({'state': 'completed', 'result': {'kind': 'fixed_region_event_example'}}))\n");
+  const invalid=join(root,"invalid"),failed=call(invalid,["--reuse-result",first]);
+  assert.equal(failed.status,2);
+  assert.equal(JSON.parse(failed.stdout).state,"failed");
+  assert.deepEqual(readdirSync(invalid),["manifest.json"]);
+  assert.equal(JSON.parse(readFileSync(join(invalid,"manifest.json"),"utf8")).execution_id,undefined);
 }));
 
 test("missing, duplicate-key and unqualified sources publish failed manifests with no half result",()=>{

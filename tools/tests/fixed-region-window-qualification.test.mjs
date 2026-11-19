@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
-import {mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync} from "node:fs";
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {basename, dirname, join, resolve} from "node:path";
 import {spawnSync} from "node:child_process";
@@ -152,7 +152,7 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null, radius = 10
     unlinkSync(source);unlinkSync(request);
     return JSON.parse(run(experiment,["--read-fixed-region-result",output],{OCEAN_EXPERIMENT_PYTHON:"unavailable"}));
   }
-  function eventInference(controlRuns, name, policyOptions={}) {
+  function eventInference(controlRuns, name, policyOptions={}, previous=null) {
     const artifacts=[controlRuns].flat().map(controlRun=>({summary_json:readFileSync(join(directory,controlRun,"summary.json"),"utf8"),
       manifest_json:readFileSync(join(directory,controlRun,"manifest.json"),"utf8")}));
     const source=write(`${name}.json`,{schema:"ocean-fixed-region-event-inference-input/v1",control_runs:artifacts,
@@ -161,9 +161,18 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null, radius = 10
     const request=write(`${name}-request.json`,{...base,input_version:digest(readFileSync(source)),
       method_version:"fixed-event-group-uncertainty/v1",parameter_version:"registered-group-percentile/v1"});
     const output=join(directory,name);
-    run(experiment,["--fixed-region-request",request,"--input",source,"--output",output]);
+    const previousPath=previous && join(directory,previous);
+    const extra=previousPath ? ["--reuse-result",previousPath] : [];
+    const executed=JSON.parse(run(experiment,["--fixed-region-request",request,"--input",source,"--output",output,...extra]));
     unlinkSync(source);unlinkSync(request);
-    return JSON.parse(run(experiment,["--read-fixed-region-result",output],{OCEAN_EXPERIMENT_PYTHON:"unavailable"}));
+    const resultPath=executed.reused ? previousPath : output;
+    const result=JSON.parse(run(experiment,["--read-fixed-region-result",resultPath],{OCEAN_EXPERIMENT_PYTHON:"unavailable"}));
+    if(previousPath) {
+      assert.equal(executed.reused,name==="match-reuse");
+      assert.equal(executed.versioned_result_id,result.versioned_result_id);
+      if(executed.reused) assert.equal(existsSync(output),false);
+    }
+    return result;
   }
   function eventLag(controlRun, name) {
     const root=join(directory,controlRun), output=join(directory,name);
@@ -438,6 +447,14 @@ test("registered independent B groups give reproducible percentile endpoints and
     assert.equal(result.inference.valid_iterations,400);
     const repeated=eventInference("fixed-controls","repeat-interval");
     assert.deepEqual(repeated.inference,result.inference);
+    const reused=eventInference("fixed-controls","match-reuse",{},"event-interval");
+    assert.deepEqual(reused,result);
+    const newSeed=eventInference("fixed-controls","seed-changed",{seed:23},"event-interval");
+    assert.equal(newSeed.policy.seed,23);
+    assert.notEqual(newSeed.versioned_result_id,result.versioned_result_id);
+    const newWindow=eventInference("fixed-controls","window-changed",{window:"post7"},"event-interval");
+    assert.equal(newWindow.policy.window,"post7");
+    assert.notEqual(newWindow.versioned_result_id,result.versioned_result_id);
     const pooled=eventInference("fixed-controls","pooled-interval",{estimand:"pooled_area_time"});
     assert.equal(pooled.inference.status,"estimated_for_registered_assumptions");
     assert.ok(Math.abs(pooled.inference.estimate-result.inference.estimate)<1e-12);
@@ -461,7 +478,8 @@ test("registered independent B groups give reproducible percentile endpoints and
     assert.ok(combined.dependence_links.some(link=>link.reasons.includes("same_anchor_radius_variant")));
     assert.deepEqual(combined.inference,result.inference);
     variant.fixedControls([],"target-effects","different-policy",{distance_to_coast_km:3},3);
-    const held=eventInference(["fixed-controls","radius20/different-policy"],"held-variant");
+    const held=eventInference(["fixed-controls","radius20/different-policy"],"held-variant",{},"multi-radius-interval");
+    assert.notEqual(held.versioned_result_id,combined.versioned_result_id);
     assert.equal(held.radius_compatibility["20"],"control_policy_mismatch");
     assert.equal(held.counts.event_radius_rows,4);
     assert.equal(held.counts.grouped_radius_rows,2);
@@ -592,6 +610,7 @@ test("one reading pack binds original plot, aggregate tables, interval status an
     const csv=readFileSync(join(pack.output,"daily.csv"),"utf8");
     const original=b07.events[0].daily.find(day=>day.offset===1);
     assert.ok(csv.includes(`${monthEnd},2024-09-01,1,${original.target.hours},${original.target.area_time},0,`));
+    assert.ok(csv.includes(pack.result.versioned_result_id));
     const [header,...rows]=readFileSync(join(pack.output,"windows.csv"),"utf8").trimEnd().split("\n").map(line=>line.split(","));
     const windows=rows.map(row=>Object.fromEntries(header.map((key,index)=>[key,row[index]])));
     const unknownControl=windows.find(row=>row.anchor_date===second && row.window==="post3" && row.phase==="post");
