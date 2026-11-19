@@ -211,6 +211,7 @@ def evaluate_candidate(candidate, target, dates, policy, target_covariates):
     anchor = target["anchor_date"]
     required = [*dates["pre7"], *dates["event_day"], *dates[policy["required_window"]]]
     observations = candidate["observations"]
+    radius = candidate["geometry"][2]
     exposed, missing, weak_clearance = [], [], []
     for day in required:
         row = observations.get(day, {})
@@ -219,7 +220,10 @@ def evaluate_candidate(candidate, target, dates, policy, target_covariates):
             exposed.append(day)
         elif phase != "clear":
             missing.append(day)
-        elif not p0.finite(lower) or lower < policy["control_clearance_km"]:
+        elif (
+            not p0.finite(lower)
+            or radius + lower < radius + policy["control_clearance_km"]
+        ):
             weak_clearance.append(day)
     evidence = {
         key: candidate[key]

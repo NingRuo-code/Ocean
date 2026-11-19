@@ -107,6 +107,7 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null) {
     const layer=fixture.regional_cells.days[0].layers;
     fixture.id=id;
     fixture.geometry.longitude=longitude;
+    fixture.policy.enter_distance_km=Math.min(fixture.policy.enter_distance_km,exitDistance/2);
     fixture.policy.exit_distance_km=exitDistance;
     fixture.front_source_version=front.source.front_source_version;
     const calendar=Array.from({length:19},(_,i)=>shift(anchor,i-9));
@@ -124,13 +125,13 @@ function controlled(directory, anchor = monthEnd, nextAnchor = null) {
       front_manifest_json:readFileSync(join(output,"manifest.json"),"utf8"),
       support_snapshots:[makeSnapshot(false,{days:15,longitude,...p0Options})]};
   }
-  function fixedControls(controls, targetRun, name, covariateLimits={distance_to_coast_km:3}) {
+  function fixedControls(controls, targetRun, name, covariateLimits={distance_to_coast_km:3}, clearance=2) {
     const source=write(`${name}.json`,{schema:"ocean-fixed-region-controls-input/v1",
       target_summary_json:readFileSync(join(directory,targetRun,"summary.json"),"utf8"),
       target_manifest_json:readFileSync(join(directory,targetRun,"manifest.json"),"utf8"),
       target_covariates:{distance_to_coast_km:staticProof(7,"target coast")},
       policy:{required_window:"post7",max_center_distance_km:40,minimum_area_ratio:0.8,
-        control_clearance_km:2,front_position_error_km:0.01,covariate_limits:covariateLimits},controls});
+        control_clearance_km:clearance,front_position_error_km:0.01,covariate_limits:covariateLimits},controls});
     const request=write(`${name}-request.json`,{...base,input_version:digest(readFileSync(source)),
       method_version:"fixed-event-comparable-controls/v1",parameter_version:"frozen-single-control/v1"});
     const output=join(directory,name);
@@ -215,6 +216,9 @@ test("same-day controls stay fixed and later front exposure excludes an otherwis
     const failedClearance=fixedControls([weak],"target-effects","unproven-clearance").events[0];
     assert.equal(failedClearance.matching.selected,null);
     assert.equal(failedClearance.matching.candidates[0].reason,"front_clearance_not_proven");
+    const fractional=registerControl("fractional",0.22,null,{exitDistance:0.2});
+    const equalClearance=fixedControls([fractional],"target-effects","fractional-clearance",{distance_to_coast_km:3},0.2).events[0];
+    assert.equal(equalClearance.matching.selected.id,"fractional");
   } finally {
     if(dirname(resolve(directory))===resolve(tmpdir())&&basename(directory).startsWith("ocean-b03-"))rmSync(directory,{recursive:true,force:true});
   }
