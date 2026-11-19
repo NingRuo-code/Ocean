@@ -2,6 +2,7 @@
 
 import calendar
 import copy
+import hashlib
 import subprocess
 from collections import Counter
 from datetime import UTC, datetime
@@ -22,7 +23,13 @@ from .analysis_support import (
 )
 from .config import Settings
 from .monthly_capability import create_capability_router
-from .monthly_distance_reference import QualificationInputMismatch, calculate_distance_reference
+from .monthly_distance_reference import (
+    QualificationInputMismatch,
+    calculate_distance_reference,
+    distance_execution_environment,
+    distance_execution_sources,
+    read_distance_input,
+)
 from .monthly_evidence import render_monthly_evidence, zip_monthly_evidence
 from .monthly_execution_qualification import qualify_execution
 from .monthly_models import (
@@ -132,7 +139,7 @@ def create_monthly_router(
             settings, example_path, _calculate, METHOD_VERSION, PARAMETER_VERSION
         )
     )
-    records, lock = {}, RLock()
+    records, reuse_index, lock = {}, {}, RLock()
     distance_lock = Lock()
     require_owner = owner_requirement(settings)
 
@@ -152,7 +159,7 @@ def create_monthly_router(
             }
             return run_id
 
-    def finish(run_id, result=None, error=None):
+    def finish(run_id, result=None, error=None, execution_id=None):
         with lock:
             record = records[run_id]
             record.update(
@@ -162,6 +169,9 @@ def create_monthly_router(
                 finished_at=datetime.now(UTC).isoformat(),
             )
             record["state_history"].append(record["state"])
+            if execution_id is not None:
+                record.update(execution_id=execution_id, source_freshness="unknown")
+                reuse_index[execution_id] = run_id
             return copy.deepcopy(record)
 
     @router.get("/examples")
@@ -202,20 +212,44 @@ def create_monthly_router(
             if not distance_lock.acquire(blocking=False):
                 raise HTTPException(409, "A controlled distance calculation is already running")
             try:
-                run_id = reserve(request)
+                run_id = None
                 try:
-                    result = calculate_distance_reference(request, source, qualification)
+                    coordinates = {key: getattr(request, key) or 0.0 for key in ("longitude", "latitude")}
+                    request = request.model_copy(update=coordinates)
+                    raw = read_distance_input(source)
+                    sources = distance_execution_sources()
+                    environment = distance_execution_environment(sources)
+                    execution_id = content_id({
+                        "request": request.model_dump(exclude_none=True),
+                        "input_sha256": hashlib.sha256(raw).hexdigest(),
+                        "qualification": qualification,
+                        "environment": environment,
+                    })
+                    with lock:
+                        if (previous := reuse_index.get(execution_id)) is not None:
+                            return copy.deepcopy(records[previous])
+                    run_id = reserve(request)
+                    result = calculate_distance_reference(request, raw, sources, qualification)
+                    if distance_execution_environment(sources) != environment:
+                        return finish(run_id, error={"code": "distance_execution_environment_changed"})
+                    result["versions"]["execution_id"] = execution_id
+                    result["versions"]["direct_result_id"] = result.pop("result_id")
+                    result["result_id"] = content_id(result)
                 except QualificationInputMismatch:
                     return finish(
-                        run_id, error={"code": "qualification_input_or_conditions_mismatch"}
+                        run_id or reserve(request),
+                        error={"code": "qualification_input_or_conditions_mismatch"},
                     )
-                except (OSError, ValueError, TypeError, AttributeError, subprocess.SubprocessError):
+                except (
+                    OSError, ValueError, TypeError, AttributeError, ImportError, subprocess.SubprocessError
+                ):
                     return finish(
-                        run_id, error={"code": "distance_reference_unavailable_or_invalid"}
+                        run_id or reserve(request),
+                        error={"code": "distance_reference_unavailable_or_invalid"},
                     )
+                return finish(run_id, result=result, execution_id=execution_id)
             finally:
                 distance_lock.release()
-            return finish(run_id, result=result)
         try:
             data, fingerprint = read_controlled_input(example_path, MonthlyExample)
         except (OSError, ValueError, ValidationError):

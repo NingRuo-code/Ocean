@@ -265,3 +265,7 @@ def test_p0_claims_cannot_launch_research_without_separate_exact_approval(tmp_pa
     assert approved.get(evidence).status_code == 401
     assert approved.get(evidence, headers=AUTH).status_code == 200
     assert approved.get(evidence, headers=AUTH, params={"format": "zip"}).status_code == 403
+    assert approved.post(URL, headers=AUTH, json=request).json() == record
+    (tmp_path / "support.json").unlink()
+    assert approved.post(URL, headers=AUTH, json=request).status_code == 409
+    assert approved.get(f"{URL}/{record['id']}", headers=AUTH).json() == record
