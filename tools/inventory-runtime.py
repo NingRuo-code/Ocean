@@ -85,20 +85,22 @@ def measure(root, relative, budget=None):
             "observed_bytes": size, "observed_files": count, "reasons": sorted(reasons)}
 
 
-def inventory(root, snapshot, max_entries=100_000, max_seconds=10):
+def inventory(root, snapshot, max_entries=100_000, max_seconds=10, *, layout="checkout"):
     budget = scan_budget(max_entries, max_seconds)
     disk = shutil.disk_usage(root)
+    sothisai = layout == "sothisai"
+    checkout_prefix = "src/" if sothisai else ""
     layers = {name: measure(root, path, budget) for name, path in {
-        "raw": "data/raw", "hot_display": "frontend/prototype/data",
+        "raw": "data/raw", "hot_display": f"{checkout_prefix}frontend/prototype/data",
         "derived_unclassified": "data/processed", "indexes": "data/indexes",
         "staging": "data/staging", "cache": "data/cache",
-        "results": "data/outputs", "backup": "data/backups",
+        "results": "outputs" if sothisai else "data/outputs", "backup": "data/backups",
     }.items()}
     routes, route_status = {}, {}
     for name in ["deploy/nginx/ocean.conf", "deploy/systemd/ocean-api.service", "frontend/prototype/prototype-data.js"]:
         routes[name] = None
         try:
-            path = checked_path(root, name)
+            path = checked_path(root, f"{checkout_prefix}{name}")
             if not path.is_file():
                 raise ValueError("not_regular_file")
             if path.stat().st_size > 32 * 1024 * 1024:
@@ -120,8 +122,10 @@ def inventory(root, snapshot, max_entries=100_000, max_seconds=10):
             route_status[name] = reason if reason in {"excluded_link", "not_regular_file", "file_budget"} else "unavailable"
         except OSError:
             route_status[name] = "unavailable"
+    scope = "SothisAI research workspace; production unverified" if sothisai else "local checkout only; production unverified"
     return {"schema": "ocean-runtime-inventory/v1", "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "scope": "local checkout only; production unverified", "source_snapshot_id": snapshot["snapshot_id"],
+            "scope": scope, "source_snapshot_id": snapshot["snapshot_id"],
+            **({"layout": layout} if sothisai else {}),
             "local": {"os": platform.system(), "cpu_count": os.cpu_count(),
                       "disk_total_bytes": disk.total, "disk_free_bytes": disk.free,
                       "ram_bytes": None, "io_rate": None, "bandwidth": None, "workers": None, "load": None},
@@ -141,15 +145,15 @@ def inventory(root, snapshot, max_entries=100_000, max_seconds=10):
                             "No downloads, load tests, cache clearing or procurement recommendation."]}
 
 
-def observe_inventory(root, snapshot, max_entries, max_seconds, samples, interval):
+def observe_inventory(root, snapshot, max_entries, max_seconds, samples, interval, *, layout="checkout"):
     started = time.monotonic()
-    before = inventory(root, snapshot, max_entries, max_seconds)
+    before = inventory(root, snapshot, max_entries, max_seconds, layout=layout)
     if samples == 1:
         return before
     print(json.dumps({"event": "inventory_observation_complete", "sample": 1, "samples": 2}), flush=True)
     time.sleep(interval)
     second_started = time.monotonic()
-    after = inventory(root, snapshot, max_entries, max_seconds)
+    after = inventory(root, snapshot, max_entries, max_seconds, layout=layout)
     print(json.dumps({"event": "inventory_observation_complete", "sample": 2, "samples": 2}), flush=True)
     changes = {}
     for name, previous in before["layers"].items():
@@ -180,6 +184,7 @@ def observe_inventory(root, snapshot, max_entries, max_seconds, samples, interva
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument("--layout", choices=["checkout", "sothisai"], default="checkout")
     parser.add_argument("--snapshot", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--max-entries", type=int, default=100_000)
@@ -214,7 +219,9 @@ if __name__ == "__main__":
         parser.error("Invalid source snapshot")
     temporary = None
     try:
-        report = observe_inventory(root, snapshot, args.max_entries, args.max_seconds, args.samples, interval)
+        report = observe_inventory(
+            root, snapshot, args.max_entries, args.max_seconds, args.samples, interval, layout=args.layout
+        )
         args.out.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=args.out.parent,
                                          prefix=".ocean-inventory-", suffix=".tmp", delete=False) as stream:

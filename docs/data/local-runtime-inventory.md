@@ -28,6 +28,8 @@ python tools/inventory-runtime.py --snapshot data/processed/source-audit-new.jso
 | results | data/outputs |
 | backup | data/backups |
 
+在 SothisAI 研究工作区，使用 `--root "$HOME/ocean-lab" --layout sothisai`。同一个工作区内，热输入位于 `src/frontend/prototype/data`，路由配置从 `src` 下的版本库模板读取，结果位于工作区的 `outputs`。其余资料层沿用表中的工作区相对路径。报告记录布局和模板摘要，代理运行状态与账号剩余配额仍需单独实测。
+
 默认8层共享最多100000个条目和10秒扫描预算，最大可设置1000000条目、120秒；深度上限64层。流式遍历，在条目间检查预算，不能打断阻塞的单次文件系统调用。配置文件哈希另有每文件32 MiB上限，既定3个路径逐段排除链接。工具不是防御恶意并发改写路径的文件系统隔离器。
 
 `scan.elapsed_ms`包含盘点开始后的硬件/路径元信息及配置哈希耗时，不能当成纯文件遍历耗时；`max_seconds`用于分层遍历中的协作检查，不是整个CLI的强制超时。

@@ -1,3 +1,4 @@
+import hashlib
 import importlib.util
 import json
 import os
@@ -237,6 +238,34 @@ def test_cli_normal_inventory_keeps_empty_missing_and_output_side_effects_distin
     assert report["layers"]["cache"]["bytes"] is None
     assert str(root) not in json.dumps(report)
     assert report["capacity"]["cache_budget_bytes"] is None
+
+
+def test_cli_sothisai_layout_measures_checkout_assets_and_shared_results(cli_workspace):
+    root, snapshot = cli_workspace
+    for relative, content in {
+        "data/raw/registered.nc": b"raw",
+        "frontend/prototype/data/old.js": b"wrong display tree",
+        "src/frontend/prototype/data/observed.js": b"map",
+        "src/deploy/nginx/ocean.conf": b"checkout template",
+        "data/outputs/wrong.json": b"wrong result tree",
+        "outputs/result.json": b"report",
+    }.items():
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+
+    result = run_cli(cli_workspace, "--layout", "sothisai")
+    assert result.returncode == 0, result.stderr
+    report = json.loads((root / "inventory.json").read_text(encoding="utf-8"))
+    assert report["layout"] == "sothisai"
+    assert report["source_snapshot_id"] == json.loads(snapshot.read_text(encoding="utf-8"))["snapshot_id"]
+    assert {name: report["layers"][name]["bytes"] for name in ("raw", "hot_display", "results")} == {
+        "raw": 3, "hot_display": 3, "results": 6,
+    }
+    assert report["layers"]["backup"]["status"] == "missing"
+    assert report["route_config_sha256"]["deploy/nginx/ocean.conf"] == hashlib.sha256(b"checkout template").hexdigest()
+    assert report["production"]["status"] == "unverified"
+    assert str(root) not in json.dumps(report)
 
 
 @pytest.mark.parametrize("option,value", [("--max-entries", "0"), ("--max-entries", "1000001"), ("--max-seconds", "nan"), ("--max-seconds", "inf"), ("--max-seconds", "0")])
