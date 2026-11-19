@@ -84,6 +84,8 @@ node tools/audit-research-baseline.mjs --read-support-snapshot "$augustAuditDir/
 
 之后用同一份逐日快照从 Git 暂存区重新检出三个参与资格哈希的脚本。固定 LF 前，两种 `core.autocrlf` 设置生成了不同快照，只差三个源码哈希和快照标识。固定后两种设置的脚本和资格 JSON 逐字节一致，快照为 `sha256:27e5296a09c7d41b789c2ebedafd40fde6d674746bf72b423bfe01046ba5721d`，等于固定前的干净 LF 检出。上轮的 Windows 快照仍能回读，三个半径的资格仍各为 0/31 天。
 
+公开替代源另行核查了 [NOAA 锋面及海温](../research/ocean-august-public-front-alternatives-2026-11-19.md) 与 [GFW ArcGIS 活动](../research/ocean-august-public-activity-alternatives-2026-11-19.md)。候选锋面有实测缺测日，活动瓦片的掩码没有逐日接收质量口径。原固定输入重新审计得到同一资格快照，正式输入仍按已登记版本执行。候选通过时间、共同覆盖和许可要求后再向用户提出换源方案。
+
 ## 11 月 8 日验收
 
 实际来源与逐日快照在修正后的入口复跑，内容身份一致。66 项 Node 工具测试（含 10 项来源审计 CLI）、143 项 Python 工具测试和 922 项数据一致性检查通过。双轴复审最终均为零项待修复。更广的 Node 运行有一项隔离发布测试在导入应用时失败。发布应用、脚本、输入和该测试与主分支逐文件一致。
