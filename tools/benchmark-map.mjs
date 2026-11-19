@@ -123,9 +123,21 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
         const m=document.getElementById('mapSvg'),d=document.getElementById('timeDate');
         if(!m||!d)return null;
         const partial=m.dataset.renderStatus==='partial'?window.OFData?.viewportState?.(d.value):null;
-        return {time_origin:performance.timeOrigin,date:d.value,render_date:m.dataset.renderDate,status:m.dataset.renderStatus,view:m.dataset.viewKey,map_ms:Number(m.dataset.mapMs)||null,panel_ms:Number(m.dataset.panelMs)||null,step:Number(m.dataset.dataStep)||null,server_enabled:!!window.OFData?.serverEnabled(),viewport_ready:!!window.OFData?.viewportReady(d.value),viewport_partial_usable:partial?.status==='partial'&&partial.usable===true,layer_states:Object.fromEntries(Object.entries(window.OFData?.loadState?.()||{}).map(([k,v])=>[k,v.status]))};
+        return {
+          time_origin:performance.timeOrigin,date:d.value,render_date:m.dataset.renderDate,
+          status:m.dataset.renderStatus,view:m.dataset.viewKey,
+          map_ms:Number(m.dataset.mapMs)||null,panel_ms:Number(m.dataset.panelMs)||null,step:Number(m.dataset.dataStep)||null,
+          server_enabled:!!window.OFData?.serverEnabled(),viewport_ready:!!window.OFData?.viewportReady(d.value),
+          viewport_partial_usable:partial?.status==='partial'&&partial.usable===true,
+          layer_states:Object.fromEntries(Object.entries(window.OFData?.loadState?.()||{}).map(([k,v])=>[k,v.status])),
+        };
       })()`);
       const measure = async (scenario, cache, action, expected) => {
+        const matchingIdentity = state => state && state.render_date === state.date && expected(state);
+        const ready = state => matchingIdentity(state) && state.status === "ready" &&
+          (!isolatedService || state.server_enabled && state.viewport_ready);
+        const partial = state => matchingIdentity(state) && state.status === "partial" &&
+          state.server_enabled && state.viewport_partial_usable && !!state.view;
         requests.clear(); errors.length = 0;
         const started = performance.now();
         const deadline = started + timeout;
@@ -142,24 +154,22 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
             if(isolatedService&&value?.server_enabled&&["day-missing","forbidden","error","unprepared"].includes(value.layer_states.day)){
               record.status="failure";record.failure_reason=value.layer_states.day;break;
             }
-            const matchingIdentity = state => state && state.render_date === state.date && expected(state);
-            const ready = state => matchingIdentity(state) && state.status === "ready" &&
-              (!isolatedService || state.server_enabled && state.viewport_ready);
-            const partial = state => matchingIdentity(state) && state.status === "partial" &&
-              state.server_enabled && state.viewport_partial_usable && !!state.view;
-            if (ready(value) || (record.first_partial_paint_ms === null && partial(value))) {
+            const readyBefore = ready(value);
+            const partialBefore = record.first_partial_paint_ms === null && partial(value);
+            if (readyBefore || partialBefore) {
               await cdp.evaluate("new Promise(done=>requestAnimationFrame(()=>requestAnimationFrame(done)))");
               if (performance.now() >= deadline) break;
               const painted = await observed();
               const confirmedAt = performance.now();
               if (confirmedAt >= deadline) break;
               record.last_observed = painted;
-              if (ready(painted)) {
+              const sameRender = painted && value.time_origin === painted.time_origin &&
+                value.date === painted.date && value.view === painted.view;
+              if (sameRender && readyBefore && ready(painted)) {
                 completedAt = confirmedAt;
                 record.status = "success"; record.observed = painted; break;
               }
-              if (record.first_partial_paint_ms === null && partial(value) && partial(painted) &&
-                  value.time_origin === painted.time_origin && value.date === painted.date && value.view === painted.view) {
+              if (sameRender && partialBefore && partial(painted)) {
                 record.first_partial_paint_ms = confirmedAt - started;
               }
             }

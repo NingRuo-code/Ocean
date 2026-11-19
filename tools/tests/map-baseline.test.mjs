@@ -88,9 +88,20 @@ test("partial coverage has its own paint time and never enters full-success perc
     <script>
     const map = document.getElementById('mapSvg');
     const date = document.getElementById('timeDate');
-    window.OFData = {serverEnabled:()=>true,viewportReady:()=>false,viewportState:()=>({status:'partial',usable:true})};
+    let frames = 0;
+    const frame = window.requestAnimationFrame.bind(window);
+    const ready = () => map.dataset.renderStatus === 'ready';
+    window.OFData = {serverEnabled:()=>true,viewportReady:ready,viewportState:()=>({status:'partial',usable:true})};
+    window.requestAnimationFrame = callback => {
+      if (date.value === '2024-08-06' && ++frames === 2) map.dataset.renderStatus = 'ready';
+      return ready() ? setTimeout(() => frame(callback), 450) : frame(callback);
+    };
     setTimeout(()=>{map.dataset.renderDate=date.value}, 260);
-    document.getElementById('dateNext').onclick=()=>{date.value='2024-08-06'};
+    document.getElementById('dateNext').onclick=()=>{
+      date.value='2024-08-06';
+      // Leave the old render date visible before painting partial coverage for the new day.
+      setTimeout(()=>{map.dataset.renderDate=date.value}, 110);
+    };
     </script>`);
   const result = spawnSync(process.execPath, [resolve("tools/benchmark-map.mjs"),
     "--page", pathToFileURL(page).href, "--runs", "1", "--timeout-ms", "650",
@@ -101,7 +112,10 @@ test("partial coverage has its own paint time and never enters full-success perc
   assert.ok(nav.first_partial_paint_ms >= 240 && nav.first_partial_paint_ms < 650, String(nav.first_partial_paint_ms));
   assert.equal(nav.status, "timeout");
   assert.equal(nav.elapsed_ms, null);
-  assert.equal(report.attempts.find(a => a.scenario === "date-change").first_partial_paint_ms, null);
+  const changed = report.attempts.find(a => a.scenario === "date-change");
+  assert.equal(changed.last_observed?.status, "ready");
+  assert.equal(changed.status, "timeout", "Full readiness needs a new paint confirmation");
+  assert.equal(changed.first_partial_paint_ms, null);
   assert.equal(report.summary.navigation.partial_paint_observations, 1);
   assert.equal(report.summary.navigation.p50_ms, null);
   assert.equal(report.summary.navigation.p95_ms, null);
