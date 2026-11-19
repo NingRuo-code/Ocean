@@ -2,8 +2,10 @@
 
 import hashlib
 import json
+import re
 import subprocess
 import sys
+from calendar import monthrange
 from importlib.metadata import version
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -59,6 +61,7 @@ def distance_execution_environment(sources):
 
 
 def calculate_distance_reference(request, raw, sources, qualification):
+    parameters = request.model_dump(exclude_none=True)
     try:
         # Each child imports the same helper bytes used in its execution identity.
         with TemporaryDirectory(prefix="ocean-month-engine-") as directory:
@@ -77,10 +80,30 @@ def calculate_distance_reference(request, raw, sources, qualification):
     result = json.loads(child.stdout)
     evidence_kind = "audited_cells" if isinstance(request, MonthlyResearchRequest) else "synthetic"
     if (
-        result.get("evidence_kind") != evidence_kind
+        not isinstance(result, dict)
+        or result.get("evidence_kind") != evidence_kind
         or result.get("research_ready") is not False
         or result.get("kind") != request.purpose
         or result.get("qualification") != qualification
+        or result.get("parameters") != parameters
+        or not isinstance(result.get("versions"), dict)
+        or not isinstance(result.get("result_id"), str)
+        or not re.fullmatch(r"sha256:[0-9a-f]{64}", result["result_id"])
+        or not isinstance(result.get("p0_conditions"), dict)
+        or not isinstance(result.get("distance_edges_km"), list)
+        or not result["distance_edges_km"]
+        or not isinstance(result.get("month"), dict)
+        or not {"common", "bands", "activity_accounting"} <= result["month"].keys()
+        or not isinstance(result.get("days"), list)
+        or len(result["days"]) != monthrange(*map(int, request.month.split("-")))[1]
+        or not all(isinstance(day, dict) and {"date", "common", "bands"} <= day.keys()
+                   for day in result["days"])
     ):
         raise ValueError("reference_output_boundary")
+    direct = {key: value for key, value in result.items() if key != "result_id"}
+    digest = hashlib.sha256(
+        json.dumps(direct, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode()
+    ).hexdigest()
+    if result["result_id"] != "sha256:" + digest:
+        raise ValueError("reference_output_digest")
     return result

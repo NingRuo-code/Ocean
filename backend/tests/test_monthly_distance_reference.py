@@ -14,7 +14,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
-from app import monthly_analysis
+from app import monthly_analysis, monthly_distance_reference
 from app.config import settings
 from app.monthly_analysis import create_monthly_router
 
@@ -275,6 +275,25 @@ def test_timed_out_calculation_never_becomes_a_reusable_result(tmp_path, monkeyp
     assert retry["state"] == "completed" and retry["id"] != failed["id"]
     assert client.post(URL, json=request, headers=AUTH).json() == retry
     assert client.get(f"{URL}/{failed['id']}", headers=AUTH).json() == failed
+
+
+def test_incomplete_child_output_is_a_failed_run_and_can_be_retried(tmp_path, monkeypatch):
+    client, _, request = case(tmp_path)
+    output = json.dumps({
+        "evidence_kind": "synthetic", "research_ready": False, "kind": request["purpose"],
+        "parameters": request, "result_id": "sha256:" + "0" * 64, "versions": {},
+    }).encode()
+
+    def incomplete(command, **kwargs):
+        return subprocess.CompletedProcess(command, 0, stdout=output)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(monthly_distance_reference.subprocess, "run", incomplete)
+        failed = client.post(URL, json=request, headers=AUTH).json()
+    assert failed["state"] == "failed" and failed["result"] is None
+    assert client.get(f"{URL}/{failed['id']}/evidence", headers=AUTH).status_code == 409
+    retry = client.post(URL, json=request, headers=AUTH).json()
+    assert retry["state"] == "completed" and retry["id"] != failed["id"]
 
 
 @pytest.mark.parametrize(("latitude", "expected_band"), [(0, 1), (60, 0)])
