@@ -394,6 +394,8 @@ def render_report(result):
             lines.append(f"| {region_id} | {name} | {reason} | {days} |")
     lines += [
         "",
+        "## Daily detail",
+        "",
         "| Region | Date | Included | Hours | Effective km² | km²-days | Exclusion reasons |",
         "| --- | --- | --- | --- | --- | --- | --- |",
     ]
