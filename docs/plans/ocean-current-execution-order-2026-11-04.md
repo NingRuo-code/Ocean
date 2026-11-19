@@ -51,6 +51,8 @@
 
 11 月 19 日 #67 公开复核已补上[上游海温格网与时刻](../research/ocean-front-upstream-grid-evidence-2026-11-19.md)、[固定 v3 的数据仓库与日期类型](../research/ocean-gfw-fixed-v3-public-evidence-2026-11-19.md)和[原档中缺行、零及正值的对照](../research/ocean-gfw-v3-local-cell-evidence-2026-11-19.md)。三项支持样本解释，未改变真实数据门槛。后续优先找绑定当前锋面写出、固定活动 UTC 日界和 2024-08 有效支持的公开依据；此前不对外询证的决定继续有效。
 
+用户已确认允许并行筛查公开替代源并做小样。候选须先核对 2024-08 日历、登记研究域的共同覆盖、单位及研究与展示许可，再向用户提交候选和对算法、侧别、尺度及票据的影响，确认后定正式输入。已实读 [NOAA 锋面与海温](../research/ocean-august-public-front-alternatives-2026-11-19.md)和 [GFW ArcGIS 活动](../research/ocean-august-public-activity-alternatives-2026-11-19.md)小样。现有候选尚不能合成满足条件的整月输入，继续沿 #67 → #68 → #71 → #98 推进完整项目。
+
 每次领取前读取 Issue 正文、评论及原生依赖，核对实际输入。里程碑表示范围，`ready-for-agent` 才表示当前可领取；标签也不能替代事实核对。一次优先完成一个可验收切片，最多同时推进两个不冲突的切片。真实数据、科学验收、软件完成与生产部署分别记录。
 
 ## M1：首个真实 A 月结果
