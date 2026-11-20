@@ -8,6 +8,11 @@
   let draft=null,prepared=null,pending=null,selected=null,sessionSource=null,busy=false,generation=0,controller=null,reference=null,referenceError='';
   const legacyPurpose = 'monthly_spatial_example';
   const distancePurpose = 'monthly_distance_reference';
+  const distanceFailureMessages = new Map([
+    ['calculation_failed','计算已终态失败；没有成功结果或部分结果可用。'],
+    ['execution_evidence_changed','原尝试已中止，资格、登记输入或执行环境无法继续核验。没有发布结果。'],
+    ['execution_timed_out','计算达到服务时限，原尝试已中止。没有发布结果。'],
+  ]);
   const pendingByPurpose = new Map();
   let purpose = legacyPurpose;
   let referenceKey = 'ocean-owner-synthetic-run-ref/v1';
@@ -120,7 +125,7 @@
     const validMeasure = value => value === null || (Number.isFinite(value) && value >= 0);
     if (request.input_version !== record.input_sha256 || qualification?.snapshot_id !== request.support_snapshot_id ||
         qualification.scope !== 'frozen_synthetic_validation') return false;
-    if (record.state === 'failed') return result === null && record.error?.code === 'calculation_failed';
+    if (record.state === 'failed') return result === null && distanceFailureMessages.has(record.error?.code);
     return result?.kind === distancePurpose && result.evidence_kind === 'synthetic' &&
       result.research_ready === false && result.qualification?.snapshot_id === qualification.snapshot_id &&
       result.qualification.scope === qualification.scope && hash.test(result.result_id) &&
@@ -175,7 +180,10 @@
         node(box,'p','H='+(m.total_hours??'未知')+' h；E='+(m.area_time_km2_days??'未知')+' km²·d；有效/日历日 '+m.supported_days+'/'+m.calendar_days+'。');
         showDaily(box, r.daily, r.caveats);
       }
-    }else node(box,'p','计算已终态失败；没有成功结果或部分结果可用。');
+    }else{
+      const code = distanceMode() ? run.error.code : 'calculation_failed';
+      node(box,'p',distanceFailureMessages.get(code));
+    }
     const unresolved=(activePending()&&pending.body.intent_id!==run.intent_id)||(activeReference()?.run_id===null&&reference.intent_id!==run.intent_id);
     if(!unresolved){if(activePending()?.body.intent_id===run.intent_id)pending=null;saveReference({schema_version:referenceKey,base:sessionSource.base,intent_id:run.intent_id,run_id:run.id});}
     prepared=null;set(run.state,(run.state==='completed'?'已读取可靠提交的合成任务结果；地图条件未改变。':'已读取持久失败记录；新尝试必须明确准备新的意图。')+(unresolved?' 原提交意图仍待核实，核对入口保留。':''));update();

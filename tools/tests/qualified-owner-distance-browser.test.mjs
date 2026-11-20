@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {unlink, writeFile} from "node:fs/promises";
+import {access, unlink, writeFile} from "node:fs/promises";
+import {setTimeout as delay} from "node:timers/promises";
 import {launchBrowser, waitFor} from "../lib/browser-driver.mjs";
 import {click, headers, owner, type} from "../lib/case-test-browser.mjs";
 import {withService} from "../lib/monthly-test-service.mjs";
@@ -42,6 +43,23 @@ async function openOwner(c,base) {
   await click(c,root+" summary");
 }
 
+async function prepareDistanceInBrowser(c,base) {
+  await openOwner(c,base);
+  await c.evaluate(`(()=>{
+    document.getElementById('ownerRunPurpose').value=${JSON.stringify(mode)};
+    document.getElementById('ownerRunPurpose').dispatchEvent(new Event('change'));
+    for(const [id,value] of Object.entries({monthDraftMonth:${JSON.stringify(month)},monthDraftLongitude:'124.5',monthDraftLatitude:'30.2',monthDraftRadius:'10'})){
+      const field=document.getElementById(id);
+      field.value=value;
+      field.dispatchEvent(new Event('input',{bubbles:true}));
+    }
+  })()`);
+  assert.equal(await c.evaluate("document.getElementById('ownerRunPrepare').disabled"),true);
+  await type(c,"ownerRunToken",owner);
+  await click(c,"#ownerRunPrepare");
+  await waitFor(c,`document.querySelector('${root}').dataset.state==='prepared'`);
+}
+
 test("owner prepares and submits the same frozen P0 distance sample through the browser", () =>
   withService(async (base,{distancePath,distanceSupport})=>{
     const browser=await launchBrowser(edge), c=browser.cdp, submissions=[];
@@ -55,20 +73,7 @@ test("owner prepares and submits the same frozen P0 distance sample through the 
       const options = base+route+"/distance-options?"+new URLSearchParams({...coordinates,month});
       assert.equal((await fetch(options)).status,401);
       await c.send("Network.enable");
-      await openOwner(c,base);
-      await c.evaluate(`(()=>{
-        document.getElementById('ownerRunPurpose').value=${JSON.stringify(mode)};
-        document.getElementById('ownerRunPurpose').dispatchEvent(new Event('change'));
-        for(const [id,value] of Object.entries({monthDraftMonth:${JSON.stringify(month)},monthDraftLongitude:'124.5',monthDraftLatitude:'30.2',monthDraftRadius:'10'})){
-          const field=document.getElementById(id);
-          field.value=value;
-          field.dispatchEvent(new Event('input',{bubbles:true}));
-        }
-      })()`);
-      assert.equal(await c.evaluate("document.getElementById('ownerRunPrepare').disabled"),true);
-      await type(c,"ownerRunToken",owner);
-      await click(c,"#ownerRunPrepare");
-      await waitFor(c,`document.querySelector('${root}').dataset.state==='prepared'`);
+      await prepareDistanceInBrowser(c,base);
       assert.equal(submissions.length,0);
       await c.evaluate("document.getElementById('ownerRunSubmit').click();document.getElementById('ownerRunSubmit').click()");
       await waitFor(c,`document.querySelector('${root}').dataset.state==='completed'`,40_000);
@@ -158,4 +163,67 @@ test("distance history can read supported SST records and a terminal engine fail
       await browser.close();
     }
   },{caseOwnerToken:owner,distanceFixtureText:JSON.stringify(sstFixture),qualifyDistanceFixture:true})
+);
+
+async function waitForComputedDistance(path) {
+  const deadline = Date.now()+22_000;
+  while (Date.now()<deadline) {
+    try {
+      await access(path);
+      return;
+    } catch (error) {
+      if(error.code!=="ENOENT")throw error;
+    }
+    await delay(30);
+  }
+  assert.fail("The actual child did not complete in time");
+}
+
+test("a closed panel can recover the same run when P0 is withdrawn during execution", () =>
+  withService(async (base,{distanceSupport,distanceResultReady,releaseDistanceResult})=>{
+    const browser=await launchBrowser(edge), c=browser.cdp, submissions=[];
+    c.onEvent(msg=>{
+      const request=msg.params?.request;
+      if(msg.method==="Network.requestWillBeSent"&&request.method==="POST"&&request.url===base+route){
+        submissions.push(JSON.parse(request.postData));
+      }
+    });
+    try{
+      await c.send("Network.enable");
+      await prepareDistanceInBrowser(c,base);
+      await click(c,"#ownerRunSubmit");
+      await waitForComputedDistance(distanceResultReady);
+      assert.equal(submissions.length,1);
+      await click(c,"#monthDraftClose");
+      assert.equal(await c.evaluate("document.getElementById('ownerRunToken').value"),"");
+      await unlink(distanceSupport);
+      await writeFile(releaseDistanceResult,"release");
+      const url=base+route+"/intents/"+submissions[0].intent_id+"?purpose="+mode;
+      const deadline=Date.now()+8_000;
+      let record;
+      while(Date.now()<deadline){
+        const response=await fetch(url,{headers});
+        if(response.status===200){
+          record=await response.json();
+          break;
+        }
+        assert.equal(response.status,404,await response.text());
+        await delay(50);
+      }
+      assert.equal(record?.state,"failed");
+      assert.deepEqual(record.error,{code:"execution_evidence_changed"});
+      assert.equal(record.result,null);
+
+      await click(c,"#monthlyDraftOpen");
+      await type(c,"ownerRunToken",owner);
+      await click(c,"#ownerRunFindIntent");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='failed'");
+      assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),record.id);
+      assert.match(await c.evaluate("document.getElementById('ownerRunResult').textContent"),/中止.*无法.*核验/s);
+      assert.equal(submissions.length,1);
+    } finally {
+      await writeFile(releaseDistanceResult,"release");
+      await browser.close();
+    }
+  },{caseOwnerToken:owner,distanceFixtureText:fixture,qualifyDistanceFixture:true,holdDistanceResult:true})
 );

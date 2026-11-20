@@ -6,7 +6,7 @@ import json
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from threading import Event
+from threading import Barrier, Event
 
 import anyio
 import httpx
@@ -16,7 +16,7 @@ from fastapi.testclient import TestClient
 from pydantic import SecretStr
 from test_monthly_distance_reference import AUTH, URL, layer, reference_fixture
 
-from app import synthetic_runs
+from app import monthly_distance_reference, synthetic_runs
 from app.config import settings
 from app.monthly_analysis import create_monthly_router
 from app.monthly_models import MonthlyResearchApproval
@@ -233,7 +233,7 @@ def test_owner_distance_options_prepare_exact_current_p0_without_starting_a_task
     assert not store.exists()
 
 
-def test_owner_distance_does_not_publish_if_qualification_is_withdrawn_during_execution(
+def test_owner_distance_keeps_interruption_without_publishing_if_qualification_is_withdrawn(
     tmp_path, monkeypatch
 ):
     _, reference, request, _ = fixture(tmp_path)
@@ -254,12 +254,48 @@ def test_owner_distance_does_not_publish_if_qualification_is_withdrawn_during_ex
 
     monkeypatch.setattr(synthetic_runs, "calculate_distance_reference", run_then_withdraw)
     new_intent = "b" * 32
-    rejected = client.post(url, headers=AUTH, json={**submission, "intent_id": new_intent})
-    assert rejected.status_code == 409
-    assert rejected.json()["detail"]["reason"] == "audit_snapshot_unavailable"
+    interrupted_body = {**submission, "intent_id": new_intent}
+    interrupted = client.post(url, headers=AUTH, json=interrupted_body)
+    assert interrupted.status_code == 200, interrupted.text
+    stopped = interrupted.json()
+    assert stopped["state"] == "failed"
+    assert stopped["error"] == {"code": "execution_evidence_changed"}
+    assert stopped["result"] is None
+    assert stopped["qualification"] == record["qualification"]
+    assert stopped["id"] != record["id"]
     query = {"purpose": request["purpose"]}
-    assert client.get(url + "/intents/" + new_intent, headers=AUTH, params=query).status_code == 404
-    assert client.get(url + "/" + record["id"], headers=AUTH, params=query).json() == record
+    reopened = configured_client(snapshot, reference, run_store=store)
+    assert reopened.get(url + "/intents/" + new_intent, params=query).status_code == 401
+    assert reopened.get(url + "/intents/" + new_intent, headers=AUTH, params=query).json() == stopped
+    assert reopened.get(url + "/" + stopped["id"], headers=AUTH, params=query).json() == stopped
+    assert reopened.post(url, headers=AUTH, json=interrupted_body).json() == stopped
+    assert reopened.get(url + "/" + record["id"], headers=AUTH, params=query).json() == record
+    fresh = reopened.post(url, headers=AUTH, json={**submission, "intent_id": "c" * 32})
+    assert fresh.status_code == 409
+    assert fresh.json()["detail"]["reason"] == "audit_snapshot_unavailable"
+    assert reopened.get(url + "/intents/" + "c" * 32, headers=AUTH, params=query).status_code == 404
+    assert len(reopened.get(url, headers=AUTH, params=query).json()["runs"]) == 2
+
+
+def test_owner_distance_timeout_is_terminal_and_replays_without_running_again(tmp_path, monkeypatch):
+    _, reference, request, _ = fixture(tmp_path)
+    store = tmp_path / "owner-runs.sqlite3"
+    snapshot = tmp_path / "support.json"
+    client = configured_client(snapshot, reference, run_store=store)
+    url = URL + "/owner-runs"
+    body = {"intent_id": "a" * 32, "input_sha256": request["input_version"], "request": request}
+    query = {"purpose": request["purpose"]}
+    with monkeypatch.context() as shortened:
+        shortened.setattr(monthly_distance_reference, "DISTANCE_EXECUTION_TIMEOUT_SECONDS", 0.01)
+        response = client.post(url, headers=AUTH, json=body)
+    assert response.status_code == 200, response.text
+    stopped = response.json()
+    assert stopped["state"] == "failed"
+    assert stopped["result"] is None
+    assert stopped["error"] == {"code": "execution_timed_out"}
+    assert client.get(url + "/" + stopped["id"], headers=AUTH, params=query).json() == stopped
+    assert client.post(url, headers=AUTH, json=body).json() == stopped
+    assert len(client.get(url, headers=AUTH, params=query).json()["runs"]) == 1
 
 
 def test_duplicate_distance_intents_wait_and_legacy_store_remains_independent(tmp_path, monkeypatch):
@@ -341,6 +377,57 @@ def test_distance_submission_keeps_shared_sync_reads_available(tmp_path, monkeyp
                 release.set()
                 response = await post
             assert response.status_code == 200, response.text
+
+    asyncio.run(requests())
+
+
+def test_excess_qualified_submissions_return_promptly_without_new_runs(tmp_path, monkeypatch):
+    _, reference, request, _ = fixture(tmp_path)
+    store = tmp_path / "qualified.sqlite3"
+    client = configured_client(
+        tmp_path / "support.json", reference, run_store=store,
+        legacy_store=tmp_path / "legacy.sqlite3",
+    )
+    url = URL + "/owner-runs"
+    conditions = {key: request[key] for key in ("longitude", "latitude", "radius_km", "month")}
+    body = {"intent_id": "a" * 32, "input_sha256": request["input_version"], "request": request}
+    active, release = Event(), Event()
+    ready = Barrier(2, action=active.set)
+    registered_material = synthetic_runs.registered_distance_material
+
+    def hold_registered_material(*args):
+        if not active.is_set():
+            ready.wait(timeout=8)
+        assert release.wait(8)
+        return registered_material(*args)
+
+    monkeypatch.setattr(synthetic_runs, "registered_distance_material", hold_registered_material)
+
+    async def requests():
+        transport = httpx.ASGITransport(app=client.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as browser:
+            checks = [
+                asyncio.create_task(browser.get(url + "/distance-options", headers=AUTH, params=conditions))
+                for _ in range(2)
+            ]
+            try:
+                async with asyncio.timeout(6):
+                    while not active.is_set():
+                        await asyncio.sleep(0.02)
+                regular = await asyncio.wait_for(browser.get(url + "/options", headers=AUTH), 2)
+                assert regular.status_code == 200
+                extra = await asyncio.wait_for(browser.post(url, headers=AUTH, json=body), 2)
+                assert extra.status_code == 503, extra.text
+                assert extra.headers["retry-after"] == "1"
+                assert not store.exists()
+            finally:
+                release.set()
+                results = await asyncio.gather(*checks)
+            assert all(response.status_code == 200 for response in results)
+            assert not store.exists()
+            allowed = await browser.post(url, headers=AUTH, json=body)
+            assert allowed.status_code == 200, allowed.text
+            assert allowed.json()["state"] == "completed"
 
     asyncio.run(requests())
 

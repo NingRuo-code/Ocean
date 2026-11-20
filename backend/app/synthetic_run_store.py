@@ -139,8 +139,12 @@ class RunStore:
                     or result["evidence_kind"] != "synthetic_example"
                     or not result["source"]["license"].startswith("CC0-1.0")):
                 raise RunStoreError("unavailable")
-        elif result is not None or value["error"] != {"code": "calculation_failed"}:
-            raise RunStoreError("unavailable")
+        else:
+            failure_codes = ("calculation_failed",)
+            if distance:
+                failure_codes += ("execution_evidence_changed", "execution_timed_out")
+            if result is not None or value["error"] not in ({"code": code} for code in failure_codes):
+                raise RunStoreError("unavailable")
         value["record_id"] = identity
         return value
 
