@@ -211,7 +211,8 @@ test("a closed panel can recover the same run when P0 is withdrawn during execut
         await delay(50);
       }
       assert.equal(record?.state,"failed");
-      assert.deepEqual(record.error,{code:"execution_evidence_changed"});
+      assert.deepEqual(record.error,{code:"calculation_failed"});
+      assert.equal(record.failure_reason,"execution_evidence_changed");
       assert.equal(record.result,null);
 
       await click(c,"#monthlyDraftOpen");

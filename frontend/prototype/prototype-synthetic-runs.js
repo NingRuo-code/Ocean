@@ -8,8 +8,8 @@
   let draft=null,prepared=null,pending=null,selected=null,sessionSource=null,busy=false,generation=0,controller=null,reference=null,referenceError='';
   const legacyPurpose = 'monthly_spatial_example';
   const distancePurpose = 'monthly_distance_reference';
+  const generalFailureMessage = '计算已终态失败；没有成功结果或部分结果可用。';
   const distanceFailureMessages = new Map([
-    ['calculation_failed','计算已终态失败；没有成功结果或部分结果可用。'],
     ['execution_evidence_changed','原尝试已中止，资格、登记输入或执行环境无法继续核验。没有发布结果。'],
     ['execution_timed_out','计算达到服务时限，原尝试已中止。没有发布结果。'],
   ]);
@@ -125,7 +125,9 @@
     const validMeasure = value => value === null || (Number.isFinite(value) && value >= 0);
     if (request.input_version !== record.input_sha256 || qualification?.snapshot_id !== request.support_snapshot_id ||
         qualification.scope !== 'frozen_synthetic_validation') return false;
-    if (record.state === 'failed') return result === null && distanceFailureMessages.has(record.error?.code);
+    if (Object.hasOwn(record,'failure_reason') &&
+        (record.state !== 'failed' || !distanceFailureMessages.has(record.failure_reason))) return false;
+    if (record.state === 'failed') return result === null && record.error?.code === 'calculation_failed';
     return result?.kind === distancePurpose && result.evidence_kind === 'synthetic' &&
       result.research_ready === false && result.qualification?.snapshot_id === qualification.snapshot_id &&
       result.qualification.scope === qualification.scope && hash.test(result.result_id) &&
@@ -181,8 +183,7 @@
         showDaily(box, r.daily, r.caveats);
       }
     }else{
-      const code = distanceMode() ? run.error.code : 'calculation_failed';
-      node(box,'p',distanceFailureMessages.get(code));
+      node(box,'p',distanceFailureMessages.get(run.failure_reason)??generalFailureMessage);
     }
     const unresolved=(activePending()&&pending.body.intent_id!==run.intent_id)||(activeReference()?.run_id===null&&reference.intent_id!==run.intent_id);
     if(!unresolved){if(activePending()?.body.intent_id===run.intent_id)pending=null;saveReference({schema_version:referenceKey,base:sessionSource.base,intent_id:run.intent_id,run_id:run.id});}

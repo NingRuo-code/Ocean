@@ -21,6 +21,7 @@ MAX_DB_BYTES = 64 * 1024 * 1024
 DISTANCE_WRITE_TIMEOUT_SECONDS = DISTANCE_EXECUTION_TIMEOUT_SECONDS + 7
 LEGACY_RUN = "ocean-owner-synthetic-run/v1"
 DISTANCE_RUN = "ocean-owner-qualified-distance-run/v1"
+DISTANCE_FAILURE_REASONS = ("execution_evidence_changed", "execution_timed_out")
 
 
 class RunStoreError(Exception):
@@ -139,12 +140,12 @@ class RunStore:
                     or result["evidence_kind"] != "synthetic_example"
                     or not result["source"]["license"].startswith("CC0-1.0")):
                 raise RunStoreError("unavailable")
-        else:
-            failure_codes = ("calculation_failed",)
-            if distance:
-                failure_codes += ("execution_evidence_changed", "execution_timed_out")
-            if result is not None or value["error"] not in ({"code": code} for code in failure_codes):
-                raise RunStoreError("unavailable")
+        elif result is not None or value["error"] != {"code": "calculation_failed"}:
+            raise RunStoreError("unavailable")
+        if "failure_reason" in value and (
+            not distance or value["state"] != "failed" or value["failure_reason"] not in DISTANCE_FAILURE_REASONS
+        ):
+            raise RunStoreError("unavailable")
         value["record_id"] = identity
         return value
 
@@ -185,6 +186,9 @@ class RunStore:
             }
             if qualification is not None:
                 value["qualification"] = qualification
+                if error and error["code"] in DISTANCE_FAILURE_REASONS:
+                    value["failure_reason"] = error["code"]
+                    value["error"] = {"code": "calculation_failed"}
             value["record_id"] = content_id(value)
             raw = json.dumps(value, allow_nan=False)
             if len(raw.encode("utf-8")) > 1_048_576:
@@ -213,5 +217,5 @@ class RunStore:
                 raise RunStoreError("unavailable")
             records = (self.checked(row) for row in rows)
             return [{key: value for key, value in record.items() if key in {
-                "id", "intent_id", "record_id", "submission_id", "request", "input_sha256", "state", "submitted_at", "finished_at", "error"
+                "id", "intent_id", "record_id", "submission_id", "request", "input_sha256", "state", "submitted_at", "finished_at", "error", "failure_reason"
             }} for record in records]

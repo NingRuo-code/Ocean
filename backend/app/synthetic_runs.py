@@ -1,6 +1,7 @@
 """Owner-only adapter over the same small synthetic month calculation."""
 
 import hashlib
+from asyncio import create_task, shield
 from subprocess import SubprocessError, TimeoutExpired
 from typing import Annotated, Literal, get_args
 
@@ -108,19 +109,32 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
     if distance_store.path == store.path:
         distance_store = RunStore(None, qualified_distance=True)
 
-    async def run_distance_work(work, *args):
+    active_distance_work = set()
+
+    def release_distance_work(task):
+        active_distance_work.discard(task)
+        distance_slots.release()
+        if not task.cancelled():
+            task.exception()
+
+    async def run_distance_work(work, *args, replay_if_busy=None):
         try:
             distance_slots.acquire_nowait()
         except WouldBlock:
+            if replay_if_busy is not None:
+                previous = await to_thread.run_sync(replay_if_busy, *args)
+                if previous is not None:
+                    return previous
             raise HTTPException(
                 503,
                 "Qualified distance request capacity is busy",
                 headers={"Cache-Control": "no-store", "Retry-After": "1"},
             ) from None
-        try:
-            return await to_thread.run_sync(work, *args, limiter=distance_workers)
-        finally:
-            distance_slots.release()
+        # The slot belongs to the worker even when its caller stops waiting.
+        task = create_task(to_thread.run_sync(work, *args, limiter=distance_workers))
+        active_distance_work.add(task)
+        task.add_done_callback(release_distance_work)
+        return await shield(task)
 
     def store_for(purpose):
         return distance_store if purpose == "monthly_distance_reference" else store
@@ -179,9 +193,11 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
             raise HTTPException(422, "A monthly distance draft is required", headers={"Cache-Control": "no-store"})
         return await run_distance_work(distance_candidate, draft)
 
-    def submit_distance(submission):
-        body = submission.model_dump()
-        old = guarded(lambda: distance_store.find(submission.intent_id, content_id(body)))
+    def find_distance_replay(submission, body):
+        return guarded(lambda: distance_store.find(submission.intent_id, content_id(body)))
+
+    def submit_distance(submission, body):
+        old = find_distance_replay(submission, body)
         if old:
             return old
         prepared_distance = prepare_distance(settings, submission)
@@ -254,7 +270,9 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
     async def submit(submission: OwnerSubmission, response: Response):
         response.headers["Cache-Control"] = "no-store"
         if isinstance(submission.request, MonthlyDistanceRequest):
-            return await run_distance_work(submit_distance, submission)
+            return await run_distance_work(
+                submit_distance, submission, submission.model_dump(), replay_if_busy=find_distance_replay,
+            )
         return await to_thread.run_sync(submit_legacy, submission)
 
     @router.get("")

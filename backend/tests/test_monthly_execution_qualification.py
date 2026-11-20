@@ -259,7 +259,8 @@ def test_owner_distance_keeps_interruption_without_publishing_if_qualification_i
     assert interrupted.status_code == 200, interrupted.text
     stopped = interrupted.json()
     assert stopped["state"] == "failed"
-    assert stopped["error"] == {"code": "execution_evidence_changed"}
+    assert stopped["error"] == {"code": "calculation_failed"}
+    assert stopped["failure_reason"] == "execution_evidence_changed"
     assert stopped["result"] is None
     assert stopped["qualification"] == record["qualification"]
     assert stopped["id"] != record["id"]
@@ -292,7 +293,8 @@ def test_owner_distance_timeout_is_terminal_and_replays_without_running_again(tm
     stopped = response.json()
     assert stopped["state"] == "failed"
     assert stopped["result"] is None
-    assert stopped["error"] == {"code": "execution_timed_out"}
+    assert stopped["error"] == {"code": "calculation_failed"}
+    assert stopped["failure_reason"] == "execution_timed_out"
     assert client.get(url + "/" + stopped["id"], headers=AUTH, params=query).json() == stopped
     assert client.post(url, headers=AUTH, json=body).json() == stopped
     assert len(client.get(url, headers=AUTH, params=query).json()["runs"]) == 1
@@ -391,6 +393,9 @@ def test_excess_qualified_submissions_return_promptly_without_new_runs(tmp_path,
     url = URL + "/owner-runs"
     conditions = {key: request[key] for key in ("longitude", "latitude", "radius_km", "month")}
     body = {"intent_id": "a" * 32, "input_sha256": request["input_version"], "request": request}
+    committed = client.post(url, headers=AUTH, json=body)
+    assert committed.status_code == 200, committed.text
+    fresh_body = {**body, "intent_id": "b" * 32}
     active, release = Event(), Event()
     ready = Barrier(2, action=active.set)
     registered_material = synthetic_runs.registered_distance_material
@@ -416,16 +421,29 @@ def test_excess_qualified_submissions_return_promptly_without_new_runs(tmp_path,
                         await asyncio.sleep(0.02)
                 regular = await asyncio.wait_for(browser.get(url + "/options", headers=AUTH), 2)
                 assert regular.status_code == 200
-                extra = await asyncio.wait_for(browser.post(url, headers=AUTH, json=body), 2)
+                replay = await asyncio.wait_for(browser.post(url, headers=AUTH, json=body), 2)
+                assert replay.status_code == 200, replay.text
+                assert replay.json() == committed.json()
+                conflict = await asyncio.wait_for(
+                    browser.post(url, headers=AUTH, json={**body, "input_sha256": "sha256:" + "f" * 64}), 2
+                )
+                assert conflict.status_code == 409, conflict.text
+                checks[0].cancel()
+                with pytest.raises(asyncio.CancelledError):
+                    await checks[0]
+                extra = await asyncio.wait_for(browser.post(url, headers=AUTH, json=fresh_body), 2)
                 assert extra.status_code == 503, extra.text
                 assert extra.headers["retry-after"] == "1"
-                assert not store.exists()
+                missing = await browser.get(
+                    url + "/intents/" + fresh_body["intent_id"], headers=AUTH,
+                    params={"purpose": request["purpose"]},
+                )
+                assert missing.status_code == 404
             finally:
                 release.set()
-                results = await asyncio.gather(*checks)
-            assert all(response.status_code == 200 for response in results)
-            assert not store.exists()
-            allowed = await browser.post(url, headers=AUTH, json=body)
+                results = await asyncio.gather(*checks, return_exceptions=True)
+            assert results[1].status_code == 200, results[1].text
+            allowed = await browser.post(url, headers=AUTH, json=fresh_body)
             assert allowed.status_code == 200, allowed.text
             assert allowed.json()["state"] == "completed"
 
