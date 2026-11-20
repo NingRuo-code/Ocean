@@ -9,16 +9,22 @@ const isTime = value => Number.isFinite(value) && value >= 0;
 
 class VerificationError extends Error {}
 
+function sameReport(first, second) {
+  return second.isFile() && ["dev", "ino", "size", "mtimeNs", "ctimeNs"].every(key => first[key] === second[key]);
+}
+
 async function readReport(path) {
-  const stat = await lstat(path);
+  const stat = await lstat(path, { bigint: true });
   if (!stat.isFile() || stat.size > maxBytes) throw new VerificationError("invalid_report_file");
   const handle = await open(path, "r");
   try {
-    if (!(await handle.stat()).isFile()) throw new VerificationError("invalid_report_file");
+    if (!sameReport(stat, await handle.stat({ bigint: true }))) throw new VerificationError("report_changed");
     const blocks = [];
     for await (const block of handle.createReadStream({ end: maxBytes, autoClose: false })) blocks.push(block);
     const bytes = Buffer.concat(blocks);
     if (bytes.length > maxBytes) throw new VerificationError("invalid_report_file");
+    if (BigInt(bytes.length) !== stat.size || !sameReport(stat, await handle.stat({ bigint: true })) ||
+        !sameReport(stat, await lstat(path, { bigint: true }))) throw new VerificationError("report_changed");
     return [JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)), bytes];
   } finally {
     await handle.close();
@@ -53,6 +59,8 @@ function summarize(rows) {
     partial_paint_observations: rows.filter(row => row.first_partial_paint_ms !== null).length,
     p50_ms: durations[middle] ?? null,
     p95_ms: durations.length >= 20 ? durations[tail] : null,
+    tail_note: durations.length >= 20 ? "empirical nearest-rank; this environment only" :
+      "insufficient samples for stable tail claim",
   };
 }
 
