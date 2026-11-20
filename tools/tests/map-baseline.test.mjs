@@ -11,14 +11,23 @@ test("real browser baseline waits for matching data and marks small-sample tails
   const page = join(root, "controlled.html");
   writeFileSync(page, `<!doctype html><meta charset="utf-8">
     <input id="timeDate" type="date" value="2024-08-05"><button id="dateNext">next</button>
-    <svg id="mapSvg" width="600" height="400" data-render-date="2024-08-04" data-render-status="ready"
-      data-view-key='["2024-08-05",124.5,30.2,1,"flat"]'><path d="M0 0L200 200"/></svg>
+    <svg id="mapSvg" width="600" height="400" viewBox="0 -13.33333333333331 1000 666.6666666666666" data-render-date="2024-08-04" data-render-status="ready"
+      data-view-key='["2024-08-05",124.5,30.2,1,"plane"]'><path d="M0 0L200 200"/></svg>
     <script>
     const map=document.getElementById('mapSvg');
     setTimeout(()=>{map.dataset.renderDate='2024-08-05';map.dataset.renderStatus='ready';},350);
-    document.getElementById('dateNext').onclick=()=>{document.getElementById('timeDate').value='2024-08-06';map.dataset.renderStatus='pending';setTimeout(()=>{map.dataset.renderDate='2024-08-06';map.dataset.viewKey=JSON.stringify(['2024-08-06',124.5,30.2,1,'flat']);map.dataset.renderStatus='ready';},200)};
-    map.onwheel=()=>{map.dataset.renderStatus='pending';setTimeout(()=>{map.dataset.viewKey='zoomed';map.dataset.renderStatus='ready';},180)};
-    map.onpointerup=()=>{map.dataset.viewKey='dragged'};
+    document.getElementById('dateNext').onclick=()=>{document.getElementById('timeDate').value='2024-08-06';map.dataset.renderStatus='pending';setTimeout(()=>{map.dataset.renderDate='2024-08-06';map.dataset.viewKey=JSON.stringify(['2024-08-06',124.5,30.2,1,'plane']);map.dataset.renderStatus='ready';},200)};
+    const zoom = Math.exp(.192), width = 1000 / zoom, height = width / 1.5;
+    map.onwheel=()=>{map.dataset.renderStatus='pending';setTimeout(()=>{
+      map.dataset.viewKey=JSON.stringify(['2024-08-06',124.5,30.2,zoom,'plane']);
+      map.setAttribute('viewBox', [500-width/2,320-height/2,width,height].join(' '));
+      map.dataset.renderStatus='ready';
+    },180)};
+    map.onpointerup=()=>{
+      map.dataset.viewKey=JSON.stringify(['2024-08-06',124.5-70*width/600/180,
+        30.2+15*width/600/(180/Math.cos(30.2*Math.PI/180)),zoom,'plane']);
+      map.setAttribute('viewBox', [500-width*(.5+70/600),320-height/2-15*width/600,width,height].join(' '));
+    };
     </script>`);
   const out = join(root, "baseline.json");
   const result = spawnSync(process.execPath, [resolve("tools/benchmark-map.mjs"),
@@ -191,4 +200,91 @@ test("partial coverage has its own paint time and never enters full-success perc
   assert.equal(report.summary.navigation.partial_paint_observations, 1);
   assert.equal(report.summary.navigation.p50_ms, null);
   assert.equal(report.summary.navigation.p95_ms, null);
+});
+
+test("ready paints at the wrong zoom or drag target do not count", () => {
+  const root = mkdtempSync(join(tmpdir(), "ocean-baseline-geometry-"));
+  const page = join(root, "wrong-geometry.html"), out = join(root, "baseline.json");
+  writeFileSync(page, `<!doctype html><meta charset="utf-8">
+    <input id="timeDate" value="2024-08-05"><button id="dateNext">next</button>
+    <svg id="mapSvg" width="600" height="400" viewBox="0 -13.33333333333331 1000 666.6666666666666"
+      data-render-date="2024-08-05" data-render-status="ready"
+      data-view-key='["2024-08-05",124.5,30.2,1,"plane"]'></svg>
+    <script>
+    const map = document.getElementById('mapSvg'), date = document.getElementById('timeDate');
+    function paint(lon, lat, zoom, status) {
+      const w = 1000 / zoom, h = w / 1.5;
+      map.setAttribute('viewBox', [500 + 180 * (lon - 124.5) - w/2,
+        320 - (180 / Math.cos(30.2 * Math.PI/180)) * (lat - 30.2) - h/2, w, h].join(' '));
+      map.dataset.renderDate = date.value;
+      map.dataset.viewKey = JSON.stringify([date.value,lon,lat,zoom,'plane']);
+      map.dataset.renderStatus = status;
+    }
+    window.OFData = {serverEnabled:()=>true,viewportReady:()=>true,viewportState:()=>({status:'partial',usable:true})};
+    document.getElementById('dateNext').onclick = () => { date.value='2024-08-06'; paint(124.5,30.2,1,'ready'); };
+    map.onwheel = () => { paint(125,30.2,Math.exp(.192),'partial'); setTimeout(()=>{map.dataset.renderStatus='ready'},150); };
+    map.onpointerup = () => {
+      const zoom = Math.exp(.192), width = 1000 / zoom;
+      paint(125-70*width/600/180,30.2+15*width/600/(180/Math.cos(30.2*Math.PI/180)),zoom,'partial');
+      // Publish the correct view identity but move the actual SVG window in the opposite direction.
+      const parts = map.getAttribute('viewBox').split(' ').map(Number);
+      parts[0] += 2*70*width/600;
+      map.setAttribute('viewBox', parts.join(' '));
+      setTimeout(()=>{map.dataset.renderStatus='ready'},150);
+    };
+    </script>`);
+  const result = spawnSync(process.execPath, [resolve("tools/benchmark-map.mjs"), "--page", pathToFileURL(page).href,
+    "--runs", "1", "--timeout-ms", "650", "--sample-kind", "controlled-fixture", "--out", out],
+  { encoding: "utf8", timeout: 25000 });
+  const report = JSON.parse(readFileSync(out, "utf8"));
+  for (const scenario of ["zoom", "drag"]) {
+    const attempt = report.attempts.find(entry => entry.scenario === scenario);
+    assert.equal(attempt.last_observed?.status, "ready", scenario);
+    assert.ok(attempt.expected_viewport, scenario);
+    if (scenario === "drag") {
+      assert.ok(Math.abs(JSON.parse(attempt.last_observed.view)[1] - attempt.expected_viewport.view[1]) < 1e-10);
+      assert.ok(Math.abs(attempt.last_observed.box[0] - attempt.expected_viewport.box[0]) > 100);
+    }
+    assert.equal(attempt.status, "timeout", scenario);
+    assert.equal(attempt.first_partial_paint_ms, null, scenario);
+    assert.equal(attempt.elapsed_ms, null, scenario);
+  }
+  assert.equal(result.status, 1, result.stderr);
+});
+
+test("centered globe wheel tolerates subpixel rounding across the date line", () => {
+  const root = mkdtempSync(join(tmpdir(), "ocean-baseline-globe-"));
+  const page = join(root, "globe.html"), out = join(root, "baseline.json");
+  writeFileSync(page, `<!doctype html><meta charset="utf-8">
+    <input id="timeDate" value="2024-08-05"><button id="dateNext">next</button><svg id="mapSvg" width="601" height="401"></svg>
+    <script>
+    const map = document.getElementById('mapSvg'), date = document.getElementById('timeDate');
+    const radians = Math.PI/180, y = 180/Math.cos(30.2*radians);
+    function paint(lon,lat,zoom) {
+      const w = 1000/zoom, h = w*401/601;
+      map.setAttribute('viewBox', [500+180*(lon-124.5)-w/2,320-y*(lat-30.2)-h/2,w,h].join(' '));
+      map.dataset.renderDate = date.value;
+      map.dataset.renderStatus = 'ready';
+      map.dataset.viewKey = JSON.stringify([date.value,lon,lat,zoom,'globe']);
+    }
+    paint(179.99,80,.1);
+    document.getElementById('dateNext').onclick = () => { date.value='2024-08-06'; paint(179.99,80,.1); };
+    const zoom = .1*Math.exp(.192);
+    map.onwheel = () => paint(-179.95,80,zoom);
+    map.onpointerup = () => {
+      const units = 1000/zoom/601;
+      const lon = -179.95-70*units/(y*Math.cos(80*radians))+360;
+      paint(lon,80+15*units/y,zoom);
+    };
+    </script>`);
+  const result = spawnSync(process.execPath, [resolve("tools/benchmark-map.mjs"), "--page", pathToFileURL(page).href,
+    "--runs", "1", "--timeout-ms", "1500", "--sample-kind", "controlled-fixture", "--out", out],
+  { encoding: "utf8", timeout: 25000 });
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(readFileSync(out, "utf8"));
+  for (const scenario of ["zoom", "drag"]) {
+    const attempt = report.attempts.find(item => item.scenario === scenario);
+    assert.equal(attempt.observed.status, "ready", scenario);
+    assert.equal(attempt.expected_viewport.view[4], "globe");
+  }
 });

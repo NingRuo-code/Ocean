@@ -152,3 +152,61 @@ test("comparison and event result purposes cannot be exchanged by selecting anot
   writeFileSync(join(out, "report.md"), "modified report");
   assert.equal(call(["--read-regional-comparison-result", out]).status, 2);
 }));
+
+test("frozen comparison keeps region identity across reorder, method switch and failed replacement", () => scenario(({ root, request, source, out, call, submit }) => {
+  const original = JSON.parse(readFileSync(request, "utf8"));
+  const sourceText = readFileSync(source, "utf8");
+  const pack = JSON.parse(sourceText);
+  const compatibility = JSON.parse(readFileSync("backend/app/examples/regional-comparability-snapshots.json", "utf8"));
+  writeFileSync(request, JSON.stringify(original));
+  assert.equal(submit().status, 0);
+  const frozen = readFileSync(join(out, "summary.json"), "utf8");
+  const initial = JSON.parse(frozen);
+  assert.equal(initial.rows[0].metrics.total_hours, 40);
+  assert.equal(initial.rows[1].metrics.total_hours, 0);
+  const rewrite = (name, input) => {
+    writeFileSync(request, JSON.stringify(input));
+    const directory = join(root, name);
+    const run = call(["--regional-comparison-request", request, "--input", source,
+      "--reuse-regional-comparison-result", out, "--output", directory]);
+    assert.equal(run.status, 0, run.stderr);
+    const receipt = JSON.parse(run.stdout);
+    assert.equal(receipt.reused, false);
+    assert.notEqual(receipt.result_id, initial.result_id);
+    assert.equal(receipt.source_freshness, "unknown");
+    return JSON.parse(readFileSync(join(directory, "summary.json"), "utf8"));
+  };
+  const reordered = rewrite("reordered", { ...original, candidates: [...original.candidates].reverse() });
+  assert.deepEqual(reordered.rows.map(row => row.candidate.id), initial.rows.map(row => row.candidate.id).reverse());
+  assert.deepEqual(reordered.rows.map(row => row.metrics), initial.rows.map(row => row.metrics).reverse());
+  const updatedMethod = rewrite("method-v2", { ...original, method_version: "known-snapshots/v2" });
+  assert.equal(updatedMethod.parameters.method_version, "known-snapshots/v2");
+  assert.ok(Array.isArray(updatedMethod.pairs));
+
+  const replaced = original.candidates[0];
+  const index = pack.snapshots.findIndex(value => value.result.result_id === replaced.result_id);
+  assert.ok(index >= 0);
+  const entry = pack.snapshots[index];
+  const facts = { ...compatibility.snapshots[0].comparison_facts,
+    result_id: entry.result.result_id, snapshot_sha256: entry.snapshot_sha256, source_state: "failed" };
+  const replaceFacts = value => {
+    let position = 0;
+    writeFileSync(source, sourceText.replace(/"access": "public_aggregate"/g,
+      match => position++ === index ? `"comparison_facts": ${JSON.stringify(value)}, ${match}` : match));
+  };
+  for (const [label, failure, expected] of [
+    ["failed-source", facts, "source_failed"],
+    ["wrong-source", { ...facts, result_id: "sha256:" + "a".repeat(64) }, "source_facts_unverified"],
+  ]) {
+    replaceFacts(failure);
+    const reviewed = rewrite(label, original);
+    assert.equal(reviewed.rows[0].reason, expected);
+    assert.equal(reviewed.rows[0].metrics, undefined);
+    assert.equal(reviewed.rows[0].candidate.result_id, undefined);
+    assert.deepEqual(reviewed.rows[1].metrics, initial.rows[1].metrics);
+  }
+  const read = call(["--read-regional-comparison-result", out], { OCEAN_EXPERIMENT_PYTHON: "not-available" });
+  assert.equal(read.status, 0, read.stderr);
+  assert.deepEqual(JSON.parse(read.stdout), initial);
+  assert.equal(readFileSync(join(out, "summary.json"), "utf8"), frozen);
+}));

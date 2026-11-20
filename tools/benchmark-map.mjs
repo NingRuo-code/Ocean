@@ -62,9 +62,89 @@ function nextDayView(before, nextDate) {
   }
 }
 
-function matchesViewChange(current, before) {
-  return !!before?.view && !!current.view && current.view !== before.view &&
-    current.time_origin === before.time_origin && current.date === before.date;
+const wheelDelta = -120;
+const dragDelta = { x: 70, y: 15 };
+// Independent geometry for these fixed gestures. The centered wheel keeps its
+// geographic anchor; a single drag converts the screen displacement at the old scale.
+const degrees = Math.PI / 180;
+const xPerDegree = 180;
+const yPerDegree = xPerDegree / Math.cos(30.2 * degrees);
+const widthAtZoomOne = 1000;
+const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
+const wrapLon = value => ((value + 180) % 360 + 360) % 360 - 180;
+const near = (a, b) => Number.isFinite(a) && Math.abs(a - b) <= 1e-7;
+const longitudeScale = (mode, lat) => mode === "plane" ? xPerDegree :
+  yPerDegree * Math.max(.15, Math.cos(lat * degrees));
+
+function viewportBox(lon, lat, zoom, aspect) {
+  const width = widthAtZoomOne / zoom, height = width / aspect;
+  return [500 + (lon - 124.5) * xPerDegree - width / 2,
+    320 - (lat - 30.2) * yPerDegree - height / 2, width, height];
+}
+
+function matchesBox(actual, expected) {
+  return Array.isArray(actual) && actual.length === expected.length &&
+    // The browser exposes SVGRect coordinates as single-precision floats.
+    actual.every((value, index) => Number.isFinite(value) &&
+      Math.abs(value - expected[index]) <= Math.max(1, Math.abs(expected[index])) * 2 ** -22);
+}
+
+function gestureTarget(before, action) {
+  try {
+    const view = JSON.parse(before.view);
+    if (!Array.isArray(view) || view.length !== 5) return null;
+    const [date, lon, lat, zoom, mode] = view;
+    const { width, height, aspect } = before.frame;
+    if (date !== before.date || ![lon, lat, zoom, width, height, aspect].every(Number.isFinite) ||
+        zoom <= 0 || width <= 0 || height <= 0 || aspect <= 0 || !["plane", "globe"].includes(mode)) return null;
+    if (!matchesBox(before.box, viewportBox(lon, lat, zoom, aspect))) return null;
+    const globeRadius = yPerDegree / degrees;
+    const maxLongitudeSpan = clamp(2.12 * globeRadius / xPerDegree * Math.max(.5, aspect), 44, 380);
+    const targetZoom = action === "zoom" ?
+      clamp(zoom * Math.exp(-wheelDelta * .0016), widthAtZoomOne / xPerDegree / maxLongitudeSpan, 8) : zoom;
+    const globe = widthAtZoomOne / targetZoom / xPerDegree > 40;
+    // Projection changes have a separate cursor/clamping contract and do not
+    // earn a ready timing under this fixed-projection gesture protocol.
+    if (mode !== (globe ? "globe" : "plane")) return null;
+    const unitsPerPixel = widthAtZoomOne / zoom / width;
+    const xScale = longitudeScale(mode, lat);
+    let targetLon = action === "drag" ? wrapLon(lon - dragDelta.x * unitsPerPixel / xScale) : lon;
+    let targetLat = action === "drag" ? lat + dragDelta.y * unitsPerPixel / yPerDegree : lat;
+    const box = viewportBox(targetLon, targetLat, targetZoom, aspect);
+    if (!globe) {
+      const halfLon = box[2] / (2 * xPerDegree), halfLat = box[3] / (2 * yPerDegree);
+      targetLon = clamp(targetLon, -180 + halfLon, 180 - halfLon);
+      targetLat = halfLat >= 78 ? 0 : clamp(targetLat, -78 + halfLat, 78 - halfLat);
+    } else {
+      targetLat = clamp(targetLat, -89, 89);
+    }
+    if (near(targetLon, lon) && near(targetLat, lat) && near(targetZoom, zoom)) return null;
+    // DOM mouse coordinates may round by one CSS pixel. One centered wheel
+    // notch can move that rounded anchor by less than a quarter CSS pixel.
+    const centerTolerance = action === "zoom" ? unitsPerPixel / 4 : 1e-7;
+    return { view: [date, targetLon, targetLat, targetZoom, globe ? "globe" : "plane"],
+      box: viewportBox(targetLon, targetLat, targetZoom, aspect), center_tolerance_svg: centerTolerance };
+  } catch {
+    return null;
+  }
+}
+
+function matchesGesture(current, before, target) {
+  if (!target || current.time_origin !== before.time_origin || current.date !== before.date ||
+      !current.frame || !["left", "top", "width", "height", "aspect"].every(key => near(current.frame[key], before.frame[key]))) return false;
+  try {
+    const actual = JSON.parse(current.view);
+    if (!Array.isArray(actual) || actual.length !== 5) return false;
+    const [date, lon, lat, zoom, mode] = actual;
+    const longitudeError = mode === "globe" ? wrapLon(lon - target.view[1]) : lon - target.view[1];
+    return date === target.view[0] && mode === target.view[4] && near(zoom, target.view[3]) &&
+      Number.isFinite(lon) && Number.isFinite(lat) &&
+      Math.abs(longitudeError) * longitudeScale(mode, target.view[2]) <= target.center_tolerance_svg &&
+      Math.abs(lat - target.view[2]) * yPerDegree <= target.center_tolerance_svg &&
+      matchesBox(current.box, viewportBox(lon, lat, zoom, before.frame.aspect));
+  } catch {
+    return false;
+  }
 }
 
 async function runBaseline(page, isolatedService = false, serviceRuntime = null, startupFailed = false, input = null) {
@@ -149,10 +229,14 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
       const observed = () => cdp.evaluate(`(()=>{
         const m=document.getElementById('mapSvg'),d=document.getElementById('timeDate');
         if(!m||!d)return null;
+        const r=m.getBoundingClientRect(), layout=(document.getElementById('map')||m).getBoundingClientRect();
+        const viewBox=m.viewBox?.animVal;
         const partial=m.dataset.renderStatus==='partial'?window.OFData?.viewportState?.(d.value):null;
         return {
           time_origin:performance.timeOrigin,date:d.value,render_date:m.dataset.renderDate,
           status:m.dataset.renderStatus,view:m.dataset.viewKey,
+          frame:{left:r.left,top:r.top,width:r.width,height:r.height,aspect:layout.height>0?layout.width/layout.height:null},
+          box:viewBox?.width>0&&viewBox.height>0?[viewBox.x,viewBox.y,viewBox.width,viewBox.height]:null,
           map_ms:Number(m.dataset.mapMs)||null,panel_ms:Number(m.dataset.panelMs)||null,step:Number(m.dataset.dataStep)||null,
           server_enabled:!!window.OFData?.serverEnabled(),viewport_ready:!!window.OFData?.viewportReady(d.value),
           viewport_partial_usable:partial?.status==='partial'&&partial.usable===true,
@@ -229,19 +313,28 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
       await measure("date-change", "same-profile", () => cdp.evaluate("document.getElementById('dateNext').click()"),
         (v) => expectedDateView !== null && v.date === nextDate && v.view === expectedDateView &&
           v.time_origin === beforeDateChange?.time_origin);
+      const center = before => {
+        const frame = before?.frame;
+        if (!frame?.width || !frame?.height) throw Error("Missing map viewport");
+        return { x: frame.left + frame.width / 2, y: frame.top + frame.height / 2 };
+      };
       const beforeZoom = await observed();
-      const center = () => cdp.evaluate("(()=>{const r=document.getElementById('mapSvg').getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}})()");
-      await measure("zoom", "same-profile", async () => {
-        const box = await center();
-        await cdp.send("Input.dispatchMouseEvent", { type: "mouseWheel", x: box.x, y: box.y, deltaX: 0, deltaY: -120 });
-      }, (v) => matchesViewChange(v, beforeZoom));
+      const zoomTarget = gestureTarget(beforeZoom, "zoom");
+      const zoom = await measure("zoom", "same-profile", async () => {
+        const { x, y } = center(beforeZoom);
+        await cdp.send("Input.dispatchMouseEvent", { type: "mouseWheel", x, y, deltaX: 0, deltaY: wheelDelta });
+      }, (v) => matchesGesture(v, beforeZoom, zoomTarget));
+      zoom.expected_viewport = zoomTarget;
       const beforeDrag = await observed();
-      await measure("drag", "same-profile", async () => {
-        const box = await center();
-        await cdp.send("Input.dispatchMouseEvent", { type: "mousePressed", x: box.x, y: box.y, button: "left", clickCount: 1 });
-        await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: box.x + 70, y: box.y + 15, button: "left", buttons: 1 });
-        await cdp.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: box.x + 70, y: box.y + 15, button: "left", clickCount: 1 });
-      }, (v) => matchesViewChange(v, beforeDrag));
+      const dragTarget = gestureTarget(beforeDrag, "drag");
+      const drag = await measure("drag", "same-profile", async () => {
+        const { x, y } = center(beforeDrag);
+        const end = { x: x + dragDelta.x, y: y + dragDelta.y };
+        await cdp.send("Input.dispatchMouseEvent", { type: "mousePressed", x, y, button: "left", clickCount: 1 });
+        await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", ...end, button: "left", buttons: 1 });
+        await cdp.send("Input.dispatchMouseEvent", { type: "mouseReleased", ...end, button: "left", clickCount: 1 });
+      }, (v) => matchesGesture(v, beforeDrag, dragTarget));
+      drag.expected_viewport = dragTarget;
     } catch {
       for(const scenario of scenarios){
         if(attempts.some(a=>a.run===run&&a.scenario===scenario))continue;
@@ -287,7 +380,7 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
     commit, tracked_changes_present:trackedChanges, artifact_hashes: artifactHashes, environment, attempts, summary, targets_verified: false,
     protocol: { runs, timeout_ms: timeout, clock: "Node monotonic action dispatch to matching observed DOM plus two animation frames; 25ms polling overhead included",
       completion_deadline: "Matching painted state must be confirmed before the action deadline; in-flight browser commands may take longer to return",
-      action_identity: "Next-day action requires the following calendar date with the original document, center, scale and projection; zoom and drag require a changed view in the original document and date",
+      action_identity: "Next-day action requires the following calendar date with the original document, center, scale and projection; zoom and drag require the prescribed target center, scale, projection and SVG window in the original document and date at both paint observations; projection transitions are outside this fixed-projection protocol",
       partial_paint: "First matching usable partial viewport confirmed across two frames, observed separately from full readiness and excluded from success quantiles",
       segments: "Browser render/panel and network segments overlap; not added to elapsed time", canceled: "reported in request records; failed/timed-out attempts retained with null elapsed", cache_limitations: "no production cache purge; OS and storage warmth uncontrolled" },
     limitations: ["B0 activity layer still uses percentile/700-cell truncation; no valid acceleration ratio against a complete-support renderer.",
