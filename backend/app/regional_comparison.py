@@ -153,10 +153,11 @@ def _read_candidate(candidate, request, snapshots):
             or entry.snapshot_sha256 != candidate.snapshot_sha256
         ):
             raise ValueError("Snapshot content changed")
-        if request.method_version == "known-snapshots/v2":
-            state = source_lifecycle(entry, candidate)
-            if state and state != "completed":
-                return {**row, "reason": "source_" + state, "required": "completed_source_result"}
+        # A bound failed/running source cannot publish a completed row under
+        # either comparison method. Legacy packs without lifecycle facts remain readable.
+        state = source_lifecycle(entry, candidate)
+        if state and state != "completed":
+            return {**row, "reason": "source_" + state, "required": "completed_source_result"}
         source = SnapshotSource.model_validate(snapshot["source"])
         public_license = source.license.split(";", 1)[0].strip() == "CC0-1.0"
         if request.method_version == "known-snapshots/v2":
