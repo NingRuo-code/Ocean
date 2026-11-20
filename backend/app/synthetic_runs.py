@@ -22,6 +22,8 @@ from .owner_access import owner_requirement
 from .synthetic_run_export import render_run_file
 from .synthetic_run_store import RunStore, RunStoreError
 
+OwnerPurpose = Literal["monthly_spatial_example", "monthly_distance_reference"]
+
 
 class OwnerSubmission(ClosedModel):
     intent_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")]
@@ -48,6 +50,12 @@ def prepare_distance(settings, submission):
 def create_synthetic_run_router(settings, example_path, calculate, method_version, parameter_version):
     router = APIRouter(prefix="/owner-runs", dependencies=[Depends(owner_requirement(settings))])
     store = RunStore(settings.synthetic_run_store_path)
+    distance_store = RunStore(settings.qualified_distance_run_store_path, qualified_distance=True)
+    if distance_store.path == store.path:
+        distance_store = RunStore(None, qualified_distance=True)
+
+    def store_for(purpose):
+        return distance_store if purpose == "monthly_distance_reference" else store
 
     def guarded(work):
         try:
@@ -81,7 +89,8 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
     def submit(submission: OwnerSubmission, response: Response):
         response.headers["Cache-Control"] = "no-store"
         body = submission.model_dump()
-        old = guarded(lambda: store.find(submission.intent_id, content_id(body)))
+        selected_store = store_for(submission.request.purpose)
+        old = guarded(lambda: selected_store.find(submission.intent_id, content_id(body)))
         if old:
             return old
         if isinstance(submission.request, MonthlyDistanceRequest):
@@ -107,7 +116,7 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
                 result["result_id"] = content_id(result)
                 return result, None
 
-            return guarded(lambda: store.submit(body, execute_distance, qualification=qualification))
+            return guarded(lambda: distance_store.submit(body, execute_distance, qualification=qualification))
 
         def prepared():
             data, fingerprint = input_snapshot()
@@ -137,19 +146,21 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
         return guarded(lambda: store.submit(body, execute))
 
     @router.get("")
-    def history(response: Response, purpose: Literal["monthly_spatial_example", "monthly_distance_reference"] = "monthly_spatial_example"):
+    def history(response: Response, purpose: OwnerPurpose = "monthly_spatial_example"):
         response.headers["Cache-Control"] = "no-store"
-        return {"schema_version": "ocean-owner-synthetic-history/v1", "runs": guarded(lambda: store.catalog(purpose))}
+        return {"schema_version": "ocean-owner-synthetic-history/v1", "runs": guarded(store_for(purpose).catalog)}
 
     @router.get("/intents/{intent_id}")
-    def read_intent(intent_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response):
+    def read_intent(intent_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response,
+                    purpose: OwnerPurpose = "monthly_spatial_example"):
         response.headers["Cache-Control"] = "no-store"
-        return guarded(lambda: store.read_intent(intent_id))
+        return guarded(lambda: store_for(purpose).read_intent(intent_id))
 
     @router.get("/{run_id}")
-    def read(run_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response):
+    def read(run_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response,
+             purpose: OwnerPurpose = "monthly_spatial_example"):
         response.headers["Cache-Control"] = "no-store"
-        return guarded(lambda: store.read(run_id))
+        return guarded(lambda: store_for(purpose).read(run_id))
 
     @router.get("/{run_id}/exports/{representation}")
     def export(run_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")],

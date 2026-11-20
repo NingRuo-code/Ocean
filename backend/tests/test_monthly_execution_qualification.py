@@ -3,7 +3,9 @@
 import hashlib
 import json
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Event
 
 import pytest
 from fastapi import FastAPI
@@ -117,7 +119,7 @@ def fixture(
     return configured_client(snapshot, reference_file), reference_file, request, expected
 
 
-def configured_client(snapshot, reference_file, approval=None, run_store=None):
+def configured_client(snapshot, reference_file, approval=None, run_store=None, legacy_store=None):
     app = FastAPI()
     app.include_router(
         create_monthly_router(
@@ -129,7 +131,8 @@ def configured_client(snapshot, reference_file, approval=None, run_store=None):
                     "monthly_research_approval": approval,
                     "support_snapshot_path": snapshot,
                     "support_state_path": None,
-                    "synthetic_run_store_path": run_store,
+                    "synthetic_run_store_path": legacy_store,
+                    "qualified_distance_run_store_path": run_store,
                 }
             )
         )
@@ -152,7 +155,8 @@ def test_owner_persists_exact_p0_reference_and_freezes_the_original_intent(tmp_p
     original, reference, request, expected = fixture(tmp_path)
     store = tmp_path / "owner-runs.sqlite3"
     snapshot = tmp_path / "support.json"
-    client = configured_client(snapshot, reference, run_store=store)
+    legacy = tmp_path / "legacy.sqlite3"
+    client = configured_client(snapshot, reference, run_store=store, legacy_store=legacy)
     url = URL + "/owner-runs"
     submission = {"intent_id": "a" * 32, "input_sha256": request["input_version"], "request": request}
     assert client.post(url, json=submission).status_code == 401
@@ -171,12 +175,14 @@ def test_owner_persists_exact_p0_reference_and_freezes_the_original_intent(tmp_p
     direct = original.post(URL, headers=AUTH, json=request).json()["result"]
     assert record["result"]["month"] == direct["month"]
     assert client.get(url, headers=AUTH).json()["runs"] == []
+    assert not legacy.exists()
     assert client.get(url, headers=AUTH, params={"purpose": request["purpose"]}).json()["runs"][0]["id"] == record["id"]
 
     snapshot.unlink()
     reference.unlink()
     reopened = configured_client(snapshot, reference, run_store=store)
-    assert reopened.get(url + "/" + record["id"], headers=AUTH).json() == record
+    query = {"purpose": request["purpose"]}
+    assert reopened.get(url + "/" + record["id"], headers=AUTH, params=query).json() == record
     assert reopened.post(url, headers=AUTH, json=submission).json() == record
     rejected = reopened.post(url, headers=AUTH, json={**submission, "intent_id": "b" * 32})
     assert rejected.status_code == 409
@@ -208,8 +214,73 @@ def test_owner_distance_does_not_publish_if_qualification_is_withdrawn_during_ex
     rejected = client.post(url, headers=AUTH, json={**submission, "intent_id": new_intent})
     assert rejected.status_code == 409
     assert rejected.json()["detail"]["reason"] == "audit_snapshot_unavailable"
-    assert client.get(url + "/intents/" + new_intent, headers=AUTH).status_code == 404
-    assert client.get(url + "/" + record["id"], headers=AUTH).json() == record
+    query = {"purpose": request["purpose"]}
+    assert client.get(url + "/intents/" + new_intent, headers=AUTH, params=query).status_code == 404
+    assert client.get(url + "/" + record["id"], headers=AUTH, params=query).json() == record
+
+
+def test_duplicate_distance_intents_wait_and_legacy_store_remains_independent(tmp_path, monkeypatch):
+    _, reference, request, _ = fixture(tmp_path)
+    snapshot = tmp_path / "support.json"
+    store = tmp_path / "qualified.sqlite3"
+    legacy = tmp_path / "legacy.sqlite3"
+    client = configured_client(snapshot, reference, run_store=store, legacy_store=legacy)
+    other = configured_client(snapshot, reference, run_store=store, legacy_store=legacy)
+    url = URL + "/owner-runs"
+    body = {"intent_id": "a" * 32, "input_sha256": request["input_version"], "request": request}
+    started, release = Event(), Event()
+    original = synthetic_runs.calculate_distance_reference
+
+    def hold_first(*args):
+        started.set()
+        assert release.wait(10)
+        return original(*args)
+
+    monkeypatch.setattr(synthetic_runs, "calculate_distance_reference", hold_first)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first = pool.submit(client.post, url, headers=AUTH, json=body)
+        try:
+            assert started.wait(10)
+            duplicate = pool.submit(other.post, url, headers=AUTH, json=body)
+            # The original legacy write ceiling was one second.
+            with pytest.raises(TimeoutError):
+                duplicate.result(1.8)
+            options = client.get(url + "/options", headers=AUTH).json()
+            condition = {k: options["conditions"][0][k] for k in ("longitude", "latitude", "radius_km", "month")}
+            legacy_body = {
+                "intent_id": "b" * 32, "input_sha256": options["input_sha256"],
+                "request": {**condition, "purpose": "monthly_spatial_example",
+                            **{key: options[key] for key in ("method_version", "parameter_version")},
+                            "input_version": options["input_version"]},
+            }
+            legacy_run = client.post(url, headers=AUTH, json=legacy_body)
+            assert legacy_run.status_code == 200, legacy_run.text
+        finally:
+            release.set()
+        left, right = first.result(30), duplicate.result(30)
+    assert left.status_code == right.status_code == 200
+    assert left.json() == right.json()
+    assert len(client.get(url, headers=AUTH).json()["runs"]) == 1
+    assert len(client.get(url, headers=AUTH, params={"purpose": request["purpose"]}).json()["runs"]) == 1
+
+
+def test_invalid_distance_output_never_poisons_the_history(tmp_path, monkeypatch):
+    _, reference, request, _ = fixture(tmp_path)
+    snapshot = tmp_path / "support.json"
+    client = configured_client(snapshot, reference, run_store=tmp_path / "qualified.sqlite3")
+    url = URL + "/owner-runs"
+    original = synthetic_runs.calculate_distance_reference
+
+    def mismatched_output(*args):
+        result = original(*args)
+        result["versions"]["input"] = "sha256:" + "e" * 64
+        return result
+
+    monkeypatch.setattr(synthetic_runs, "calculate_distance_reference", mismatched_output)
+    body = {"intent_id": "a" * 32, "input_sha256": request["input_version"], "request": request}
+    failed = client.post(url, headers=AUTH, json=body)
+    assert failed.status_code == 503
+    assert client.get(url, headers=AUTH, params={"purpose": request["purpose"]}).json()["runs"] == []
 
 
 @pytest.mark.parametrize("conditions", [{"missing_day": True}, {"layer_use": "front_effort_sst"}])
