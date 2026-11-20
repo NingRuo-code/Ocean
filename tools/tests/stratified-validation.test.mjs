@@ -102,27 +102,53 @@ test("G3 coverage review reads native P0 snapshots, keeps missing candidates and
   assert.equal(result.strata.filter(stratum=>stratum.year===2022&&stratum.status==="no_candidates").length,4);
   assert.equal(result.strata.find(s=>s.year===2024&&s.season==="summer").status,"no_candidates");
   assert.doesNotMatch(JSON.stringify(result),/total_hours|density_hours|area_time_km2_days|"hours":/);
-  const edit = spawnSync(process.env.OCEAN_EXPERIMENT_PYTHON || "python", ["-c", `
+  for (const [problem, reason] of [
+   ["daily", "audit_daily_support_inconsistent"],
+   ["event-gate", "audit_event_gate_inconsistent"],
+   ["window-gate", "audit_window_gate_inconsistent"],
+   ["month-gate", "audit_month_gate_inconsistent"],
+  ]) {
+   const monthGate = problem === "month-gate";
+   const edit = spawnSync(process.env.OCEAN_EXPERIMENT_PYTHON || "python", ["-c", `
 import json, sys
 from app.audited_support import snapshot_digest
 with open(sys.argv[1], encoding="utf-8") as f:
     payload = json.load(f)
 del payload["support_snapshot_id"]
-payload["regions"][0]["days"] = [row for row in payload["regions"][0]["days"] if row["date"] != "2024-01-04"]
+region = payload["regions"][0]
+if sys.argv[2] == "daily":
+    region["days"] = [row for row in region["days"] if row["date"] != "2024-01-04"]
+elif sys.argv[2] == "month-gate":
+    assert region["month"]["included_days"] == 8
+    region["month"]["data_gate_passed"] = True
+else:
+    assert not region["windows"]["post7"]["data_gate_passed"]
+    region["event_data_gate_passed"]["post7"] = True
+    if sys.argv[2] == "window-gate":
+        region["windows"]["pre7"]["data_gate_passed"] = True
+        region["windows"]["post7"]["data_gate_passed"] = True
 payload["support_snapshot_id"] = snapshot_digest(payload)
-print(json.dumps(payload))`, join(root,"B_event.json")], { cwd:resolve("backend"), encoding:"utf8", windowsHide:true });
-  assert.equal(edit.status,0,edit.stderr);
-  const changed = JSON.parse(readFileSync(request,"utf8"));
-  changed.candidates[0].event.snapshot_id = JSON.parse(edit.stdout).support_snapshot_id;
-  writeFileSync(request,JSON.stringify(changed));
-  writeFileSync(source,`{"schema":"ocean-g3-support-pack/v1","snapshots":[${monthly},${edit.stdout},${invalid}]}`);
-  const inconsistent = join(root,"inconsistent");
-  const rerun = call(["--g3-candidate-support-request",request,"--input",source,"--output",inconsistent]);
-  assert.equal(rerun.status,0,rerun.stderr);
-  const next = JSON.parse(readFileSync(join(inconsistent,"summary.json"),"utf8"));
-  assert.equal(next.rows[0].event.status,"invalid_snapshot");
-  assert.equal(next.rows[0].event.reason,"audit_daily_support_inconsistent");
-  assert.equal(next.rows[0].monthly.status,"audited_snapshot");
+print(json.dumps(payload))`, join(root,monthGate?"A_month.json":"B_event.json"), problem], { cwd:resolve("backend"), encoding:"utf8", windowsHide:true });
+   assert.equal(edit.status,0,edit.stderr);
+   const changed = JSON.parse(readFileSync(request,"utf8"));
+   const editedId = JSON.parse(edit.stdout).support_snapshot_id;
+   if (monthGate) {
+    changed.candidates[0].monthly_snapshot_id = editedId;
+    changed.candidates[0].event.snapshot_id = eventId;
+   } else changed.candidates[0].event.snapshot_id = editedId;
+   writeFileSync(request,JSON.stringify(changed));
+   const unchanged = monthGate ? event : monthly;
+   writeFileSync(source,`{"schema":"ocean-g3-support-pack/v1","snapshots":[${unchanged},${edit.stdout},${invalid}]}`);
+   const inconsistent = join(root,"inconsistent-" + problem);
+   const rerun = call(["--g3-candidate-support-request",request,"--input",source,"--output",inconsistent]);
+   assert.equal(rerun.status,0,rerun.stderr);
+   const next = JSON.parse(readFileSync(join(inconsistent,"summary.json"),"utf8"));
+   const invalidPeriod = monthGate ? next.rows[0].monthly : next.rows[0].event;
+   const retainedPeriod = monthGate ? next.rows[0].event : next.rows[0].monthly;
+   assert.equal(invalidPeriod.status,"invalid_snapshot");
+   assert.equal(invalidPeriod.reason, reason);
+   assert.equal(retainedPeriod.status,"audited_snapshot");
+  }
   unlinkSync(source);
   const read=call(["--read-g3-candidate-support-result",out],{OCEAN_EXPERIMENT_PYTHON:"not-available"});
   assert.equal(read.status,0,read.stderr);

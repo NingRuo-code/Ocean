@@ -254,9 +254,84 @@ test('browser runtime exceptions invalidate both total and after-action success 
   const report=JSON.parse(await readFile(out,'utf8'));
   const bad=report.attempts.filter(a=>a.browser_errors.length);
   assert.ok(bad.length>0);
-  assert.ok(bad.every(a=>a.status==='failure'&&a.elapsed_ms===null&&a.after_action_ms===null));
+  assert.ok(bad.every(a=>a.status==='failure'&&a.elapsed_ms===null&&a.after_action_ms===null&&a.observed===null));
   assert.doesNotMatch(JSON.stringify(report),/PRIVATE_CONTROLLED/);
  }finally{if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith('ocean-service-baseline-'))await rm(root,{recursive:true,force:true});}
+});
+
+test('a browser exception after partial paint invalidates that attempt’s partial timing', async () => {
+ const root=await mkdtemp(join(tmpdir(),'ocean-service-baseline-'));
+ const page=join(root,'partial-then-error.html'),out=join(root,'report.json');
+ try {
+  await writeFile(page,`<input id="timeDate" value="2024-08-05"><button id="dateNext">next</button>
+   <svg id="mapSvg" width="600" height="400" data-render-date="2024-08-05" data-render-status="partial"
+     data-view-key='["2024-08-05",124.5,30.2,1,"plane"]'></svg>
+   <script>
+     let frames=0, errorScheduled=false;
+     const frame=requestAnimationFrame.bind(window);
+     window.requestAnimationFrame=cb=>frame(time=>{frames++;cb(time)});
+     window.OFData={serverEnabled:()=>true,viewportReady:()=>false,
+       viewportState:()=>{
+         if(frames>=2&&!errorScheduled){
+           errorScheduled=true;
+           setTimeout(()=>{throw Error("PRIVATE_PARTIAL_ERROR")},0);
+         }
+         return {status:"partial",usable:true};
+       }};
+   </script>`);
+  const execution=await execute(process.execPath,[
+   'tools/benchmark-map.mjs','--page',pathToFileURL(page).href,'--sample-kind','controlled-fixture',
+   '--runs','1','--timeout-ms','1600','--out',out,
+  ],{windowsHide:true,timeout:30000}).catch(error=>error);
+  assert.equal(execution.code,1);
+  const report=JSON.parse(await readFile(out,'utf8'));
+  const navigation=report.attempts.find(a=>a.scenario==='navigation');
+  assert.equal(navigation.last_observed?.viewport_partial_usable,true);
+  assert.ok(navigation.browser_errors.includes('browser_exception'));
+  assert.equal(navigation.first_partial_paint_ms,null);
+  assert.equal(navigation.failure_reason,'browser_exception');
+  assert.equal(report.summary.navigation.partial_paint_observations,0);
+  assert.doesNotMatch(JSON.stringify(report),/PRIVATE_PARTIAL_ERROR/);
+ } finally {
+  if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith('ocean-service-baseline-'))await rm(root,{recursive:true,force:true});
+ }
+});
+
+test('navigation and reload cannot count a different ready map as the requested entry page', async () => {
+ const root=await mkdtemp(join(tmpdir(),'ocean-service-baseline-'));
+ const out=join(root,'report.json');
+ const server=createServer((req,res)=>{
+  if(req.url==='/entry.html'){
+   res.writeHead(302,{Location:'/redirected.html'}).end();
+   return;
+  }
+  res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'}).end(
+   '<input id="timeDate" value="2024-08-05"><button id="dateNext">next</button>'+
+   '<svg id="mapSvg" width="600" height="400" data-render-date="2024-08-05" data-render-status="ready"></svg>');
+ });
+ try {
+  await new Promise((done,fail)=>server.once('error',fail).listen(0,'127.0.0.1',done));
+  const url='http://127.0.0.1:'+server.address().port+'/entry.html';
+  const execution=await execute(process.execPath,[
+   'tools/benchmark-map.mjs','--page',url,'--sample-kind','controlled-fixture',
+   '--runs','1','--timeout-ms','1000','--out',out,
+  ],{windowsHide:true,timeout:25000}).catch(error=>error);
+  assert.equal(execution.code,1);
+  const report=JSON.parse(await readFile(out,'utf8'));
+  for(const scenario of ['navigation','reload']){
+   const attempt=report.attempts.find(a=>a.scenario===scenario);
+   assert.equal(attempt.last_observed?.status,'ready');
+   assert.equal(attempt.last_observed?.requested_document,false);
+   assert.equal(attempt.elapsed_ms,null);
+   assert.equal(attempt.first_partial_paint_ms,null);
+   assert.equal(report.summary[scenario].success,0);
+  }
+  assert.doesNotMatch(JSON.stringify(report),/127\.0\.0\.1|redirected\.html/);
+ } finally {
+  server.closeAllConnections();
+  await new Promise(done=>server.close(done));
+  if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith('ocean-service-baseline-'))await rm(root,{recursive:true,force:true});
+ }
 });
 
 test('a tracked browser driver change cannot be reported as clean committed code',async()=>{

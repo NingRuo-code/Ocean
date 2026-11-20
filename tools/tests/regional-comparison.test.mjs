@@ -197,6 +197,7 @@ test("frozen comparison keeps region identity across reorder, method switch and 
   for (const [label, failure, expected] of [
     ["failed-source", facts, "source_failed"],
     ["wrong-source", { ...facts, result_id: "sha256:" + "a".repeat(64) }, "source_facts_unverified"],
+    ["explicit-unknown-source", null, "source_facts_unverified"],
   ]) {
     replaceFacts(failure);
     const reviewed = rewrite(label, original);

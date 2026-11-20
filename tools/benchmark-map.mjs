@@ -233,7 +233,8 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
         const viewBox=m.viewBox?.animVal;
         const partial=m.dataset.renderStatus==='partial'?window.OFData?.viewportState?.(d.value):null;
         return {
-          time_origin:performance.timeOrigin,date:d.value,render_date:m.dataset.renderDate,
+          time_origin:performance.timeOrigin,requested_document:location.href===${JSON.stringify(page)},
+          date:d.value,render_date:m.dataset.renderDate,
           status:m.dataset.renderStatus,view:m.dataset.viewKey,
           frame:{left:r.left,top:r.top,width:r.width,height:r.height,aspect:layout.height>0?layout.width/layout.height:null},
           box:viewBox?.width>0&&viewBox.height>0?[viewBox.x,viewBox.y,viewBox.width,viewBox.height]:null,
@@ -244,7 +245,7 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
         };
       })()`);
       const measure = async (scenario, cache, action, expected) => {
-        const matchingIdentity = state => state && state.render_date === state.date && expected(state);
+        const matchingIdentity = state => state?.requested_document && state.render_date === state.date && expected(state);
         const ready = state => matchingIdentity(state) && state.status === "ready" &&
           (!isolatedService || state.server_enabled && state.viewport_ready);
         const partial = state => matchingIdentity(state) && state.status === "partial" &&
@@ -262,7 +263,7 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
             const value = await observed();
             if (performance.now() >= deadline) break;
             record.last_observed=value;
-            if(isolatedService&&value?.server_enabled&&["day-missing","forbidden","error","unprepared"].includes(value.layer_states.day)){
+            if(isolatedService&&value?.requested_document&&value.server_enabled&&["day-missing","forbidden","error","unprepared"].includes(value.layer_states.day)){
               record.status="failure";record.failure_reason=value.layer_states.day;break;
             }
             const readyBefore = ready(value);
@@ -300,7 +301,16 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
         record.requests = [...requests.values()].map((r) => ({ role: r.role, method: r.method, content_encoding: r.content_encoding ?? null, kind: r.kind, status: r.status, encoded_bytes: r.encoded_bytes, from_cache: r.from_cache ?? null,
           failed: r.failed ?? false, canceled: r.canceled ?? false, duration_ms: r.finished ? r.finished - r.started : null, response_timing: r.response_timing ?? null }));
         record.browser_errors = errors.slice();
-        if (record.browser_errors.length && record.status === "success") { record.status = "failure"; record.failure_reason='browser_exception';record.elapsed_ms = null;record.after_action_ms=null; }
+        if (record.browser_errors.length) {
+          record.first_partial_paint_ms = null;
+          record.observed = null;
+          if (record.status !== "failure") {
+            record.status = "failure";
+            record.failure_reason = "browser_exception";
+          }
+          record.elapsed_ms = null;
+          record.after_action_ms = null;
+        }
         attempts.push(record);
         return record;
       };
@@ -380,8 +390,8 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
     commit, tracked_changes_present:trackedChanges, artifact_hashes: artifactHashes, environment, attempts, summary, targets_verified: false,
     protocol: { runs, timeout_ms: timeout, clock: "Node monotonic action dispatch to matching observed DOM plus two animation frames; 25ms polling overhead included",
       completion_deadline: "Matching painted state must be confirmed before the action deadline; in-flight browser commands may take longer to return",
-      action_identity: "Next-day action requires the following calendar date with the original document, center, scale and projection; zoom and drag require the prescribed target center, scale, projection and SVG window in the original document and date at both paint observations; projection transitions are outside this fixed-projection protocol",
-      partial_paint: "First matching usable partial viewport confirmed across two frames, observed separately from full readiness and excluded from success quantiles",
+      action_identity: "All paints must belong to the requested entry URL. Next-day action requires the following calendar date with the original document, center, scale and projection; zoom and drag require the prescribed target center, scale, projection and SVG window in the original document and date at both paint observations; projection transitions are outside this fixed-projection protocol",
+      partial_paint: "First matching usable partial viewport confirmed across two frames, discarded on browser exception, and excluded from success quantiles",
       segments: "Browser render/panel and network segments overlap; not added to elapsed time", canceled: "reported in request records; failed/timed-out attempts retained with null elapsed", cache_limitations: "no production cache purge; OS and storage warmth uncontrolled" },
     limitations: ["B0 activity layer still uses percentile/700-cell truncation; no valid acceleration ratio against a complete-support renderer.",
       "Managed Python inventory samples visible installed distribution metadata at service startup only; duplicates remain ambiguous, paths and direct URLs are excluded. This is not a dependency lock or installed-byte integrity check.",

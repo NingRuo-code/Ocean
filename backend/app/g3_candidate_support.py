@@ -119,6 +119,14 @@ def _day_metadata(row):
     }
 
 
+def _contradicts_passing_gate(period, evidence_kind):
+    return period["data_gate_passed"] and (
+        evidence_kind != "audited_cells"
+        or period["support_level"] != "supported"
+        or period["included_days"] != period["expected_days"]
+    )
+
+
 def _review_audit(snapshot_id, snapshots, conditions):
     if snapshot_id not in snapshots:
         reason = (
@@ -154,6 +162,8 @@ def _review_audit(snapshot_id, snapshots, conditions):
             or period["included_days"] != sum(day["included"] for day in days.values())
         ):
             return unavailable("invalid_snapshot", "audit_daily_support_inconsistent")
+        if _contradicts_passing_gate(period, audit["evidence_kind"]):
+            return unavailable("invalid_snapshot", "audit_month_gate_inconsistent")
         return {**metadata, "calendar": _period_metadata(period), "days": [days[d] for d in dates]}
     anchor = conditions["event_date"]
     window_dates = {anchor}
@@ -166,12 +176,27 @@ def _review_audit(snapshot_id, snapshots, conditions):
             return unavailable("invalid_snapshot", "audit_daily_support_inconsistent")
     if anchor not in days:
         return unavailable("invalid_snapshot", "audit_daily_support_inconsistent")
+    windows = audit["windows"]
+    if any(
+        _contradicts_passing_gate(period, audit["evidence_kind"])
+        for period in windows.values()
+    ):
+        return unavailable("invalid_snapshot", "audit_window_gate_inconsistent")
+    event_gates = audit["event_data_gate_passed"]
+    # The anchor has its own coverage record. Native P0 event eligibility
+    # requires the pre-window and the corresponding post-window only.
+    if any(
+        event_gates[name]
+        != (windows["pre7"]["data_gate_passed"] and windows[name]["data_gate_passed"])
+        for name in ("post3", "post7")
+    ):
+        return unavailable("invalid_snapshot", "audit_event_gate_inconsistent")
     return {
         **metadata,
         "event_day": days[anchor],
         "window_days": [days[day] for day in sorted(window_dates)],
-        "windows": {name: _period_metadata(period) for name, period in audit["windows"].items()},
-        "event_data_gate_passed": audit["event_data_gate_passed"],
+        "windows": {name: _period_metadata(period) for name, period in windows.items()},
+        "event_data_gate_passed": event_gates,
     }
 
 
