@@ -103,6 +103,9 @@ function gestureTarget(before, action) {
     const targetZoom = action === "zoom" ?
       clamp(zoom * Math.exp(-wheelDelta * .0016), widthAtZoomOne / xPerDegree / maxLongitudeSpan, 8) : zoom;
     const globe = widthAtZoomOne / targetZoom / xPerDegree > 40;
+    // Projection changes have a separate cursor/clamping contract and do not
+    // earn a ready timing under this fixed-projection gesture protocol.
+    if (mode !== (globe ? "globe" : "plane")) return null;
     const unitsPerPixel = widthAtZoomOne / zoom / width;
     const xScale = longitudeScale(mode, lat);
     let targetLon = action === "drag" ? wrapLon(lon - dragDelta.x * unitsPerPixel / xScale) : lon;
@@ -377,7 +380,7 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
     commit, tracked_changes_present:trackedChanges, artifact_hashes: artifactHashes, environment, attempts, summary, targets_verified: false,
     protocol: { runs, timeout_ms: timeout, clock: "Node monotonic action dispatch to matching observed DOM plus two animation frames; 25ms polling overhead included",
       completion_deadline: "Matching painted state must be confirmed before the action deadline; in-flight browser commands may take longer to return",
-      action_identity: "Next-day action requires the following calendar date with the original document, center, scale and projection; zoom and drag require the prescribed target center, scale, projection and SVG window in the original document and date at both paint observations",
+      action_identity: "Next-day action requires the following calendar date with the original document, center, scale and projection; zoom and drag require the prescribed target center, scale, projection and SVG window in the original document and date at both paint observations; projection transitions are outside this fixed-projection protocol",
       partial_paint: "First matching usable partial viewport confirmed across two frames, observed separately from full readiness and excluded from success quantiles",
       segments: "Browser render/panel and network segments overlap; not added to elapsed time", canceled: "reported in request records; failed/timed-out attempts retained with null elapsed", cache_limitations: "no production cache purge; OS and storage warmth uncontrolled" },
     limitations: ["B0 activity layer still uses percentile/700-cell truncation; no valid acceleration ratio against a complete-support renderer.",
