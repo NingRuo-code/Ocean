@@ -166,12 +166,22 @@ def _review_audit(snapshot_id, snapshots, conditions):
             return unavailable("invalid_snapshot", "audit_daily_support_inconsistent")
     if anchor not in days:
         return unavailable("invalid_snapshot", "audit_daily_support_inconsistent")
+    windows = audit["windows"]
+    event_gates = audit["event_data_gate_passed"]
+    # The anchor has its own coverage record. Native P0 event eligibility
+    # requires the pre-window and the corresponding post-window only.
+    if any(
+        event_gates[name]
+        != (windows["pre7"]["data_gate_passed"] and windows[name]["data_gate_passed"])
+        for name in ("post3", "post7")
+    ):
+        return unavailable("invalid_snapshot", "audit_event_gate_inconsistent")
     return {
         **metadata,
         "event_day": days[anchor],
         "window_days": [days[day] for day in sorted(window_dates)],
-        "windows": {name: _period_metadata(period) for name, period in audit["windows"].items()},
-        "event_data_gate_passed": audit["event_data_gate_passed"],
+        "windows": {name: _period_metadata(period) for name, period in windows.items()},
+        "event_data_gate_passed": event_gates,
     }
 
 
