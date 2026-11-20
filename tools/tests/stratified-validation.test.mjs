@@ -105,6 +105,7 @@ test("G3 coverage review reads native P0 snapshots, keeps missing candidates and
   for (const [problem, reason] of [
    ["daily", "audit_daily_support_inconsistent"],
    ["event-gate", "audit_event_gate_inconsistent"],
+   ["window-gate", "audit_window_gate_inconsistent"],
   ]) {
    const edit = spawnSync(process.env.OCEAN_EXPERIMENT_PYTHON || "python", ["-c", `
 import json, sys
@@ -118,6 +119,9 @@ if sys.argv[2] == "daily":
 else:
     assert not region["windows"]["post7"]["data_gate_passed"]
     region["event_data_gate_passed"]["post7"] = True
+    if sys.argv[2] == "window-gate":
+        region["windows"]["pre7"]["data_gate_passed"] = True
+        region["windows"]["post7"]["data_gate_passed"] = True
 payload["support_snapshot_id"] = snapshot_digest(payload)
 print(json.dumps(payload))`, join(root,"B_event.json"), problem], { cwd:resolve("backend"), encoding:"utf8", windowsHide:true });
    assert.equal(edit.status,0,edit.stderr);
