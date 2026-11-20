@@ -10,11 +10,18 @@ from pathlib import Path
 from uuid import uuid4
 
 from .analysis_support import content_id, decode_controlled_json
-from .monthly_models import MonthlyRequest
+from .monthly_distance_reference import DISTANCE_EXECUTION_TIMEOUT_SECONDS
+from .monthly_models import MonthlyDistanceRequest, MonthlyRequest
 from .sqlite_store_initialization import initialize_sqlite_store
 
 APPLICATION_ID = 0x4F52554E
+DISTANCE_APPLICATION_ID = 0x4F445255
 MAX_DB_BYTES = 64 * 1024 * 1024
+# Allow the in-transaction evidence rereads, result validation and commit after the child.
+DISTANCE_WRITE_TIMEOUT_SECONDS = DISTANCE_EXECUTION_TIMEOUT_SECONDS + 7
+LEGACY_RUN = "ocean-owner-synthetic-run/v1"
+DISTANCE_RUN = "ocean-owner-qualified-distance-run/v1"
+DISTANCE_FAILURE_REASONS = ("execution_evidence_changed", "execution_timed_out")
 
 
 class RunStoreError(Exception):
@@ -22,8 +29,11 @@ class RunStoreError(Exception):
 
 
 class RunStore:
-    def __init__(self, path):
+    def __init__(self, path, *, qualified_distance=False):
         self.path = Path(os.path.abspath(path)) if path is not None else None
+        self.qualified_distance = qualified_distance
+        self.schema = DISTANCE_RUN if qualified_distance else LEGACY_RUN
+        self.application_id = DISTANCE_APPLICATION_ID if qualified_distance else APPLICATION_ID
 
     def _checked_store_exists(self):
         for path in (*reversed(self.path.parents), self.path):
@@ -50,23 +60,26 @@ class RunStore:
                     return
                 initialize_sqlite_store(
                     self.path,
-                    application_id=APPLICATION_ID,
+                    application_id=self.application_id,
                     schema_version=1,
                     prefix=".ocean-run-",
                     statements=(
-                        "CREATE TABLE runs(id TEXT PRIMARY KEY, intent TEXT UNIQUE NOT NULL, "
-                        "fingerprint TEXT NOT NULL, payload TEXT NOT NULL)",
+                        ("CREATE TABLE runs(id TEXT PRIMARY KEY, intent TEXT UNIQUE NOT NULL, "
+                         "fingerprint TEXT NOT NULL, payload TEXT NOT NULL)"),
                     ),
                 )
                 if not self._checked_store_exists():
                     raise RunStoreError("unavailable")
             target = self.path.as_uri() + ("?mode=rw" if write else "?mode=ro")
-            with closing(sqlite3.connect(target, uri=True, timeout=1, isolation_level=None)) as db:
+            # An identical distance intent can wait for the first bounded
+            # child and then replay its committed result. Legacy writers use a different database.
+            timeout = DISTANCE_WRITE_TIMEOUT_SECONDS if write and self.qualified_distance else 1
+            with closing(sqlite3.connect(target, uri=True, timeout=timeout, isolation_level=None)) as db:
                 if write:
                     db.execute("BEGIN IMMEDIATE")
                 app_id = db.execute("PRAGMA application_id").fetchone()[0]
                 version = db.execute("PRAGMA user_version").fetchone()[0]
-                if app_id != APPLICATION_ID or version != 1:
+                if app_id != self.application_id or version != 1:
                     raise RunStoreError("unavailable")
                 if write:
                     page_size = db.execute("PRAGMA page_size").fetchone()[0]
@@ -95,21 +108,43 @@ class RunStore:
         if (identity != content_id(value) or value["id"] != row[0] or value["intent_id"] != row[1]
                 or value["submission_id"] != row[2] or value["state"] not in {"completed", "failed"}):
             raise RunStoreError("unavailable")
-        request = MonthlyRequest.model_validate(value["request"]).model_dump()
-        if (value["schema_version"] != "ocean-owner-synthetic-run/v1"
-                or content_id({"intent_id": value["intent_id"], "input_sha256": value["input_sha256"], "request": request}) != row[2]
+        schema = value["schema_version"]
+        if schema != self.schema:
+            raise RunStoreError("unavailable")
+        distance = schema == DISTANCE_RUN
+        model = MonthlyDistanceRequest if distance else MonthlyRequest
+        request = model.model_validate(value["request"]).model_dump()
+        if (content_id({"intent_id": value["intent_id"], "input_sha256": value["input_sha256"], "request": request}) != row[2]
                 or value["state_history"] != ["accepted", value["state"]]
                 or value["owner_scope"] != "single_configured_owner"):
+            raise RunStoreError("unavailable")
+        if distance and (
+            request["support_snapshot_id"] is None
+            or value["qualification"]["snapshot_id"] != request["support_snapshot_id"]
+            or value["qualification"]["scope"] != "frozen_synthetic_validation"
+            or request["input_version"] != value["input_sha256"]
+        ):
             raise RunStoreError("unavailable")
         result = value["result"]
         if value["state"] == "completed":
             if (value["error"] is not None or result["parameters"] != request
-                    or result["source"]["input_sha256"] != value["input_sha256"]
-                    or result["evidence_kind"] != "synthetic_example" or result["research_ready"] is not False
-                    or not result["source"]["license"].startswith("CC0-1.0")
+                    or result["research_ready"] is not False
                     or result["result_id"] != content_id({k: v for k, v in result.items() if k != "result_id"})):
                 raise RunStoreError("unavailable")
+            if distance:
+                if (result["kind"] != request["purpose"] or result["evidence_kind"] != "synthetic"
+                        or result["qualification"] != value["qualification"]
+                        or result["versions"]["input"] != value["input_sha256"]):
+                    raise RunStoreError("unavailable")
+            elif (result["source"]["input_sha256"] != value["input_sha256"]
+                    or result["evidence_kind"] != "synthetic_example"
+                    or not result["source"]["license"].startswith("CC0-1.0")):
+                raise RunStoreError("unavailable")
         elif result is not None or value["error"] != {"code": "calculation_failed"}:
+            raise RunStoreError("unavailable")
+        if "failure_reason" in value and (
+            not distance or value["state"] != "failed" or value["failure_reason"] not in DISTANCE_FAILURE_REASONS
+        ):
             raise RunStoreError("unavailable")
         value["record_id"] = identity
         return value
@@ -127,7 +162,9 @@ class RunStore:
         with self.connection() as db:
             return self.replay(db, intent, fingerprint)
 
-    def submit(self, submission, work):
+    def submit(self, submission, work, *, qualification=None):
+        if (qualification is not None) != self.qualified_distance:
+            raise RunStoreError("unavailable")
         intent, fingerprint = submission["intent_id"], content_id(submission)
         with self.connection(write=True) as db:
             previous = self.replay(db, intent, fingerprint)
@@ -138,7 +175,7 @@ class RunStore:
             started = datetime.now(UTC).isoformat()
             result, error = work()
             value = {
-                "schema_version": "ocean-owner-synthetic-run/v1", "id": uuid4().hex,
+                "schema_version": self.schema, "id": uuid4().hex,
                 "intent_id": intent, "submission_id": fingerprint, "request": submission["request"],
                 "input_sha256": submission["input_sha256"], "state": "failed" if error else "completed",
                 "state_history": ["accepted", "failed" if error else "completed"],
@@ -147,11 +184,18 @@ class RunStore:
                 "execution": "synchronous_atomic_terminal_record; no_queue_or_resume",
                 "source_state": "frozen_synthetic_input; current_source_not_rechecked_on_read",
             }
+            if qualification is not None:
+                value["qualification"] = qualification
+                if error and error["code"] in DISTANCE_FAILURE_REASONS:
+                    value["failure_reason"] = error["code"]
+                    value["error"] = {"code": "calculation_failed"}
             value["record_id"] = content_id(value)
             raw = json.dumps(value, allow_nan=False)
             if len(raw.encode("utf-8")) > 1_048_576:
                 raise RunStoreError("unavailable")
-            db.execute("INSERT INTO runs VALUES(?,?,?,?)", (value["id"], intent, fingerprint, raw))
+            row = (value["id"], intent, fingerprint, raw)
+            self.checked(row)
+            db.execute("INSERT INTO runs VALUES(?,?,?,?)", row)
             return value
 
     def read(self, identity):
@@ -171,6 +215,7 @@ class RunStore:
             rows = db.execute("SELECT id,intent,fingerprint,payload FROM runs ORDER BY rowid DESC LIMIT 65").fetchall()
             if len(rows) > 64:
                 raise RunStoreError("unavailable")
-            return [{key: value for key, value in self.checked(row).items() if key in {
-                "id", "intent_id", "record_id", "submission_id", "request", "input_sha256", "state", "submitted_at", "finished_at", "error"
-            }} for row in rows]
+            records = (self.checked(row) for row in rows)
+            return [{key: value for key, value in record.items() if key in {
+                "id", "intent_id", "record_id", "submission_id", "request", "input_sha256", "state", "submitted_at", "finished_at", "error", "failure_reason"
+            }} for record in records]

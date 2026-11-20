@@ -18,7 +18,7 @@ def _reject(reason, support) -> NoReturn:
     )
 
 
-def qualify_execution(settings, request):
+def read_execution_support(settings, request, *, include_declared_conditions_id=False):
     support = read_audited_support(
         settings.support_snapshot_path,
         {
@@ -28,9 +28,18 @@ def qualify_execution(settings, request):
             ),
         },
         settings.support_state_path,
+        include_declared_conditions_id=include_declared_conditions_id,
     )
     if support["status"] != "audited_snapshot":
         _reject(support["reason"], support)
+    return support
+
+
+def qualify_execution(settings, request):
+    return qualify_support(settings, request, read_execution_support(settings, request))
+
+
+def qualify_support(settings, request, support):
     if support["snapshot_id"] != request.support_snapshot_id:
         _reject("support_snapshot_identity_mismatch", support)
     if request.method_version not in get_args(

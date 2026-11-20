@@ -1,5 +1,6 @@
 import {resolve,dirname,basename,join} from "node:path";
-import {spawn} from "node:child_process";
+import {execFile,spawn} from "node:child_process";
+import {promisify} from "node:util";
 import {mkdtemp,mkdir,rm,writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {setTimeout as delay} from "node:timers/promises";
@@ -13,13 +14,16 @@ export async function withService(work, {
   enableSyntheticRuns = false,
   syntheticRunPath = null,
   distanceFixtureText = null,
+  qualifyDistanceFixture = false,
+  holdDistanceResult = false,
   prepareRaw = null,
   projectRoot = process.cwd(),
 } = {}) {
   const root=await mkdtemp(join(tmpdir(),"ocean-month-service-"));
   await mkdir(join(root,"raw"));await mkdir(join(root,"cache"));
   if(publishedFixtureText!==null)await writeFile(join(root,"published.json"),publishedFixtureText,"utf8");
-  const distancePath=join(root,"distance.json");
+  const distancePath=join(root,"distance.json"), distanceSupport=join(root,"distance-support.json");
+  const distanceResultReady=join(root,"distance-result-ready"), releaseDistanceResult=join(root,"release-distance-result");
   if(distanceFixtureText!==null)await writeFile(distancePath,distanceFixtureText,"utf8");
   const inventoryCode=collectRuntimeInventory?`
 def installed_distributions():
@@ -53,6 +57,21 @@ config.settings=config.Settings(_env_file=None)
 ${publishedFixtureText===null?'':`from pathlib import Path
 import app.published_months as published
 published.PUBLISHED_PATH=Path(os.environ['OCEAN_TEST_PUBLISHED'])`}
+${holdDistanceResult?`from pathlib import Path
+from time import monotonic,sleep
+import app.synthetic_runs as owner_runs
+calculate_distance=owner_runs.calculate_distance_reference
+def hold_after_calculation(*args):
+    result=calculate_distance(*args)
+    Path(os.environ["OCEAN_TEST_DISTANCE_READY"]).touch()
+    release=Path(os.environ["OCEAN_TEST_DISTANCE_RELEASE"])
+    deadline=monotonic()+12
+    while not release.exists():
+        if monotonic() >= deadline:
+            raise TimeoutError("Test did not release the distance result")
+        sleep(0.02)
+    return result
+owner_runs.calculate_distance_reference=hold_after_calculation`:''}
 from app.main import app
 ${inventoryCode}
 app.mount('/',StaticFiles(directory=os.environ['OCEAN_TEST_FRONTEND']))
@@ -66,8 +85,18 @@ uvicorn.Server(uvicorn.Config(app,log_level='error')).run(sockets=[s])`;
   let output="",port,runtime,startError=null;
   try {
     if(prepareRaw)await prepareRaw(join(root,"raw"));
+    if(qualifyDistanceFixture){
+      const fixture=JSON.parse(distanceFixtureText);
+      const conditions=join(root,"distance-conditions.json"), cells=join(root,"distance-cells.json");
+      await writeFile(conditions,JSON.stringify(fixture.conditions),"utf8");
+      await writeFile(cells,JSON.stringify(fixture.regional_cells),"utf8");
+      await promisify(execFile)(process.execPath,[
+        resolve(projectRoot,"tools/audit-research-baseline.mjs"),"--support-request",conditions,
+        "--regional-input",cells,"--out",distanceSupport,
+      ],{timeout:30_000,windowsHide:true});
+    }
     child=spawn(process.env.OCEAN_EXPERIMENT_PYTHON || "python",["-c",code],{cwd:resolve(projectRoot,"backend"),windowsHide:true,
-      env:{...inherited,OCEAN_TEST_FRONTEND:resolve(projectRoot,"frontend/prototype"),OCEAN_PROTOTYPE_DATA_DIR:resolve(projectRoot,"frontend/prototype/data"),OCEAN_API_PREFIX:'/api',OCEAN_AI_PROVIDER:"rules",OCEAN_MONTHLY_EXECUTION_TOKEN:caseOwnerToken,...(publishedFixtureText===null?{}:{OCEAN_TEST_PUBLISHED:join(root,"published.json")}),...(enableCaseStore?{OCEAN_CASE_STORE_PATH:join(root,"cases.sqlite3")}:{}),...(enableSyntheticRuns?{OCEAN_SYNTHETIC_RUN_STORE_PATH:syntheticRunPath||join(root,"runs.sqlite3")}:{}),...(distanceFixtureText===null?{}:{OCEAN_MONTHLY_DISTANCE_INPUT_PATH:distancePath}),OCEAN_RAW_DATA_DIR:join(root,"raw"),OCEAN_CACHE_DIR:join(root,"cache")},stdio:["ignore","pipe","pipe"]});
+      env:{...inherited,OCEAN_TEST_FRONTEND:resolve(projectRoot,"frontend/prototype"),OCEAN_PROTOTYPE_DATA_DIR:resolve(projectRoot,"frontend/prototype/data"),OCEAN_API_PREFIX:'/api',OCEAN_AI_PROVIDER:"rules",OCEAN_MONTHLY_EXECUTION_TOKEN:caseOwnerToken,...(publishedFixtureText===null?{}:{OCEAN_TEST_PUBLISHED:join(root,"published.json")}),...(enableCaseStore?{OCEAN_CASE_STORE_PATH:join(root,"cases.sqlite3")}:{}),...(enableSyntheticRuns?{OCEAN_SYNTHETIC_RUN_STORE_PATH:syntheticRunPath||join(root,"runs.sqlite3")}:{}),...(distanceFixtureText===null?{}:{OCEAN_MONTHLY_DISTANCE_INPUT_PATH:distancePath}),...(qualifyDistanceFixture?{OCEAN_SUPPORT_SNAPSHOT_PATH:distanceSupport,OCEAN_QUALIFIED_DISTANCE_RUN_STORE_PATH:join(root,"distance-runs.sqlite3")}:{}),...(holdDistanceResult?{OCEAN_TEST_DISTANCE_READY:distanceResultReady,OCEAN_TEST_DISTANCE_RELEASE:releaseDistanceResult}:{}),OCEAN_RAW_DATA_DIR:join(root,"raw"),OCEAN_CACHE_DIR:join(root,"cache")},stdio:["ignore","pipe","pipe"]});
     child.on('error',()=>{startError=true;});
     child.stdout.on("data",b=>{output+=b.toString();try{const info=JSON.parse(output.split("\n")[0]);port=info.port;runtime=info.runtime;}catch{}});
     child.stderr.resume();
@@ -93,7 +122,7 @@ uvicorn.Server(uvicorn.Config(app,log_level='error')).run(sockets=[s])`;
       }
       await delay(Math.min(50, remaining));
     }
-    await work(base,{runtime,distancePath});
+    await work(base,{runtime,distancePath,distanceSupport,distanceResultReady,releaseDistanceResult});
   }finally{if(child){child.kill();await Promise.race([new Promise(r=>child.once("exit",r)),delay(2000)]);}
     if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith("ocean-month-service-"))await rm(root,{recursive:true,force:true}).catch(()=>{});
   }

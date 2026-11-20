@@ -1,12 +1,37 @@
 /* Explicit small synthetic submissions. Closing observation never cancels server acceptance. */
 (function(){
-  const {source,sameSource,json}=OceanPublicRead,panel=$('monthDraftPanel');
+  const {source:publicSource,sameSource,json}=OceanPublicRead,panel=$('monthDraftPanel');
   const root=document.createElement('details');root.id='ownerRuns';root.dataset.state='locked';
-  root.innerHTML='<summary>本人合成小例任务（持久软件验证）</summary><p>仅运行已登记CC0合成小例，真实月研究仍待接入。小型同步受理，不提供队列、自动续跑或服务端取消；离开面板仅停止观察，已送达提交仍可能完成。</p><label>合成任务本人令牌<input id="ownerRunToken" type="password" autocomplete="off" spellcheck="false"></label><div class="monthly-actions"><button id="ownerRunPrepare">核对合成条件</button><button id="ownerRunSubmit" disabled>明确提交合成任务</button><button id="ownerRunRead" disabled>重读所选记录</button><button id="ownerRunNew">清除本页引用（不取消任务）</button><button id="ownerRunLock">锁定</button></div><p id="ownerRunStatus" role="status">尚未提交；输入当前服务的本人令牌后核对条件。</p><p id="ownerRunPrepared"></p><div id="ownerRunResult"></div>';
+  root.innerHTML='<summary>本人合成小例任务（持久软件验证）</summary><p>仅运行已登记合成小例，真实月研究仍待接入。小型同步受理，不提供队列、自动续跑或服务端取消；离开面板仅停止观察，已送达提交仍可能完成。</p><label>任务类型<select id="ownerRunPurpose"><option value="monthly_spatial_example">已知单元</option><option value="monthly_distance_reference">P0 合成距离参照</option></select></label><label>合成任务本人令牌<input id="ownerRunToken" type="password" autocomplete="off" spellcheck="false"></label><div class="monthly-actions"><button id="ownerRunPrepare">核对合成条件</button><button id="ownerRunSubmit" disabled>明确提交合成任务</button><button id="ownerRunRead" disabled>重读所选记录</button><button id="ownerRunNew">清除本页引用（不取消任务）</button><button id="ownerRunLock">锁定</button></div><p id="ownerRunStatus" role="status">尚未提交；输入当前服务的本人令牌后核对条件。</p><p id="ownerRunPrepared"></p><div id="ownerRunResult"></div>';
   panel.append(root);
   const id=/^[0-9a-f]{32}$/,hash=/^sha256:[0-9a-f]{64}$/;
   let draft=null,prepared=null,pending=null,selected=null,sessionSource=null,busy=false,generation=0,controller=null,reference=null,referenceError='';
-  const referenceKey='ocean-owner-synthetic-run-ref/v1';
+  const legacyPurpose = 'monthly_spatial_example';
+  const distancePurpose = 'monthly_distance_reference';
+  const generalFailureMessage = '计算已终态失败；没有成功结果或部分结果可用。';
+  const distanceFailureMessages = new Map([
+    ['execution_evidence_changed','原尝试已中止，资格、登记输入或执行环境无法继续核验。没有发布结果。'],
+    ['execution_timed_out','计算达到服务时限，原尝试已中止。没有发布结果。'],
+  ]);
+  const pendingByPurpose = new Map();
+  let purpose = legacyPurpose;
+  let referenceKey = 'ocean-owner-synthetic-run-ref/v1';
+
+  function distanceMode() {
+    return purpose === distancePurpose;
+  }
+
+  function source() {
+    const current = publicSource();
+    if (!distanceMode() || current.kind !== 'server') return current;
+    const api = new URL(current.base, location.href);
+    return api.origin === location.origin && api.pathname === '/api' && !api.search && !api.hash
+      ? current : {kind:'offline',base:null};
+  }
+
+  function purposeSuffix() {
+    return distanceMode() ? '?purpose=' + distancePurpose : '';
+  }
   const actions=root.querySelector('.monthly-actions');
   const downloads=new Set();
   node(actions,'button','读取我的合成任务').id='ownerRunHistory';node(actions,'button','核对原意图').id='ownerRunFindIntent';
@@ -35,6 +60,7 @@
   function describe(p){return p.month+' · '+fmtCoord(p.longitude,p.latitude)+' · '+p.radius_km+' km';}
   function update(){
     const offline=source().kind!=='server',locked=offline||!$('ownerRunToken').value;
+    $('ownerRunPurpose').disabled=publicSource().kind!=='server'||busy;
     $('ownerRunToken').disabled=offline||busy;
     const unresolved=activePending()||activeReference()?.run_id===null;
     $('ownerRunPrepare').disabled=locked||busy||!draft||!!unresolved;
@@ -44,7 +70,10 @@
     $('ownerRunNew').disabled=busy;
     $('ownerRunHistory').disabled=locked||busy;
     $('ownerRunFindIntent').disabled=locked||busy||!(activePending()||activeReference());
-    for(const key of ['ownerRunExportMarkdown','ownerRunExportCsv'])$(key).disabled=locked||busy||selected?.state!=='completed';
+    for(const key of ['ownerRunExportMarkdown','ownerRunExportCsv']){
+      $(key).hidden=distanceMode();
+      $(key).disabled=distanceMode()||locked||busy||selected?.state!=='completed';
+    }
     for(const button of items.querySelectorAll('button'))button.disabled=locked||(busy&&!['reading','downloading'].includes(root.dataset.state));
     referenceMessage();
   }
@@ -64,23 +93,73 @@
   }
   async function perform(work){
     if(busy)return;
-    controller?.abort();controller=new AbortController();const active=controller,n=++generation,timer=setTimeout(()=>active.abort(),10000),from=source(),opener=document.activeElement;
+    controller?.abort();controller=new AbortController();const active=controller,n=++generation,timer=setTimeout(()=>active.abort(),distanceMode()?40000:10000),from=source(),opener=document.activeElement;
     busy=true;update();if(root.contains(opener)&&opener.disabled)$('ownerRunLock').focus({preventScroll:true});
     try{await work(n,from);if(n!==generation)return;if(active.signal.aborted)throw Error('cancelled');if(!sameSource(from,source()))throw Error('source_changed');}
     catch(error){if(n!==generation)return;
       if(['http_401','http_403','source_changed'].includes(error.message))clearPrivate();
       if(active.signal.aborted&&root.dataset.state==='downloading'){set('error','文件读取10秒等待超时；所读冻结结果和草稿保留，可明确重试同一文件。');return;}
       if(error.message==='budget'){set('error','文件或响应超过1MiB读取预算，未下载；所读冻结结果和草稿保留。');return;}
-      const message={http_401:'本人访问未通过；令牌和私有显示已清除。',http_403:'当前服务不允许本人合成任务；令牌和私有显示已清除。',http_503:'本人持久任务或合成输入不可用，请检查服务配置或稍后核对。',http_409:'版本、意图或容量冲突；请核对原意图或明确清除本页引用后重新准备。',http_422:'当前条件或版本没有登记合成支持，未显示受理成功。',http_404:'本次未查到记录或接口；原请求仍可能稍后提交，不能判断从未受理。可稍后核对或读取本人历史。',contract:'任务身份或内容无法核实，未显示成功。',source_changed:'服务来源已改变，请重新认证；旧服务意图只向原服务核对。',offline:'离线不能核对或提交本人任务。',owner_required:'请输入当前服务的本人令牌。'}[error.message]||'请求结果暂不可核实；保留上次核实的记录和原条件。';
+      const expectedMissing = distanceMode() && root.dataset.state === 'checking' && error.message === 'http_409';
+      const message=expectedMissing?'当前条件、来源或 P0 快照无法对应，未提交任务。':{http_401:'本人访问未通过；令牌和私有显示已清除。',http_403:'当前服务不允许本人合成任务；令牌和私有显示已清除。',http_503:'本人持久任务或合成输入不可用，请检查服务配置或稍后核对。',http_409:'版本、意图或容量冲突；请核对原意图或明确清除本页引用后重新准备。',http_422:'当前条件或版本没有登记合成支持，未显示受理成功。',http_404:'本次未查到记录或接口；原请求仍可能稍后提交，不能判断从未受理。可稍后核对或读取本人历史。',contract:'任务身份或内容无法核实，未显示成功。',source_changed:'服务来源已改变，请重新认证；旧服务意图只向原服务核对。',offline:'离线不能核对或提交本人任务。',owner_required:'请输入当前服务的本人令牌。'}[error.message]||'请求结果暂不可核实；保留上次核实的记录和原条件。';
       if(!['http_401','http_403','source_changed'].includes(error.message))set(activePending()||root.dataset.state==='looking-up'?'uncertain':'error',message+(activePending()?' 原提交可能已受理；可明确核对/重发同一意图，不会自动新建任务。':''));
       else $('ownerRunStatus').textContent=message;
     }finally{clearTimeout(timer);if(n===generation){busy=false;update();if(!panel.hidden&&document.activeElement===$('ownerRunLock')&&root.contains(opener)&&!opener.disabled)opener.focus({preventScroll:true});}}
   }
-  function validRequest(p){return p?.purpose==='monthly_spatial_example'&&/^[12]\d{3}-(0[1-9]|1[0-2])$/.test(p.month)&&Number.isFinite(p.longitude)&&Math.abs(p.longitude)<=180&&Number.isFinite(p.latitude)&&Math.abs(p.latitude)<=90&&[10,20,30].includes(p.radius_km)&&typeof p.input_version==='string'&&p.input_version.length>0&&p.input_version.length<=100&&p.method_version==='monthly-known-support/v1'&&p.parameter_version==='known-unit-membership/v1';}
+  function validRequest(p) {
+    if (p?.purpose !== purpose || !/^[12]\d{3}-(0[1-9]|1[0-2])$/.test(p.month) ||
+        !Number.isFinite(p.longitude) || Math.abs(p.longitude)>180 ||
+        !Number.isFinite(p.latitude) || Math.abs(p.latitude)>90 || ![10,20,30].includes(p.radius_km)) return false;
+    if (distanceMode()) {
+      return hash.test(p.input_version) && hash.test(p.support_snapshot_id) &&
+        ['front_effort','front_effort_sst'].includes(p.layer_use) &&
+        p.method_version === 'wgs84-distance-bands/v1' &&
+        p.parameter_version === 'half-open-bands/v1';
+    }
+    return typeof p.input_version === 'string' && p.input_version.length>0 && p.input_version.length<=100 &&
+      p.method_version === 'monthly-known-support/v1' && p.parameter_version === 'known-unit-membership/v1';
+  }
+
+  function validDistanceEvidence(record) {
+    const {request, qualification, result} = record;
+    const validMeasure = value => value === null || (Number.isFinite(value) && value >= 0);
+    if (request.input_version !== record.input_sha256 || qualification?.snapshot_id !== request.support_snapshot_id ||
+        qualification.scope !== 'frozen_synthetic_validation') return false;
+    if (Object.hasOwn(record,'failure_reason') &&
+        (record.state !== 'failed' || !distanceFailureMessages.has(record.failure_reason))) return false;
+    if (record.state === 'failed') return result === null && record.error?.code === 'calculation_failed';
+    return result?.kind === distancePurpose && result.evidence_kind === 'synthetic' &&
+      result.research_ready === false && result.qualification?.snapshot_id === qualification.snapshot_id &&
+      result.qualification.scope === qualification.scope && hash.test(result.result_id) &&
+      hash.test(result.versions?.direct_result_id) &&
+      Object.keys(request).every(key => result.parameters?.[key] === request[key]) &&
+      validMeasure(result.month?.common?.hours) && validMeasure(result.month?.common?.area_time_km2_days) &&
+      validDistanceBands(result.distance_edges_km,result.month?.bands,validMeasure) &&
+      Array.isArray(result.days) && result.days.length === daysInMonth(request.month) &&
+      result.days.every((day, index) => day?.date === request.month+'-'+String(index+1).padStart(2,'0') &&
+        validMeasure(day.common?.hours) && validMeasure(day.common?.effective_area_km2));
+  }
+
+  function validDistanceBands(edges, bands, validMeasure) {
+    return Array.isArray(edges) && edges.length >= 1 && edges.length <= 6 &&
+      edges.every((edge,index)=>Number.isFinite(edge)&&edge>(edges[index-1]??0)&&edge<=100) &&
+      Array.isArray(bands) && bands.length === edges.length + 2 &&
+      bands.every(band=>validMeasure(band?.hours)&&validMeasure(band?.area_time_km2_days));
+  }
+
+  function daysInMonth(month) {
+    const [year, number] = month.split('-').map(Number);
+    return new Date(Date.UTC(year, number, 0)).getUTCDate();
+  }
   function checked(record,expected={}){
-    if(record?.schema_version!=='ocean-owner-synthetic-run/v1'||!id.test(record.id)||!id.test(record.intent_id)||!hash.test(record.record_id)||!hash.test(record.submission_id)||!hash.test(record.input_sha256)||!['completed','failed'].includes(record.state)||record.request?.purpose!=='monthly_spatial_example'||(expected.id&&record.id!==expected.id)||(expected.intent&&record.intent_id!==expected.intent))throw Error('contract');
+    const schema = distanceMode() ? 'ocean-owner-qualified-distance-run/v1' : 'ocean-owner-synthetic-run/v1';
+    if(record?.schema_version!==schema||!id.test(record.id)||!id.test(record.intent_id)||!hash.test(record.record_id)||!hash.test(record.submission_id)||!hash.test(record.input_sha256)||!['completed','failed'].includes(record.state)||record.request?.purpose!==purpose||(expected.id&&record.id!==expected.id)||(expected.intent&&record.intent_id!==expected.intent))throw Error('contract');
     if(!validRequest(record.request)||!Number.isFinite(Date.parse(record.submitted_at))||!Number.isFinite(Date.parse(record.finished_at)))throw Error('contract');
     if(expected.body&&(record.input_sha256!==expected.body.input_sha256||!Object.keys(expected.body.request).every(k=>record.request[k]===expected.body.request[k])))throw Error('contract');
+    if (distanceMode()) {
+      if (!validDistanceEvidence(record)) throw Error('contract');
+      return record;
+    }
     if(record.state==='completed'){
       const r=record.result;
       if(r?.evidence_kind!=='synthetic_example'||r.research_ready!==false||!r.source?.license.startsWith('CC0-1.0')||r.source.input_sha256!==record.input_sha256||!hash.test(r.result_id)||!Array.isArray(r.daily)||r.daily.length<28||r.daily.length>31||!Object.keys(record.request).every(k=>r.parameters[k]===record.request[k]))throw Error('contract');
@@ -89,23 +168,80 @@
   }
   function show(value,expected){
     const run=checked(value,expected),box=$('ownerRunResult');box.replaceChildren();selected=run;root.dataset.runId=run.id;
-    node(box,'p','原任务条件：'+describe(run.request));node(box,'p','任务 '+run.id+' / 意图 '+run.intent_id+' / '+run.record_id);
-    node(box,'p','服务处理 '+run.submitted_at+' 至 '+run.finished_at+'，终态已提交。合成软件验证；真实研究资格未通过。');
+    const layers=distanceMode()?(run.request.layer_use==='front_effort_sst'?' · 锋面、活动与海温':' · 锋面与活动'):'';
+    node(box,'p','原任务条件：'+describe(run.request)+layers);
+    node(box,'p','任务 '+run.id+' / 意图 '+run.intent_id+' / '+run.record_id);
+    node(box,'p','服务处理 '+run.submitted_at+' 至 '+run.finished_at+'，终态已提交。'
+      +(distanceMode()?'合成距离参照':'合成软件验证')+'；真实研究资格未通过。');
     node(box,'p','这里只读冻结记录，当前原源可用及原样复算未知；没有自动公开或保存为案例。');
     if(run.state==='completed'){
-      const r=run.result,m=r.metrics;node(box,'p',`H=${m.total_hours??'未知'} h；E=${m.area_time_km2_days??'未知'} km²·d；有效/日历日 ${m.supported_days}/${m.calendar_days}。`);
-      const details=node(box,'details','');node(details,'summary','原逐日证据与局限');
-      const wrap=node(details,'div','');wrap.className='monthly-chart-wrap';const chart=node(wrap,'div','');chart.className='monthly-chart';chart.setAttribute('role','img');
-      const tables=node(details,'div','');tables.className='monthly-table-wrap';const table=node(tables,'table',''),head=table.createTHead().insertRow();
-      for(const label of ['日期','状态','小时(h)','有效面积(km²)'])node(head,'th',label);table.createTBody();
-      node(details,'p',OceanMonthEvidence.render(chart,table,r.daily));for(const line of r.caveats)node(details,'p',line);
-    }else node(box,'p','计算已终态失败；没有成功结果或部分结果可用。');
+      const r = run.result;
+      if (distanceMode()) showDistanceEvidence(box, r);
+      else {
+        const m = r.metrics;
+        node(box,'p','H='+(m.total_hours??'未知')+' h；E='+(m.area_time_km2_days??'未知')+' km²·d；有效/日历日 '+m.supported_days+'/'+m.calendar_days+'。');
+        showDaily(box, r.daily, r.caveats);
+      }
+    }else{
+      node(box,'p',distanceFailureMessages.get(run.failure_reason)??generalFailureMessage);
+    }
     const unresolved=(activePending()&&pending.body.intent_id!==run.intent_id)||(activeReference()?.run_id===null&&reference.intent_id!==run.intent_id);
     if(!unresolved){if(activePending()?.body.intent_id===run.intent_id)pending=null;saveReference({schema_version:referenceKey,base:sessionSource.base,intent_id:run.intent_id,run_id:run.id});}
     prepared=null;set(run.state,(run.state==='completed'?'已读取可靠提交的合成任务结果；地图条件未改变。':'已读取持久失败记录；新尝试必须明确准备新的意图。')+(unresolved?' 原提交意图仍待核实，核对入口保留。':''));update();
   }
+  function showDistanceEvidence(box, result) {
+    const common = result.month.common;
+    const daily = result.days.map(({date,common}) => ({
+      date,
+      state: common.hours === null ? 'unknown_support' : common.state === 'partial' ? 'partial_support' : 'ready',
+      hours: common.hours,
+      effective_area_km2: common.effective_area_km2,
+    }));
+    node(box,'p','共同支持子集 H='+(common.hours??'未知')+' h，E='
+      +(common.area_time_km2_days??'未知')+' km²·d，'
+      +daily.filter(day=>day.hours!==null).length+'/'+daily.length+' 天有核验值。');
+    node(box,'p','P0 '+result.qualification.snapshot_id+' / 结果 '+result.result_id);
+    const bands = node(box,'details','');
+    node(bands,'summary','月度距离分带');
+    const list = node(bands,'ul','');
+    const edges = result.distance_edges_km;
+    result.month.bands.forEach((band,index)=>{
+      const lower = edges[index-1]??0;
+      const label = index>edges.length?'距离未知':
+        index===edges.length?'≥ '+lower+' km':'['+lower+', '+edges[index]+') km';
+      node(list,'li',label+' · '+(band.hours??'未知')+' h · '+(band.area_time_km2_days??'未知')+' km²·d');
+    });
+    showDaily(box,daily,['只统计已有共同支持，未知日保持未知。']);
+  }
+
+  function showDaily(box, daily, caveats) {
+    const details=node(box,'details','');node(details,'summary','原逐日证据与局限');
+    const wrap=node(details,'div','');wrap.className='monthly-chart-wrap';
+    const chart=node(wrap,'div','');chart.className='monthly-chart';chart.setAttribute('role','img');
+    const tables=node(details,'div','');tables.className='monthly-table-wrap';
+    const table=node(tables,'table',''),head=table.createTHead().insertRow();
+    for(const label of ['日期','状态','小时(h)','有效面积(km²)'])node(head,'th',label);
+    table.createTBody();
+    node(details,'p',OceanMonthEvidence.render(chart,table,daily));
+    for(const line of caveats)node(details,'p',line);
+  }
+
   $('ownerRunPrepare').onclick=()=>perform(async(n,from)=>{
-    set('checking','正在核对合成条件；尚未提交。');const values=draft,data=await net('/options');if(n!==generation)return;
+    set('checking','正在核对合成条件；尚未提交。');
+    const values=draft;
+    if (distanceMode()) {
+      const data=await net('/distance-options?'+new URLSearchParams(values));
+      if(n!==generation)return;
+      if(data?.schema_version!=='ocean-owner-distance-options/v1'||data.research_ready!==false||
+        !validRequest(data.request)||data.request.layer_use!=='front_effort'||
+        data.input_sha256!==data.request.input_version||
+        !['month','longitude','latitude','radius_km'].every(key=>data.request[key]===values[key]))throw Error('contract');
+      prepared={from,input_sha256:data.input_sha256,request:data.request};
+      $('ownerRunPrepared').textContent='将提交合成距离条件：'+describe(prepared.request)+' / '+data.request.support_snapshot_id;
+      set('prepared','合成距离条件已核对。明确提交后才开始计算，实际受理时重新验证来源。');
+      return;
+    }
+    const data=await net('/options');if(n!==generation)return;
     const match=data.conditions?.find(c=>['month','longitude','latitude','radius_km'].every(k=>c[k]===values[k]));
     if(data.schema_version!=='ocean-owner-synthetic-options/v1'||data.evidence_kind!=='synthetic_example'||data.research_ready!==false||!hash.test(data.input_sha256)||!data.license?.startsWith('CC0-1.0'))throw Error('contract');
     if(!match)throw Error('http_422');
@@ -119,7 +255,7 @@
   });
   function readRecord(identity){
     if(busy&&['reading','downloading'].includes(root.dataset.state)){generation++;controller?.abort();busy=false;}
-    return perform(async n=>{set('reading','正在核对所选持久记录；不会重新计算。');update();const value=await net('/'+identity);if(n!==generation)return;show(value,{id:identity});});
+    return perform(async n=>{set('reading','正在核对所选持久记录；不会重新计算。');update();const value=await net('/'+identity+purposeSuffix());if(n!==generation)return;show(value,{id:identity});});
   }
   $('ownerRunRead').onclick=()=>readRecord(selected.id);
   function download(format){
@@ -138,7 +274,7 @@
   }
   $('ownerRunExportMarkdown').onclick=()=>download('markdown');$('ownerRunExportCsv').onclick=()=>download('csv');
   $('ownerRunHistory').onclick=()=>perform(async n=>{
-    set('loading-history','正在读取本人服务目录；原有显示保留为上次核实内容。');const data=await net('');if(n!==generation)return;
+    set('loading-history','正在读取本人服务目录；原有显示保留为上次核实内容。');const data=await net(purposeSuffix());if(n!==generation)return;
     if(data?.schema_version!=='ocean-owner-synthetic-history/v1'||!Array.isArray(data.runs)||data.runs.length>64||new Set(data.runs.map(r=>r.id)).size!==data.runs.length||data.runs.some(r=>!id.test(r.id)||!id.test(r.intent_id)||!hash.test(r.record_id)||!['completed','failed'].includes(r.state)||!validRequest(r.request)||!Number.isFinite(Date.parse(r.finished_at))))throw Error('contract');
     items.replaceChildren();for(const run of data.runs){const button=node(items,'button',describe(run.request)+' · '+(run.state==='completed'?'已完成':'计算失败')+' · '+run.finished_at);button.dataset.runId=run.id;button.onclick=()=>readRecord(run.id);}
     if(!data.runs.length)node(items,'p','当前未查到已提交终态；在途请求仍可能稍后出现。');
@@ -146,10 +282,23 @@
   });
   $('ownerRunFindIntent').onclick=()=>perform(async n=>{
     const active=activePending(),ref=activeReference(),intent=active?.body.intent_id||ref?.intent_id;if(!intent)throw Error('contract');
-    set('looking-up','正在查询原意图是否已有终态记录；不会重新计算。');const value=await net('/intents/'+intent);if(n!==generation)return;
+    set('looking-up','正在查询原意图是否已有终态记录；不会重新计算。');const value=await net('/intents/'+intent+purposeSuffix());if(n!==generation)return;
     show(value,{intent,...(active?{body:active.body}:ref?.run_id?{id:ref.run_id}:{})});
   });
   $('ownerRunNew').onclick=()=>{pending=null;prepared=null;reference=null;referenceError='';try{localStorage.removeItem(referenceKey);}catch{referenceError='unavailable';}set('draft','已清除本地提交引用；服务任务没有取消或删除，可重新核对条件以明确创建新意图。');update();};
+  $('ownerRunPurpose').onchange=()=>{
+    const previousSource=sessionSource;
+    pendingByPurpose.set(purpose,pending);
+    purpose=$('ownerRunPurpose').value;
+    pending=pendingByPurpose.get(purpose)||null;
+    referenceKey=distanceMode()?'ocean-owner-qualified-distance-run-ref/v1':'ocean-owner-synthetic-run-ref/v1';
+    reference=null;referenceError='';
+    readReference();
+    const nextSource=source();
+    const retainToken=previousSource&&nextSource.kind==='server'&&sameSource(previousSource,nextSource);
+    clearPrivate(!retainToken);
+    if(retainToken)sessionSource=nextSource;
+  };
   $('ownerRunLock').onclick=()=>clearPrivate();$('ownerRunToken').oninput=()=>{clearPrivate(false);sessionSource=source();};
   window.addEventListener('ocean-month-draft',e=>{if(root.dataset.state==='checking'){generation++;controller?.abort();busy=false;}draft=e.detail?.longitude===null?null:e.detail;prepared=null;$('ownerRunPrepared').textContent='';if(!busy&&!pending)set('draft','条件已改变；请重新核对。');update();});
   window.addEventListener('ocean-month-draft-closed',()=>clearPrivate());

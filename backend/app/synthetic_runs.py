@@ -1,28 +1,143 @@
 """Owner-only adapter over the same small synthetic month calculation."""
 
 import hashlib
-from typing import Annotated, Literal
+from asyncio import create_task, shield
+from subprocess import SubprocessError, TimeoutExpired
+from typing import Annotated, Literal, get_args
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from anyio import CapacityLimiter, Semaphore, WouldBlock, to_thread
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import Field
 
-from .analysis_support import content_id, read_controlled_input
+from .analysis_support import content_id, decode_controlled_json, read_controlled_input
+from .audited_support import snapshot_digest
 from .comparison_models import Identity
-from .monthly_models import ClosedModel, MonthlyExample, MonthlyRequest
+from .monthly_capability import MonthlyDraft
+from .monthly_distance_reference import (
+    MAX_INPUT_BYTES,
+    QualificationInputMismatch,
+    calculate_distance_reference,
+    distance_execution_environment,
+    distance_execution_sources,
+    read_distance_input,
+)
+from .monthly_execution_qualification import (
+    qualify_execution,
+    qualify_support,
+    read_execution_support,
+)
+from .monthly_models import (
+    ClosedModel,
+    DistanceMethod,
+    DistanceParameters,
+    MonthlyDistanceRequest,
+    MonthlyExample,
+    MonthlyRequest,
+)
 from .owner_access import owner_requirement
-from .synthetic_run_store import RunStore, RunStoreError
 from .synthetic_run_export import render_run_file
+from .synthetic_run_store import RunStore, RunStoreError
+
+OwnerPurpose = Literal["monthly_spatial_example", "monthly_distance_reference"]
 
 
-class SyntheticSubmission(ClosedModel):
+class OwnerSubmission(ClosedModel):
     intent_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")]
     input_sha256: Identity
-    request: MonthlyRequest
+    request: MonthlyRequest | MonthlyDistanceRequest
+
+
+def registered_distance_material(settings):
+    try:
+        raw = read_distance_input(settings.monthly_distance_input_path)
+        sources = distance_execution_sources()
+        environment = distance_execution_environment(sources)
+    except (OSError, ValueError, TypeError, AttributeError, ImportError):
+        raise HTTPException(503, "Registered distance reference unavailable", headers={"Cache-Control": "no-store"}) from None
+    return raw, sources, environment
+
+
+def prepare_distance(settings, submission):
+    request = submission.request
+    if request.support_snapshot_id is None or request.input_version != submission.input_sha256:
+        raise HTTPException(409, "Qualified distance identity required", headers={"Cache-Control": "no-store"})
+    qualification = qualify_execution(settings, request)
+    raw, sources, environment = registered_distance_material(settings)
+    if "sha256:" + hashlib.sha256(raw).hexdigest() != submission.input_sha256:
+        raise HTTPException(409, "Registered distance input changed", headers={"Cache-Control": "no-store"})
+    return qualification, raw, sources, environment
+
+
+def check_distance_candidate(raw, support, environment):
+    try:
+        data = decode_controlled_json(raw, MAX_INPUT_BYTES)
+        conditions = data["conditions"]
+        versions = support["versions"]
+        packages = environment["packages"]
+        proj, geos = environment["geometry_runtime"]
+        matches = (
+            data["schema"] == "ocean-month-distance-input/v1"
+            and len(conditions["geometries"]) == 1
+            and content_id(conditions) == versions["declared_conditions_id"]
+            and snapshot_digest(data["regional_cells"]) == versions["input_sha256"]
+            and versions["geometry_runtime"] == {
+                "shapely": packages["shapely"], "pyproj": packages["pyproj"], "GEOS": geos, "PROJ": proj,
+            }
+            and all(
+                versions[key] == "sha256:" + environment["engines"][name]
+                for key, name in (
+                    ("auditor_sha256", "audit_support_qualification.py"),
+                    ("regional_engine_sha256", "audit_regional_support.py"),
+                    ("source_reader_sha256", "audit_daily_sources.py"),
+                )
+            )
+        )
+    except (ValueError, TypeError, KeyError, AttributeError):
+        matches = False
+    if not matches:
+        raise HTTPException(409, "Registered distance input does not match the current P0 snapshot",
+                            headers={"Cache-Control": "no-store"})
 
 
 def create_synthetic_run_router(settings, example_path, calculate, method_version, parameter_version):
     router = APIRouter(prefix="/owner-runs", dependencies=[Depends(owner_requirement(settings))])
     store = RunStore(settings.synthetic_run_store_path)
+    # Keep distance work off the shared HTTP workers without queuing excess requests.
+    distance_workers = CapacityLimiter(2)
+    distance_slots = Semaphore(distance_workers.total_tokens)
+    distance_store = RunStore(settings.qualified_distance_run_store_path, qualified_distance=True)
+    if distance_store.path == store.path:
+        distance_store = RunStore(None, qualified_distance=True)
+
+    active_distance_work = set()
+
+    def release_distance_work(task):
+        active_distance_work.discard(task)
+        distance_slots.release()
+        if not task.cancelled():
+            task.exception()
+
+    async def run_distance_work(work, *args, replay_if_busy=None):
+        try:
+            distance_slots.acquire_nowait()
+        except WouldBlock:
+            if replay_if_busy is not None:
+                previous = await to_thread.run_sync(replay_if_busy, *args)
+                if previous is not None:
+                    return previous
+            raise HTTPException(
+                503,
+                "Qualified distance request capacity is busy",
+                headers={"Cache-Control": "no-store", "Retry-After": "1"},
+            ) from None
+        # The slot belongs to the worker even when its caller stops waiting.
+        task = create_task(to_thread.run_sync(work, *args, limiter=distance_workers))
+        active_distance_work.add(task)
+        task.add_done_callback(release_distance_work)
+        return await shield(task)
+
+    def store_for(purpose):
+        return distance_store if purpose == "monthly_distance_reference" else store
 
     def guarded(work):
         try:
@@ -35,7 +150,7 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
     def input_snapshot():
         try:
             data, fingerprint = read_controlled_input(example_path, MonthlyExample)
-            if not data.license.startswith("CC0-1.0"):
+            if data.license.partition(";")[0].strip() != "CC0-1.0":
                 raise ValueError("Unsupported synthetic license")
             return data, fingerprint
         except (OSError, ValueError, TypeError, ArithmeticError):
@@ -52,9 +167,73 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
                 "evidence_kind": "synthetic_example", "research_ready": False,
                 "license": data.license, "execution": "synchronous_atomic_terminal_record"}
 
-    @router.post("")
-    def submit(submission: SyntheticSubmission, response: Response):
+    def distance_candidate(draft):
+        guarded(distance_store.check_available)
+        draft = draft.model_copy(update={"layer_use": draft.layer_use or "front_effort"})
+        support = read_execution_support(settings, draft, include_declared_conditions_id=True)
+        raw, _, environment = registered_distance_material(settings)
+        fingerprint = "sha256:" + hashlib.sha256(raw).hexdigest()
+        request = MonthlyDistanceRequest(
+            **draft.model_dump(include={"month", "longitude", "latitude", "radius_km", "layer_use"}),
+            purpose="monthly_distance_reference",
+            input_version=fingerprint,
+            support_snapshot_id=support["snapshot_id"],
+            method_version=get_args(DistanceMethod)[0],
+            parameter_version=get_args(DistanceParameters)[0],
+        )
+        qualify_support(settings, request, support)
+        check_distance_candidate(raw, support, environment)
+        return {"schema_version": "ocean-owner-distance-options/v1", "input_sha256": fingerprint,
+                "request": request.model_dump(), "research_ready": False}
+
+    @router.get("/distance-options")
+    async def distance_options(draft: Annotated[MonthlyDraft, Query()], response: Response):
         response.headers["Cache-Control"] = "no-store"
+        if draft.purpose not in {None, "A_month"}:
+            raise HTTPException(422, "A monthly distance draft is required", headers={"Cache-Control": "no-store"})
+        return await run_distance_work(distance_candidate, draft)
+
+    def find_distance_replay(submission, body):
+        return guarded(lambda: distance_store.find(submission.intent_id, content_id(body)))
+
+    def submit_distance(submission, body):
+        old = find_distance_replay(submission, body)
+        if old:
+            return old
+        prepared_distance = prepare_distance(settings, submission)
+        qualification, raw, sources, _ = prepared_distance
+
+        def check_distance():
+            if prepare_distance(settings, submission) != prepared_distance:
+                raise HTTPException(409, "Registered distance evidence changed", headers={"Cache-Control": "no-store"})
+
+        def execute_distance():
+            check_distance()
+            failure = "calculation_failed"
+            try:
+                result = calculate_distance_reference(submission.request, raw, sources, qualification)
+            except QualificationInputMismatch:
+                raise HTTPException(409, "Distance input does not match qualification", headers={"Cache-Control": "no-store"}) from None
+            except TimeoutExpired:
+                result = None
+                failure = "execution_timed_out"
+            except (OSError, ValueError, TypeError, ImportError, SubprocessError):
+                result = None
+            try:
+                check_distance()
+            except HTTPException as error:
+                if error.status_code not in {409, 503}:
+                    raise
+                return None, {"code": "execution_evidence_changed"}
+            if result is None:
+                return None, {"code": failure}
+            result["versions"]["direct_result_id"] = result.pop("result_id")
+            result["result_id"] = content_id(result)
+            return result, None
+
+        return guarded(lambda: distance_store.submit(body, execute_distance, qualification=qualification))
+
+    def submit_legacy(submission):
         body = submission.model_dump()
         old = guarded(lambda: store.find(submission.intent_id, content_id(body)))
         if old:
@@ -87,26 +266,38 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
 
         return guarded(lambda: store.submit(body, execute))
 
-    @router.get("")
-    def history(response: Response):
+    @router.post("")
+    async def submit(submission: OwnerSubmission, response: Response):
         response.headers["Cache-Control"] = "no-store"
-        return {"schema_version": "ocean-owner-synthetic-history/v1", "runs": guarded(store.catalog)}
+        if isinstance(submission.request, MonthlyDistanceRequest):
+            return await run_distance_work(
+                submit_distance, submission, submission.model_dump(), replay_if_busy=find_distance_replay,
+            )
+        return await to_thread.run_sync(submit_legacy, submission)
+
+    @router.get("")
+    def history(response: Response, purpose: OwnerPurpose = "monthly_spatial_example"):
+        response.headers["Cache-Control"] = "no-store"
+        return {"schema_version": "ocean-owner-synthetic-history/v1", "runs": guarded(store_for(purpose).catalog)}
 
     @router.get("/intents/{intent_id}")
-    def read_intent(intent_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response):
+    def read_intent(intent_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response,
+                    purpose: OwnerPurpose = "monthly_spatial_example"):
         response.headers["Cache-Control"] = "no-store"
-        return guarded(lambda: store.read_intent(intent_id))
+        return guarded(lambda: store_for(purpose).read_intent(intent_id))
 
     @router.get("/{run_id}")
-    def read(run_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response):
+    def read(run_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response,
+             purpose: OwnerPurpose = "monthly_spatial_example"):
         response.headers["Cache-Control"] = "no-store"
-        return guarded(lambda: store.read(run_id))
+        return guarded(lambda: store_for(purpose).read(run_id))
 
     @router.get("/{run_id}/exports/{representation}")
     def export(run_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")],
                representation: Literal["markdown", "csv"], record_id: Identity, result_id: Identity):
         run = guarded(lambda: store.read(run_id))
-        if run["record_id"] != record_id or run["state"] != "completed" or run["result"]["result_id"] != result_id:
+        if (run["request"]["purpose"] != "monthly_spatial_example" or run["record_id"] != record_id
+                or run["state"] != "completed" or run["result"]["result_id"] != result_id):
             raise HTTPException(409, "Completed synthetic record identity mismatch", headers={"Cache-Control": "no-store"})
         try:
             data = render_run_file(run, representation)
