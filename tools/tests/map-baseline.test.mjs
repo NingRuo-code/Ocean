@@ -251,3 +251,40 @@ test("ready paints at the wrong zoom or drag target do not count", () => {
   }
   assert.equal(result.status, 1, result.stderr);
 });
+
+test("centered globe wheel tolerates subpixel rounding across the date line", () => {
+  const root = mkdtempSync(join(tmpdir(), "ocean-baseline-globe-"));
+  const page = join(root, "globe.html"), out = join(root, "baseline.json");
+  writeFileSync(page, `<!doctype html><meta charset="utf-8">
+    <input id="timeDate" value="2024-08-05"><button id="dateNext">next</button><svg id="mapSvg" width="601" height="401"></svg>
+    <script>
+    const map = document.getElementById('mapSvg'), date = document.getElementById('timeDate');
+    const radians = Math.PI/180, y = 180/Math.cos(30.2*radians);
+    function paint(lon,lat,zoom) {
+      const w = 1000/zoom, h = w*401/601;
+      map.setAttribute('viewBox', [500+180*(lon-124.5)-w/2,320-y*(lat-30.2)-h/2,w,h].join(' '));
+      map.dataset.renderDate = date.value;
+      map.dataset.renderStatus = 'ready';
+      map.dataset.viewKey = JSON.stringify([date.value,lon,lat,zoom,'globe']);
+    }
+    paint(179.99,80,.1);
+    document.getElementById('dateNext').onclick = () => { date.value='2024-08-06'; paint(179.99,80,.1); };
+    const zoom = .1*Math.exp(.192);
+    map.onwheel = () => paint(-179.95,80,zoom);
+    map.onpointerup = () => {
+      const units = 1000/zoom/601;
+      const lon = -179.95-70*units/(y*Math.cos(80*radians))+360;
+      paint(lon,80+15*units/y,zoom);
+    };
+    </script>`);
+  const result = spawnSync(process.execPath, [resolve("tools/benchmark-map.mjs"), "--page", pathToFileURL(page).href,
+    "--runs", "1", "--timeout-ms", "1500", "--sample-kind", "controlled-fixture", "--out", out],
+  { encoding: "utf8", timeout: 25000 });
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(readFileSync(out, "utf8"));
+  for (const scenario of ["zoom", "drag"]) {
+    const attempt = report.attempts.find(item => item.scenario === scenario);
+    assert.equal(attempt.observed.status, "ready", scenario);
+    assert.equal(attempt.expected_viewport.view[4], "globe");
+  }
+});

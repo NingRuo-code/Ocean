@@ -189,14 +189,22 @@ test("frozen comparison keeps region identity across reorder, method switch and 
   const entry = pack.snapshots[index];
   const facts = { ...compatibility.snapshots[0].comparison_facts,
     result_id: entry.result.result_id, snapshot_sha256: entry.snapshot_sha256, source_state: "failed" };
-  let position = 0;
-  writeFileSync(source, sourceText.replace(/"access": "public_aggregate"/g,
-    match => position++ === index ? `"comparison_facts": ${JSON.stringify(facts)}, ${match}` : match));
-  const reviewed = rewrite("failed-source", original);
-  assert.equal(reviewed.rows[0].reason, "source_failed");
-  assert.equal(reviewed.rows[0].metrics, undefined);
-  assert.equal(reviewed.rows[0].candidate.result_id, undefined);
-  assert.deepEqual(reviewed.rows[1].metrics, initial.rows[1].metrics);
+  const replaceFacts = value => {
+    let position = 0;
+    writeFileSync(source, sourceText.replace(/"access": "public_aggregate"/g,
+      match => position++ === index ? `"comparison_facts": ${JSON.stringify(value)}, ${match}` : match));
+  };
+  for (const [label, failure, expected] of [
+    ["failed-source", facts, "source_failed"],
+    ["wrong-source", { ...facts, result_id: "sha256:" + "a".repeat(64) }, "source_facts_unverified"],
+  ]) {
+    replaceFacts(failure);
+    const reviewed = rewrite(label, original);
+    assert.equal(reviewed.rows[0].reason, expected);
+    assert.equal(reviewed.rows[0].metrics, undefined);
+    assert.equal(reviewed.rows[0].candidate.result_id, undefined);
+    assert.deepEqual(reviewed.rows[1].metrics, initial.rows[1].metrics);
+  }
   const read = call(["--read-regional-comparison-result", out], { OCEAN_EXPERIMENT_PYTHON: "not-available" });
   assert.equal(read.status, 0, read.stderr);
   assert.deepEqual(JSON.parse(read.stdout), initial);

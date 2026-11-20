@@ -1,5 +1,6 @@
 """Coverage-only G3 review of explicitly provided P0 qualification snapshots."""
 
+from calendar import monthrange
 from datetime import date as calendar_date
 from typing import Annotated, Literal
 
@@ -141,21 +142,34 @@ def _review_audit(snapshot_id, snapshots, conditions):
             "actual_conditions",
         )
     }
+    days = {day["date"]: _day_metadata(day) for day in audit["days"]}
     if conditions["purpose"] == "A_month":
-        return {
-            **metadata,
-            "calendar": _period_metadata(audit["month"]),
-            "days": [_day_metadata(day) for day in audit["days"]],
-        }
-    window_dates = {conditions["event_date"]}
+        month = conditions["month"]
+        count = monthrange(int(month[:4]), int(month[5:]))[1]
+        dates = [f"{month}-{day:02d}" for day in range(1, count + 1)]
+        period = audit["month"]
+        if (
+            set(days) != set(dates)
+            or period["expected_days"] != count
+            or period["included_days"] != sum(day["included"] for day in days.values())
+        ):
+            return unavailable("invalid_snapshot", "audit_daily_support_inconsistent")
+        return {**metadata, "calendar": _period_metadata(period), "days": [days[d] for d in dates]}
+    anchor = conditions["event_date"]
+    window_dates = {anchor}
     for period in audit["windows"].values():
-        window_dates.update(period["dates"])
-    context_days = [_day_metadata(day) for day in audit["days"] if day["date"] in window_dates]
-    event_day = next((day for day in context_days if day["date"] == conditions["event_date"]), None)
+        dates = period["dates"]
+        window_dates.update(dates)
+        if not set(dates) <= days.keys() or period["included_days"] != sum(
+            days[d]["included"] for d in dates
+        ):
+            return unavailable("invalid_snapshot", "audit_daily_support_inconsistent")
+    if anchor not in days:
+        return unavailable("invalid_snapshot", "audit_daily_support_inconsistent")
     return {
         **metadata,
-        "event_day": event_day,
-        "context_days": context_days,
+        "event_day": days[anchor],
+        "window_days": [days[day] for day in sorted(window_dates)],
         "windows": {name: _period_metadata(period) for name, period in audit["windows"].items()},
         "event_data_gate_passed": audit["event_data_gate_passed"],
     }
@@ -181,6 +195,7 @@ def _candidate_row(candidate, region, layer_use, snapshots):
         "event": {
             **_review_audit(event.snapshot_id if event else None, snapshots, event_conditions),
             "identification": "not_evaluated",
+            "identification_context": "not_evaluated",
         },
     }
 

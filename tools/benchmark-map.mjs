@@ -73,6 +73,8 @@ const widthAtZoomOne = 1000;
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 const wrapLon = value => ((value + 180) % 360 + 360) % 360 - 180;
 const near = (a, b) => Number.isFinite(a) && Math.abs(a - b) <= 1e-7;
+const longitudeScale = (mode, lat) => mode === "plane" ? xPerDegree :
+  yPerDegree * Math.max(.15, Math.cos(lat * degrees));
 
 function viewportBox(lon, lat, zoom, aspect) {
   const width = widthAtZoomOne / zoom, height = width / aspect;
@@ -82,7 +84,9 @@ function viewportBox(lon, lat, zoom, aspect) {
 
 function matchesBox(actual, expected) {
   return Array.isArray(actual) && actual.length === expected.length &&
-    actual.every((value, index) => near(value, expected[index]));
+    // The browser exposes SVGRect coordinates as single-precision floats.
+    actual.every((value, index) => Number.isFinite(value) &&
+      Math.abs(value - expected[index]) <= Math.max(1, Math.abs(expected[index])) * 2 ** -22);
 }
 
 function gestureTarget(before, action) {
@@ -99,8 +103,8 @@ function gestureTarget(before, action) {
     const targetZoom = action === "zoom" ?
       clamp(zoom * Math.exp(-wheelDelta * .0016), widthAtZoomOne / xPerDegree / maxLongitudeSpan, 8) : zoom;
     const globe = widthAtZoomOne / targetZoom / xPerDegree > 40;
-    const unitsPerPixel = before.box[2] / width;
-    const xScale = mode === "plane" ? xPerDegree : yPerDegree * Math.max(.15, Math.cos(lat * degrees));
+    const unitsPerPixel = widthAtZoomOne / zoom / width;
+    const xScale = longitudeScale(mode, lat);
     let targetLon = action === "drag" ? wrapLon(lon - dragDelta.x * unitsPerPixel / xScale) : lon;
     let targetLat = action === "drag" ? lat + dragDelta.y * unitsPerPixel / yPerDegree : lat;
     const box = viewportBox(targetLon, targetLat, targetZoom, aspect);
@@ -129,9 +133,10 @@ function matchesGesture(current, before, target) {
     const actual = JSON.parse(current.view);
     if (!Array.isArray(actual) || actual.length !== 5) return false;
     const [date, lon, lat, zoom, mode] = actual;
+    const longitudeError = mode === "globe" ? wrapLon(lon - target.view[1]) : lon - target.view[1];
     return date === target.view[0] && mode === target.view[4] && near(zoom, target.view[3]) &&
       Number.isFinite(lon) && Number.isFinite(lat) &&
-      Math.abs(lon - target.view[1]) * xPerDegree <= target.center_tolerance_svg &&
+      Math.abs(longitudeError) * longitudeScale(mode, target.view[2]) <= target.center_tolerance_svg &&
       Math.abs(lat - target.view[2]) * yPerDegree <= target.center_tolerance_svg &&
       matchesBox(current.box, viewportBox(lon, lat, zoom, before.frame.aspect));
   } catch {
@@ -222,13 +227,13 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
         const m=document.getElementById('mapSvg'),d=document.getElementById('timeDate');
         if(!m||!d)return null;
         const r=m.getBoundingClientRect(), layout=(document.getElementById('map')||m).getBoundingClientRect();
-        const rawBox=m.getAttribute('viewBox');
+        const viewBox=m.viewBox?.animVal;
         const partial=m.dataset.renderStatus==='partial'?window.OFData?.viewportState?.(d.value):null;
         return {
           time_origin:performance.timeOrigin,date:d.value,render_date:m.dataset.renderDate,
           status:m.dataset.renderStatus,view:m.dataset.viewKey,
           frame:{left:r.left,top:r.top,width:r.width,height:r.height,aspect:layout.height>0?layout.width/layout.height:null},
-          box:rawBox?.trim().split(/[\\s,]+/).map(Number) ?? null,
+          box:viewBox?.width>0&&viewBox.height>0?[viewBox.x,viewBox.y,viewBox.width,viewBox.height]:null,
           map_ms:Number(m.dataset.mapMs)||null,panel_ms:Number(m.dataset.panelMs)||null,step:Number(m.dataset.dataStep)||null,
           server_enabled:!!window.OFData?.serverEnabled(),viewport_ready:!!window.OFData?.viewportReady(d.value),
           viewport_partial_usable:partial?.status==='partial'&&partial.usable===true,

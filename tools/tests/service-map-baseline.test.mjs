@@ -270,7 +270,8 @@ test('a tracked browser driver change cannot be reported as clean committed code
   await git(['init','-q','-b','codex/identity-fixture']);await git(['add','.']);
   await git(['-c','user.name=BaselineCheck','-c','user.email=check@example.invalid','commit','-qm','Self-authored timing fixture']);
   await appendFile(join(fixture,'tools/lib/browser-driver.mjs'),'\n// self-authored tracked change\n');
-  await execute(process.execPath,[join(fixture,'tools/benchmark-map.mjs'),'--runs','1','--out',out],{cwd:fixture,windowsHide:true,timeout:15000});
+  const run=await execute(process.execPath,[join(fixture,'tools/benchmark-map.mjs'),'--runs','1','--timeout-ms','1000','--out',out],{cwd:fixture,windowsHide:true,timeout:15000}).catch(error=>error);
+  assert.equal(run.code,1,'The fixture deliberately does not implement the camera gestures');
   const report=JSON.parse(await readFile(out,'utf8'));
   assert.equal(report.tracked_changes_present,true);
   assert.equal(report.artifact_integrity,'unchanged');
