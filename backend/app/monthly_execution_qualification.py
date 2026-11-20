@@ -18,7 +18,7 @@ def _reject(reason, support) -> NoReturn:
     )
 
 
-def read_execution_support(settings, request):
+def read_execution_support(settings, request, *, include_declared_conditions_id=False):
     support = read_audited_support(
         settings.support_snapshot_path,
         {
@@ -28,6 +28,7 @@ def read_execution_support(settings, request):
             ),
         },
         settings.support_state_path,
+        include_declared_conditions_id=include_declared_conditions_id,
     )
     if support["status"] != "audited_snapshot":
         _reject(support["reason"], support)

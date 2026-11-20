@@ -221,6 +221,11 @@ def test_owner_distance_options_prepare_exact_current_p0_without_starting_a_task
         "research_ready": False,
     }
     raw = json.loads(reference.read_bytes())
+    raw["conditions"]["geometries"][0]["id"] = "another-circle"
+    reference.write_bytes(encoded(raw))
+    changed_geometry_id = client.get(url, headers=AUTH, params=conditions)
+    assert changed_geometry_id.status_code == 409, changed_geometry_id.text
+    raw["conditions"]["geometries"][0]["id"] = "circle"
     raw["regional_cells"]["days"][0]["layers"][1]["cells"][0]["hours"] += 1
     reference.write_bytes(encoded(raw))
     conflict = client.get(url, headers=AUTH, params=conditions)

@@ -410,7 +410,7 @@ def project_frozen_support(snapshot, request):
         return unavailable("invalid_snapshot", "audit_snapshot_invalid_or_unreadable")
 
 
-def read_audited_support(path, request, state_path=None):
+def read_audited_support(path, request, state_path=None, *, include_declared_conditions_id=False):
     try:
         ready = None
         if state_path is not None:
@@ -461,6 +461,8 @@ def read_audited_support(path, request, state_path=None):
                 freshness_reason="receipt_matches_live_content_not_rechecked",
                 raw_source_freshness="unknown",
             )
+        if include_declared_conditions_id:
+            result["versions"]["declared_conditions_id"] = content_id(snapshot["conditions"])
         return result
     except PermissionError:
         return unavailable("permission_denied", "audit_snapshot_permission_denied")

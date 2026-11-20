@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {unlink} from "node:fs/promises";
+import {unlink, writeFile} from "node:fs/promises";
 import {launchBrowser, waitFor} from "../lib/browser-driver.mjs";
 import {click, headers, owner, type} from "../lib/case-test-browser.mjs";
 import {withService} from "../lib/monthly-test-service.mjs";
@@ -33,6 +33,15 @@ const fixture = JSON.stringify({
   front_days:dates.map(date=>({date,source_id:"front-original",lines:[[[124.55,30.15],[124.55,30.25]]]})),
 });
 
+async function openOwner(c,base) {
+  await c.send("Page.enable");
+  await c.send("Page.navigate",{url:base+"/prototype-fishing.html"});
+  await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
+  await click(c,"#workbenchToggle");
+  await click(c,"#monthlyDraftOpen");
+  await click(c,root+" summary");
+}
+
 test("owner prepares and submits the same frozen P0 distance sample through the browser", () =>
   withService(async (base,{distancePath,distanceSupport})=>{
     const browser=await launchBrowser(edge), c=browser.cdp, submissions=[];
@@ -45,13 +54,8 @@ test("owner prepares and submits the same frozen P0 distance sample through the 
     try{
       const options = base+route+"/distance-options?"+new URLSearchParams({...coordinates,month});
       assert.equal((await fetch(options)).status,401);
-      await c.send("Page.enable");
       await c.send("Network.enable");
-      await c.send("Page.navigate",{url:base+"/prototype-fishing.html"});
-      await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
-      await click(c,"#workbenchToggle");
-      await click(c,"#monthlyDraftOpen");
-      await click(c,root+" summary");
+      await openOwner(c,base);
       await c.evaluate(`(()=>{
         document.getElementById('ownerRunPurpose').value=${JSON.stringify(mode)};
         document.getElementById('ownerRunPurpose').dispatchEvent(new Event('change'));
@@ -104,4 +108,54 @@ test("owner prepares and submits the same frozen P0 distance sample through the 
       await browser.close();
     }
   },{caseOwnerToken:owner,distanceFixtureText:fixture,qualifyDistanceFixture:true})
+);
+
+const sstFixture = JSON.parse(fixture);
+sstFixture.conditions.layer_use = "front_effort_sst";
+for(const day of sstFixture.regional_cells.days){
+  day.layers.push({...layer("sst",null),id:"sst-original",unit:"degree_C"});
+}
+
+test("distance history can read supported SST records and a terminal engine failure", () =>
+  withService(async (base,{distancePath})=>{
+    const params=new URLSearchParams({...coordinates,month,layer_use:"front_effort_sst"});
+    async function submit(intent_id){
+      const options=await fetch(base+route+"/distance-options?"+params,{headers});
+      assert.equal(options.status,200,await options.clone().text());
+      const {input_sha256,request}=await options.json();
+      const response=await fetch(base+route,{
+        method:"POST",headers,body:JSON.stringify({intent_id,input_sha256,request}),
+      });
+      assert.equal(response.status,200,await response.clone().text());
+      return response.json();
+    }
+    const completed=await submit("1".repeat(32));
+    assert.equal(completed.state,"completed");
+    const malformedLines=structuredClone(sstFixture);
+    malformedLines.front_days[0].source_id="wrong-front-source";
+    await writeFile(distancePath,JSON.stringify(malformedLines),"utf8");
+    const failed=await submit("2".repeat(32));
+    assert.equal(failed.state,"failed");
+    assert.equal(failed.result,null);
+
+    const browser=await launchBrowser(edge), c=browser.cdp;
+    try{
+      await openOwner(c,base);
+      await type(c,"ownerRunToken",owner);
+      await c.evaluate("document.getElementById('ownerRunPurpose').value='monthly_distance_reference';document.getElementById('ownerRunPurpose').dispatchEvent(new Event('change'))");
+      await click(c,"#ownerRunHistory");
+      await waitFor(c,"document.querySelectorAll('#ownerRunItems button').length===2");
+      await click(c,'#ownerRunItems button[data-run-id="'+completed.id+'"]');
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'");
+      await click(c,'#ownerRunItems button[data-run-id="'+failed.id+'"]');
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='failed'");
+      assert.match(await c.evaluate("document.getElementById('ownerRunResult').textContent"),/终态失败/);
+      await c.evaluate("document.getElementById('ownerRunPurpose').value='monthly_spatial_example';document.getElementById('ownerRunPurpose').dispatchEvent(new Event('change'))");
+      assert.equal(await c.evaluate("document.getElementById('ownerRunToken').value.length>0"),true);
+      await click(c,"#serverModeToggle");
+      await waitFor(c,"document.getElementById('ownerRunToken').value==='' && document.getElementById('ownerRunHistory').disabled");
+    } finally {
+      await browser.close();
+    }
+  },{caseOwnerToken:owner,distanceFixtureText:JSON.stringify(sstFixture),qualifyDistanceFixture:true})
 );

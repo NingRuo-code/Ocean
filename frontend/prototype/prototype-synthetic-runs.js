@@ -107,7 +107,8 @@
         !Number.isFinite(p.latitude) || Math.abs(p.latitude)>90 || ![10,20,30].includes(p.radius_km)) return false;
     if (distanceMode()) {
       return hash.test(p.input_version) && hash.test(p.support_snapshot_id) &&
-        p.layer_use === 'front_effort' && p.method_version === 'wgs84-distance-bands/v1' &&
+        ['front_effort','front_effort_sst'].includes(p.layer_use) &&
+        p.method_version === 'wgs84-distance-bands/v1' &&
         p.parameter_version === 'half-open-bands/v1';
     }
     return typeof p.input_version === 'string' && p.input_version.length>0 && p.input_version.length<=100 &&
@@ -160,7 +161,9 @@
   }
   function show(value,expected){
     const run=checked(value,expected),box=$('ownerRunResult');box.replaceChildren();selected=run;root.dataset.runId=run.id;
-    node(box,'p','原任务条件：'+describe(run.request));node(box,'p','任务 '+run.id+' / 意图 '+run.intent_id+' / '+run.record_id);
+    const layers=distanceMode()?(run.request.layer_use==='front_effort_sst'?' · 锋面、活动与海温':' · 锋面与活动'):'';
+    node(box,'p','原任务条件：'+describe(run.request)+layers);
+    node(box,'p','任务 '+run.id+' / 意图 '+run.intent_id+' / '+run.record_id);
     node(box,'p','服务处理 '+run.submitted_at+' 至 '+run.finished_at+'，终态已提交。'
       +(distanceMode()?'合成距离参照':'合成软件验证')+'；真实研究资格未通过。');
     node(box,'p','这里只读冻结记录，当前原源可用及原样复算未知；没有自动公开或保存为案例。');
@@ -221,7 +224,8 @@
       const data=await net('/distance-options?'+new URLSearchParams(values));
       if(n!==generation)return;
       if(data?.schema_version!=='ocean-owner-distance-options/v1'||data.research_ready!==false||
-        !validRequest(data.request)||data.input_sha256!==data.request.input_version||
+        !validRequest(data.request)||data.request.layer_use!=='front_effort'||
+        data.input_sha256!==data.request.input_version||
         !['month','longitude','latitude','radius_km'].every(key=>data.request[key]===values[key]))throw Error('contract');
       prepared={from,input_sha256:data.input_sha256,request:data.request};
       $('ownerRunPrepared').textContent='将提交合成距离条件：'+describe(prepared.request)+' / '+data.request.support_snapshot_id;
@@ -274,13 +278,17 @@
   });
   $('ownerRunNew').onclick=()=>{pending=null;prepared=null;reference=null;referenceError='';try{localStorage.removeItem(referenceKey);}catch{referenceError='unavailable';}set('draft','已清除本地提交引用；服务任务没有取消或删除，可重新核对条件以明确创建新意图。');update();};
   $('ownerRunPurpose').onchange=()=>{
+    const previousSource=sessionSource;
     pendingByPurpose.set(purpose,pending);
     purpose=$('ownerRunPurpose').value;
     pending=pendingByPurpose.get(purpose)||null;
     referenceKey=distanceMode()?'ocean-owner-qualified-distance-run-ref/v1':'ocean-owner-synthetic-run-ref/v1';
     reference=null;referenceError='';
     readReference();
-    clearPrivate(source().kind!=='server');
+    const nextSource=source();
+    const retainToken=previousSource&&nextSource.kind==='server'&&sameSource(previousSource,nextSource);
+    clearPrivate(!retainToken);
+    if(retainToken)sessionSource=nextSource;
   };
   $('ownerRunLock').onclick=()=>clearPrivate();$('ownerRunToken').oninput=()=>{clearPrivate(false);sessionSource=source();};
   window.addEventListener('ocean-month-draft',e=>{if(root.dataset.state==='checking'){generation++;controller?.abort();busy=false;}draft=e.detail?.longitude===null?null:e.detail;prepared=null;$('ownerRunPrepared').textContent='';if(!busy&&!pending)set('draft','条件已改变；请重新核对。');update();});

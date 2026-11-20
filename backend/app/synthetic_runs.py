@@ -71,17 +71,13 @@ def check_distance_candidate(raw, support, environment):
     try:
         data = decode_controlled_json(raw, MAX_INPUT_BYTES)
         conditions = data["conditions"]
-        geometry, = conditions["geometries"]
-        expected = support["actual_conditions"]
         versions = support["versions"]
         packages = environment["packages"]
         proj, geos = environment["geometry_runtime"]
         matches = (
             data["schema"] == "ocean-month-distance-input/v1"
-            and all(conditions[key] == expected[key] for key in (
-                "purpose", "month", "layer_use", "allocation", "method_version", "quality_rule",
-            ))
-            and all(geometry[key] == expected["geometry"][key] for key in ("type", "center", "radius_km"))
+            and len(conditions["geometries"]) == 1
+            and content_id(conditions) == versions["declared_conditions_id"]
             and snapshot_digest(data["regional_cells"]) == versions["input_sha256"]
             and versions["geometry_runtime"] == {
                 "shapely": packages["shapely"], "pyproj": packages["pyproj"], "GEOS": geos, "PROJ": proj,
@@ -145,7 +141,7 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
     def distance_candidate(draft):
         guarded(distance_store.check_available)
         draft = draft.model_copy(update={"layer_use": draft.layer_use or "front_effort"})
-        support = read_execution_support(settings, draft)
+        support = read_execution_support(settings, draft, include_declared_conditions_id=True)
         raw, _, environment = registered_distance_material(settings)
         fingerprint = "sha256:" + hashlib.sha256(raw).hexdigest()
         request = MonthlyDistanceRequest(
