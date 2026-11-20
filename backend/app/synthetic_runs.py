@@ -10,8 +10,8 @@ from .analysis_support import content_id, read_controlled_input
 from .comparison_models import Identity
 from .monthly_models import ClosedModel, MonthlyExample, MonthlyRequest
 from .owner_access import owner_requirement
-from .synthetic_run_store import RunStore, RunStoreError
 from .synthetic_run_export import render_run_file
+from .synthetic_run_store import RunStore, RunStoreError
 
 
 class SyntheticSubmission(ClosedModel):

@@ -8,15 +8,14 @@ from pathlib import Path
 from threading import Event
 
 import pytest
-
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
+from test_monthly_analysis import AUTH, REQUEST
 
 from app.analysis_support import content_id
 from app.config import settings
 from app.monthly_analysis import create_monthly_router
-from test_monthly_analysis import AUTH, REQUEST
 
 BASE = "/api/query/monthly-analysis/owner-runs"
 
