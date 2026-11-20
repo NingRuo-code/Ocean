@@ -1,5 +1,6 @@
 """Real P0 CLI output gates explicit monthly submission before any detailed read."""
 
+import asyncio
 import hashlib
 import json
 import subprocess
@@ -7,6 +8,8 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import Event
 
+import anyio
+import httpx
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -174,6 +177,8 @@ def test_owner_persists_exact_p0_reference_and_freezes_the_original_intent(tmp_p
     assert record["result"]["research_ready"] is False
     direct = original.post(URL, headers=AUTH, json=request).json()["result"]
     assert record["result"]["month"] == direct["month"]
+    assert record["result"]["days"] == direct["days"]
+    assert record["result"]["versions"]["direct_result_id"] == direct["versions"]["direct_result_id"]
     assert client.get(url, headers=AUTH).json()["runs"] == []
     assert not legacy.exists()
     assert client.get(url, headers=AUTH, params={"purpose": request["purpose"]}).json()["runs"][0]["id"] == record["id"]
@@ -262,6 +267,44 @@ def test_duplicate_distance_intents_wait_and_legacy_store_remains_independent(tm
     assert left.json() == right.json()
     assert len(client.get(url, headers=AUTH).json()["runs"]) == 1
     assert len(client.get(url, headers=AUTH, params={"purpose": request["purpose"]}).json()["runs"]) == 1
+
+
+def test_distance_submission_keeps_shared_sync_reads_available(tmp_path, monkeypatch):
+    _, reference, request, _ = fixture(tmp_path)
+    client = configured_client(
+        tmp_path / "support.json", reference, run_store=tmp_path / "qualified.sqlite3",
+        legacy_store=tmp_path / "legacy.sqlite3",
+    )
+    url = URL + "/owner-runs"
+    body = {"intent_id": "a" * 32, "input_sha256": request["input_version"], "request": request}
+    started, release = Event(), Event()
+    original = synthetic_runs.calculate_distance_reference
+
+    def hold_first(*args):
+        started.set()
+        assert release.wait(10)
+        return original(*args)
+
+    monkeypatch.setattr(synthetic_runs, "calculate_distance_reference", hold_first)
+
+    async def requests():
+        anyio.to_thread.current_default_thread_limiter().total_tokens = 1
+        transport = httpx.ASGITransport(app=client.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as browser:
+            post = asyncio.create_task(browser.post(url, headers=AUTH, json=body))
+            try:
+                async with asyncio.timeout(6):
+                    while not started.is_set():
+                        await asyncio.sleep(0.02)
+                options = await asyncio.wait_for(browser.get(url + "/options", headers=AUTH), 2)
+                assert options.status_code == 200
+                assert not post.done()
+            finally:
+                release.set()
+                response = await post
+            assert response.status_code == 200, response.text
+
+    asyncio.run(requests())
 
 
 def test_invalid_distance_output_never_poisons_the_history(tmp_path, monkeypatch):

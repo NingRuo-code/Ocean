@@ -10,12 +10,14 @@ from pathlib import Path
 from uuid import uuid4
 
 from .analysis_support import content_id, decode_controlled_json
+from .monthly_distance_reference import DISTANCE_EXECUTION_TIMEOUT_SECONDS
 from .monthly_models import MonthlyDistanceRequest, MonthlyRequest
 from .sqlite_store_initialization import initialize_sqlite_store
 
 APPLICATION_ID = 0x4F52554E
 DISTANCE_APPLICATION_ID = 0x4F445255
 MAX_DB_BYTES = 64 * 1024 * 1024
+DISTANCE_WRITE_TIMEOUT_SECONDS = DISTANCE_EXECUTION_TIMEOUT_SECONDS + 7
 LEGACY_RUN = "ocean-owner-synthetic-run/v1"
 DISTANCE_RUN = "ocean-owner-qualified-distance-run/v1"
 
@@ -69,7 +71,7 @@ class RunStore:
             target = self.path.as_uri() + ("?mode=rw" if write else "?mode=ro")
             # An identical distance intent can wait for the first bounded
             # child and then replay its committed result. Legacy writers use a different database.
-            timeout = 32 if write and self.qualified_distance else 1
+            timeout = DISTANCE_WRITE_TIMEOUT_SECONDS if write and self.qualified_distance else 1
             with closing(sqlite3.connect(target, uri=True, timeout=timeout, isolation_level=None)) as db:
                 if write:
                     db.execute("BEGIN IMMEDIATE")

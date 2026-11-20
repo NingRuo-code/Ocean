@@ -14,6 +14,7 @@ from .analysis_support import read_regular_bytes
 from .config import PROJECT_ROOT
 from .monthly_models import MonthlyResearchRequest
 
+DISTANCE_EXECUTION_TIMEOUT_SECONDS = 25
 MAX_INPUT_BYTES = 16 * 1024 * 1024
 REFERENCE_ENGINE = PROJECT_ROOT / "tools" / "compute_monthly_distance.py"
 EXECUTION_SOURCES = (
@@ -72,7 +73,10 @@ def calculate_distance_reference(request, raw, sources, qualification):
                        request.model_dump_json(exclude_none=True)]
             if qualification:
                 command.append(json.dumps(qualification))
-            child = subprocess.run(command, input=raw, capture_output=True, timeout=25, check=True)
+            child = subprocess.run(
+                command, input=raw, capture_output=True,
+                timeout=DISTANCE_EXECUTION_TIMEOUT_SECONDS, check=True,
+            )
     except subprocess.CalledProcessError as error:
         if error.stderr.strip() == b"qualification_input_or_conditions_mismatch":
             raise QualificationInputMismatch from None

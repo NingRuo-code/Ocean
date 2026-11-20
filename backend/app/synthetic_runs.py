@@ -4,8 +4,10 @@ import hashlib
 from subprocess import SubprocessError
 from typing import Annotated, Literal
 
+from anyio import CapacityLimiter, to_thread
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import Field
+from starlette.concurrency import run_in_threadpool
 
 from .analysis_support import content_id, read_controlled_input
 from .comparison_models import Identity
@@ -50,6 +52,8 @@ def prepare_distance(settings, submission):
 def create_synthetic_run_router(settings, example_path, calculate, method_version, parameter_version):
     router = APIRouter(prefix="/owner-runs", dependencies=[Depends(owner_requirement(settings))])
     store = RunStore(settings.synthetic_run_store_path)
+    # Keep the executing child and its waiting replay off the shared HTTP workers.
+    distance_workers = CapacityLimiter(2)
     distance_store = RunStore(settings.qualified_distance_run_store_path, qualified_distance=True)
     if distance_store.path == store.path:
         distance_store = RunStore(None, qualified_distance=True)
@@ -85,38 +89,40 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
                 "evidence_kind": "synthetic_example", "research_ready": False,
                 "license": data.license, "execution": "synchronous_atomic_terminal_record"}
 
-    @router.post("")
-    def submit(submission: OwnerSubmission, response: Response):
-        response.headers["Cache-Control"] = "no-store"
+    def submit_distance(submission):
         body = submission.model_dump()
-        selected_store = store_for(submission.request.purpose)
-        old = guarded(lambda: selected_store.find(submission.intent_id, content_id(body)))
+        old = guarded(lambda: distance_store.find(submission.intent_id, content_id(body)))
         if old:
             return old
-        if isinstance(submission.request, MonthlyDistanceRequest):
-            prepared_distance = prepare_distance(settings, submission)
-            qualification, raw, sources, _ = prepared_distance
+        prepared_distance = prepare_distance(settings, submission)
+        qualification, raw, sources, _ = prepared_distance
 
-            def check_distance():
-                if prepare_distance(settings, submission) != prepared_distance:
-                    raise HTTPException(409, "Registered distance evidence changed", headers={"Cache-Control": "no-store"})
+        def check_distance():
+            if prepare_distance(settings, submission) != prepared_distance:
+                raise HTTPException(409, "Registered distance evidence changed", headers={"Cache-Control": "no-store"})
 
-            def execute_distance():
-                check_distance()
-                try:
-                    result = calculate_distance_reference(submission.request, raw, sources, qualification)
-                except QualificationInputMismatch:
-                    raise HTTPException(409, "Distance input does not match qualification", headers={"Cache-Control": "no-store"}) from None
-                except (OSError, ValueError, TypeError, ImportError, SubprocessError):
-                    result = None
-                check_distance()
-                if result is None:
-                    return None, {"code": "calculation_failed"}
-                result["versions"]["direct_result_id"] = result.pop("result_id")
-                result["result_id"] = content_id(result)
-                return result, None
+        def execute_distance():
+            check_distance()
+            try:
+                result = calculate_distance_reference(submission.request, raw, sources, qualification)
+            except QualificationInputMismatch:
+                raise HTTPException(409, "Distance input does not match qualification", headers={"Cache-Control": "no-store"}) from None
+            except (OSError, ValueError, TypeError, ImportError, SubprocessError):
+                result = None
+            check_distance()
+            if result is None:
+                return None, {"code": "calculation_failed"}
+            result["versions"]["direct_result_id"] = result.pop("result_id")
+            result["result_id"] = content_id(result)
+            return result, None
 
-            return guarded(lambda: distance_store.submit(body, execute_distance, qualification=qualification))
+        return guarded(lambda: distance_store.submit(body, execute_distance, qualification=qualification))
+
+    def submit_legacy(submission):
+        body = submission.model_dump()
+        old = guarded(lambda: store.find(submission.intent_id, content_id(body)))
+        if old:
+            return old
 
         def prepared():
             data, fingerprint = input_snapshot()
@@ -144,6 +150,13 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
             return result, error
 
         return guarded(lambda: store.submit(body, execute))
+
+    @router.post("")
+    async def submit(submission: OwnerSubmission, response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        if isinstance(submission.request, MonthlyDistanceRequest):
+            return await to_thread.run_sync(submit_distance, submission, limiter=distance_workers)
+        return await run_in_threadpool(submit_legacy, submission)
 
     @router.get("")
     def history(response: Response, purpose: OwnerPurpose = "monthly_spatial_example"):
