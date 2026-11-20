@@ -57,7 +57,7 @@ test("G3 coverage review reads native P0 snapshots, keeps missing candidates and
   writeFileSync(source,`{"schema":"ocean-g3-support-pack/v1","snapshots":[${monthly},${event},${invalid}]}`);
   writeFileSync(request,JSON.stringify({
    purpose:"g3_candidate_support", method_version:"candidate-support/v1", season_year_rule:"calendar_year",
-   layer_use:"front_effort", seasons:{winter:[12,1,2],summer:[6,7,8]},
+   layer_use:"front_effort", years:[2022,2023,2024], seasons:{winter:[12,1,2],summer:[6,7,8]},
    regions:[{id:"central",name:"Central",longitude:0,latitude:0},
     {id:"east",name:"East",longitude:2,latitude:0}],
    candidates:[
@@ -83,12 +83,22 @@ test("G3 coverage review reads native P0 snapshots, keeps missing candidates and
   assert.equal(result.rows[0].event.windows.post7.expected_days,7);
   assert.equal(result.rows[0].event.windows.post7.included_days,3);
   assert.equal(result.rows[0].event.event_day.date,"2023-12-31");
+  const context = result.rows[0].event.context_days;
+  assert.equal(context.length,15);
+  assert.equal(context.find(day=>day.date==="2023-12-31").state,"computed");
+  assert.deepEqual(context.filter(day=>!day.included).map(day=>day.date),
+    ["2024-01-04","2024-01-05","2024-01-06","2024-01-07"]);
+  assert.deepEqual(context.filter(day=>!day.included).map(day=>day.source_states.activity), Array(4).fill("unprepared"));
+  const report = readFileSync(join(out,"report.md"),"utf8");
+  assert.match(report,/2024-01-04/);
+  assert.match(report,/2022.*winter.*central.*no_candidates/);
   assert.equal(result.rows[1].monthly.status,"not_prepared");
   assert.equal(result.rows[1].event.identification,"not_evaluated");
   assert.equal(result.rows[2].monthly.reason,"requested_geometry_not_in_snapshot");
   assert.equal(result.rows[2].event.reason,"requested_conditions_not_in_snapshot");
   assert.equal(result.rows[3].monthly.status,"invalid_snapshot");
-  assert.equal(result.strata.length,8);
+  assert.equal(result.strata.length,12);
+  assert.equal(result.strata.filter(stratum=>stratum.year===2022&&stratum.status==="no_candidates").length,4);
   assert.equal(result.strata.find(s=>s.year===2024&&s.season==="summer").status,"no_candidates");
   assert.doesNotMatch(JSON.stringify(result),/total_hours|density_hours|area_time_km2_days|"hours":/);
   unlinkSync(source);

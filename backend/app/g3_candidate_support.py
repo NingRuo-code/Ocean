@@ -12,6 +12,7 @@ from .g3_models import G3Region, Label, Seasons
 from .monthly_models import ClosedModel, LayerUse, Month
 
 ISODate = Annotated[str, Field(pattern=r"^[12]\d{3}-\d{2}-\d{2}$")]
+ReviewYear = Annotated[int, Field(strict=True, ge=1000, le=2999)]
 
 
 class EventWindow(ClosedModel):
@@ -38,6 +39,7 @@ class CandidateReview(ClosedModel):
     purpose: Literal["g3_candidate_support"]
     method_version: Literal["candidate-support/v1"]
     season_year_rule: Literal["calendar_year"]
+    years: Annotated[list[ReviewYear], Field(min_length=1, max_length=12)] | None = None
     layer_use: LayerUse
     seasons: Seasons
     regions: Annotated[list[G3Region], Field(min_length=1, max_length=8)]
@@ -48,6 +50,7 @@ class CandidateReview(ClosedModel):
         regions = {region.id for region in self.regions}
         months = [month for season in self.seasons.values() for month in season]
         candidate_ids = {candidate.id for candidate in self.candidates}
+        years = set(self.years) if self.years is not None else None
         conditions = {
             (candidate.month, candidate.region_id, candidate.radius_km)
             for candidate in self.candidates
@@ -57,11 +60,13 @@ class CandidateReview(ClosedModel):
             or len(months) != len(set(months))
             or len(candidate_ids) != len(self.candidates)
             or len(conditions) != len(self.candidates)
+            or (years is not None and len(years) != len(self.years))
         ):
             raise ValueError("Duplicate candidate or partition")
         for candidate in self.candidates:
             if (
-                candidate.region_id not in regions
+                (years is not None and int(candidate.month[:4]) not in years)
+                or candidate.region_id not in regions
                 or int(candidate.month[5:]) not in self.seasons.get(candidate.season, [])
                 or (candidate.event and candidate.event.date[:7] != candidate.month)
             ):
@@ -142,12 +147,15 @@ def _review_audit(snapshot_id, snapshots, conditions):
             "calendar": _period_metadata(audit["month"]),
             "days": [_day_metadata(day) for day in audit["days"]],
         }
-    event_day = next(
-        (day for day in audit["days"] if day["date"] == conditions["event_date"]), None
-    )
+    window_dates = {conditions["event_date"]}
+    for period in audit["windows"].values():
+        window_dates.update(period["dates"])
+    context_days = [_day_metadata(day) for day in audit["days"] if day["date"] in window_dates]
+    event_day = next((day for day in context_days if day["date"] == conditions["event_date"]), None)
     return {
         **metadata,
-        "event_day": _day_metadata(event_day) if event_day else None,
+        "event_day": event_day,
+        "context_days": context_days,
         "windows": {name: _period_metadata(period) for name, period in audit["windows"].items()},
         "event_data_gate_passed": audit["event_data_gate_passed"],
     }
@@ -179,7 +187,8 @@ def _candidate_row(candidate, region, layer_use, snapshots):
 
 def _strata(request, rows):
     strata = []
-    for year in sorted({int(candidate.month[:4]) for candidate in request.candidates}):
+    years = request.years or {int(candidate.month[:4]) for candidate in request.candidates}
+    for year in sorted(years):
         for season in sorted(request.seasons):
             for region in request.regions:
                 matches = [
@@ -209,6 +218,9 @@ def review_candidate_support(request_payload, pack_payload):
         _candidate_row(candidate, regions[candidate.region_id], request.layer_use, snapshots)
         for candidate in request.candidates
     ]
+    parameters = request.model_dump(
+        mode="json", exclude={"years"} if request.years is None else None
+    )
     result = {
         "kind": request.purpose,
         "status": "metadata_reviewed"
@@ -218,7 +230,7 @@ def review_candidate_support(request_payload, pack_payload):
             for purpose in ("monthly", "event")
         )
         else "not_ready",
-        "parameters": request.model_dump(mode="json"),
+        "parameters": parameters,
         "evidence_kind": "coverage_metadata",
         "research_ready": False,
         "source": {

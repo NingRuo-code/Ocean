@@ -34,6 +34,10 @@ function coverageReport(result) {
   const b = event.windows;
   lines.push(`| ${candidate.id} | ${candidate.month} | ${candidate.season} | ${candidate.region_id} / ${candidate.radius_km} km | ${a ? a.included_days+"/"+a.expected_days : monthly.reason} | ${b ? Object.entries(b).map(([name, p]) => name+" "+p.included_days+"/"+p.expected_days).join("，") : event.reason} |`);
  }
+ lines.push("", "## 年份 × 季节 × 海域", "", "| 年份 | 季节 | 海域 | 候选 | 状态 |", "|---|---|---|---|---|");
+ for (const {year, season, region_id, candidate_ids, status} of result.strata) {
+  lines.push(`| ${year} | ${season} | ${region_id} | ${candidate_ids.join("、") || "—"} | ${status} |`);
+ }
  lines.push("", "## 逐候选依据", "");
  for (const {candidate, monthly, event} of result.rows) {
   lines.push(`- ${candidate.id}。A ${monthly.snapshot_id ?? monthly.reason}，B ${event.snapshot_id ?? event.reason}。`);
@@ -44,6 +48,8 @@ function coverageReport(result) {
    for (const [name, period] of Object.entries(periods)) {
     lines.push(`  - ${name} ${period.computational_support}，缺项 ${period.missing_prerequisites.join("、") || "无已记录缺项"}，排除 ${text(JSON.stringify(period.exclusion_reason_counts))}。`);
    }
+   const gaps = audit.context_days?.filter(day => !day.included) ?? [];
+   if (gaps.length) lines.push(`  - B 未纳入日期：${gaps.map(day => day.date + "（" + day.state + "；" + day.exclusion_reasons.join("、") + "）").join("，")}。`);
   }
  }
  lines.push("", "## 使用限制", "", ...result.caveats.map(note=>"- "+note), "");
