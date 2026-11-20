@@ -35,7 +35,7 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
     def input_snapshot():
         try:
             data, fingerprint = read_controlled_input(example_path, MonthlyExample)
-            if not data.license.startswith("CC0-1.0"):
+            if data.license.partition(";")[0].strip() != "CC0-1.0":
                 raise ValueError("Unsupported synthetic license")
             return data, fingerprint
         except (OSError, ValueError, TypeError, ArithmeticError):

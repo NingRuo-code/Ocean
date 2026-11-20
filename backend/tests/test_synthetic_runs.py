@@ -102,7 +102,8 @@ def test_intent_conflict_is_rejected_without_replacing_original_task(tmp_path):
     assert client.get(BASE + "/" + run["id"], headers=AUTH).json() == run
 
 
-def test_source_change_and_non_cc0_input_are_rejected_before_acceptance(tmp_path):
+@pytest.mark.parametrize("license_text", ["unknown", "CC0-1.0-unverified"])
+def test_source_change_and_non_cc0_input_are_rejected_before_acceptance(tmp_path, license_text):
     client, source = run_client(tmp_path)
     body = submission(source)
     value = json.loads(source.read_text(encoding="utf-8"))
@@ -110,8 +111,10 @@ def test_source_change_and_non_cc0_input_are_rejected_before_acceptance(tmp_path
     source.write_text(json.dumps(value), encoding="utf-8")
     assert client.post(BASE, headers=AUTH, json=body).status_code == 409
     assert not (tmp_path / "runs.sqlite3").exists()
-    value["license"] = "unknown"
+    value["version"] = REQUEST["input_version"]
+    value["license"] = license_text
     source.write_text(json.dumps(value), encoding="utf-8")
+    assert client.post(BASE, headers=AUTH, json=submission(source)).status_code == 503
     assert client.get(BASE + "/options", headers=AUTH).status_code == 503
     assert not (tmp_path / "runs.sqlite3").exists()
 
