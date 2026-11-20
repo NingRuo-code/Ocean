@@ -10,11 +10,13 @@ from pathlib import Path
 from uuid import uuid4
 
 from .analysis_support import content_id, decode_controlled_json
-from .monthly_models import MonthlyRequest
+from .monthly_models import MonthlyDistanceRequest, MonthlyRequest
 from .sqlite_store_initialization import initialize_sqlite_store
 
 APPLICATION_ID = 0x4F52554E
 MAX_DB_BYTES = 64 * 1024 * 1024
+LEGACY_RUN = "ocean-owner-synthetic-run/v1"
+DISTANCE_RUN = "ocean-owner-qualified-distance-run/v1"
 
 
 class RunStoreError(Exception):
@@ -54,8 +56,8 @@ class RunStore:
                     schema_version=1,
                     prefix=".ocean-run-",
                     statements=(
-                        "CREATE TABLE runs(id TEXT PRIMARY KEY, intent TEXT UNIQUE NOT NULL, "
-                        "fingerprint TEXT NOT NULL, payload TEXT NOT NULL)",
+                        ("CREATE TABLE runs(id TEXT PRIMARY KEY, intent TEXT UNIQUE NOT NULL, "
+                         "fingerprint TEXT NOT NULL, payload TEXT NOT NULL)"),
                     ),
                 )
                 if not self._checked_store_exists():
@@ -95,19 +97,37 @@ class RunStore:
         if (identity != content_id(value) or value["id"] != row[0] or value["intent_id"] != row[1]
                 or value["submission_id"] != row[2] or value["state"] not in {"completed", "failed"}):
             raise RunStoreError("unavailable")
-        request = MonthlyRequest.model_validate(value["request"]).model_dump()
-        if (value["schema_version"] != "ocean-owner-synthetic-run/v1"
-                or content_id({"intent_id": value["intent_id"], "input_sha256": value["input_sha256"], "request": request}) != row[2]
+        schema = value["schema_version"]
+        if schema not in {LEGACY_RUN, DISTANCE_RUN}:
+            raise RunStoreError("unavailable")
+        distance = schema == DISTANCE_RUN
+        model = MonthlyDistanceRequest if distance else MonthlyRequest
+        request = model.model_validate(value["request"]).model_dump()
+        if (content_id({"intent_id": value["intent_id"], "input_sha256": value["input_sha256"], "request": request}) != row[2]
                 or value["state_history"] != ["accepted", value["state"]]
                 or value["owner_scope"] != "single_configured_owner"):
+            raise RunStoreError("unavailable")
+        if distance and (
+            request["support_snapshot_id"] is None
+            or value["qualification"]["snapshot_id"] != request["support_snapshot_id"]
+            or value["qualification"]["scope"] != "frozen_synthetic_validation"
+            or request["input_version"] != value["input_sha256"]
+        ):
             raise RunStoreError("unavailable")
         result = value["result"]
         if value["state"] == "completed":
             if (value["error"] is not None or result["parameters"] != request
-                    or result["source"]["input_sha256"] != value["input_sha256"]
-                    or result["evidence_kind"] != "synthetic_example" or result["research_ready"] is not False
-                    or not result["source"]["license"].startswith("CC0-1.0")
+                    or result["research_ready"] is not False
                     or result["result_id"] != content_id({k: v for k, v in result.items() if k != "result_id"})):
+                raise RunStoreError("unavailable")
+            if distance:
+                if (result["kind"] != request["purpose"] or result["evidence_kind"] != "synthetic"
+                        or result["qualification"] != value["qualification"]
+                        or result["versions"]["input"] != value["input_sha256"]):
+                    raise RunStoreError("unavailable")
+            elif (result["source"]["input_sha256"] != value["input_sha256"]
+                    or result["evidence_kind"] != "synthetic_example"
+                    or not result["source"]["license"].startswith("CC0-1.0")):
                 raise RunStoreError("unavailable")
         elif result is not None or value["error"] != {"code": "calculation_failed"}:
             raise RunStoreError("unavailable")
@@ -127,7 +147,7 @@ class RunStore:
         with self.connection() as db:
             return self.replay(db, intent, fingerprint)
 
-    def submit(self, submission, work):
+    def submit(self, submission, work, *, qualification=None):
         intent, fingerprint = submission["intent_id"], content_id(submission)
         with self.connection(write=True) as db:
             previous = self.replay(db, intent, fingerprint)
@@ -138,7 +158,7 @@ class RunStore:
             started = datetime.now(UTC).isoformat()
             result, error = work()
             value = {
-                "schema_version": "ocean-owner-synthetic-run/v1", "id": uuid4().hex,
+                "schema_version": DISTANCE_RUN if qualification is not None else LEGACY_RUN, "id": uuid4().hex,
                 "intent_id": intent, "submission_id": fingerprint, "request": submission["request"],
                 "input_sha256": submission["input_sha256"], "state": "failed" if error else "completed",
                 "state_history": ["accepted", "failed" if error else "completed"],
@@ -147,6 +167,8 @@ class RunStore:
                 "execution": "synchronous_atomic_terminal_record; no_queue_or_resume",
                 "source_state": "frozen_synthetic_input; current_source_not_rechecked_on_read",
             }
+            if qualification is not None:
+                value["qualification"] = qualification
             value["record_id"] = content_id(value)
             raw = json.dumps(value, allow_nan=False)
             if len(raw.encode("utf-8")) > 1_048_576:
@@ -164,13 +186,14 @@ class RunStore:
             row = db.execute("SELECT id,intent,fingerprint,payload FROM runs WHERE intent=?", (intent,)).fetchone() if db else None
             return self.checked(row)
 
-    def catalog(self):
+    def catalog(self, purpose="monthly_spatial_example"):
         with self.connection() as db:
             if db is None:
                 return []
             rows = db.execute("SELECT id,intent,fingerprint,payload FROM runs ORDER BY rowid DESC LIMIT 65").fetchall()
             if len(rows) > 64:
                 raise RunStoreError("unavailable")
-            return [{key: value for key, value in self.checked(row).items() if key in {
+            records = (self.checked(row) for row in rows)
+            return [{key: value for key, value in record.items() if key in {
                 "id", "intent_id", "record_id", "submission_id", "request", "input_sha256", "state", "submitted_at", "finished_at", "error"
-            }} for row in rows]
+            }} for record in records if record["request"]["purpose"] == purpose]

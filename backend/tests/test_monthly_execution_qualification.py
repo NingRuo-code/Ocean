@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from pydantic import SecretStr
 from test_monthly_distance_reference import AUTH, URL, layer, reference_fixture
 
+from app import synthetic_runs
 from app.config import settings
 from app.monthly_analysis import create_monthly_router
 from app.monthly_models import MonthlyResearchApproval
@@ -116,7 +117,7 @@ def fixture(
     return configured_client(snapshot, reference_file), reference_file, request, expected
 
 
-def configured_client(snapshot, reference_file, approval=None):
+def configured_client(snapshot, reference_file, approval=None, run_store=None):
     app = FastAPI()
     app.include_router(
         create_monthly_router(
@@ -128,6 +129,7 @@ def configured_client(snapshot, reference_file, approval=None):
                     "monthly_research_approval": approval,
                     "support_snapshot_path": snapshot,
                     "support_state_path": None,
+                    "synthetic_run_store_path": run_store,
                 }
             )
         )
@@ -144,6 +146,70 @@ def test_explicit_reference_submission_uses_exact_p0_full_month_evidence(tmp_pat
     assert result["qualification"]["snapshot_id"] == expected["support_snapshot_id"]
     assert result["qualification"]["scope"] == "frozen_synthetic_validation"
     assert result["research_ready"] is False
+
+
+def test_owner_persists_exact_p0_reference_and_freezes_the_original_intent(tmp_path):
+    original, reference, request, expected = fixture(tmp_path)
+    store = tmp_path / "owner-runs.sqlite3"
+    snapshot = tmp_path / "support.json"
+    client = configured_client(snapshot, reference, run_store=store)
+    url = URL + "/owner-runs"
+    submission = {"intent_id": "a" * 32, "input_sha256": request["input_version"], "request": request}
+    assert client.post(url, json=submission).status_code == 401
+    assert not store.exists()
+    unqualified = {**submission, "request": {k: v for k, v in request.items()
+                                              if k not in {"support_snapshot_id", "layer_use"}}}
+    assert client.post(url, headers=AUTH, json=unqualified).status_code == 409
+    assert not store.exists()
+    response = client.post(url, headers=AUTH, json=submission)
+    assert response.status_code == 200, response.text
+    record = response.json()
+    assert record["schema_version"] == "ocean-owner-qualified-distance-run/v1"
+    assert record["state"] == "completed"
+    assert record["result"]["qualification"]["snapshot_id"] == expected["support_snapshot_id"]
+    assert record["result"]["research_ready"] is False
+    direct = original.post(URL, headers=AUTH, json=request).json()["result"]
+    assert record["result"]["month"] == direct["month"]
+    assert client.get(url, headers=AUTH).json()["runs"] == []
+    assert client.get(url, headers=AUTH, params={"purpose": request["purpose"]}).json()["runs"][0]["id"] == record["id"]
+
+    snapshot.unlink()
+    reference.unlink()
+    reopened = configured_client(snapshot, reference, run_store=store)
+    assert reopened.get(url + "/" + record["id"], headers=AUTH).json() == record
+    assert reopened.post(url, headers=AUTH, json=submission).json() == record
+    rejected = reopened.post(url, headers=AUTH, json={**submission, "intent_id": "b" * 32})
+    assert rejected.status_code == 409
+    assert rejected.json()["detail"]["reason"] == "audit_snapshot_unavailable"
+    assert len(reopened.get(url, headers=AUTH, params={"purpose": request["purpose"]}).json()["runs"]) == 1
+
+
+def test_owner_distance_does_not_publish_if_qualification_is_withdrawn_during_execution(
+    tmp_path, monkeypatch
+):
+    _, reference, request, _ = fixture(tmp_path)
+    store = tmp_path / "owner-runs.sqlite3"
+    snapshot = tmp_path / "support.json"
+    client = configured_client(snapshot, reference, run_store=store)
+    url = URL + "/owner-runs"
+    submission = {"intent_id": "a" * 32, "input_sha256": request["input_version"], "request": request}
+    original = client.post(url, headers=AUTH, json=submission)
+    assert original.status_code == 200
+    record = original.json()
+    calculate = synthetic_runs.calculate_distance_reference
+
+    def run_then_withdraw(*args):
+        result = calculate(*args)
+        snapshot.unlink()
+        return result
+
+    monkeypatch.setattr(synthetic_runs, "calculate_distance_reference", run_then_withdraw)
+    new_intent = "b" * 32
+    rejected = client.post(url, headers=AUTH, json={**submission, "intent_id": new_intent})
+    assert rejected.status_code == 409
+    assert rejected.json()["detail"]["reason"] == "audit_snapshot_unavailable"
+    assert client.get(url + "/intents/" + new_intent, headers=AUTH).status_code == 404
+    assert client.get(url + "/" + record["id"], headers=AUTH).json() == record
 
 
 @pytest.mark.parametrize("conditions", [{"missing_day": True}, {"layer_use": "front_effort_sst"}])
