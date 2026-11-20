@@ -263,7 +263,7 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
             const value = await observed();
             if (performance.now() >= deadline) break;
             record.last_observed=value;
-            if(isolatedService&&value?.server_enabled&&["day-missing","forbidden","error","unprepared"].includes(value.layer_states.day)){
+            if(isolatedService&&value?.requested_document&&value.server_enabled&&["day-missing","forbidden","error","unprepared"].includes(value.layer_states.day)){
               record.status="failure";record.failure_reason=value.layer_states.day;break;
             }
             const readyBefore = ready(value);
@@ -303,6 +303,7 @@ async function runBaseline(page, isolatedService = false, serviceRuntime = null,
         record.browser_errors = errors.slice();
         if (record.browser_errors.length) {
           record.first_partial_paint_ms = null;
+          record.observed = null;
           if (record.status !== "failure") {
             record.status = "failure";
             record.failure_reason = "browser_exception";

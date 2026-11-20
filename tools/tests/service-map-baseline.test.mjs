@@ -254,7 +254,7 @@ test('browser runtime exceptions invalidate both total and after-action success 
   const report=JSON.parse(await readFile(out,'utf8'));
   const bad=report.attempts.filter(a=>a.browser_errors.length);
   assert.ok(bad.length>0);
-  assert.ok(bad.every(a=>a.status==='failure'&&a.elapsed_ms===null&&a.after_action_ms===null));
+  assert.ok(bad.every(a=>a.status==='failure'&&a.elapsed_ms===null&&a.after_action_ms===null&&a.observed===null));
   assert.doesNotMatch(JSON.stringify(report),/PRIVATE_CONTROLLED/);
  }finally{if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith('ocean-service-baseline-'))await rm(root,{recursive:true,force:true});}
 });
@@ -313,6 +313,7 @@ test('navigation and reload cannot count a different ready map as the requested 
   for(const scenario of ['navigation','reload']){
    const attempt=report.attempts.find(a=>a.scenario===scenario);
    assert.equal(attempt.last_observed?.status,'ready');
+   assert.equal(attempt.last_observed?.requested_document,false);
    assert.equal(attempt.elapsed_ms,null);
    assert.equal(attempt.first_partial_paint_ms,null);
    assert.equal(report.summary[scenario].success,0);
