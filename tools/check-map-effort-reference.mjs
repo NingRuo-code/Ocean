@@ -122,10 +122,11 @@ async function readReference(cdp, frameId, fixture, cells) {
     const style = getComputedStyle(tile);
     return { lon: Number(tile.dataset.lon), lat: Number(tile.dataset.lat), x, y, width, height,
       shown: style.visibility==='visible' && style.display!=='none' && tile.getBoundingClientRect().width>0,
-      state: tile.getAttribute('class'), dashed: style.strokeDasharray !== 'none',
+      state: tile.getAttribute('class'), fill: style.fill, dashed: style.strokeDasharray !== 'none',
       hours: tile.hasAttribute('data-hours') ? Number(tile.dataset.hours) : null };
   })`);
   assert.equal(plotted.length, fixture.positions.length);
+  const fillsByState = new Map();
   for (const [index, tile] of plotted.entries()) {
     assert.deepEqual({ lon: tile.lon, lat: tile.lat, x: tile.x, y: tile.y }, fixture.positions[index]);
     assert.ok(tile.shown && tile.width === 1 && tile.height === 1, "all reference tiles must have visible geometry");
@@ -133,7 +134,11 @@ async function readReference(cdp, frameId, fixture, cells) {
     assert.equal(tile.hours, expected);
     assert.equal(tile.state, expected === null ? "unknown" : expected === 0 ? "zero" : "positive");
     assert.equal(tile.dashed, expected === null);
+    assert.ok(tile.fill && tile.fill !== "none", "reference cells must have a visible fill");
+    if (!fillsByState.has(tile.state)) fillsByState.set(tile.state, tile.fill);
+    assert.equal(tile.fill, fillsByState.get(tile.state));
   }
+  assert.equal(new Set(fillsByState.values()).size, fillsByState.size, "each observed state must have a different fill");
   const known = plotted.filter(tile => tile.hours !== null);
   const coordinates = (tile) => [tile.lon, tile.lat];
   return {
@@ -145,6 +150,8 @@ async function readReference(cdp, frameId, fixture, cells) {
 
 const { values } = parseArgs({ options: { out: { type: "string" } } });
 if (!values.out) throw new Error("Usage: node tools/check-map-effort-reference.mjs --out <new-report.json>");
+const runnerUrl = new URL(import.meta.url);
+const runnerSha256 = sha256(await readFile(runnerUrl));
 const cases = fixtures.map(prepareFixture);
 await withService(async (base) => {
   const dailyCells = await Promise.all(cases.map(fixture => readDailyCells(base, fixture)));
@@ -167,9 +174,10 @@ await withService(async (base) => {
         reference: await readReference(cdp, frameTree.frame.id, fixture, dailyCells[index]),
       });
     }
+    assert.equal(sha256(await readFile(runnerUrl)), runnerSha256, "runner bytes changed during the check");
     const report = {
       schema: "ocean-map-effort-reference/v1", scope: "controlled-authored-fixtures",
-      reference_runner_sha256: sha256(await readFile(new URL(import.meta.url))),
+      reference_runner_sha256: runnerSha256,
       browser: browser.version.Browser, cell_size_degrees: cellSize,
       b1_qualified: false, real_coverage_verified: false, performance_comparable: false,
       cases: observed, missing_day: { date: missingDate, status: missing.status, counts: null },

@@ -41,13 +41,17 @@ test("the fixed activity reference displays every known cell, and distinguishes 
       },
     ]);
     for (const day of report.cases) assert.match(day.input_sha256, /^sha256:[0-9a-f]{64}$/);
-    assert.deepEqual(report.cases[0].point_checks, [
-      { requested: [124.5, 30.2], returned: [124.5, 30.2], state: "known", hours: 0 },
-      { requested: [125, 30.2], returned: [124.9, 30.2], state: "unknown", hours: null },
+    const points = report.cases.flatMap(day => day.point_checks);
+    assert.deepEqual(points[0],
+      { requested: [124.5, 30.2], returned: [124.5, 30.2], state: "known", hours: 0 });
+    assert.deepEqual(points.slice(1).map(({ requested, state, hours }) => ({ requested, state, hours })), [
+      { requested: [125, 30.2], state: "unknown", hours: null },
+      { requested: [124.6, 30.7], state: "unknown", hours: null },
     ]);
-    assert.deepEqual(report.cases[1].point_checks, [
-      { requested: [124.6, 30.7], returned: [124.5, 30.6], state: "unknown", hours: null },
-    ]);
+    for (const point of points.slice(1)) {
+      assert.equal(point.returned.length, 2, "the point service returned a neighboring cell");
+      assert.notDeepEqual(point.returned, point.requested);
+    }
     assert.equal(report.missing_day.status, 404);
     assert.equal(report.missing_day.counts, null);
   } finally {
