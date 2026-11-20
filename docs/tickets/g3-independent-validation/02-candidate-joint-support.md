@@ -46,3 +46,5 @@ node tools/run-front-response-experiment.mjs --read-g3-candidate-support-result 
 覆盖回读也要求 B 事件的资格汇总与原 P0 分窗证据一致：短、长后窗分别与前七日合并判定，锚日有独立覆盖记录。重新计算了内容身份、但把不合格后七日错误标为通过的快照，现只拒绝该事件证据（`audit_event_gate_inconsistent`）；同候选可核实的 A 月证据仍可读。此校验不评估事件识别或真实研究资格。
 
 即使分窗和汇总同时标为通过，B 回读也要求通过的分窗来自审计格证据、状态为支持，且纳入天数等于该窗日历天数。重新计算内容身份也不能让 3/7 天通过（`audit_window_gate_inconsistent`）。
+
+A 月回读沿用同一判断：重新计算内容身份后将仅 8/31 天的月标为已通过，会得到 `audit_month_gate_inconsistent`，不影响同候选独立且一致的 B 窗口。

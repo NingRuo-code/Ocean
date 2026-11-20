@@ -156,7 +156,7 @@ def _read_candidate(candidate, request, snapshots):
         # A bound failed/running source cannot publish a completed row under
         # either comparison method. Legacy packs without lifecycle facts remain readable.
         state = source_lifecycle(entry, candidate)
-        if state is None and entry.comparison_facts is not None:
+        if state is None and "comparison_facts" in entry.model_fields_set:
             return {
                 **row,
                 "reason": "source_facts_unverified",

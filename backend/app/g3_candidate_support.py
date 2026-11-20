@@ -119,6 +119,14 @@ def _day_metadata(row):
     }
 
 
+def _contradicts_passing_gate(period, evidence_kind):
+    return period["data_gate_passed"] and (
+        evidence_kind != "audited_cells"
+        or period["support_level"] != "supported"
+        or period["included_days"] != period["expected_days"]
+    )
+
+
 def _review_audit(snapshot_id, snapshots, conditions):
     if snapshot_id not in snapshots:
         reason = (
@@ -154,6 +162,8 @@ def _review_audit(snapshot_id, snapshots, conditions):
             or period["included_days"] != sum(day["included"] for day in days.values())
         ):
             return unavailable("invalid_snapshot", "audit_daily_support_inconsistent")
+        if _contradicts_passing_gate(period, audit["evidence_kind"]):
+            return unavailable("invalid_snapshot", "audit_month_gate_inconsistent")
         return {**metadata, "calendar": _period_metadata(period), "days": [days[d] for d in dates]}
     anchor = conditions["event_date"]
     window_dates = {anchor}
@@ -168,12 +178,7 @@ def _review_audit(snapshot_id, snapshots, conditions):
         return unavailable("invalid_snapshot", "audit_daily_support_inconsistent")
     windows = audit["windows"]
     if any(
-        period["data_gate_passed"]
-        and (
-            audit["evidence_kind"] != "audited_cells"
-            or period["support_level"] != "supported"
-            or period["included_days"] != period["expected_days"]
-        )
+        _contradicts_passing_gate(period, audit["evidence_kind"])
         for period in windows.values()
     ):
         return unavailable("invalid_snapshot", "audit_window_gate_inconsistent")
