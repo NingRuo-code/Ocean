@@ -25,7 +25,8 @@ test('existing baseline CLI records real original-app missing-day failure with e
  const root=await mkdtemp(join(tmpdir(),'ocean-service-baseline-')),out=join(root,'report.json');
  try{
   const foreign=join(root,'PRIVATE-foreign-data');await mkdir(foreign);
-  const execution=await execute(process.execPath,['tools/benchmark-map.mjs','--isolated-service','--runs','1','--timeout-ms','1500','--out',out],{windowsHide:true,timeout:35000,env:{...process.env,OCEAN_PROTOTYPE_DATA_DIR:foreign,OCEAN_API_PREFIX:'/PRIVATE_API',OCEAN_AI_PROVIDER:'local',OCEAN_MONTHLY_EXECUTION_TOKEN:'PRIVATE_TOKEN'}}).catch(error=>error);
+  // This asserts the real missing-day state, not a latency target under parallel tests.
+  const execution=await execute(process.execPath,['tools/benchmark-map.mjs','--isolated-service','--runs','1','--timeout-ms','5000','--out',out],{windowsHide:true,timeout:45000,env:{...process.env,OCEAN_PROTOTYPE_DATA_DIR:foreign,OCEAN_API_PREFIX:'/PRIVATE_API',OCEAN_AI_PROVIDER:'local',OCEAN_MONTHLY_EXECUTION_TOKEN:'PRIVATE_TOKEN'}}).catch(error=>error);
   assert.equal(execution.code,1,'Missing raw sources must not become successful observations');
   const report=JSON.parse(await readFile(out,'utf8'));
   assert.equal(report.service.kind,'isolated_original_app');
