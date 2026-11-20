@@ -267,9 +267,17 @@ test('a browser exception after partial paint invalidates that attempt’s parti
    <svg id="mapSvg" width="600" height="400" data-render-date="2024-08-05" data-render-status="partial"
      data-view-key='["2024-08-05",124.5,30.2,1,"plane"]'></svg>
    <script>
+     let frames=0, errorScheduled=false;
+     const frame=requestAnimationFrame.bind(window);
+     window.requestAnimationFrame=cb=>frame(time=>{frames++;cb(time)});
      window.OFData={serverEnabled:()=>true,viewportReady:()=>false,
-       viewportState:()=>({status:"partial",usable:true})};
-     setTimeout(()=>{throw Error("PRIVATE_PARTIAL_ERROR")},520);
+       viewportState:()=>{
+         if(frames>=2&&!errorScheduled){
+           errorScheduled=true;
+           setTimeout(()=>{throw Error("PRIVATE_PARTIAL_ERROR")},0);
+         }
+         return {status:"partial",usable:true};
+       }};
    </script>`);
   const execution=await execute(process.execPath,[
    'tools/benchmark-map.mjs','--page',pathToFileURL(page).href,'--sample-kind','controlled-fixture',
