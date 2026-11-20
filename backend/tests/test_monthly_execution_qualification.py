@@ -195,6 +195,39 @@ def test_owner_persists_exact_p0_reference_and_freezes_the_original_intent(tmp_p
     assert len(reopened.get(url, headers=AUTH, params={"purpose": request["purpose"]}).json()["runs"]) == 1
 
 
+def test_owner_distance_options_prepare_exact_current_p0_without_starting_a_task(
+    tmp_path, monkeypatch
+):
+    _, reference, request, _ = fixture(tmp_path)
+    store = tmp_path / "qualified.sqlite3"
+    snapshot = tmp_path / "support.json"
+    client = configured_client(snapshot, reference, run_store=store)
+    url = URL + "/owner-runs/distance-options"
+    conditions = {key: request[key] for key in ("longitude", "latitude", "radius_km", "month", "layer_use")}
+
+    def unexpected_engine(*args):
+        pytest.fail("distance options must not start the calculation")
+
+    monkeypatch.setattr(synthetic_runs, "calculate_distance_reference", unexpected_engine)
+    assert client.get(url, params=conditions).status_code == 401
+    assert client.get(url, headers=AUTH, params={**conditions, "latitude": 1}).status_code == 409
+    response = client.get(url, headers=AUTH, params=conditions)
+    assert response.status_code == 200, response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {
+        "schema_version": "ocean-owner-distance-options/v1",
+        "input_sha256": request["input_version"],
+        "request": request,
+        "research_ready": False,
+    }
+    raw = json.loads(reference.read_bytes())
+    raw["regional_cells"]["days"][0]["layers"][1]["cells"][0]["hours"] += 1
+    reference.write_bytes(encoded(raw))
+    conflict = client.get(url, headers=AUTH, params=conditions)
+    assert conflict.status_code == 409, conflict.text
+    assert not store.exists()
+
+
 def test_owner_distance_does_not_publish_if_qualification_is_withdrawn_during_execution(
     tmp_path, monkeypatch
 ):

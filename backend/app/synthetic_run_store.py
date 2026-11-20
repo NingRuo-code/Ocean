@@ -17,6 +17,7 @@ from .sqlite_store_initialization import initialize_sqlite_store
 APPLICATION_ID = 0x4F52554E
 DISTANCE_APPLICATION_ID = 0x4F445255
 MAX_DB_BYTES = 64 * 1024 * 1024
+# Allow the in-transaction evidence rereads, result validation and commit after the child.
 DISTANCE_WRITE_TIMEOUT_SECONDS = DISTANCE_EXECUTION_TIMEOUT_SECONDS + 7
 LEGACY_RUN = "ocean-owner-synthetic-run/v1"
 DISTANCE_RUN = "ocean-owner-qualified-distance-run/v1"
