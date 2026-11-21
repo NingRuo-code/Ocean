@@ -82,8 +82,8 @@ def client_for(tmp_path, *sources, bind_manifest=True):
                     "month": "2024-08",
                     "catalog_sha256": archive_catalog_digest(),
                     "sources": {"front": {"record": 20356239, "members": [
-                        {"date": "2024-08-05", "status": "matched", "sha256": "c" * 64},
-                        {"date": "2024-08-06", "status": "matched", "sha256": "d" * 64},
+                        {"date": "2024-08-05", "name": "front_location20240805.nc", "status": "matched", "sha256": "c" * 64},
+                        {"date": "2024-08-06", "name": "front_location20240806.nc", "status": "matched", "sha256": "d" * 64},
                     ]}},
                 },
                 "connector_sha256": connector,
@@ -219,3 +219,30 @@ def test_proved_reuse_does_not_depend_on_new_preparation_credential(tmp_path):
     assert plan["can_prepare"] is False
     assert "credential_unavailable" in plan["reasons"]
     assert [unit["state"] for unit in plan["units"]] == ["reusable", "blocked"]
+
+
+def test_catalog_dates_and_adapter_scope_limit_ready_units(tmp_path):
+    source = source_registration(date_coverage={"start": "2024-08-01", "end": "2024-09-30"})
+    source["preparation"]["layers"].append("sst")
+    source["preparation"]["purposes"].append("A_month")
+    source["preparation"]["targets"].append("support_input")
+    client = client_for(tmp_path, source)
+    path = tmp_path / "artifact-manifest.json"
+    manifest = json.loads(path.read_bytes())
+    archive = manifest["preparation_evidence"]["zenodo_front_location"]["archive_check"]["sources"]["front"]
+    archive["members"].extend([
+        {"date": "2024-09-01", "name": "front_location20240901.nc", "status": "matched", "sha256": "c" * 64},
+        {"date": "2024-08-07", "name": "front_location20240808.nc", "status": "matched", "sha256": "d" * 64},
+        {"date": "2024-08-08", "name": "front_location20240808.nc", "status": "crc_mismatch"},
+    ])
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    for day in ["2024-08-07", "2024-08-08", "2024-09-01"]:
+        plan = client.post(API + "/plan", json={**BODY, "start_date": day, "end_date": day}, headers=AUTH).json()
+        assert plan["can_prepare"] is False
+        assert plan["units"][0]["state"] == "blocked"
+        assert "archive_unit_evidence_unknown" in plan["reasons"]
+    for override in [{"layers": ["sst"]}, {"purpose": "A_month"}, {"target": "support_input"}]:
+        plan = client.post(API + "/plan", json={**BODY, **override}, headers=AUTH).json()
+        assert plan["can_prepare"] is False
+        assert "scope_adapter_unsupported" in plan["reasons"]
+    assert client.post(API + "/plan", json=BODY, headers=AUTH).json()["can_prepare"] is True

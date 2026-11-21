@@ -963,11 +963,14 @@ const preparationManifest=JSON.stringify({
     source_version:preparationVersion,
     archive_check:{schema:"ocean-august-archive-member-check/v1",month:"2024-08",catalog_sha256:preparationVersion.slice(7),
       sources:{front:{record:20356239,members:[
-        {date:"2024-08-05",status:"matched",sha256:"c".repeat(64)},
-        {date:"2024-08-06",status:"matched",sha256:"d".repeat(64)},
+        {date:"2024-08-05",name:"front_location20240805.nc",status:"matched",sha256:"c".repeat(64)},
+        {date:"2024-08-06",name:"front_location20240806.nc",status:"matched",sha256:"d".repeat(64)},
       ]}}},
     connector_sha256:"sha256:"+digest(await readFile("backend/scripts/fetch_zenodo_front_samples.py")),
-    processor_sha256:"sha256:"+digest(await readFile("backend/app/frontend_payload.py")),
+    processor_sha256:"sha256:"+digest(JSON.stringify({
+      "backend/app/frontend_payload.py":"sha256:"+digest(await readFile("backend/app/frontend_payload.py")),
+      "backend/scripts/export_prototype_data.py":"sha256:"+digest(await readFile("backend/scripts/export_prototype_data.py")),
+    })),
     license_evidence_id:"sha256:"+"e".repeat(64),
     cost_evidence_id:"sha256:"+"f".repeat(64),
     reusable_units:preparationSource.preparation.reusable_units,

@@ -147,7 +147,8 @@ class SourceRegistry(BaseModel):
 
 class ArchiveMemberReceipt(BaseModel):
     date: date
-    status: Literal["matched", "missing", "invalid"]
+    name: Annotated[str, Field(pattern=r"^[A-Za-z0-9_.-]{1,128}$")]
+    status: Literal["matched", "missing", "invalid", "unreadable", "size_mismatch", "crc_mismatch"]
     sha256: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")] | None = None
 
 
@@ -185,14 +186,20 @@ class ArtifactManifest(BaseModel):
     preparation_evidence: Annotated[dict[RegistryId, PreparationReceipt], Field(max_length=16)]
 
 
-def archive_catalog_digest():
+def front_archive_catalog():
     try:
         catalog_path = PROJECT_ROOT / "docs/data/august-2024-archive-members.json"
         data = decode_controlled_json(read_regular_bytes(catalog_path, REGISTRY_LIMIT), REGISTRY_LIMIT)
         canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
-        return sha256(canonical.encode("utf-8")).hexdigest()
-    except (OSError, TypeError, ValueError):
-        return None
+        front = data["sources"]["front"]
+        days = {date.fromisoformat(f"{data['month']}-{member['day']:02}") for member in front["members"]}
+        return sha256(canonical.encode("utf-8")).hexdigest(), front["record"], days
+    except (OSError, KeyError, TypeError, ValueError):
+        return None, None, set()
+
+
+def archive_catalog_digest():
+    return front_archive_catalog()[0]
 
 
 def recorded_front_members(source, evidence, receipt):
@@ -200,13 +207,17 @@ def recorded_front_members(source, evidence, receipt):
         receipt is None or evidence is None or receipt.source_version != evidence.source_version
         or source.source_id != "zenodo_front_location" or source.source_type != "front"
         or receipt.source_version != "sha256:" + receipt.archive_check.catalog_sha256
-        or receipt.archive_check.catalog_sha256 != archive_catalog_digest()
     ):
         return None
+    catalog_id, record, days = front_archive_catalog()
     archived = receipt.archive_check.sources.get("front")
-    if archived is None or archived.record != 20356239:
+    if catalog_id != receipt.archive_check.catalog_sha256 or archived is None or archived.record != record:
         return None
-    return {member.date for member in archived.members if member.status == "matched" and member.sha256}
+    return {
+        member.date for member in archived.members
+        if member.status == "matched" and member.sha256 and member.date in days
+        and member.name == f"front_location{member.date:%Y%m%d}.nc"
+    }
 
 
 def authorized_for_preparation(source, evidence, receipt):
@@ -219,12 +230,16 @@ def authorized_for_preparation(source, evidence, receipt):
 
 
 def adapter_fingerprints():
+    def fingerprint(relative_path):
+        return "sha256:" + sha256(read_regular_bytes(PROJECT_ROOT / relative_path, REGISTRY_LIMIT)).hexdigest()
+
     try:
-        paths = (PROJECT_ROOT / "backend/scripts/fetch_zenodo_front_samples.py",
-                 PROJECT_ROOT / "backend/app/frontend_payload.py")
-        return tuple("sha256:" + sha256(read_regular_bytes(path, REGISTRY_LIMIT)).hexdigest() for path in paths)
+        connector = fingerprint("backend/scripts/fetch_zenodo_front_samples.py")
+        processing_sources = ("backend/app/frontend_payload.py", "backend/scripts/export_prototype_data.py")
+        processor = content_id({path: fingerprint(path) for path in processing_sources})
+        return connector, processor
     except (OSError, ValueError):
-        return (None, None)
+        return None, None
 
 
 def registered_scope(source, evidence):
@@ -359,8 +374,11 @@ def create_owner_preparation_router(settings):
         adapters = adapter_fingerprints() if receipt else (None, None)
         archived = recorded_front_members(source, evidence, receipt)
         reasons = preparation_reasons(source, evidence, receipt, archived, adapters)
+        supported_scope = request.layers == ["front"] and request.purpose == "map" and request.target == "day_artifact"
+        if not supported_scope:
+            reasons.append("scope_adapter_unsupported")
         reusable = {}
-        if archived is not None and authorized_for_preparation(source, evidence, receipt):
+        if supported_scope and archived is not None and authorized_for_preparation(source, evidence, receipt):
             corroborated = {content_id(unit.model_dump(mode="json")) for unit in receipt.reusable_units}
             reusable = {
                 (unit.date, unit.layer): unit.artifact_id for unit in evidence.reusable_units

@@ -9,7 +9,7 @@
     archive_access_unknown:'归档访问未知',connector_unsupported:'连接器不可用',coverage_unknown:'观测覆盖未知',
     authorization_blocked:'登记授权受限',authorization_unverified:'使用授权未核验',
     archive_manifest_unverified:'归档核验清单未知',adapter_unverified:'连接器或本地处理版本未核验',
-    archive_unit_evidence_unknown:'所选原始单元尚无核验记录',
+    archive_unit_evidence_unknown:'所选原始单元尚无核验记录',scope_adapter_unsupported:'当前资料层、用途或处理目标暂无适配',
   };
   const evidenceFields={credential_check:'凭据验证',archive_access:'归档访问',connector:'连接器',processing:'本地处理',
     license:'使用许可',cost:'费用条件'};
