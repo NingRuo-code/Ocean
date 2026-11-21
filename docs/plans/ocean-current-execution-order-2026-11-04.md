@@ -8,7 +8,7 @@
 
 [#103](https://github.com/NingRuo-code/Ocean/issues/103) 继续等 #98 的真实 A 成果与资格，由 #67 → #68 → #71 → #98 顺序放行。#104 保留 #84 的真实 B 交接，#105 保留 #88、#93 的区域证据与逐源权限。#46、#93、#143 继续等待各自真实证据。本机只读演示保留，八月正式整月、对外询证、正式服务器验收和独立备份继续暂缓。
 
-公共任务中心的 [#110](https://github.com/NingRuo-code/Ocean/issues/110) 和 [#111](https://github.com/NingRuo-code/Ocean/issues/111) 已解除原生依赖。先实现已有本人任务的筛选、分页和冻结详情，再做登记归档的准备范围预览。
+公共任务中心先完成 [#110](https://github.com/NingRuo-code/Ocean/issues/110) 的本人任务筛选、分页和冻结详情，再完成 [#111](https://github.com/NingRuo-code/Ocean/issues/111) 的登记归档准备预览。预览按源版本、归档成员、许可和实际适配器核对，范围为已登记的一日锋面地图资料；经 [PR #391](https://github.com/NingRuo-code/Ocean/pull/391) 回归后推进 [#112](https://github.com/NingRuo-code/Ocean/issues/112)。#112 先用已取得的 Zenodo 20356239 原始单日样本验证实际处理和私人结果。样本观测时刻与共同覆盖的研究资格继续按原关口核验。
 
 ## 本机完整显示参照
 
