@@ -856,6 +856,8 @@ test("owner task history filters and pages frozen records without changing the a
       await click(c,"#ownerTaskHistoryApply");
       await waitFor(c,"document.getElementById('ownerTaskHistoryStatus').textContent.includes('上次核实')");
       assert.equal(await c.evaluate("document.getElementById('ownerTaskHistoryNext').disabled"),true);
+      await click(c,'#ownerTaskHistoryItems button[data-run-id="'+legacy.id+'"]');
+      await waitFor(c,"/已读取.*上次核实/.test(document.getElementById('ownerTaskHistoryStatus').textContent)");
       const original=await(await fetch(base+route+"/"+failed+"?purpose="+mode,{headers})).json();
       const day=original.submitted_at.slice(0,10);
       await c.evaluate("document.getElementById('ownerTaskHistoryPurpose').value='monthly_distance_reference';document.getElementById('ownerTaskHistoryStatusFilter').value='interrupted';"+

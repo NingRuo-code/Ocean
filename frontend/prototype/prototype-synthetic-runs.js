@@ -152,7 +152,8 @@
       taskHistoryDetail.replaceChildren();
       taskHistoryDetail.dataset.runId=run.id;
       renderRunEvidence(run,taskHistoryDetail,item.submitted_at,item.finished_at);
-      $('ownerTaskHistoryStatus').textContent='已读取所选历史记录。';
+      $('ownerTaskHistoryStatus').textContent='已读取所选历史记录。'+
+        (taskHistoryPage?'':' 当前列表仍为上次核实的历史。');
     });
   }
 
