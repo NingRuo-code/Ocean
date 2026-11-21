@@ -35,12 +35,18 @@
     return purpose === distancePurpose;
   }
 
+  function sameOriginService(current) {
+    if(current.kind!=='server')return false;
+    try{
+      const api=new URL(current.base,location.href);
+      return api.origin===location.origin&&api.pathname==='/api'&&!api.search&&!api.hash;
+    }catch{return false;}
+  }
+
   function source() {
-    const current = publicSource();
-    if (!distanceMode() || current.kind !== 'server') return current;
-    const api = new URL(current.base, location.href);
-    return api.origin === location.origin && api.pathname === '/api' && !api.search && !api.hash
-      ? current : {kind:'offline',base:null};
+    const current=publicSource();
+    if(!distanceMode()||current.kind!=='server')return current;
+    return sameOriginService(current)?current:{kind:'offline',base:null};
   }
 
   function purposeSuffix() {
@@ -56,6 +62,165 @@
   node(actions,'button','下载所读任务 Markdown').id='ownerRunExportMarkdown';node(actions,'button','下载所读任务 CSV').id='ownerRunExportCsv';
   const referenceStatus=node(root,'p','');referenceStatus.id='ownerRunReferenceStatus';
   const items=node(root,'div','');items.id='ownerRunItems';items.className='case-candidates';
+  const taskHistoryOpen=node(actions,'button','任务历史筛选');taskHistoryOpen.id='ownerTaskHistoryOpen';
+  taskHistoryOpen.setAttribute('aria-controls','ownerTaskHistory');
+  taskHistoryOpen.setAttribute('aria-expanded','false');
+  const taskHistory=node(root,'section','');taskHistory.id='ownerTaskHistory';taskHistory.hidden=true;
+  taskHistory.innerHTML='<form id="ownerTaskHistoryForm" class="monthly-actions">'+
+    '<label>类型<select name="purpose" id="ownerTaskHistoryPurpose"><option value="">全部</option><option value="monthly_spatial_example">已知单元</option><option value="monthly_distance_reference">距离参照</option></select></label>'+
+    '<label>状态<select name="status" id="ownerTaskHistoryStatusFilter"><option value="">全部</option><option value="completed">已完成</option><option value="failed">失败</option><option value="interrupted">中断</option><option value="cancelled">已取消</option></select></label>'+
+    '<label>起始日（UTC）<input type="date" name="start_date"></label><label>结束日（UTC）<input type="date" name="end_date"></label>'+
+    '<button id="ownerTaskHistoryApply" type="submit">查找历史</button></form>'+
+    '<div class="monthly-actions"><button id="ownerTaskHistoryPrevious">上一页</button>'+
+    '<button id="ownerTaskHistoryNext">下一页</button><button id="ownerTaskHistoryClose">收起筛选</button></div>'+
+    '<p id="ownerTaskHistoryStatus" role="status"></p><div id="ownerTaskHistoryItems" class="case-candidates"></div><div id="ownerTaskHistoryDetail"></div>';
+  const taskHistoryForm=$('ownerTaskHistoryForm'),taskHistoryDetail=$('ownerTaskHistoryDetail');
+  const taskHistoryStatuses=new Map([['completed','已完成'],['failed','失败'],['interrupted','中断'],['cancelled','已取消']]);
+  let taskHistoryRequest=null,taskHistoryPage=null;
+
+  function taskHistoryAllowed(){
+    return sameOriginService(source())&&navigator.onLine&&Boolean($('ownerRunToken').value);
+  }
+
+  function syncTaskHistory(){
+    taskHistoryOpen.disabled=!taskHistoryAllowed();
+    const blocked=taskHistoryOpen.disabled||Boolean(taskHistoryRequest);
+    $('ownerTaskHistoryApply').disabled=blocked;
+    $('ownerTaskHistoryPrevious').disabled=blocked||!(taskHistoryPage?.filters.offset>0);
+    $('ownerTaskHistoryNext').disabled=blocked||taskHistoryPage?.next_offset==null;
+    for(const button of $('ownerTaskHistoryItems').querySelectorAll('button'))button.disabled=blocked;
+  }
+
+  function stopTaskHistoryRequest(){
+    taskHistoryRequest?.abort();
+    taskHistoryRequest=null;
+  }
+
+  function hideTaskHistory(clear=false){
+    stopTaskHistoryRequest();
+    taskHistory.hidden=true;
+    taskHistoryOpen.setAttribute('aria-expanded','false');
+    if(clear){
+      taskHistoryPage=null;
+      $('ownerTaskHistoryStatus').textContent='';
+      $('ownerTaskHistoryItems').replaceChildren();
+      taskHistoryDetail.replaceChildren();
+      delete taskHistoryDetail.dataset.runId;
+    }
+    syncTaskHistory();
+  }
+
+  async function readTaskHistory(suffix,message,receive,isPage=false){
+    if(!taskHistoryAllowed()||taskHistory.hidden||!root.open||panel.hidden)return;
+    stopTaskHistoryRequest();
+    const observer=new AbortController(),from=source(),opener=document.activeElement;
+    const close=$('ownerTaskHistoryClose');
+    const deadline=setTimeout(()=>observer.abort(),6000);
+    taskHistoryRequest=observer;
+    const status=$('ownerTaskHistoryStatus');
+    status.textContent=message;
+    syncTaskHistory();
+    if(taskHistory.contains(opener)&&opener.disabled)close.focus({preventScroll:true});
+    try{
+      const value=await net(suffix,'GET',null,json,observer.signal);
+      if(taskHistoryRequest!==observer||!sameSource(from,source()))return;
+      if(observer.signal.aborted)throw Error('cancelled');
+      receive(value);
+    }catch(error){
+      if(taskHistoryRequest!==observer)return;
+      if(['http_401','http_403','source_changed'].includes(error.message))clearPrivate();
+      else{
+        if(isPage)taskHistoryPage=null;
+        status.textContent=error.message==='http_409'?'历史已有变化。请重新查找第一页。':
+          error.message==='http_422'?'日期范围或筛选条件无效。':'历史状态暂不可核实。可重新查询。';
+        if(isPage&&$('ownerTaskHistoryItems').childElementCount)status.textContent+=' 下方为上次核实的历史。';
+      }
+    }finally{
+      clearTimeout(deadline);
+      if(taskHistoryRequest===observer){
+        taskHistoryRequest=null;syncTaskHistory();
+        if(document.activeElement===close&&taskHistory.contains(opener)&&!opener.disabled)opener.focus({preventScroll:true});
+      }
+    }
+  }
+
+  function readTaskHistoryDetail(item){
+    const itemPurpose=item.request.purpose;
+    return readTaskHistory('/'+item.id+'?purpose='+itemPurpose,'正在读取冻结记录。',value=>{
+      const run=checked(value,{id:item.id,intent:item.intent_id,history:true},itemPurpose);
+      if(run.record_id!==item.record_id)throw Error('contract');
+      taskHistoryDetail.replaceChildren();
+      taskHistoryDetail.dataset.runId=run.id;
+      renderRunEvidence(run,taskHistoryDetail,item.submitted_at,item.finished_at);
+      $('ownerTaskHistoryStatus').textContent='已读取所选历史记录。'+
+        (taskHistoryPage?'':' 当前列表仍为上次核实的历史。');
+    });
+  }
+
+  function readTaskHistoryPage(filters){
+    const query=new URLSearchParams();
+    for(const [key,value] of Object.entries(filters))if(value!==null)query.set(key,value);
+    return readTaskHistory('/history?'+query,'正在查询本人历史。',data=>{
+      const rows=data?.runs,purposes=data?.available_purposes;
+      const end=filters.offset+filters.limit;
+      if(data?.schema_version!=='ocean-owner-task-history/v1'||!requestsMatch(filters,data.filters||{})||
+          !hash.test(data.history_id)||(filters.history_id!==null&&filters.history_id!==data.history_id)||
+          !Array.isArray(rows)||!Number.isInteger(data.total)||data.total<0||data.total>128||
+          rows.length!==Math.min(filters.limit,Math.max(0,data.total-filters.offset))||
+          data.next_offset!==(end<data.total?end:null)||
+          !Array.isArray(purposes)||purposes.length>2||new Set(purposes).size!==purposes.length||
+          purposes.some(value=>![legacyPurpose,distancePurpose].includes(value))||
+          rows.some(item=>!id.test(item?.id)||!id.test(item.intent_id)||!hash.test(item.record_id)||
+            !taskHistoryStatuses.has(item.status)||!purposes.includes(item.request?.purpose)||
+            (item.submitted_at!==null&&!validTaskTime(item.submitted_at))||
+            (item.finished_at!==null&&!validTaskTime(item.finished_at))||
+            !validRequest(item.request,item.request.purpose)))throw Error('contract');
+      for(const option of $('ownerTaskHistoryPurpose').options){
+        option.disabled=Boolean(option.value)&&!purposes.includes(option.value);
+      }
+      taskHistoryPage=data;
+      taskHistoryDetail.replaceChildren();
+      delete taskHistoryDetail.dataset.runId;
+      const entries=$('ownerTaskHistoryItems');entries.replaceChildren();
+      for(const item of rows){
+        const type=item.request.purpose===distancePurpose?'距离参照':'已知单元';
+        const button=node(entries,'button',type+' · '+taskHistoryStatuses.get(item.status)+' · '+describe(item.request)+
+          ' · '+(item.submitted_at?.slice(0,10)??'时间未知'));
+        button.dataset.runId=item.id;
+        button.onclick=()=>readTaskHistoryDetail(item);
+      }
+      $('ownerTaskHistoryStatus').textContent=rows.length?'第 '+(filters.offset+1)+' 至 '+(filters.offset+rows.length)+
+        ' 条，共 '+data.total+' 条。':'当前条件下没有历史记录。';
+    },true);
+  }
+
+  function historyFormFilters(){
+    const data=new FormData(taskHistoryForm);
+    return {purpose:data.get('purpose')||null,status:data.get('status')||null,
+      start_date:data.get('start_date')||null,end_date:data.get('end_date')||null,limit:5,offset:0,history_id:null};
+  }
+
+  taskHistoryOpen.onclick=()=>{
+    if(!taskHistory.hidden){hideTaskHistory();return;}
+    taskHistory.hidden=false;
+    taskHistoryOpen.setAttribute('aria-expanded','true');
+    $('ownerTaskHistoryPurpose').focus({preventScroll:true});
+    readTaskHistoryPage(historyFormFilters());
+  };
+  taskHistoryForm.onsubmit=event=>{event.preventDefault();readTaskHistoryPage(historyFormFilters());};
+  $('ownerTaskHistoryPrevious').onclick=()=>{
+    const filters=taskHistoryPage.filters;
+    readTaskHistoryPage({...filters,offset:Math.max(0,filters.offset-filters.limit),history_id:taskHistoryPage.history_id});
+  };
+  $('ownerTaskHistoryNext').onclick=()=>readTaskHistoryPage({...taskHistoryPage.filters,offset:taskHistoryPage.next_offset,history_id:taskHistoryPage.history_id});
+  $('ownerTaskHistoryClose').onclick=()=>{hideTaskHistory();taskHistoryOpen.focus({preventScroll:true});};
+  taskHistory.addEventListener('keydown',event=>{
+    if(event.key!=='Escape')return;
+    event.preventDefault();
+    event.stopPropagation();
+    hideTaskHistory();taskHistoryOpen.focus({preventScroll:true});
+  });
+
   function activePending(){return pending&&sameSource(pending.from,source())?pending:null;}
   function activeReference(){return reference&&source().kind==='server'&&reference.base===source().base?reference:null;}
   function cancellableIntent(){
@@ -114,11 +279,13 @@
     }
     for(const button of items.querySelectorAll('button'))button.disabled=locked||(busy&&!['reading','downloading'].includes(root.dataset.state));
     referenceMessage();
+    syncTaskHistory();
   }
   function clearPrivate(clearToken=true){
     stopRecovery();
     preferredRun=null;
     clearCancellationStatus();
+    hideTaskHistory(true);
     generation++;controller?.abort();busy=false;prepared=null;selected=null;sessionSource=null;
     for(const url of downloads)URL.revokeObjectURL(url);downloads.clear();
     if(clearToken)$('ownerRunToken').value='';
@@ -295,11 +462,11 @@
       else set(activePending()||operation==='looking-up'||unreachableRead?'uncertain':'error',message+(activePending()?pendingMessage:''));
     }finally{clearTimeout(timer);if(n===generation){busy=false;update();if(recoverAfterError||trackedCancellation())startRecovery();if(!panel.hidden&&document.activeElement===$('ownerRunLock')&&root.contains(opener)&&!opener.disabled)opener.focus({preventScroll:true});}}
   }
-  function validRequest(p) {
-    if (p?.purpose !== purpose || !/^[12]\d{3}-(0[1-9]|1[0-2])$/.test(p.month) ||
+  function validRequest(p,expectedPurpose=purpose) {
+    if (p?.purpose !== expectedPurpose || !/^[12]\d{3}-(0[1-9]|1[0-2])$/.test(p.month) ||
         !Number.isFinite(p.longitude) || Math.abs(p.longitude)>180 ||
         !Number.isFinite(p.latitude) || Math.abs(p.latitude)>90 || ![10,20,30].includes(p.radius_km)) return false;
-    if (distanceMode()) {
+    if (expectedPurpose===distancePurpose) {
       return hash.test(p.input_version) && hash.test(p.support_snapshot_id) &&
         ['front_effort','front_effort_sst'].includes(p.layer_use) &&
         p.method_version === 'wgs84-distance-bands/v1' &&
@@ -314,10 +481,10 @@
       (qualified&&record.state==='failed'&&record.cancelled===true&&!Object.hasOwn(record,'failure_reason'));
   }
 
-  function validRetryLink(record){
+  function validRetryLink(record,qualified=distanceMode()){
     if(!Object.hasOwn(record,'retry'))return true;
     const link=record.retry;
-    return distanceMode()&&link&&hash.test(record.execution_environment_id)&&
+    return qualified&&link&&hash.test(record.execution_environment_id)&&
       Object.keys(link).length===3&&id.test(link.parent_run_id)&&
       link.parent_run_id!==record.id&&hash.test(link.parent_record_id)&&
       ['same_conditions','current_conditions'].includes(link.mode);
@@ -364,17 +531,23 @@
     const [year, number] = month.split('-').map(Number);
     return new Date(Date.UTC(year, number, 0)).getUTCDate();
   }
-  function checked(record,expected={}){
-    const schema = distanceMode() ? 'ocean-owner-qualified-distance-run/v1' : 'ocean-owner-synthetic-run/v1';
-    if(record?.schema_version!==schema||!id.test(record.id)||!id.test(record.intent_id)||!hash.test(record.record_id)||!hash.test(record.submission_id)||!hash.test(record.input_sha256)||!['completed','failed'].includes(record.state)||record.request?.purpose!==purpose||(expected.id&&record.id!==expected.id)||(expected.intent&&record.intent_id!==expected.intent))throw Error('contract');
-    if(!validRequest(record.request)||!Number.isFinite(Date.parse(record.submitted_at))||!Number.isFinite(Date.parse(record.finished_at)))throw Error('contract');
+  function validTaskTime(value){
+    return typeof value==='string'&&Number.isFinite(Date.parse(value));
+  }
+
+  function checked(record,expected={},expectedPurpose=purpose){
+    const qualified=expectedPurpose===distancePurpose;
+    const schema = qualified ? 'ocean-owner-qualified-distance-run/v1' : 'ocean-owner-synthetic-run/v1';
+    if(record?.schema_version!==schema||!id.test(record.id)||!id.test(record.intent_id)||!hash.test(record.record_id)||!hash.test(record.submission_id)||!hash.test(record.input_sha256)||!['completed','failed'].includes(record.state)||record.request?.purpose!==expectedPurpose||(expected.id&&record.id!==expected.id)||(expected.intent&&record.intent_id!==expected.intent))throw Error('contract');
+    if(!validRequest(record.request,expectedPurpose)||
+        (!expected.history&&(!validTaskTime(record.submitted_at)||!validTaskTime(record.finished_at))))throw Error('contract');
     if(Object.hasOwn(record,'execution_environment_id')&&
-        (!distanceMode()||!hash.test(record.execution_environment_id)))throw Error('contract');
-    if(!validRetryLink(record))throw Error('contract');
+        (!qualified||!hash.test(record.execution_environment_id)))throw Error('contract');
+    if(!validRetryLink(record,qualified))throw Error('contract');
     if(expected.body&&(record.input_sha256!==expected.body.input_sha256||
         !requestsMatch(expected.body.request,record.request)||!retryLinksMatch(expected.retry,record.retry)||
         (expected.retry&&expected.environmentId!==record.execution_environment_id)))throw Error('contract');
-    if (distanceMode()) {
+    if (qualified) {
       if (!validDistanceEvidence(record)) throw Error('contract');
       return record;
     }
@@ -406,20 +579,31 @@
       return;
     }
     const box=$('ownerRunResult');box.replaceChildren();selected=run;root.dataset.runId=run.id;
-    const layers=distanceMode()?(run.request.layer_use==='front_effort_sst'?' · 锋面、活动与海温':' · 锋面与活动'):'';
+    renderRunEvidence(run,box);
+    prepared=null;
+    const message=cancelled?'已读取服务确认的取消记录。':run.state==='completed'
+      ?'已读取可靠提交的合成任务结果；地图条件未改变。':'已读取持久失败记录；新尝试必须明确准备新的意图。';
+    set(cancelled?'cancelled':run.state,message+(unresolved?' 原提交意图仍待核实，核对入口保留。':''));update();
+  }
+  function renderRunEvidence(run,box,submittedAt=run.submitted_at,finishedAt=run.finished_at){
+    const qualified=run.request.purpose===distancePurpose;
+    const layers=qualified?(run.request.layer_use==='front_effort_sst'?' · 锋面、活动与海温':' · 锋面与活动'):'';
     node(box,'p','原任务条件：'+describe(run.request)+layers);
     node(box,'p','任务 '+run.id+' / 意图 '+run.intent_id+' / '+run.record_id);
     if(run.retry)node(box,'p',(run.retry.mode==='same_conditions'?'原条件重试':'按当前条件的新请求')+
       ' · 原任务 '+run.retry.parent_run_id+' / '+run.retry.parent_record_id);
     if(run.execution_environment_id)node(box,'p','运行环境 '+run.execution_environment_id);
-    node(box,'p','服务处理 '+run.submitted_at+' 至 '+run.finished_at+'，终态已提交。'
-      +(distanceMode()?'合成距离参照':'合成软件验证')+'；真实研究资格未通过。');
+    const started=validTaskTime(submittedAt)?submittedAt:'未知';
+    const finished=validTaskTime(finishedAt)?finishedAt:'未知';
+    node(box,'p','服务处理 '+started+' 至 '+finished+'，终态已提交。'
+      +(qualified?'合成距离参照':'合成软件验证')+'；真实研究资格未通过。');
     node(box,'p','这里只读冻结记录，当前原源可用及原样复算未知；没有自动公开或保存为案例。');
     if(run.state==='completed'){
       const r = run.result;
-      if (distanceMode()) showDistanceEvidence(box, r);
+      if (qualified) showDistanceEvidence(box, r);
       else {
         const m = r.metrics;
+        node(box,'p','结果 '+r.result_id);
         node(box,'p','H='+(m.total_hours??'未知')+' h；E='+(m.area_time_km2_days??'未知')+' km²·d；有效/日历日 '+m.supported_days+'/'+m.calendar_days+'。');
         showDaily(box, r.daily, r.caveats);
       }
@@ -427,10 +611,6 @@
       node(box,'p',run.cancelled===true?'服务已确认取消原意图。没有发布结果。'
         :distanceFailureMessages.get(run.failure_reason)??generalFailureMessage);
     }
-    prepared=null;
-    const message=cancelled?'已读取服务确认的取消记录。':run.state==='completed'
-      ?'已读取可靠提交的合成任务结果；地图条件未改变。':'已读取持久失败记录；新尝试必须明确准备新的意图。';
-    set(cancelled?'cancelled':run.state,message+(unresolved?' 原提交意图仍待核实，核对入口保留。':''));update();
   }
   function showDistanceEvidence(box, result) {
     const common = result.month.common;
@@ -618,14 +798,15 @@
   window.addEventListener('ocean-load-state',()=>{if(sessionSource&&!sameSource(sessionSource,source()))clearPrivate();update();});
   root.addEventListener('toggle',()=>{
     if(root.open){startRecovery();return;}
-    stopRecovery();stopCancellationObservation();update();
+    stopRecovery();stopCancellationObservation();stopTaskHistoryRequest();update();
   });
   document.addEventListener('visibilitychange',()=>{
     if(!document.hidden){startRecovery();return;}
-    stopRecovery();stopCancellationObservation();update();
+    stopRecovery();stopCancellationObservation();stopTaskHistoryRequest();update();
   });
   window.addEventListener('offline',()=>{
-    stopRecovery();stopCancellationObservation();
+    stopRecovery();stopCancellationObservation();stopTaskHistoryRequest();
+    if(!taskHistory.hidden)$('ownerTaskHistoryStatus').textContent='网络断开，历史状态暂不可核实。';
     const from=source();
     if(distanceMode()&&!panel.hidden&&root.open&&sessionSource&&sameSource(from,sessionSource)){
       generation++;
