@@ -19,6 +19,7 @@
   let preferredRun = null;
   let cancellation = null;
   let cancellationIntent = null;
+  let observeCancellation = false;
   const cancelMessages = {
     checking:'服务正在核对资格。可在核对结束后申请取消。',
     cancelling:'已提出取消，正在等待服务确认终态。',
@@ -132,6 +133,7 @@
   function clearCancellationStatus(){
     stopCancellationObservation();
     cancellationIntent=null;
+    observeCancellation=false;
     cancelStatus.textContent='';
   }
 
@@ -140,7 +142,7 @@
   }
 
   function trackedCancellation(){
-    return cancellationIntent!==null&&cancellableIntent()===cancellationIntent;
+    return observeCancellation&&cancellableIntent()===cancellationIntent;
   }
 
   cancelButton.onclick=async()=>{
@@ -150,6 +152,7 @@
     const timeout=setTimeout(()=>observer.abort(),6000);
     cancellation=observer;
     cancellationIntent=intent;
+    observeCancellation=true;
     setCancellationStatus(intent,'正在向服务查询能否取消原提交。');
     update();
     try{
@@ -160,13 +163,13 @@
           !Object.hasOwn(cancelMessages,reply.state)||
           (['checking','cancelling','finishing'].includes(reply.state)?reply.run_id!==null:!id.test(reply.run_id)))throw Error('contract');
       setCancellationStatus(intent,cancelMessages[reply.state]);
-      if(reply.state==='checking')cancellationIntent=null;
+      if(reply.state==='checking')observeCancellation=false;
       if(trackedCancellation()&&!busy)startRecovery();
     }catch(error){
       if(cancellation!==observer)return;
       if(['http_401','http_403','source_changed'].includes(error.message)){
         clearPrivate();
-        setCancellationStatus(intent,'需要重新认证才能核对取消结果。');
+        cancelStatus.textContent='需要重新认证才能核对取消结果。';
       }else{
         setCancellationStatus(intent,'当前服务暂不可核实取消结果。可核对原意图。');
         if(trackedCancellation()&&!busy)startRecovery();
@@ -204,11 +207,15 @@
     scheduleRecovery(recovery);
   }
 
+  function markCancellationUnknown(intent){
+    if(cancellationIntent===intent){
+      setCancellationStatus(intent,'取消终态暂不可核实。可手动核对原意图。');
+    }
+  }
+
   function scheduleRecovery(current){
     if(current.index>=recoveryDelays.length){
-      if(cancellationIntent===current.expected.intent){
-        setCancellationStatus(cancellationIntent,'取消终态暂不可核实。可手动核对原意图。');
-      }
+      markCancellationUnknown(current.expected.intent);
       stopRecovery();
       return;
     }
@@ -235,6 +242,7 @@
         $('ownerRunStatus').textContent='自动核对已停止，需要重新通过本人认证。';
       }else if(error.message==='contract'){
         set('uncertain','任务身份或内容暂不可核实，可手动核对原意图。');
+        markCancellationUnknown(current.expected.intent);
         stopRecovery();
       }else{
         set('uncertain','原任务状态暂不可核实，可手动核对原意图。');
@@ -259,7 +267,7 @@
       recoverAfterError=!rejectedDistance&&['submitting','looking-up'].includes(operation) &&
         !['http_401','http_403','http_409','http_422','source_changed','contract'].includes(error.message);
       if(rejectedDistance){
-        if(trackedCancellation()){
+        if(cancellationIntent&&cancellableIntent()===cancellationIntent){
           const intent=cancellationIntent;
           clearCancellationStatus();
           setCancellationStatus(intent,'本次提交已被服务拒绝。');
@@ -361,6 +369,7 @@
       setCancellationStatus(run.intent_id,cancelMessages[cancelled?'cancelled':run.state]);
     }
     if(background&&selected&&selected.id!==run.id&&(cancelled||fromCancellation)){
+      preferredRun=selected.id;
       prepared=null;
       set(selected.cancelled?'cancelled':selected.state,'已核对原提交，并保留所选记录。');
       update();

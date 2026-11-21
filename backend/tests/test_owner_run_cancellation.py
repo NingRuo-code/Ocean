@@ -101,7 +101,7 @@ def test_cancel_while_waiting_for_store_prevents_a_second_calculation(tmp_path, 
             second = pool.submit(client.post, RUNS, headers=AUTH, json=queued)
             deadline = monotonic() + 5
             cancel = client.post(queued_path + "/cancel", headers=AUTH)
-            while cancel.status_code == 404 and monotonic() < deadline:
+            while (cancel.status_code == 404 or cancel.json().get("state") == "checking") and monotonic() < deadline:
                 sleep(0.03)
                 cancel = client.post(queued_path + "/cancel", headers=AUTH)
             assert cancel.status_code == 200, cancel.text

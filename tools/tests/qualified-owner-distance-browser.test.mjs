@@ -650,19 +650,39 @@ test("the browser learns that a real calculation has reached publication and kee
   withService(async (base,{distanceResultReady,releaseDistanceResult})=>{
     const browser=await launchBrowser(edge), c=browser.cdp;
     try {
+      await useControlledVisibility(c);
       await prepareDistanceInBrowser(c,base);
+      await writeFile(releaseDistanceResult,"publish selected result");
+      await click(c,"#ownerRunSubmit");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'");
+      const chosen=await c.evaluate("document.getElementById('ownerRuns').dataset.runId");
+      const preserved=await c.evaluate("document.getElementById('ownerRunResult').textContent");
+      const map=await c.evaluate("({zoom:state.zoom,center:state.view,date:state.date,range:state.range})");
+      await unlink(releaseDistanceResult);
+      await unlink(distanceResultReady);
+      await click(c,"#ownerRunPrepare");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='prepared'");
       await click(c,"#ownerRunSubmit");
       await waitForServiceFile(distanceResultReady);
+      const intent=await c.evaluate("JSON.parse(localStorage.getItem('ocean-owner-qualified-distance-run-ref/v1')).intent_id");
       await click(c,"#ownerRunCancel");
       await waitFor(c,"document.getElementById('ownerRunCancelStatus').textContent.includes('无法撤回')");
-      await writeFile(releaseDistanceResult,"publish");
-      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'");
-      const id=await c.evaluate("document.getElementById('ownerRuns').dataset.runId");
-      assert.match(await c.evaluate("document.getElementById('ownerRunCancelStatus').textContent"),/已经完成/);
-      const published=await(await fetch(base+route+"/"+id+"?purpose="+mode,{headers})).json();
+      await writeFile(releaseDistanceResult,"publish competing result");
+      await waitFor(c,"document.getElementById('ownerRunCancelStatus').textContent.includes('已经完成')");
+      const published=await(await fetch(base+route+"/intents/"+intent+"?purpose="+mode,{headers})).json();
       assert.equal(published.state,"completed");
       assert.equal(published.result.days.length,31);
       assert.equal(Object.hasOwn(published,"cancelled"),false);
+      assert.notEqual(published.id,chosen);
+      assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),chosen);
+
+      await click(c,root+" summary");
+      await waitFor(c,"!document.getElementById('ownerRuns').open");
+      await click(c,root+" summary");
+      await waitFor(c,"document.getElementById('ownerRunStatus').textContent.includes('可靠提交')");
+      assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),chosen);
+      assert.equal(await c.evaluate("document.getElementById('ownerRunResult').textContent"),preserved);
+      assert.deepEqual(await c.evaluate("({zoom:state.zoom,center:state.view,date:state.date,range:state.range})"),map);
     } finally {
       await writeFile(releaseDistanceResult,"publish");
       await browser.close();
