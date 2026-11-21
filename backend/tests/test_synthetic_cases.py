@@ -310,3 +310,41 @@ def test_legacy_version_reopens_and_next_version_gets_protection(tmp_path):
     assert created["version"] == 2
     assert created["protected_dependencies"] == saved["protected_dependencies"]
     assert client.get(case_uri + "?version=1", headers=AUTH).json() == old
+
+
+
+
+def test_damaged_protection_keeps_other_cases_and_legacy_versions_discoverable(tmp_path):
+    from app.analysis_support import content_id
+
+    client, _ = case_client(tmp_path)
+    first = client.post(BASE + "/cases", json=save_request(client), headers=AUTH).json()
+    path = BASE + "/cases/" + first["case_id"]
+    old = {key: value for key, value in first.items() if key not in {"version_id", "protected_dependencies"}}
+    old["version_id"] = content_id(old)
+    with sqlite3.connect(tmp_path / "cases.sqlite3") as db:
+        db.execute("UPDATE versions SET payload=?", (json.dumps(old),))
+    updated = client.put(path, headers=AUTH, json={
+        **old["metadata"], "note": "第二版", "base_version": 1,
+        "base_version_id": old["version_id"], "intent_id": "b" * 32,
+    }).json()
+    other = client.get(BASE + "/published").json()["results"][1]
+    report = client.get(BASE + "/published/" + other["result_id"] + "/report",
+                        params={"projection_id": other["projection_id"]}).json()
+    unrelated = client.post(BASE + "/cases", headers=AUTH, json={
+        **save_request(client, intent="c" * 32), "result_id": other["result_id"],
+        "projection_id": other["projection_id"], "report_id": report["report_id"],
+    }).json()
+    with sqlite3.connect(tmp_path / "cases.sqlite3") as db:
+        db.execute("DELETE FROM preparation_references WHERE artifact=?",
+                   (updated["protected_dependencies"]["chart_basis"],))
+    listed = {item["case_id"]: item for item in client.get(BASE + "/cases", headers=AUTH).json()["cases"]}
+    assert listed[first["case_id"]]["availability"] == "protection_unavailable"
+    assert listed[first["case_id"]]["readable_version"] == 1
+    assert listed[unrelated["case_id"]]["availability"] == "protected"
+    assert client.get(path, headers=AUTH).status_code == 503
+    assert client.get(path + "?version=1", headers=AUTH).json() == old
+    versions = client.get(path + "/versions", headers=AUTH).json()["versions"]
+    assert [(item["version"], item["availability"]) for item in versions] == [
+        (2, "protection_unavailable"), (1, "legacy_unverified"),
+    ]

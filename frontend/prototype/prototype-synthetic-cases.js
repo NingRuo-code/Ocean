@@ -99,10 +99,15 @@
       field.value=key==="Title"?value.metadata.title:key==="Tags"?value.metadata.tags.join("\n"):value.metadata.note;field.addEventListener("input",updateSave);
     }
     const save=node(editor,"button","保存笔记新版本");save.id="caseEditSave";save.onclick=()=>perform(async n=>{
-      const fields={...metadata("caseEdit"),base_version:selected.version,base_version_id:selected.version_id},signature=JSON.stringify({case_id:selected.case_id,...fields});
+      const base=selected;
+      const fields={...metadata("caseEdit"),base_version:base.version,base_version_id:base.version_id},signature=JSON.stringify({case_id:base.case_id,...fields});
       if(editIntent?.signature!==signature)editIntent={signature,id:crypto.randomUUID().replaceAll("-","")};
-      const result=await api("/"+selected.case_id,{method:"PUT",body:JSON.stringify({...fields,intent_id:editIntent.id})});if(n!==generation)return;
-      show(result);await loadVersions(n);if(n!==generation)return;const list=await queryCatalog();if(n!==generation)return;catalog(list);$("caseArchiveStatus").textContent="人工信息已保存为新版本，旧版本和科学报告保留。";
+      const result=await api("/"+base.case_id,{method:"PUT",body:JSON.stringify({...fields,intent_id:editIntent.id})});if(n!==generation)return;
+      const updated=verify(result,true);
+      if(updated.case_id!==base.case_id||updated.version!==base.version+1||updated.report.report_id!==base.report.report_id||
+          updated.report.result.result_id!==base.report.result.result_id||updated.report.result.projection_id!==base.report.result.projection_id)
+        throw Error("contract");
+      show(updated);await loadVersions(n);if(n!==generation)return;const list=await queryCatalog();if(n!==generation)return;catalog(list);$("caseArchiveStatus").textContent="人工信息已保存为新版本，旧版本和科学报告保留。";
     },"updated");
     const details=node(root,"details","" );node(details,"summary","冻结逐日证据及身份");
     node(details,"p",value.case_id+" / "+value.version_id+" / "+value.report.report_id);
@@ -161,13 +166,29 @@
   async function loadVersions(n){
     const identity=selected.case_id,version=selected.version,data=await api("/"+identity+"/versions");if(n!==generation)return;
     if(data?.schema_version!=="ocean-synthetic-case-versions/v1"||data.case_id!==identity||!Array.isArray(data.versions)||data.versions.length>16||new Set(data.versions.map(v=>v.version)).size!==data.versions.length||data.versions.some(v=>!Number.isInteger(v.version)||v.version<1||v.version>16||!hash.test(v.version_id)))throw Error("contract");
-    $("caseVersion").replaceChildren();for(const item of data.versions){const option=node($("caseVersion"),"option","版本 "+item.version+" · "+item.created_at);option.value=String(item.version);}$("caseVersion").value=String(version);
+    $("caseVersion").replaceChildren();
+    for(const item of data.versions){
+      const unavailable=item.availability==="protection_unavailable";
+      const option=node($("caseVersion"),"option","版本 "+item.version+" · "+item.created_at+(unavailable?" · 保护待核":""));
+      option.value=String(item.version);
+      option.disabled=unavailable;
+    }
+    $("caseVersion").value=String(version);
   }
   function readCase(identity,version){return perform(async n=>{const value=await api("/"+identity+(version?"?version="+version:""));if(n!==generation)return;show(value);await loadVersions(n);if(n!==generation)return;$("caseArchiveStatus").textContent="已重开持久保存的合成快照；人工信息按所选版本显示。";},"opened");}
   function catalog(data){
     if(data?.schema_version!=="ocean-synthetic-case-catalog/v1"||!Array.isArray(data.cases)||data.cases.length>64)throw Error("contract");
     $("caseItems").replaceChildren();
-    for(const item of data.cases){if(!id.test(item.case_id)||typeof item.metadata?.title!=="string")throw Error("contract");const button=node($("caseItems"),"button",item.metadata.title+" · v"+item.version);button.onclick=()=>readCase(item.case_id);}
+    for(const item of data.cases){
+      if(!id.test(item.case_id)||typeof item.metadata?.title!=="string"||!Number.isInteger(item.version))throw Error("contract");
+      const unavailable=item.availability==="protection_unavailable";
+      const fallback=item.readable_version;
+      if(unavailable&&fallback!==null&&(!Number.isInteger(fallback)||fallback<1||fallback>=item.version))throw Error("contract");
+      const suffix=unavailable?(fallback===null?" · 保护待核":" · 最新版保护待核，可读 v"+fallback):"";
+      const button=node($("caseItems"),"button",item.metadata.title+" · v"+item.version+suffix);
+      button.disabled=unavailable&&fallback===null;
+      button.onclick=()=>readCase(item.case_id,unavailable?fallback:null);
+    }
     if(!data.cases.length)node($("caseItems"),"p","当前没有已保存案例。");
   }
   function open(){OceanHistoryViews.open("private-cases");}

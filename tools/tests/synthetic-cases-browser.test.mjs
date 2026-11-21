@@ -21,11 +21,24 @@ async function openReport(c,base){
 }
 
 test("owner saves a real-service case and reopens the same frozen report after browser refresh",()=>withService(async base=>{
-  const browser=await launchBrowser(edge),c=browser.cdp;
+  const browser=await launchBrowser(edge),c=browser.cdp,posts=[];
+  c.onEvent(event=>{
+    if(event.method==="Network.requestWillBeSent"&&event.params.request.method==="POST"&&
+        event.params.request.url.endsWith("/monthly-analysis/cases"))posts.push(event.params.request);
+  });
   try{
-    await openReport(c,base);await click(c,"#reportSaveCase");
+    await c.send("Network.enable");
+    await openReport(c,base);
+    const preview=await c.evaluate("document.getElementById('monthReport').dataset.reportId");
+    await click(c,"#reportSaveCase");
     await type(c,"caseOwnerToken",owner);await type(c,"caseCreateTitle","我的固定报告");
-    await click(c,"#caseSave");await waitFor(c,"document.getElementById('caseArchive').dataset.state==='saved'");
+    const before=await c.evaluate("document.getElementById('timeDate').value");
+    await c.evaluate("document.getElementById('dateNext').click()");
+    await waitFor(c,"document.getElementById('timeDate').value!=="+JSON.stringify(before));
+    await c.evaluate("document.getElementById('caseSave').click();document.getElementById('caseSave').click()");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.state==='saved'");
+    assert.equal(posts.length,1);
+    assert.equal(JSON.parse(posts[0].postData).report_id,preview);
     const id=await c.evaluate("document.getElementById('caseArchive').dataset.caseId");
     assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/40.*7.*2.*29.*已持久保护/s);
     await c.send("Page.reload");await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
@@ -176,6 +189,44 @@ test("owner edits notes as a new immutable version, searches tags and deliberate
     await waitFor(c,"document.getElementById('caseArchive').dataset.version==='1'");
     assert.equal(await c.evaluate("document.getElementById('caseArchive').dataset.caseId"),firstId);
     assert.equal(await c.evaluate("document.getElementById('caseOriginal').textContent.includes('人工笔记第二版')"),false);
+  }finally{await browser.close();}
+},{caseOwnerToken:owner,enableCaseStore:true}));
+
+test("an edit acknowledgement lacking protection does not replace the checked version",()=>withService(async base=>{
+  const browser=await launchBrowser(edge),c=browser.cdp,injected=[];
+  let stripped=false;
+  c.onEvent(event=>{
+    if(event.method!=="Fetch.requestPaused")return;
+    const {requestId,request,responseStatusCode,responseHeaders}=event.params;
+    if(request.method!=="PUT"||responseStatusCode!==200||stripped){
+      injected.push(c.send("Fetch.continueRequest",{requestId}));
+      return;
+    }
+    stripped=true;
+    const override=c.send("Fetch.getResponseBody",{requestId}).then(response=>{
+      const text=response.base64Encoded?Buffer.from(response.body,"base64").toString("utf8"):response.body;
+      const representation=JSON.parse(text);
+      delete representation.protected_dependencies;
+      return c.send("Fetch.fulfillRequest",{requestId,responseCode:200,
+        responseHeaders:responseHeaders.filter(header=>header.name.toLowerCase()!=="content-length"),
+        body:Buffer.from(JSON.stringify(representation)).toString("base64")});
+    });
+    injected.push(override);
+  });
+  try{
+    await openReport(c,base);await click(c,"#reportSaveCase");await type(c,"caseOwnerToken",owner);await click(c,"#caseSave");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.state==='saved'");
+    await click(c,"#caseEditFields summary");await type(c,"caseEditNote","保持待核的编辑");
+    await c.send("Fetch.enable",{patterns:[{urlPattern:"*/monthly-analysis/cases/*",requestStage:"Response"}]});
+    await click(c,"#caseEditSave");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.state==='error'");
+    assert.equal(await c.evaluate("document.getElementById('caseArchive').dataset.version"),"1");
+    assert.equal(await c.evaluate("document.getElementById('caseEditNote').value"),"保持待核的编辑");
+    await c.send("Fetch.disable");
+    await Promise.all(injected);
+    await click(c,"#caseEditSave");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.version==='2' && document.getElementById('caseArchive').dataset.state==='updated'");
+    assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/保持待核的编辑.*已持久保护/s);
   }finally{await browser.close();}
 },{caseOwnerToken:owner,enableCaseStore:true}));
 

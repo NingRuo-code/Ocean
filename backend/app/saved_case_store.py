@@ -109,7 +109,7 @@ class CaseStore:
         except (OSError, sqlite3.Error, ValueError, TypeError, KeyError, UnicodeError, RecursionError):
             raise CaseStoreError("unavailable") from None
 
-    def read_version(self, db, case_id, version=None):
+    def version_record(self, db, case_id, version=None):
         if db is None:
             raise CaseStoreError("not_found")
         head = db.execute("SELECT head FROM cases WHERE id=?", (case_id,)).fetchone()
@@ -124,21 +124,39 @@ class CaseStore:
             raise CaseStoreError("unavailable")
         dependencies = value.get("protected_dependencies")
         verified_dependencies = case_dependencies(value["report"])
-        if dependencies is not None:
-            if dependencies != verified_dependencies:
-                raise CaseStoreError("protection_unavailable")
-            try:
-                for artifact_id in set(dependencies.values()):
-                    status = protection_status(db, artifact_id)
-                    if status["state"] != "protected" or not any(
-                        kind == "saved_case" and reference == case_id
-                        for kind, reference, _ in reference_rows(db, artifact_id)
-                    ):
-                        raise CaseStoreError("protection_unavailable")
-            except RunStoreError:
-                raise CaseStoreError("protection_unavailable") from None
+        if dependencies is not None and dependencies != verified_dependencies:
+            raise CaseStoreError("protection_unavailable")
         value["version_id"] = expected
         return value
+
+    @staticmethod
+    def availability(db, value):
+        dependencies = value.get("protected_dependencies")
+        if dependencies is None:
+            return "legacy_unverified"
+        try:
+            for artifact_id in set(dependencies.values()):
+                status = protection_status(db, artifact_id)
+                if status["state"] != "protected" or not any(
+                    kind == "saved_case" and reference == value["case_id"]
+                    for kind, reference, _ in reference_rows(db, artifact_id)
+                ):
+                    return "protection_unavailable"
+        except (RunStoreError, sqlite3.Error):
+            return "protection_unavailable"
+        return "protected"
+
+    def read_version(self, db, case_id, version=None):
+        value = self.version_record(db, case_id, version)
+        if self.availability(db, value) == "protection_unavailable":
+            raise CaseStoreError("protection_unavailable")
+        return value
+
+    def version_summary(self, db, case_id, version=None):
+        value = self.version_record(db, case_id, version)
+        summary = {key: value[key] for key in ("case_id", "version", "version_id", "created_at", "metadata")}
+        summary["availability"] = self.availability(db, value)
+        return summary
 
     def replay(self, db, key, fingerprint):
         row = db.execute("SELECT fingerprint,case_id,version FROM intents WHERE key=?", (key,)).fetchone() if db else None
@@ -207,13 +225,20 @@ class CaseStore:
         with self.connection() as db:
             return self.read_version(db, identity, version)
 
+    def version_summaries(self, db, identity):
+        if db is None:
+            raise CaseStoreError("not_found")
+        numbers = db.execute("SELECT number FROM versions WHERE case_id=? ORDER BY number DESC", (identity,)).fetchall()
+        if not numbers:
+            raise CaseStoreError("not_found")
+        if len(numbers) > 16:
+            raise CaseStoreError("unavailable")
+        return [self.version_summary(db, identity, row[0]) for row in numbers]
+
     def versions(self, identity):
         with self.connection() as db:
-            self.read_version(db, identity)
-            numbers = db.execute("SELECT number FROM versions WHERE case_id=? ORDER BY number DESC", (identity,)).fetchall()
-            if len(numbers) > 16:
-                raise CaseStoreError("unavailable")
-            return [{k: v for k, v in self.read_version(db, identity, row[0]).items() if k in {"version", "version_id", "created_at", "metadata"}} for row in numbers]
+            summaries = self.version_summaries(db, identity)
+            return [{key: value for key, value in summary.items() if key != "case_id"} for summary in summaries]
 
     def catalog(self, query=""):
         with self.connection() as db:
@@ -222,7 +247,19 @@ class CaseStore:
             rows = db.execute("SELECT id FROM cases ORDER BY created_at DESC,id").fetchall()
             if len(rows) > 64:
                 raise CaseStoreError("unavailable")
-            results = [{k: v for k, v in self.read_version(db, row[0]).items() if k in {"case_id", "version", "version_id", "created_at", "metadata"}} for row in rows]
-            for item in results:
-                item["metadata"] = {k: item["metadata"][k] for k in ("title", "tags")}
-            return [r for r in results if query.strip().casefold() in (r["metadata"]["title"] + " " + " ".join(r["metadata"]["tags"])).casefold()]
+            results = []
+            term = query.strip().casefold()
+            for (case_id,) in rows:
+                item = self.version_summary(db, case_id)
+                item["metadata"] = {key: item["metadata"][key] for key in ("title", "tags")}
+                if term not in (item["metadata"]["title"] + " " + " ".join(item["metadata"]["tags"])).casefold():
+                    continue
+                if item["availability"] == "protection_unavailable":
+                    item["readable_version"] = next((
+                        value["version"] for value in self.version_summaries(db, case_id)
+                        if value["availability"] != "protection_unavailable"
+                    ), None)
+                else:
+                    item["readable_version"] = item["version"]
+                results.append(item)
+            return results
