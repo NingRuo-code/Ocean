@@ -16,6 +16,7 @@ from .synthetic_run_store import RunStoreError
 
 APPLICATION_ID = 0x4F434153
 MAX_DB_BYTES = 64 * 1024 * 1024
+CASE_SECTIONS = ("summary", "daily", "limits")
 
 
 class CaseStoreError(Exception):
@@ -122,6 +123,9 @@ class CaseStore:
         expected = value.pop("version_id")
         if expected != content_id(value) or value["case_id"] != case_id or value["version"] != (version or head[0]):
             raise CaseStoreError("unavailable")
+        sections = value.get("sections", list(CASE_SECTIONS))
+        if not sections or sections != [section for section in CASE_SECTIONS if section in sections]:
+            raise CaseStoreError("unavailable")
         dependencies = value.get("protected_dependencies")
         verified_dependencies = case_dependencies(value["report"])
         if dependencies is not None and dependencies != verified_dependencies:
@@ -156,6 +160,7 @@ class CaseStore:
         value = self.version_record(db, case_id, version)
         summary = {key: value[key] for key in ("case_id", "version", "version_id", "created_at", "metadata")}
         summary["availability"] = self.availability(db, value)
+        summary["kind"] = value["report"]["result"]["kind"]
         return summary
 
     def replay(self, db, key, fingerprint):
@@ -170,8 +175,10 @@ class CaseStore:
         with self.connection() as db:
             return self.replay(db, key, fingerprint)
 
-    def new_version(self, identity, number, metadata, report):
+    def new_version(self, identity, number, metadata, report, sections=None):
         value = {"schema_version": "ocean-synthetic-case-version/v1", "case_id": identity, "version": number, "created_at": datetime.now(UTC).isoformat(), "metadata": metadata, "report": report, "source_state": "saved_CC0_synthetic_snapshot; current_source_not_rechecked"}
+        if sections is not None:
+            value["sections"] = sections
         value["protected_dependencies"] = case_dependencies(report)
         value["version_id"] = content_id(value)
         return value
@@ -199,7 +206,7 @@ class CaseStore:
             db.execute("INSERT INTO intents VALUES(?,?,?,1)", (key, fingerprint, identity))
             return value
 
-    def update(self, identity, base_version, base_id, key, fingerprint, metadata):
+    def update(self, identity, base_version, base_id, key, fingerprint, metadata, *, report=None, sections=None):
         if self.path is not None and not self.path.exists():
             raise CaseStoreError("not_found")
         with self.connection(write=True) as db:
@@ -209,12 +216,16 @@ class CaseStore:
             old = self.read_version(db, identity)
             if old["version"] != base_version or old["version_id"] != base_id:
                 raise CaseStoreError("version_conflict")
-            if old["metadata"] == metadata:
+            previous_sections = old.get("sections", list(CASE_SECTIONS))
+            selected_sections = sections if sections is not None else previous_sections
+            selected_report = report if report is not None else old["report"]
+            if (old["metadata"] == metadata and previous_sections == selected_sections
+                    and selected_report["report_id"] == old["report"]["report_id"]):
                 raise CaseStoreError("no_changes")
             number = old["version"] + 1
             if number > 16:
                 raise CaseStoreError("capacity")
-            value = self.new_version(identity, number, metadata, old["report"])
+            value = self.new_version(identity, number, metadata, selected_report, selected_sections)
             self.protect_version(db, value)
             db.execute("INSERT INTO versions VALUES(?,?,?)", (identity, number, json.dumps(value)))
             db.execute("INSERT INTO intents VALUES(?,?,?,?)", (key, fingerprint, identity, number))
@@ -240,7 +251,7 @@ class CaseStore:
             summaries = self.version_summaries(db, identity)
             return [{key: value for key, value in summary.items() if key != "case_id"} for summary in summaries]
 
-    def catalog(self, query=""):
+    def catalog(self, q="", kind=None, start_date=None, end_date=None):
         with self.connection() as db:
             if db is None:
                 return []
@@ -248,9 +259,14 @@ class CaseStore:
             if len(rows) > 64:
                 raise CaseStoreError("unavailable")
             results = []
-            term = query.strip().casefold()
+            term = q.strip().casefold()
             for (case_id,) in rows:
                 item = self.version_summary(db, case_id)
+                saved_day = item["created_at"][:10]
+                if ((kind is not None and item["kind"] != kind)
+                        or (start_date is not None and saved_day < start_date)
+                        or (end_date is not None and saved_day > end_date)):
+                    continue
                 item["metadata"] = {key: item["metadata"][key] for key in ("title", "tags")}
                 if term not in (item["metadata"]["title"] + " " + " ".join(item["metadata"]["tags"])).casefold():
                     continue

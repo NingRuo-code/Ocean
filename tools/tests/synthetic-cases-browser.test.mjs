@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {launchBrowser,waitFor} from "../lib/browser-driver.mjs";
 import {withService} from "../lib/monthly-test-service.mjs";
-import {mkdir,writeFile} from "node:fs/promises";
+import {mkdir,readFile,unlink,writeFile} from "node:fs/promises";
 
 const edge=process.env.EDGE??"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const owner="self-authored-case-owner";
@@ -41,10 +41,15 @@ test("owner saves a real-service case and reopens the same frozen report after b
     assert.equal(JSON.parse(posts[0].postData).report_id,preview);
     const id=await c.evaluate("document.getElementById('caseArchive').dataset.caseId");
     assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/40.*7.*2.*29.*已持久保护/s);
-    await c.send("Page.reload");await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
+    const beforeReload=await c.evaluate("performance.timeOrigin");
+    await c.send("Page.reload");
+    await waitFor(c,"performance.timeOrigin!=="+beforeReload+
+      " && document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
     await click(c,"#workbenchToggle");await click(c,"#caseArchiveOpen");
     assert.equal(await c.evaluate("document.getElementById('caseOwnerToken').value"),"");
-    await type(c,"caseOwnerToken",owner);await click(c,"#caseLoad");
+    await type(c,"caseOwnerToken",owner);
+    await waitFor(c,"!document.getElementById('caseLoad').disabled && !document.getElementById('caseArchive').hidden");
+    await click(c,"#caseLoad");
     await waitFor(c,"document.querySelectorAll('#caseItems button').length===1");
     await click(c,"#caseItems button");
     await waitFor(c,`document.getElementById('caseArchive').dataset.caseId===${JSON.stringify(id)}`);
@@ -290,7 +295,7 @@ test("editing only a note preserves comma-containing tags loaded through the act
   }finally{await browser.close();}
 },{caseOwnerToken:owner,enableCaseStore:true}));
 
-test("the complete maximum legal catalog remains readable through the browser byte budget",()=>withService(async base=>{
+test("every page of the maximum legal catalog remains readable through the browser byte budget",()=>withService(async base=>{
   const headers={Authorization:"Bearer "+owner,"Content-Type":"application/json"};
   const item=(await(await fetch(base+"/api/query/monthly-analysis/published")).json()).results[0];
   const report=await(await fetch(base+"/api/query/monthly-analysis/published/"+encodeURIComponent(item.result_id)+"/report?projection_id="+encodeURIComponent(item.projection_id))).json();
@@ -304,8 +309,89 @@ test("the complete maximum legal catalog remains readable through the browser by
     await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
     await click(c,"#workbenchToggle");await click(c,"#caseArchiveOpen");await type(c,"caseOwnerToken",owner);await click(c,"#caseLoad");
     await waitFor(c,"document.getElementById('caseArchive').dataset.state==='listed'");
-    assert.equal(await c.evaluate("document.querySelectorAll('#caseItems button').length"),64);
+    const ids=new Set();
+    for(let page=0;page<8;page++){
+      const entries=await c.evaluate("[...document.querySelectorAll('#caseItems button')].map(button=>button.dataset.caseId)");
+      assert.equal(entries.length,8);
+      entries.forEach(id=>ids.add(id));
+      if(page<7){
+        await click(c,"#caseCatalogNext");
+        await waitFor(c,"document.querySelector('#caseItems button')?.dataset.caseId!=="+JSON.stringify(entries[0])+
+          " && !document.getElementById('caseLoad').disabled");
+      }
+    }
+    assert.equal(ids.size,64);
+    assert.equal(await c.evaluate("document.getElementById('caseCatalogNext').disabled"),true);
     await click(c,"#caseItems button");await waitFor(c,"document.getElementById('caseArchive').dataset.state==='opened'");
     assert.equal(await c.evaluate("document.getElementById('caseEditNote').value"),"🚢".repeat(4000));
   }finally{await browser.close();}
 },{caseOwnerToken:owner,enableCaseStore:true}));
+
+
+
+
+test("filtered case paging keeps same-title identities and rebinds a new protected report version",async()=>withService(async (base,{publishedPath})=>{
+  const headers={Authorization:"Bearer "+owner,"Content-Type":"application/json"};
+  const api=base+"/api/query/monthly-analysis";
+  const originals=(await(await fetch(api+"/published")).json()).results.slice(0,2);
+  const reports=[];
+  for(const item of originals)reports.push(await(await fetch(api+"/published/"+item.result_id+"/report?projection_id="+item.projection_id)).json());
+  const supplied=reports[0],replacement=reports[1],created=[];
+  for(let n=0;n<9;n++){
+    const row=await fetch(api+"/cases",{method:"POST",headers,body:JSON.stringify({
+      result_id:supplied.result.result_id,projection_id:supplied.result.projection_id,report_id:supplied.report_id,
+      intent_id:(n+1).toString(16).padStart(32,"0"),title:"同名海域".repeat(28),tags:["东海检索"],note:"整序 "+n,
+    })});
+    assert.equal(row.status,200);
+    created.push(await row.json());
+  }
+  const expected=created[0];
+  const browser=await launchBrowser(edge),c=browser.cdp,mutations=[];
+  c.onEvent(event=>{
+    if(event.method==="Network.requestWillBeSent"&&event.params.request.method!=="GET")mutations.push(event.params.request);
+  });
+  try{
+    await c.send("Network.enable");
+    await openReport(c,base);
+    await c.evaluate(`(id=>{
+      const select=document.getElementById("monthlySavedResult");
+      select.value=id;select.dispatchEvent(new Event("change",{bubbles:true}));
+    })(${JSON.stringify(replacement.result.result_id)})`);
+    await waitFor(c,"!document.getElementById('monthlyReportOpen').disabled && document.getElementById('monthlyResult').dataset.state==='ready'");
+    await click(c,"#monthlyReportOpen");
+    await waitFor(c,"document.getElementById('monthReport').dataset.reportId==="+JSON.stringify(replacement.report_id));
+    await click(c,"#reportSaveCase");
+    await type(c,"caseOwnerToken",owner);
+    await type(c,"caseCatalogQuery","东海检索");
+    await c.evaluate(`(day=>{
+      document.getElementById("caseCatalogKind").value="monthly_spatial_example";
+      document.getElementById("caseCatalogStart").value=day;
+      document.getElementById("caseCatalogEnd").value=day;
+    })(${JSON.stringify(expected.created_at.slice(0,10))})`);
+    await click(c,"#caseLoad");
+    await waitFor(c,"document.querySelectorAll('#caseItems button').length===8 && !document.getElementById('caseCatalogNext').disabled");
+    await click(c,"#caseCatalogNext");
+    await waitFor(c,"document.querySelectorAll('#caseItems button').length===1 && !document.getElementById('caseLoad').disabled");
+    assert.equal(await c.evaluate("document.querySelector('#caseItems button').dataset.caseId"),expected.case_id);
+    await click(c,"#caseItems button");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.caseId==="+JSON.stringify(expected.case_id));
+    assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/整序 0/);
+    await click(c,"#caseEditFields summary");
+    await c.evaluate("document.getElementById('caseEditRebind').click();document.querySelector('[name=caseSection][value=daily]').click()");
+    await click(c,"#caseEditSave");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.state==='updated'");
+    assert.equal(await c.evaluate("document.getElementById('caseArchive').dataset.reportId"),replacement.report_id);
+    assert.equal(await c.evaluate("[...document.getElementById('caseOriginal').querySelectorAll('details')].some(e=>e.hidden && e.textContent.includes('冻结逐日证据'))"),true);
+    const previous=await(await fetch(api+"/cases/"+expected.case_id+"?version=1",{headers})).json();
+    assert.equal(previous.report.report_id,supplied.report_id);
+    assert.equal(previous.version_id,expected.version_id);
+    await unlink(publishedPath);
+    await c.evaluate("(()=>{const select=document.getElementById('caseVersion');select.value='1';select.dispatchEvent(new Event('change',{bubbles:true}));})()");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.reportId==="+JSON.stringify(supplied.report_id));
+    assert.equal(await c.evaluate("document.getElementById('caseArchive').dataset.version"),"1");
+    assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/原公开快照目录缺失.*新鲜度.*待核/s);
+    assert.deepEqual(mutations.map(request=>request.method),["PUT"]);
+  }finally{await browser.close();}
+},{caseOwnerToken:owner,enableCaseStore:true,
+  publishedFixtureText:await readFile("backend/app/examples/regional-known-snapshots.json","utf8"),
+}));
