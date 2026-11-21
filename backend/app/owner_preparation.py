@@ -80,6 +80,10 @@ class OwnerArtifactPin(ClosedModel):
     pinned: StrictBool
 
 
+class OwnerResultReference(ClosedModel):
+    retained: StrictBool
+
+
 class ReusableUnit(ClosedModel):
     date: date
     region_id: RegistryId
@@ -574,24 +578,34 @@ def create_owner_preparation_router(settings):
                                 headers={"Cache-Control": "no-store"})
         return artifact
 
-    def visible_protection(artifact_id):
+    def visible_protection(artifact_id, *, task_id=None, source=False):
         if artifact_id is None:
             return None
         try:
-            status = store.protection(artifact_id)
+            status = store.protection(artifact_id, task_id=task_id, source=source)
         except RunStoreError:
             status = {"state": "unknown", "pinned": None, "active_references": None}
-        return {field: status[field] for field in ("state", "pinned", "active_references")}
+        return {field: status.get(field) for field in ("state", "pinned", "active_references", "task_reference")}
 
     @router.put("/tasks/{task_id}/protection")
     def pin_artifact(task_id: IntentId, body: OwnerArtifactPin, response: Response):
         response.headers["Cache-Control"] = "no-store"
         try:
-            artifact_id, status = store.change_result_dependency(task_id, "owner_pin", "owner", body.pinned)
+            artifact_id, _ = store.change_result_dependency(task_id, "owner_pin", "owner", body.pinned)
         except RunStoreError as exc:
             raise store_failure(exc) from None
         return {"schema_version": "ocean-owner-artifact-protection/v1", "task_id": task_id,
-                "artifact_id": artifact_id, **{field: status[field] for field in ("state", "pinned", "active_references")}}
+                "artifact_id": artifact_id, **visible_protection(artifact_id, task_id=task_id)}
+
+    @router.put("/tasks/{task_id}/result-reference")
+    def change_result_reference(task_id: IntentId, body: OwnerResultReference, response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        try:
+            artifact_id, _ = store.change_result_dependency(task_id, "shared_task", task_id, body.retained)
+        except RunStoreError as exc:
+            raise store_failure(exc) from None
+        return {"schema_version": "ocean-owner-artifact-protection/v1", "task_id": task_id,
+                "artifact_id": artifact_id, **visible_protection(artifact_id, task_id=task_id)}
 
     @router.get("/tasks/{task_id}/evidence")
     def read_task_evidence(task_id: IntentId, response: Response):
@@ -610,6 +624,6 @@ def create_owner_preparation_router(settings):
         artifact_id = artifact["artifact_id"] if artifact else None
         source_id = "sha256:" + record["expected"]["raw_sha256"]
         return preparation_evidence(record, task_status(record), physical, path_state(raw_path),
-                                    visible_protection(artifact_id), visible_protection(source_id))
+                                    visible_protection(artifact_id, task_id=task_id), visible_protection(source_id, source=True))
 
     return router

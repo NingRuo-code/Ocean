@@ -6,7 +6,7 @@ import pytest
 
 from app.owner_artifact_references import (
     change_reference,
-    permits_deletion,
+    matches_unprotected_revision,
     protection_status,
     register_artifact,
 )
@@ -26,14 +26,14 @@ def test_independent_shared_references_survive_release_and_reopen(tmp_path):
         change_reference(db, ARTIFACT, "saved_report", "controlled-report", True)
         change_reference(db, ARTIFACT, "shared_task", "first-task", False)
         assert protection_status(db, ARTIFACT)["active_references"] == 1
-        assert not permits_deletion(db, ARTIFACT, initial["deletion_guard"])
+        assert not matches_unprotected_revision(db, ARTIFACT, initial["deletion_guard"])
     with sqlite3.connect(path) as db:
         assert protection_status(db, ARTIFACT)["state"] == "protected"
         change_reference(db, ARTIFACT, "saved_report", "controlled-report", False)
         current = protection_status(db, ARTIFACT)
         assert current["state"] == "unprotected"
-        assert not permits_deletion(db, ARTIFACT, initial["deletion_guard"])
-        assert permits_deletion(db, ARTIFACT, current["deletion_guard"])
+        assert not matches_unprotected_revision(db, ARTIFACT, initial["deletion_guard"])
+        assert matches_unprotected_revision(db, ARTIFACT, current["deletion_guard"])
 
 
 def test_unknown_legacy_or_damaged_reference_cannot_authorize_cleanup(tmp_path):
@@ -43,13 +43,13 @@ def test_unknown_legacy_or_damaged_reference_cannot_authorize_cleanup(tmp_path):
         assert protection_status(db, LEGACY)["state"] == "protected"
         change_reference(db, LEGACY, "owner_pin", "owner", False)
         assert protection_status(db, LEGACY)["state"] == "unknown"
-        assert not permits_deletion(db, LEGACY, None)
+        assert not matches_unprotected_revision(db, LEGACY, None)
         change_reference(db, LEGACY, "owner_pin", "owner", True)
         db.execute("UPDATE preparation_references SET identity='corrupt'")
         with pytest.raises(RunStoreError, match="unavailable"):
             protection_status(db, LEGACY)
         with pytest.raises(RunStoreError, match="unavailable"):
-            permits_deletion(db, LEGACY, None)
+            matches_unprotected_revision(db, LEGACY, None)
 
 
 

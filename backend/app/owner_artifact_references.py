@@ -98,9 +98,7 @@ def change_reference(db, artifact, kind, reference, present):
                    "WHERE artifact=?", (digest, artifact))
 
 
-def permits_deletion(db, artifact, expected_guard):
-    """A future cleanup may only consume its preview guard in the same write transaction."""
-    if not db.in_transaction:
-        raise RunStoreError("unavailable")
+def matches_unprotected_revision(db, artifact, expected_guard):
+    """Compare state only. Use PreparationStore.guard_artifact_cleanup to lock a write."""
     current = protection_status(db, artifact)
     return current["state"] == "unprotected" and current["deletion_guard"] == expected_guard

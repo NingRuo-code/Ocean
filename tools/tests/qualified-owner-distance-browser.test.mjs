@@ -1245,6 +1245,8 @@ for(const corrupt of [false,true])test(corrupt
         await waitFor(c,readHistory+".includes('产物有活动引用，仍受保护')");
         await updateReference("saved_report","controlled-report",false);
         await click(c,"#ownerTaskHistoryItems button");
+        await waitFor(c,"document.getElementById('ownerTaskArtifactReference')?.textContent==='解除本任务引用'");
+        await click(c,"#ownerTaskArtifactReference");
         await waitFor(c,readHistory+".includes('暂无保护或活动引用')");
         await unlink(stagedOriginal);
         await click(c,"#ownerTaskHistoryItems button");

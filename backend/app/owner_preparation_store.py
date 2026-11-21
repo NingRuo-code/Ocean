@@ -1,11 +1,18 @@
 """Persistent states for small, private owner archive preparation."""
 
 import json
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from .analysis_support import content_id, decode_controlled_json
-from .owner_artifact_references import change_reference, protection_status, register_artifact
+from .owner_artifact_references import (
+    change_reference,
+    matches_unprotected_revision,
+    protection_status,
+    reference_rows,
+    register_artifact,
+)
 from .synthetic_run_store import RunStore, RunStoreError
 
 SCHEMA = "ocean-owner-preparation-task/v1"
@@ -123,9 +130,14 @@ class PreparationStore(RunStore):
                                      (artifact_id,)).fetchone()
                 if current is None:
                     db.execute("INSERT INTO preparation_artifacts VALUES(?,?)", (artifact_id, raw_artifact))
-                    register_artifact(db, artifact_id)
+                    known = db.execute(
+                        "SELECT 1 FROM runs WHERE json_extract(payload,'$.artifact.artifact_id')=? LIMIT 1", (artifact_id,)
+                    ).fetchone()
+                    if known is None:
+                        register_artifact(db, artifact_id)
                 elif checked_artifact(decode_controlled_json(current[0], RECORD_LIMIT), record["expected"]) != artifact_id:
                     raise RunStoreError("unavailable")
+                change_reference(db, artifact_id, "shared_task", identity, True)
                 artifact = {key: value for key, value in artifact.items() if key != "display"}
                 record["artifact_storage"] = "separate"
                 record["finished_at"] = now
@@ -167,11 +179,39 @@ class PreparationStore(RunStore):
             return "unverified", None
         return "stored", artifact
 
-    def protection(self, artifact_id):
+    def protection(self, artifact_id, *, task_id=None, source=False):
         with self.connection() as db:
             if db is not None:
                 db.execute("BEGIN")
-            return protection_status(db, artifact_id)
+            status = protection_status(db, artifact_id)
+            if task_id is not None or source:
+                status["task_reference"] = None
+            if status["state"] != "protected":
+                if task_id is not None and status["state"] == "unprotected":
+                    status["task_reference"] = False
+                return status
+            references = reference_rows(db, artifact_id)
+            if task_id is not None:
+                status["task_reference"] = any(kind == "shared_task" and reference == task_id
+                                              for kind, reference, _ in references)
+            if source:
+                now = datetime.now(UTC).isoformat()
+                for kind, reference, _ in references:
+                    if kind != "task_input":
+                        continue
+                    row = db.execute("SELECT id,intent,fingerprint,payload FROM runs WHERE id=?", (reference,)).fetchone()
+                    if row is None or self.checked(row)["expires_at"] <= now:
+                        status["active_references"] = None
+                        break
+            return status
+
+    @contextmanager
+    def guard_artifact_cleanup(self, artifact_id, expected_guard):
+        """Hold the same writer lock for the reference check and any future cleanup."""
+        with self.connection(write=True) as db:
+            if not matches_unprotected_revision(db, artifact_id, expected_guard):
+                raise RunStoreError("protection_changed")
+            yield db
 
     def change_result_dependency(self, task_id, kind, reference_id, present):
         """Pin or reference one validated prepared artifact by its original task."""
