@@ -82,6 +82,7 @@
     root,actions,
     request:(suffix,method,body,signal)=>ownerNet('/data/owner-preparation',suffix,method,body,json,signal),
     canRead:sameOriginOwnerAvailable,
+    sourceKey:()=>source().base,
     lock:()=>clearPrivate(),
   });
 
@@ -810,11 +811,11 @@
   window.addEventListener('ocean-month-draft-closed',()=>clearPrivate());
   window.addEventListener('ocean-load-state',()=>{if(sessionSource&&!sameSource(sessionSource,source()))clearPrivate();update();});
   root.addEventListener('toggle',()=>{
-    if(root.open){startRecovery();return;}
+    if(root.open){startRecovery();preparation.resume();return;}
     stopRecovery();stopCancellationObservation();stopTaskHistoryRequest();preparation.stop();update();
   });
   document.addEventListener('visibilitychange',()=>{
-    if(!document.hidden){startRecovery();return;}
+    if(!document.hidden){startRecovery();preparation.resume();return;}
     stopRecovery();stopCancellationObservation();stopTaskHistoryRequest();preparation.stop();update();
   });
   window.addEventListener('offline',()=>{
@@ -834,6 +835,7 @@
     }
     update();
   });
+  window.addEventListener('online',()=>preparation.resume());
   window.addEventListener('online',()=>{update();startRecovery();});
   readReference();update();
 })();

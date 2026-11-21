@@ -24,6 +24,8 @@ export async function withService(work, {
   watchSupportExpiry = false,
   ownerPreparationRegistryText = null,
   ownerPreparationManifestText = null,
+  enableOwnerPreparationExecution = false,
+  holdFrontPreparation = false,
   prepareRaw = null,
   projectRoot = process.cwd(),
 } = {}) {
@@ -32,6 +34,7 @@ export async function withService(work, {
   if(publishedFixtureText!==null)await writeFile(join(root,"published.json"),publishedFixtureText,"utf8");
   const preparationRegistry=join(root,"owner-preparation-registry.json");
   const preparationManifest=join(root,"owner-preparation-manifest.json");
+  const releaseFrontPreparation=join(root,"release-front-preparation");
   if(ownerPreparationRegistryText!==null)await writeFile(preparationRegistry,ownerPreparationRegistryText,"utf8");
   if(ownerPreparationManifestText!==null)await writeFile(preparationManifest,ownerPreparationManifestText,"utf8");
   const distancePath=join(root,"distance.json"), distanceSupport=join(root,"distance-support.json");
@@ -129,6 +132,18 @@ def short_first_distance(*args):
         distance_reference.DISTANCE_EXECUTION_TIMEOUT_SECONDS=current_timeout
 owner_runs.calculate_distance_reference=short_first_distance`:''}
 from app.main import app
+${holdFrontPreparation?`from pathlib import Path
+from time import monotonic,sleep
+from app import owner_preparation
+run_front_process=owner_preparation.run_front_day
+def hold_front_result(*args):
+    try:
+        return run_front_process(*args)
+    finally:
+        until=monotonic()+12
+        while monotonic()<until and not Path(os.environ["OCEAN_TEST_RELEASE_FRONT"]).exists():
+            sleep(0.025)
+owner_preparation.run_front_day=hold_front_result`:''}
 ${watchSupportExpiry?`from pathlib import Path
 expiry_path=Path(os.environ["OCEAN_TEST_DISTANCE_SUPPORT_STATE"])
 @app.middleware("http")
@@ -165,7 +180,7 @@ uvicorn.Server(uvicorn.Config(app,log_level='error')).run(sockets=[s])`;
       ],{timeout:30_000,windowsHide:true});
     }
     child=spawn(process.env.OCEAN_EXPERIMENT_PYTHON || "python",["-c",code],{cwd:resolve(projectRoot,"backend"),windowsHide:true,
-      env:{...inherited,OCEAN_TEST_FRONTEND:resolve(projectRoot,"frontend/prototype"),OCEAN_PROTOTYPE_DATA_DIR:resolve(projectRoot,"frontend/prototype/data"),OCEAN_API_PREFIX:'/api',OCEAN_AI_PROVIDER:"rules",OCEAN_MONTHLY_EXECUTION_TOKEN:caseOwnerToken,...(publishedFixtureText===null?{}:{OCEAN_TEST_PUBLISHED:join(root,"published.json")}),...(ownerPreparationRegistryText===null?{}:{OCEAN_OWNER_PREPARATION_REGISTRY_PATH:preparationRegistry}),...(ownerPreparationManifestText===null?{}:{OCEAN_OWNER_PREPARATION_MANIFEST_PATH:preparationManifest}),...(enableCaseStore?{OCEAN_CASE_STORE_PATH:join(root,"cases.sqlite3")}:{}),...(enableSyntheticRuns?{OCEAN_SYNTHETIC_RUN_STORE_PATH:syntheticRunPath||join(root,"runs.sqlite3")}:{}),...(distanceFixtureText===null?{}:{OCEAN_MONTHLY_DISTANCE_INPUT_PATH:distancePath}),...(watchSupportExpiry?{OCEAN_TEST_DISTANCE_SUPPORT_STATE:distanceSupportState}:{}),...(qualifyDistanceFixture?{OCEAN_SUPPORT_SNAPSHOT_PATH:distanceSupport,OCEAN_QUALIFIED_DISTANCE_RUN_STORE_PATH:distanceStorePath}:{}),...((holdDistanceResult||holdDistancePublication)?{OCEAN_TEST_DISTANCE_READY:distanceResultReady,OCEAN_TEST_DISTANCE_RELEASE:releaseDistanceResult}:{}),...(traceDistanceProcess?{OCEAN_TEST_DISTANCE_PROCESS_STARTED:distanceProcessStarted,OCEAN_TEST_DISTANCE_INTENTS_STARTED:distanceIntentsStarted}:{}),OCEAN_RAW_DATA_DIR:join(root,"raw"),OCEAN_CACHE_DIR:join(root,"cache")},stdio:["ignore","pipe","pipe"]});
+      env:{...inherited,OCEAN_TEST_FRONTEND:resolve(projectRoot,"frontend/prototype"),OCEAN_PROTOTYPE_DATA_DIR:resolve(projectRoot,"frontend/prototype/data"),OCEAN_API_PREFIX:'/api',OCEAN_AI_PROVIDER:"rules",OCEAN_MONTHLY_EXECUTION_TOKEN:caseOwnerToken,...(publishedFixtureText===null?{}:{OCEAN_TEST_PUBLISHED:join(root,"published.json")}),...(ownerPreparationRegistryText===null?{}:{OCEAN_OWNER_PREPARATION_REGISTRY_PATH:preparationRegistry}),...(ownerPreparationManifestText===null?{}:{OCEAN_OWNER_PREPARATION_MANIFEST_PATH:preparationManifest}),...(holdFrontPreparation?{OCEAN_TEST_RELEASE_FRONT:releaseFrontPreparation}:{}),...(enableOwnerPreparationExecution?{OCEAN_OWNER_PREPARATION_STORE_PATH:join(root,"owner-preparation.sqlite3")}:{}),...(enableCaseStore?{OCEAN_CASE_STORE_PATH:join(root,"cases.sqlite3")}:{}),...(enableSyntheticRuns?{OCEAN_SYNTHETIC_RUN_STORE_PATH:syntheticRunPath||join(root,"runs.sqlite3")}:{}),...(distanceFixtureText===null?{}:{OCEAN_MONTHLY_DISTANCE_INPUT_PATH:distancePath}),...(watchSupportExpiry?{OCEAN_TEST_DISTANCE_SUPPORT_STATE:distanceSupportState}:{}),...(qualifyDistanceFixture?{OCEAN_SUPPORT_SNAPSHOT_PATH:distanceSupport,OCEAN_QUALIFIED_DISTANCE_RUN_STORE_PATH:distanceStorePath}:{}),...((holdDistanceResult||holdDistancePublication)?{OCEAN_TEST_DISTANCE_READY:distanceResultReady,OCEAN_TEST_DISTANCE_RELEASE:releaseDistanceResult}:{}),...(traceDistanceProcess?{OCEAN_TEST_DISTANCE_PROCESS_STARTED:distanceProcessStarted,OCEAN_TEST_DISTANCE_INTENTS_STARTED:distanceIntentsStarted}:{}),OCEAN_RAW_DATA_DIR:join(root,"raw"),OCEAN_CACHE_DIR:join(root,"cache")},stdio:["ignore","pipe","pipe"]});
     child.on('error',()=>{startError=true;});
     child.stdout.on("data",b=>{output+=b.toString();try{const info=JSON.parse(output.split("\n")[0]);port=info.port;runtime=info.runtime;}catch{}});
     child.stderr.resume();
@@ -191,7 +206,7 @@ uvicorn.Server(uvicorn.Config(app,log_level='error')).run(sockets=[s])`;
       }
       await delay(Math.min(50, remaining));
     }
-    await work(base,{runtime,distancePath,distanceSupport,distanceSupportState,distanceResultReady,releaseDistanceResult,distanceStorePath,distanceProcessStarted,distanceIntentsStarted,interrupt:()=>stop('SIGKILL')});
+    await work(base,{releaseFrontPreparation,runtime,distancePath,distanceSupport,distanceSupportState,distanceResultReady,releaseDistanceResult,distanceStorePath,distanceProcessStarted,distanceIntentsStarted,interrupt:()=>stop('SIGKILL')});
   }finally{await stop().catch(()=>stop('SIGKILL'));
     if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith("ocean-month-service-"))await rm(root,{recursive:true,force:true}).catch(()=>{});
   }

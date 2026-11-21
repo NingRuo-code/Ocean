@@ -3,11 +3,14 @@
 import json
 import os
 import re
-from datetime import date, timedelta
+import subprocess
+import sys
+from datetime import UTC, date, datetime, timedelta
 from hashlib import sha256
+from tempfile import TemporaryFile
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.routing import APIRoute
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -17,6 +20,8 @@ from .comparison_models import Identity
 from .config import PROJECT_ROOT
 from .monthly_models import ClosedModel
 from .owner_access import owner_requirement
+from .owner_preparation_store import RECORD_LIMIT, PreparationStore, checked_artifact, task_status
+from .synthetic_run_store import RunStoreError
 
 RegistryId = Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9_.-]{0,63}$")]
 Layer = Literal["front", "front_intensity", "sst", "effort"]
@@ -58,6 +63,15 @@ class PreparationRequest(ClosedModel):
         if not 0 <= (self.end_date - self.start_date).days < 31:
             raise ValueError("Select one to 31 explicit observation days")
         return self
+
+
+IntentId = Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")]
+
+
+class PreparationSubmission(ClosedModel):
+    intent_id: IntentId
+    plan_id: Identity
+    request: PreparationRequest
 
 
 class ReusableUnit(ClosedModel):
@@ -214,7 +228,7 @@ def recorded_front_members(source, evidence, receipt):
     if catalog_id != receipt.archive_check.catalog_sha256 or archived is None or archived.record != record:
         return None
     matched = {
-        member.date for member in archived.members
+        member.date: member.sha256 for member in archived.members
         if member.status == "matched" and member.sha256 and member.date in days
         and member.name == f"front_location{member.date:%Y%m%d}.nc"
     }
@@ -236,7 +250,10 @@ def adapter_fingerprints():
 
     try:
         connector = fingerprint("backend/scripts/fetch_zenodo_front_samples.py")
-        processing_sources = ("backend/app/frontend_payload.py", "backend/scripts/export_prototype_data.py")
+        processing_sources = (
+            "backend/app/frontend_payload.py", "backend/scripts/export_prototype_data.py",
+            "tools/audit_daily_sources.py", "tools/prepare_owner_front_day.py", "tools/verify_august_archive_members.py",
+        )
         processor = content_id({path: fingerprint(path) for path in processing_sources})
         return connector, processor
     except (OSError, ValueError):
@@ -287,6 +304,38 @@ def preparation_reasons(source, evidence, receipt, archived, adapters):
     return reasons
 
 
+def within_front_budget(bbox):
+    west, south, east, north = bbox
+    width, height = east - west, north - south
+    return (
+        -180 <= west < east <= 180 and -90 <= south < north <= 90
+        and width <= 22 and height <= 22 and (width * 20 + 2) * (height * 20 + 2) <= 200_000
+    )
+
+
+def run_front_day(settings, expected, expires_at):
+    command = [
+        sys.executable, "-m", "tools.prepare_owner_front_day", str(settings.raw_data_dir.resolve()),
+        expected["date"], expected["raw_sha256"], *map(str, expected["bbox"]),
+        "--processor-id", expected["registration"]["processor_id"],
+    ]
+    remaining = (datetime.fromisoformat(expires_at) - datetime.now(UTC)).total_seconds() - 2
+    if remaining <= 0:
+        raise subprocess.TimeoutExpired(command, 0)
+    # Resolve the app in the same checkout even if the service was launched from the backend directory.
+    pythonpath = os.pathsep.join(filter(None, (str(PROJECT_ROOT / "backend"), os.environ.get("PYTHONPATH"))))
+    with TemporaryFile() as output:
+        subprocess.run(command, cwd=PROJECT_ROOT, stdout=output, stderr=subprocess.DEVNULL, check=True,
+                       timeout=min(30, remaining), env={**os.environ, "PYTHONPATH": pythonpath})
+        output.seek(0)
+        result = decode_controlled_json(output.read(RECORD_LIMIT + 1), RECORD_LIMIT)
+    worker_id = result.pop("artifact_id")
+    if worker_id != content_id(result) or result.pop("processor_id") != expected["registration"]["processor_id"]:
+        raise ValueError("Front processing returned a mismatched result")
+    result["registration"] = expected["registration"]
+    return {**result, "artifact_id": content_id(result)}
+
+
 class PreparationRoute(APIRoute):
     def get_route_handler(self):
         existing = super().get_route_handler()
@@ -304,6 +353,7 @@ class PreparationRoute(APIRoute):
 def create_owner_preparation_router(settings):
     router = APIRouter(prefix="/data/owner-preparation", route_class=PreparationRoute,
                        dependencies=[Depends(owner_requirement(settings))])
+    store = PreparationStore(settings.owner_preparation_store_path)
 
     def registry_snapshot():
         configured = settings.owner_preparation_registry_path
@@ -352,10 +402,8 @@ def create_owner_preparation_router(settings):
         return {"schema_version": "ocean-owner-preparation-registry/v1", "registry_id": identity,
                 "preparation_evidence_id": evidence_id, "sources": items}
 
-    @router.post("/plan")
-    def preview(request: PreparationRequest, response: Response):
-        response.headers["Cache-Control"] = "no-store"
-        registry, identity, authoritative, receipts, evidence_id = registry_snapshot()
+    def build_preview(request, snapshot):
+        registry, identity, authoritative, receipts, evidence_id = snapshot
         source = next((item for item in registry.sources if item.source_id == request.source_id), None)
         if source is None:
             raise HTTPException(422, "Source is outside the registered archive scope",
@@ -418,6 +466,99 @@ def create_owner_preparation_router(settings):
             "units": units,
             "reasons": reasons,
         }
-        return {**plan, "plan_id": content_id(plan)}
+        can_execute = (
+            store.path is not None and plan["can_prepare"] and len(units) == 1
+            and within_front_budget(plan["bbox"])
+        )
+        result = {**plan, "can_execute": can_execute}
+        proof = None
+        if can_execute:
+            proof = {"date": request.start_date.isoformat(), "bbox": list(plan["bbox"]),
+                     "raw_sha256": archived[1][request.start_date],
+                     "registration": {"source_version": evidence.source_version, "processor_id": adapters[1],
+                                      "region_id": request.region_id, "target": request.target}}
+        return {**result, "plan_id": content_id(result)}, proof
+
+    @router.post("/plan")
+    def preview(request: PreparationRequest, response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        return build_preview(request, registry_snapshot())[0]
+
+    def store_failure(exc):
+        status = {"not_found": 404, "intent_conflict": 409, "busy": 429, "capacity": 503}.get(str(exc), 503)
+        return HTTPException(status, "Private preparation task is unavailable",
+                             headers={"Cache-Control": "no-store"})
+
+    def execute(id_, request, plan_id, expected, expires_at):
+        error = "processing_failed"
+        try:
+            if not store.transition(id_, "processing"):
+                return
+            artifact = run_front_day(settings, expected, expires_at)
+            if not store.transition(id_, "validating"):
+                return
+            checked_artifact(artifact, expected)
+            if not store.transition(id_, "registering"):
+                return
+            error = "evidence_changed"
+            fresh, proof = build_preview(request, registry_snapshot())
+            if fresh["plan_id"] == plan_id and proof == expected:
+                error = "processing_failed"
+                store.transition(id_, "ready", artifact=artifact)
+                return
+        except (RunStoreError, OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError, HTTPException):
+            pass
+        try:
+            store.transition(id_, "failed", error=error)
+        except RunStoreError:
+            # An unavailable database leaves the accepted record bounded by its original lease.
+            pass
+
+    @router.post("/tasks", status_code=202)
+    def submit(submission: PreparationSubmission, response: Response, background: BackgroundTasks):
+        response.headers["Cache-Control"] = "no-store"
+        body = submission.model_dump(mode="json")
+        try:
+            old = store.find(submission.intent_id, content_id(body))
+            if old is not None:
+                return task_status(old)
+            snapshot, proof = build_preview(submission.request, registry_snapshot())
+            if snapshot["plan_id"] != submission.plan_id or proof is None:
+                raise HTTPException(409, "Preview no longer authorizes this one-day preparation",
+                                    headers={"Cache-Control": "no-store"})
+            record, created = store.accept(body, proof)
+        except RunStoreError as exc:
+            raise store_failure(exc) from None
+        if created:
+            background.add_task(execute, record["id"], submission.request, submission.plan_id, proof, record["expires_at"])
+        return task_status(record)
+
+    @router.get("/intents/{intent_id}")
+    def read_intent(intent_id: IntentId, response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        try:
+            return task_status(store.read_intent(intent_id))
+        except RunStoreError as exc:
+            raise store_failure(exc) from None
+
+    @router.get("/tasks/{task_id}")
+    def read_task(task_id: IntentId, response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        try:
+            return task_status(store.read(task_id))
+        except RunStoreError as exc:
+            raise store_failure(exc) from None
+
+    @router.get("/tasks/{task_id}/artifact")
+    def read_artifact(task_id: IntentId, response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        try:
+            record = store.read(task_id)
+        except RunStoreError as exc:
+            raise store_failure(exc) from None
+        if record["state"] != "ready":
+            raise HTTPException(404, "Private preparation artifact is unavailable",
+                                headers={"Cache-Control": "no-store"})
+        return record["artifact"]
 
     return router

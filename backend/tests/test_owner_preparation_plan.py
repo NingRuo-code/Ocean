@@ -2,7 +2,9 @@
 
 import json
 from hashlib import sha256
+from pathlib import Path
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
@@ -62,7 +64,7 @@ def source_registration(**changes):
     }
 
 
-def client_for(tmp_path, *sources, bind_manifest=True):
+def client_for(tmp_path, *sources, bind_manifest=True, executable=False):
     registry = tmp_path / "sources.json"
     registry.write_text(json.dumps({
         "schema_version": "ocean-source-registry/v1", "sources": sources,
@@ -98,6 +100,7 @@ def client_for(tmp_path, *sources, bind_manifest=True):
         "owner_preparation_registry_path": registry,
         "owner_preparation_manifest_path": manifest if bind_manifest else None,
         "raw_data_dir": tmp_path / "raw",
+        "owner_preparation_store_path": (tmp_path / "preparation.sqlite3") if executable else None,
         "cache_dir": tmp_path / "cache",
     })
     app = FastAPI()
@@ -252,3 +255,61 @@ def test_catalog_dates_and_adapter_scope_limit_ready_units(tmp_path):
         assert plan["can_prepare"] is False
         assert "scope_adapter_unsupported" in plan["reasons"]
     assert client.post(API + "/plan", json=BODY, headers=AUTH).json()["can_prepare"] is True
+
+
+
+def verified_single_day_client(tmp_path, *, corrupt=False):
+    original = Path(__file__).resolve().parents[2] / "data/raw/front/2024/front_location20240805.nc"
+    digest = "37610c878649fc39eb43a7d1203ea48b14cab7d9c7fa21de2ecad81d0dc8e2c5"
+    if not original.is_file() or sha256(original.read_bytes()).hexdigest() != digest:
+        pytest.skip("Checked original front member is not installed")
+    source = source_registration()
+    source["preparation"]["reusable_units"] = []
+    client = client_for(tmp_path, source, executable=True)
+    path = tmp_path / "artifact-manifest.json"
+    manifest = json.loads(path.read_bytes())
+    proof = manifest["preparation_evidence"]["zenodo_front_location"]["archive_check"]["sources"]["front"]
+    proof["members"][0]["sha256"] = digest
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    staged = tmp_path / "raw/front/2024" / original.name
+    staged.parent.mkdir(parents=True)
+    data = original.read_bytes()
+    staged.write_bytes(data[:-1] + bytes([data[-1] ^ 1]) if corrupt else data)
+    scoped = {**BODY, "end_date": BODY["start_date"]}
+    plan = client.post(API + "/plan", json=scoped, headers=AUTH).json()
+    assert plan["can_prepare"] is True
+    assert plan["can_execute"] is True
+    return client, {"intent_id": "a" * 32, "plan_id": plan["plan_id"], "request": scoped}
+
+
+def test_real_preparation_auth_bound_intent_and_private_stage_registration(tmp_path):
+    client, body = verified_single_day_client(tmp_path)
+    assert client.post(API + "/tasks", json=body).status_code == 401
+    assert client.post(API + "/tasks", json={**body, "plan_id": "sha256:" + "0" * 64}, headers=AUTH).status_code == 409
+    assert not (tmp_path / "preparation.sqlite3").exists()
+    response = client.post(API + "/tasks", json=body, headers=AUTH)
+    assert response.status_code == 202, response.text
+    accepted = response.json()
+    assert accepted["state"] == "accepted"
+    uri = API + "/tasks/" + accepted["id"]
+    assert client.get(uri).status_code == 401
+    ready = client.get(uri, headers=AUTH).json()
+    assert ready["state_history"] == ["accepted", "processing", "validating", "registering", "ready"]
+    assert ready["artifact"]["support"] == {"valid": 19102, "missing": 3298, "front": 411, "resolution_deg": 0.05}
+    assert ready["artifact"]["research_ready"] is False
+    assert client.get(uri + "/artifact", headers=AUTH).json()["artifact_id"] == ready["artifact"]["artifact_id"]
+    assert client.get(API + "/intents/" + body["intent_id"], headers=AUTH).json() == ready
+    (tmp_path / "artifact-manifest.json").unlink()
+    assert client.post(API + "/tasks", json=body, headers=AUTH).json() == ready
+    assert client.post(API + "/tasks", json={**body, "plan_id": "sha256:" + "1" * 64}, headers=AUTH).status_code == 409
+
+
+def test_failed_real_preparation_records_no_artifact(tmp_path):
+    client, body = verified_single_day_client(tmp_path, corrupt=True)
+    accepted = client.post(API + "/tasks", json=body, headers=AUTH).json()
+    uri = API + "/tasks/" + accepted["id"]
+    failed = client.get(uri, headers=AUTH).json()
+    assert failed["state_history"] == ["accepted", "processing", "failed"]
+    assert failed["artifact"] is None
+    assert failed["error"] == "processing_failed"
+    assert client.get(uri + "/artifact", headers=AUTH).status_code == 404
