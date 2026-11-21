@@ -1,6 +1,6 @@
 /* Owner archive-plan preview using the same authenticated workbench session. */
 (function(){
-  const identity=/^sha256:[0-9a-f]{64}$/,key=/^[a-z0-9][a-z0-9_.-]{0,63}$/;
+  const identity=/^sha256:[0-9a-f]{64}$/,taskId=/^[0-9a-f]{32}$/,key=/^[a-z0-9][a-z0-9_.-]{0,63}$/;
   const layerNames={front:'锋面',front_intensity:'锋面强度',sst:'海温',effort:'活动'};
   const purposeNames={map:'地图',A_month:'A 月分析',B_event:'B 事件',description:'资料说明'};
   const targetNames={day_artifact:'单日展示产物',support_input:'支持审计输入'};
@@ -15,6 +15,9 @@
     license:'使用许可',cost:'费用条件'};
   const evidenceStates={unknown:'未知',unavailable:'不可用',unsupported:'未支持',blocked:'受限'};
   const unitNames={reusable:'同版本复用',to_prepare:'待准备',blocked:'受限'};
+  const taskNames={accepted:'已受理',processing:'处理中',validating:'校验中',registering:'登记中',ready:'已就绪',failed:'准备失败'};
+  const taskErrors={processing_failed:'处理或校验失败',evidence_changed:'登记证据已变化',
+    worker_interrupted:'处理进程中断'};
   const canDescribe=(labels,value)=>typeof value==='string'&&Object.hasOwn(labels,value);
 
   function node(parent,tag,text){
@@ -71,17 +74,26 @@
       '<div class="monthly-actions"><button id="ownerPreparationPreview" type="submit">预览准备范围</button>'+
       '<button id="ownerPreparationRefresh" type="button">刷新登记</button>'+
       '<button id="ownerPreparationClose" type="button">收起预览</button></div></form>'+
-      '<p id="ownerPreparationStatus" role="status"></p><div id="ownerPreparationResult"></div>';
+      '<p id="ownerPreparationStatus" role="status"></p><div id="ownerPreparationResult"></div>'+
+      '<div id="ownerPreparationTask" hidden><button id="ownerPreparationReadTask" type="button">读取准备任务</button>'+
+      '<button id="ownerPreparationReplayTask" type="button" hidden>重试同一提交</button>'+
+      '<p id="ownerPreparationTaskStatus" role="status"></p><div id="ownerPreparationTaskDetails"></div></div>';
     const find=id=>panel.querySelector('#'+id);
     const form=find('ownerPreparationForm'),fields=form.elements,status=find('ownerPreparationStatus');
     const result=find('ownerPreparationResult'),source=find('ownerPreparationSource');
     const submit=find('ownerPreparationPreview'),refresh=find('ownerPreparationRefresh'),close=find('ownerPreparationClose');
-    let registry=null,observer=null;
+    const taskPanel=find('ownerPreparationTask'),taskRead=find('ownerPreparationReadTask');
+    const taskMessage=find('ownerPreparationTaskStatus'),taskDetails=find('ownerPreparationTaskDetails');
+    const replay=find('ownerPreparationReplayTask');
+    let registry=null,observer=null,task=null,taskTimer=null,execute=null;
 
     function sync(){
       open.disabled=!canRead();
       refresh.disabled=open.disabled||Boolean(observer);
       submit.disabled=refresh.disabled||!registry||!source.value;
+      taskRead.disabled=refresh.disabled||!task;
+      replay.disabled=taskRead.disabled;
+      if(execute)execute.disabled=refresh.disabled||Boolean(task&&(!task.finished||task.plan===execute.dataset.planId));
     }
 
     function stop(message){
@@ -93,11 +105,13 @@
 
     function clearResult(){
       result.replaceChildren();
+      execute=null;
       delete result.dataset.planId;
     }
 
     function hide(clear=false){
       stop();
+      clearTimeout(taskTimer);
       panel.hidden=true;
       open.setAttribute('aria-expanded','false');
       if(clear){
@@ -105,19 +119,24 @@
         form.reset();
         fillSelect(source,[]);
         chooseSource();
+        taskDetails.replaceChildren();
+        delete taskDetails.dataset.state;
+        if(task)task.submission=null;
+        replay.hidden=true;
+        taskMessage.textContent='';
         status.textContent='';
       }
       sync();
     }
 
-    async function read(suffix,method,body,message,receive){
+    async function read(suffix,method,body,message,receive,messageTarget=status,onError=()=>{}){
       if(!canRead()||panel.hidden)return;
       stop();
       const active=new AbortController();
       const opener=document.activeElement;
       observer=active;
       const timeout=setTimeout(()=>active.abort(),6000);
-      status.textContent=message;
+      messageTarget.textContent=message;
       sync();
       if(panel.contains(opener)&&opener.disabled)close.focus({preventScroll:true});
       try{
@@ -128,8 +147,14 @@
       }catch(error){
         if(observer!==active)return;
         if(['http_401','http_403','source_changed'].includes(error.message))lock();
-        else status.textContent=error.message==='http_422'?'所选日期、区域或用途超出登记范围。':
-          error.message==='registry'?'登记清单已变化，请刷新登记后重新核对。':'准备预览暂不可核实。';
+        else {
+          onError(error);
+          messageTarget.textContent=error.message==='http_409'?'准备计划已变化，请重新预览。':
+          error.message==='http_429'?'已有准备任务在运行。':
+          error.message==='http_404'?'暂未查到该准备任务。':
+          error.message==='http_422'?'所选日期、区域或用途超出登记范围。':
+          error.message==='registry'?'登记清单已变化，请刷新登记后重新核对。':'当前状态暂不可核实。';
+        }
       }finally{
         clearTimeout(timeout);
         if(observer===active){
@@ -171,12 +196,13 @@
         fillSelect(source,data.sources.map(item=>item.source_id),Object.fromEntries(data.sources.map(item=>[item.source_id,item.name])));
         chooseSource();
         source.focus({preventScroll:true});
+        if(task)scheduleTaskRead();
       });
     }
 
     function showPlan(data,expected){
       if(data?.schema_version!=='ocean-owner-preparation-plan/v1'||!identity.test(data.plan_id)||
-          data.execution_started!==false||typeof data.can_prepare!=='boolean'||
+          data.execution_started!==false||typeof data.can_prepare!=='boolean'||typeof data.can_execute!=='boolean'||
           !Array.isArray(data.reasons)||data.reasons.length>16||
           !Array.isArray(data.units)||data.units.length>124||
           (data.source_version!==null&&!identity.test(data.source_version))||
@@ -199,7 +225,8 @@
       const eligible=reasons.length===0;
       if((eligible&&data.source_version===null)||
           data.units.some(unit=>eligible?unit.state==='blocked':unit.state==='to_prepare')||
-          data.can_prepare!==(eligible&&data.units.some(unit=>unit.state==='to_prepare')))throw Error('contract');
+          data.can_prepare!==(eligible&&data.units.some(unit=>unit.state==='to_prepare'))||
+          (data.can_execute&&(!data.can_prepare||data.units.length!==1)))throw Error('contract');
 
       clearResult();
       result.dataset.planId=data.plan_id;
@@ -215,10 +242,86 @@
         node(rows,'li',unit.date+' · '+layerNames[unit.layer]+' · '+unitNames[unit.state]+
           (unit.artifact_id?' · '+unit.artifact_id:''));
       }
+      if(data.can_execute){
+        execute=node(result,'button','准备这一日锋面');
+        execute.type='button';execute.id='ownerPreparationExecute';execute.dataset.planId=data.plan_id;
+        execute.onclick=()=>startPreparation(data.plan_id,expected);
+        sync();
+      }
       status.textContent=reasons.length?'预览已生成，存在准备前置缺项。':
         data.can_prepare?'准备前置已核对，待准备范围见下方。':'本范围可使用同版本已登记产物。';
     }
 
+    function showTask(value){
+      if(!task||value?.schema_version!=='ocean-owner-preparation-task/v1'||!taskId.test(value.id)||
+          value.intent_id!==task.intent||value.plan_id!==task.plan||
+          (task.id&&value.id!==task.id)||!canDescribe(taskNames,value.state)||
+          !Array.isArray(value.state_history)||value.state_history.length>5||
+          value.state_history.at(-1)!==value.state||!value.state_history.every(stage=>canDescribe(taskNames,stage)))throw Error('contract');
+      const artifact=value.artifact;
+      if(value.state==='ready'){
+        if(!artifact||!identity.test(artifact.artifact_id)||artifact.scope!=='private_map_display'||
+            artifact.research_ready!==false||artifact.layer!=='front'||artifact.date!==value.request?.start_date||
+            !['verified_time_coordinate','archive_member_name'].includes(artifact.date_basis)||
+            !['valid','missing','front'].every(field=>Number.isSafeInteger(artifact.support?.[field])&&artifact.support[field]>=0))
+          throw Error('contract');
+      }else if(artifact!==null)throw Error('contract');
+      if(value.state==='failed'?!canDescribe(taskErrors,value.error):value.error!==null)throw Error('contract');
+      task.id=value.id;
+      task.submission=null;
+      replay.hidden=true;
+      task.finished=['ready','failed'].includes(value.state);
+      taskMessage.textContent=taskNames[value.state]+(value.error?' · '+taskErrors[value.error]:'');
+      taskDetails.replaceChildren();
+      taskDetails.dataset.state=value.state;
+      node(taskDetails,'p',value.state_history.map(stage=>taskNames[stage]).join(' → '));
+      if(artifact){
+        node(taskDetails,'p',artifact.date+' · 锋面 · 地图展示 · 本人可见');
+        node(taskDetails,'p','有效 '+artifact.support.valid+' 格，缺测 '+artifact.support.missing+' 格，锋线 '+artifact.support.front+' 格。');
+        node(taskDetails,'p',artifact.date_basis==='archive_member_name'?'日期依据为原归档成员名，观测时刻仍待核。':'已核对时间坐标。');
+        node(taskDetails,'p','研究用途资格待独立核验。');
+      }
+      if(!task.finished)scheduleTaskRead();
+    }
+
+    function scheduleTaskRead(){
+      clearTimeout(taskTimer);
+      taskTimer=setTimeout(()=>{
+        if(!task||panel.hidden||!canRead())return;
+        if(observer){scheduleTaskRead();return;}
+        readTask();
+      },450);
+    }
+
+    function readTask(){
+      clearTimeout(taskTimer);
+      if(!task||panel.hidden||!canRead())return;
+      read('/intents/'+task.intent,'GET',null,'正在读取准备任务。',showTask,taskMessage);
+    }
+
+    function startPreparation(plan,selection){
+      if(!execute||execute.disabled)return;
+      const intent=Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
+      task={intent,plan,id:null,finished:false,submission:{intent_id:intent,plan_id:plan,request:selection}};
+      taskPanel.hidden=false;
+      taskDetails.replaceChildren();
+      delete taskDetails.dataset.state;
+      submitTask();
+    }
+
+    function submitTask(){
+      if(!task?.submission)return;
+      replay.hidden=true;
+      read('/tasks','POST',task.submission,'正在提交锋面资料准备。',showTask,taskMessage,error=>{
+        if(['http_409','http_422','http_429'].includes(error.message)){
+          task=null;
+          clearResult();
+        }else if(task)replay.hidden=false;
+      });
+    }
+
+    replay.onclick=submitTask;
+    taskRead.onclick=readTask;
     open.onclick=()=>{
       if(!panel.hidden){hide();return;}
       panel.hidden=false;

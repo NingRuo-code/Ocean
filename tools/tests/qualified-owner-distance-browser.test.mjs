@@ -1,8 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
-import {access, readFile, unlink, writeFile} from "node:fs/promises";
+import {access, mkdir, readFile, unlink, writeFile} from "node:fs/promises";
 import {setTimeout as delay} from "node:timers/promises";
+import {join} from "node:path";
 import {launchBrowser, waitFor} from "../lib/browser-driver.mjs";
 import {click, headers, owner, type} from "../lib/case-test-browser.mjs";
 import {withService} from "../lib/monthly-test-service.mjs";
@@ -970,6 +971,9 @@ const preparationManifest=JSON.stringify({
     processor_sha256:"sha256:"+digest(JSON.stringify({
       "backend/app/frontend_payload.py":"sha256:"+digest(await readFile("backend/app/frontend_payload.py")),
       "backend/scripts/export_prototype_data.py":"sha256:"+digest(await readFile("backend/scripts/export_prototype_data.py")),
+      "tools/audit_daily_sources.py":"sha256:"+digest(await readFile("tools/audit_daily_sources.py")),
+      "tools/prepare_owner_front_day.py":"sha256:"+digest(await readFile("tools/prepare_owner_front_day.py")),
+      "tools/verify_august_archive_members.py":"sha256:"+digest(await readFile("tools/verify_august_archive_members.py")),
     })),
     license_evidence_id:"sha256:"+"e".repeat(64),
     cost_evidence_id:"sha256:"+"f".repeat(64),
@@ -1033,3 +1037,79 @@ test("the owner previews only registered archive preparation and sees missing cr
     }
   },{caseOwnerToken:owner,ownerPreparationRegistryText:preparationRegistry,ownerPreparationManifestText:preparationManifest})
 );
+
+
+test("the owner explicitly prepares an original front day in Edge without launching analysis", async t=>{
+  const relative="front/2024/front_location20240805.nc";
+  const original=await readFile("data/raw/"+relative).catch(()=>null);
+  const rawDigest="37610c878649fc39eb43a7d1203ea48b14cab7d9c7fa21de2ecad81d0dc8e2c5";
+  if(!original||digest(original)!==rawDigest){t.skip("Checked original front member is not installed");return;}
+  const source={...preparationSource,display_name:"Zenodo 20356239 锋面",
+    preparation:{...preparationSource.preparation,estimated_bytes_per_unit:original.length,reusable_units:[]}};
+  const registry=JSON.stringify({schema_version:"ocean-source-registry/v1",sources:[source]});
+  const evidence=JSON.parse(preparationManifest);
+  evidence.registry_id="sha256:"+digest(registry);
+  const proof=evidence.preparation_evidence.zenodo_front_location;
+  proof.reusable_units=[];
+  proof.archive_check.sources.front.members=proof.archive_check.sources.front.members.slice(0,1);
+  proof.archive_check.sources.front.members[0].sha256=rawDigest;
+  proof.license_evidence_id="sha256:"+digest(await readFile("docs/data/august-2024-source-registry.json"));
+  proof.cost_evidence_id="sha256:"+digest(await readFile("docs/data/august-2024-archive-members.json"));
+  await withService(async base=>{
+    const browser=await launchBrowser(edge),c=browser.cdp,posts=[];
+    const api=base+"/api/data/owner-preparation";
+    c.onEvent(msg=>{
+      if(msg.method==="Network.requestWillBeSent"&&msg.params.request.method==="POST")posts.push(msg.params.request);
+    });
+    try{
+      await c.send("Network.enable");
+      await openOwner(c,base);
+      await type(c,"ownerRunToken",owner);
+      const view=await c.evaluate("JSON.stringify(state.view)");
+      await click(c,"#ownerPreparationOpen");
+      await waitFor(c,"!!document.querySelector('#ownerPreparationSource option[value=zenodo_front_location]')");
+      await c.evaluate(`(()=>{
+        const f=document.getElementById("ownerPreparationForm"),source=f.elements.source_id;
+        source.value="zenodo_front_location";
+        source.dispatchEvent(new Event("change",{bubbles:true}));
+        f.elements.region_id.value="east_china";
+        f.elements.purpose.value="map";
+        f.elements.target.value="day_artifact";
+        f.elements.start_date.value=f.elements.end_date.value="2024-08-05";
+        f.querySelector("[name=layers][value=front]").click();
+      })()`);
+      await click(c,"#ownerPreparationPreview");
+      await waitFor(c,"!document.getElementById('ownerPreparationExecute')?.disabled && !!document.getElementById('ownerPreparationExecute')");
+      assert.deepEqual(posts.map(p=>p.url),[api+"/plan"]);
+      await c.evaluate("document.getElementById('ownerPreparationExecute').click();document.getElementById('ownerPreparationExecute').click()");
+      await waitFor(c,"!!document.getElementById('ownerPreparationTaskDetails').dataset.state");
+      await click(c,"#ownerPreparationClose");
+      await waitFor(c,"document.getElementById('ownerPreparation').hidden");
+      await click(c,"#ownerPreparationOpen");
+      await waitFor(c,"document.getElementById('ownerPreparationTaskDetails').dataset.state==='ready'");
+      const details=await c.evaluate("document.getElementById('ownerPreparationTaskDetails').textContent");
+      assert.match(details,/已受理.*处理中.*校验中.*登记中.*已就绪/s);
+      assert.match(details,/2024-08-05.*本人可见.*19102.*3298.*411.*观测时刻仍待核.*研究用途资格待独立核验/s);
+      assert.equal(await c.evaluate("JSON.stringify(state.view)"),view);
+      assert.deepEqual(posts.map(p=>p.url),[api+"/plan",api+"/tasks"]);
+      const body=JSON.parse(posts[1].postData);
+      const ready=await(await fetch(api+"/intents/"+body.intent_id,{headers})).json();
+      assert.equal(ready.state,"ready");
+      const artifactPath=api+"/tasks/"+ready.id+"/artifact";
+      assert.equal((await fetch(artifactPath)).status,401);
+      const artifact=await(await fetch(artifactPath,{headers})).json();
+      assert.equal(artifact.artifact_id,ready.artifact.artifact_id);
+      assert.equal(artifact.raw_sha256,rawDigest);
+      assert.equal(artifact.research_ready,false);
+      const replayed=await(await fetch(api+"/tasks",{method:"POST",headers,body:JSON.stringify(body)})).json();
+      assert.deepEqual(replayed,ready);
+    }finally{await browser.close();}
+  },{
+    caseOwnerToken:owner,ownerPreparationRegistryText:registry,ownerPreparationManifestText:JSON.stringify(evidence),
+    enableOwnerPreparationExecution:true,
+    prepareRaw:async raw=>{
+      await mkdir(join(raw,"front","2024"),{recursive:true});
+      await writeFile(join(raw,relative),original);
+    },
+  });
+});

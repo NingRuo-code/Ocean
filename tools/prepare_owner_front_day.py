@@ -10,13 +10,12 @@ from tempfile import TemporaryDirectory
 import numpy as np
 from app.analysis_support import content_id, read_regular_bytes
 from app.frontend_payload import MIN_LENGTH_KM, TOLERANCE_KM, exporter
+from app.owner_preparation import within_front_budget
 
 from tools.audit_daily_sources import netcdf_rows
 from tools.verify_august_archive_members import check_member, load_catalog, member_path
 
 MAX_RAW_BYTES = 8 * 1024 * 1024
-MAX_CELLS = 200_000
-MAX_DETAIL_DEGREES = 22
 PRODUCT = "zenodo-20356239"
 
 
@@ -24,10 +23,7 @@ def prepare_front_day(raw_root, day, bbox, expected_sha256):
     catalog = load_catalog()
     if f"{day:%Y-%m}" != catalog["month"]:
         raise ValueError("Observation day outside the registered archive")
-    west, south, east, north = bbox
-    if (not -180 <= west < east <= 180 or not -90 <= south < north <= 90
-            or east - west > MAX_DETAIL_DEGREES or north - south > MAX_DETAIL_DEGREES
-            or ((east - west) * 20 + 2) * ((north - south) * 20 + 2) > MAX_CELLS):
+    if not within_front_budget(bbox):
         raise ValueError("Display window exceeds the small preparation budget")
     expected = catalog["sources"]["front"]["members"][day.day - 1]
     if not 0 < expected["raw_bytes"] <= MAX_RAW_BYTES:
