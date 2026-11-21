@@ -34,6 +34,14 @@ const fixture = JSON.stringify({
   front_days:dates.map(date=>({date,source_id:"front-original",lines:[[[124.55,30.15],[124.55,30.25]]]})),
 });
 
+async function useControlledVisibility(c) {
+  // Keep unrelated desktop focus changes out of the measured retry/reconnect paths.
+  await c.send("Page.addScriptToEvaluateOnNewDocument",{source:
+    "Object.defineProperty(document,'hidden',{get:()=>window.oceanTestHidden===true});"+
+    "document.addEventListener('visibilitychange',event=>{if(event.isTrusted)event.stopImmediatePropagation()},true);",
+  });
+}
+
 async function openOwner(c,base) {
   await c.send("Page.enable");
   await c.send("Page.navigate",{url:base+"/prototype-fishing.html"});
@@ -98,10 +106,13 @@ test("owner prepares and submits the same frozen P0 distance sample through the 
       await unlink(distancePath);
       await unlink(distanceSupport);
       await click(c,"#ownerRunSubmit");
-      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='uncertain'");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='error'");
+      assert.match(await c.evaluate("document.getElementById('ownerRunStatus').textContent"),/明确拒绝/);
+      assert.equal(await c.evaluate("document.getElementById('ownerRunPrepare').disabled"),false);
       assert.equal(submissions.length,2);
       const rejected=await fetch(base+route+"/intents/"+submissions[1].intent_id+query,{headers});
       assert.equal(rejected.status,404);
+      assert.equal(rejected.headers.get("X-Ocean-Submission-State"),null);
       await click(c,"#ownerRunHistory");
       await waitFor(c,`document.querySelector('${root}').dataset.state==='history'`);
       await click(c,"#ownerRunItems button");
@@ -228,3 +239,300 @@ test("a closed panel can recover the same run when P0 is withdrawn during execut
     }
   },{caseOwnerToken:owner,distanceFixtureText:fixture,qualifyDistanceFixture:true,holdDistanceResult:true})
 );
+
+test("recovers a timed-out qualified response with only a read of the original intent", () =>
+  withService(async base=>{
+    const browser=await launchBrowser(edge), c=browser.cdp, requests=[];
+    let lostResponse;
+    c.onEvent(msg=>{
+      if(msg.method==="Network.requestWillBeSent"&&msg.params.request.url.startsWith(base+route)){
+        requests.push(msg.params.request);
+      }
+      if(msg.method==="Fetch.requestPaused"&&msg.params.responseStatusCode){
+        const requestId=msg.params.requestId;
+        lostResponse=(async()=>{
+          const raw=await c.send("Fetch.getResponseBody",{requestId});
+          // Leave the committed response paused until the browser's own deadline aborts its read.
+          return JSON.parse(raw.base64Encoded?Buffer.from(raw.body,"base64").toString():raw.body);
+        })();
+      }
+    });
+    try{
+      await c.send("Network.enable");
+      await useControlledVisibility(c);
+      await prepareDistanceInBrowser(c,base);
+      const zoom=await c.evaluate("state.zoom");
+      await c.send("Fetch.enable",{patterns:[{urlPattern:"*/owner-runs",requestStage:"Response"}]});
+      const submittedAt=Date.now();
+      await click(c,"#ownerRunSubmit");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='submitting'");
+      await click(c,"#zoomIn");
+      await waitFor(c,"state.zoom!=="+zoom);
+      const applied=await c.evaluate("({lon:state.lon,lat:state.lat,date:state.date,range:state.range,zoom:state.zoom})");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='uncertain'",55_000);
+      assert.ok(Date.now()-submittedAt>=39_000);
+      assert.equal(await c.evaluate("document.getElementById('ownerRunSubmit').disabled"),true);
+      const run=await lostResponse;
+      assert.equal(run.state,"completed");
+      await c.send("Fetch.disable");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'",12_000);
+      assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),run.id);
+      assert.deepEqual(await c.evaluate("({lon:state.lon,lat:state.lat,date:state.date,range:state.range,zoom:state.zoom})"),applied);
+      const intentPath=route+"/intents/"+run.intent_id+"?purpose="+mode;
+      assert.equal(requests.filter(request=>request.method==="POST").length,1);
+      assert.equal(requests.filter(request=>request.method==="GET"&&request.url===base+intentPath).length,1);
+      const stored=await(await fetch(base+route+"?purpose="+mode,{headers})).json();
+      assert.equal(stored.runs.length,1);
+    } finally {
+      await browser.close();
+    }
+  },{caseOwnerToken:owner,distanceFixtureText:fixture,qualifyDistanceFixture:true})
+);
+
+test("preserves a qualified receipt during disconnect and reauthorizes the same receipt after reload", () =>
+  withService(async base=>{
+    const browser=await launchBrowser(edge), c=browser.cdp, requests=[];
+    c.onEvent(msg=>{
+      if(msg.method==="Network.requestWillBeSent"&&msg.params.request.url.startsWith(base+route)){
+        requests.push(msg.params.request);
+      }
+    });
+    try{
+      await c.send("Network.enable");
+      await prepareDistanceInBrowser(c,base);
+      await click(c,"#ownerRunSubmit");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'",30_000);
+      const runId=await c.evaluate("document.getElementById('ownerRuns').dataset.runId");
+      const previous=await c.evaluate("document.getElementById('ownerRunResult').textContent");
+      const online={offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1};
+      await c.send("Network.emulateNetworkConditions",{...online,offline:true});
+      await waitFor(c,"navigator.onLine===false && document.getElementById('ownerRuns').dataset.state==='uncertain'");
+      assert.equal(await c.evaluate("document.getElementById('ownerRunResult').textContent"),previous);
+      assert.equal(await c.evaluate("document.getElementById('ownerRunRead').disabled"),true);
+      const disconnected=requests.length;
+      await delay(850);
+      assert.equal(requests.length,disconnected);
+      await c.send("Network.emulateNetworkConditions",online);
+      await waitFor(c,"navigator.onLine===true && document.getElementById('ownerRuns').dataset.state==='completed'");
+      assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),runId);
+
+      await openOwner(c,base);
+      await c.evaluate("document.getElementById('ownerRunPurpose').value='monthly_distance_reference';document.getElementById('ownerRunPurpose').dispatchEvent(new Event('change'))");
+      assert.equal(await c.evaluate("document.getElementById('ownerRunToken').value"),"");
+      assert.equal(await c.evaluate("document.getElementById('ownerRunResult').textContent"),"");
+      const unauthenticated=requests.length;
+      await delay(850);
+      assert.equal(requests.length,unauthenticated);
+      await type(c,"ownerRunToken",owner);
+      await click(c,"#ownerRunFindIntent");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'");
+      assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),runId);
+      assert.equal(requests.filter(request=>request.method==="POST").length,1);
+      assert.equal(requests.filter(request=>request.method==="GET"&&request.url.includes("/intents/")).length,2);
+    } finally{
+      await browser.close();
+    }
+  },{caseOwnerToken:owner,distanceFixtureText:fixture,qualifyDistanceFixture:true})
+);
+
+test("recovers a damaged qualified reference through history and preserves an explicit selection", () =>
+  withService(async base=>{
+    const browser=await launchBrowser(edge), c=browser.cdp, requests=[];
+    const query="?purpose="+mode;
+    const key="ocean-owner-qualified-distance-run-ref/v1";
+    c.onEvent(msg=>{
+      if(msg.method==="Network.requestWillBeSent"&&msg.params.request.url.startsWith(base+route)){
+        requests.push(msg.params.request);
+      }
+    });
+    try{
+      await c.send("Network.enable");
+      await useControlledVisibility(c);
+      await prepareDistanceInBrowser(c,base);
+      await click(c,"#ownerRunSubmit");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'",40_000);
+      const original=await c.evaluate("document.getElementById('ownerRuns').dataset.runId");
+      const submission=JSON.parse(requests.find(request=>request.method==="POST").postData);
+      const requested={...submission,intent_id:"d".repeat(32)};
+      const response=await fetch(base+route,{method:"POST",headers,body:JSON.stringify(requested)});
+      assert.equal(response.status,200);
+      const other=await response.json();
+      assert.notEqual(other.id,original);
+
+      await c.evaluate("localStorage.setItem("+JSON.stringify(key)+",'{broken')");
+      await openOwner(c,base);
+      await c.evaluate("document.getElementById('ownerRunPurpose').value='monthly_distance_reference';document.getElementById('ownerRunPurpose').dispatchEvent(new Event('change'))");
+      assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.referenceState"),"invalid");
+      assert.equal(await c.evaluate("document.getElementById('ownerRunResult').textContent"),"");
+      await type(c,"ownerRunToken",owner);
+      await click(c,"#ownerRunHistory");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='history'");
+      await click(c,'#ownerRunItems button[data-run-id="'+original+'"]');
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'");
+      assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),original);
+
+      const prior=await c.evaluate("JSON.parse(localStorage.getItem("+JSON.stringify(key)+"))");
+      await click(c,"#ownerRunNew");
+      const beforeReopen=requests.length;
+      await click(c,root+" summary");
+      await waitFor(c,"!document.getElementById('ownerRuns').open");
+      await click(c,root+" summary");
+      await waitFor(c,"document.getElementById('ownerRuns').open");
+      await delay(850);
+      assert.equal(await c.evaluate("localStorage.getItem("+JSON.stringify(key)+")"),null);
+      assert.equal(requests.length,beforeReopen);
+
+      const unresolved={...prior,run_id:null,intent_id:other.intent_id};
+      const inject="localStorage.setItem("+JSON.stringify(key)+","+JSON.stringify(JSON.stringify(unresolved))+");";
+      await c.evaluate(inject+"document.getElementById('ownerRunPurpose').dispatchEvent(new Event('change'))");
+      await click(c,"#ownerRunHistory");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='history'");
+      await click(c,'#ownerRunItems button[data-run-id="'+original+'"]');
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'");
+      assert.equal(await c.evaluate("document.getElementById('ownerRunSubmit').disabled"),true);
+      const online={offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1};
+      await c.send("Network.emulateNetworkConditions",{...online,offline:true});
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='uncertain'");
+      const returning=requests.length;
+      await c.send("Network.emulateNetworkConditions",online);
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'");
+      assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),original);
+      assert.deepEqual(requests.slice(returning).map(request=>[request.method,request.url]),[
+        ["GET",base+route+"/intents/"+submission.intent_id+query],
+      ]);
+      assert.equal(await c.evaluate("localStorage.getItem("+JSON.stringify(key)+")"),JSON.stringify(unresolved));
+      assert.equal(requests.filter(request=>request.method==="POST").length,1);
+    } finally{
+      await browser.close();
+    }
+  },{caseOwnerToken:owner,distanceFixtureText:fixture,qualifyDistanceFixture:true})
+);
+
+test("bounds intent recovery and stops when the panel closes or authorization is lost", () =>
+  withService(async base=>{
+    const browser=await launchBrowser(edge), c=browser.cdp, calls=[];
+    const intent="e".repeat(32);
+    const query=base+route+"/intents/"+intent+"?purpose="+mode;
+    const pending=[];
+    c.onEvent(msg=>{
+      if(msg.method==="Network.requestWillBeSent"&&msg.params.request.url===query){
+        calls.push({method:msg.params.request.method,at:msg.params.timestamp});
+      }
+      if(msg.method==="Fetch.requestPaused"){
+        const headers=Object.entries(msg.params.request.headers)
+          .filter(([name])=>name.toLowerCase()!=="authorization")
+          .map(([name,value])=>({name,value}));
+        pending.push(c.send("Fetch.continueRequest",{requestId:msg.params.requestId,headers}));
+      }
+    });
+    try{
+      await c.send("Network.enable");
+      await useControlledVisibility(c);
+      await openOwner(c,base);
+      const ref={schema_version:"ocean-owner-qualified-distance-run-ref/v1",base:await c.evaluate("OceanPublicRead.source().base"),intent_id:intent,run_id:null};
+      await c.evaluate("localStorage.setItem('ocean-owner-qualified-distance-run-ref/v1',"+JSON.stringify(JSON.stringify(ref))+");document.getElementById('ownerRunPurpose').value='monthly_distance_reference';document.getElementById('ownerRunPurpose').dispatchEvent(new Event('change'))");
+      await type(c,"ownerRunToken",owner);
+      assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.referenceState"),"available");
+      assert.equal(await c.evaluate("document.getElementById('ownerRunFindIntent').disabled"),false);
+      await c.evaluate("document.getElementById('ownerRunFindIntent').click()");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='uncertain'");
+      await click(c,root+" summary");
+      await waitFor(c,"!document.getElementById('ownerRuns').open");
+      await delay(850);
+      assert.equal(calls.length,1);
+      await c.evaluate("window.oceanTestHidden=true;document.dispatchEvent(new Event('visibilitychange'))");
+      await click(c,root+" summary");
+      await waitFor(c,"document.getElementById('ownerRuns').open");
+      await delay(850);
+      assert.equal(calls.length,1);
+      await c.evaluate("window.oceanTestHidden=false;document.dispatchEvent(new Event('visibilitychange'))");
+      const deadline=Date.now()+43_000;
+      while(calls.length<6&&Date.now()<deadline)await delay(50);
+      assert.equal(calls.length,6,JSON.stringify({
+        elapsed: calls.map(call=>call.at-calls[0].at),
+        view: await c.evaluate("({hidden:document.hidden,open:document.getElementById('ownerRuns').open,state:document.getElementById('ownerRuns').dataset.state})")
+      }));
+      const recovered=calls.slice(1);
+      for(const [i,seconds] of [1.2,2.4,4.8,8].entries()){
+        assert.ok(recovered[i+1].at-recovered[i].at>=seconds-0.15);
+      }
+      await delay(8250);
+      assert.equal(calls.length,6);
+      assert.match(await c.evaluate("document.getElementById('ownerRunStatus').textContent"),/暂不可核实/);
+
+      await c.send("Fetch.enable",{patterns:[{urlPattern:query,requestStage:"Request"}]});
+      await click(c,root+" summary");
+      await waitFor(c,"!document.getElementById('ownerRuns').open");
+      await click(c,root+" summary");
+      await waitFor(c,"document.getElementById('ownerRunToken').value==='' && document.getElementById('ownerRuns').dataset.state==='locked'");
+      await Promise.all(pending);
+      const stopped=calls.length;
+      await delay(1450);
+      assert.equal(stopped,7);
+      assert.equal(calls.length,stopped);
+      assert.ok(calls.every(call=>call.method==="GET"));
+      const stored=await(await fetch(base+route+"?purpose="+mode,{headers})).json();
+      assert.equal(stored.runs.length,0);
+    } finally{
+      await browser.close();
+    }
+  },{caseOwnerToken:owner,distanceFixtureText:fixture,qualifyDistanceFixture:true})
+);
+
+test("an actual service interruption leaves the pending intent unknown without publishing a partial run", () => {
+  const options={caseOwnerToken:owner,distanceFixtureText:fixture,qualifyDistanceFixture:true};
+  return withService(async (base,{distanceStorePath,distanceResultReady,releaseDistanceResult,interrupt})=>{
+    const browser=await launchBrowser(edge), c=browser.cdp, submissions=[];
+    const query="?purpose="+mode;
+    c.onEvent(msg=>{
+      const request=msg.params?.request;
+      if(msg.method==="Network.requestWillBeSent"&&request.method==="POST"&&request.url===base+route){
+        submissions.push(JSON.parse(request.postData).intent_id);
+      }
+    });
+    try {
+      await c.send("Network.enable");
+      await prepareDistanceInBrowser(c,base);
+      await writeFile(releaseDistanceResult,"release first result");
+      await click(c,"#ownerRunSubmit");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'",40_000);
+      const completed=await c.evaluate("document.getElementById('ownerRuns').dataset.runId");
+      const published=await c.evaluate("document.getElementById('ownerRunResult').textContent");
+      await unlink(distanceResultReady);
+      await unlink(releaseDistanceResult);
+      await click(c,"#ownerRunPrepare");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='prepared'");
+      await click(c,"#ownerRunSubmit");
+      const deadline=Date.now()+30_000;
+      let running=false;
+      while(!running&&Date.now()<deadline){
+        running=await access(distanceResultReady).then(()=>true,()=>false);
+        if(!running)await delay(50);
+      }
+      assert.equal(running,true,"the actual engine reached the pre-commit test pause");
+      assert.equal(submissions.length,2);
+      assert.equal((await fetch(base+route+"/intents/"+submissions[1]+query,{headers})).status,404);
+      await interrupt();
+      await assert.rejects(fetch(base+"/api/health",{signal:AbortSignal.timeout(1500)}));
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='uncertain'");
+      assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),completed);
+      assert.equal(await c.evaluate("document.getElementById('ownerRunResult').textContent"),published);
+      assert.equal(await c.evaluate("document.getElementById('ownerRunSubmit').disabled"),true);
+      assert.equal(await c.evaluate("document.getElementById('ownerRunNew').disabled"),true);
+
+      await withService(async restarted=>{
+        const pending=await fetch(restarted+route+"/intents/"+submissions[1]+query,{headers});
+        assert.equal(pending.status,404);
+        const resumed=await fetch(restarted+route+"/intents/"+submissions[0]+query,{headers});
+        assert.equal(resumed.status,200);
+        assert.equal((await resumed.json()).id,completed);
+        const history=await(await fetch(restarted+route+query,{headers})).json();
+        assert.deepEqual(history.runs.map(run=>run.id),[completed]);
+      },{...options,qualifiedRunPath:distanceStorePath});
+      assert.equal(submissions.length,2);
+      assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.state"),"uncertain");
+    } finally {
+      await browser.close();
+    }
+  },{...options,holdDistanceResult:true});
+});

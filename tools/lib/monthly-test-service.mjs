@@ -1,6 +1,7 @@
 import {resolve,dirname,basename,join} from "node:path";
 import {execFile,spawn} from "node:child_process";
 import {promisify} from "node:util";
+import {once} from "node:events";
 import {mkdtemp,mkdir,rm,writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {setTimeout as delay} from "node:timers/promises";
@@ -15,6 +16,7 @@ export async function withService(work, {
   syntheticRunPath = null,
   distanceFixtureText = null,
   qualifyDistanceFixture = false,
+  qualifiedRunPath = null,
   holdDistanceResult = false,
   prepareRaw = null,
   projectRoot = process.cwd(),
@@ -81,7 +83,14 @@ ${collectRuntimeInventory?"runtime['installed_distributions']=installed_distribu
 print(json.dumps({'port':s.getsockname()[1],'runtime':runtime}),flush=True)
 uvicorn.Server(uvicorn.Config(app,log_level='error')).run(sockets=[s])`;
   const inherited=Object.fromEntries(Object.entries(process.env).filter(([key])=>!key.toUpperCase().startsWith('OCEAN_')));
+  const distanceStorePath=qualifiedRunPath||join(root,"distance-runs.sqlite3");
   let child;
+  async function stop(signal="SIGTERM"){
+    if(!child?.pid||child.exitCode!==null||child.signalCode!==null)return;
+    const closed=once(child,"exit",{signal:AbortSignal.timeout(3000)});
+    child.kill(signal);
+    await closed;
+  }
   let output="",port,runtime,startError=null;
   try {
     if(prepareRaw)await prepareRaw(join(root,"raw"));
@@ -96,7 +105,7 @@ uvicorn.Server(uvicorn.Config(app,log_level='error')).run(sockets=[s])`;
       ],{timeout:30_000,windowsHide:true});
     }
     child=spawn(process.env.OCEAN_EXPERIMENT_PYTHON || "python",["-c",code],{cwd:resolve(projectRoot,"backend"),windowsHide:true,
-      env:{...inherited,OCEAN_TEST_FRONTEND:resolve(projectRoot,"frontend/prototype"),OCEAN_PROTOTYPE_DATA_DIR:resolve(projectRoot,"frontend/prototype/data"),OCEAN_API_PREFIX:'/api',OCEAN_AI_PROVIDER:"rules",OCEAN_MONTHLY_EXECUTION_TOKEN:caseOwnerToken,...(publishedFixtureText===null?{}:{OCEAN_TEST_PUBLISHED:join(root,"published.json")}),...(enableCaseStore?{OCEAN_CASE_STORE_PATH:join(root,"cases.sqlite3")}:{}),...(enableSyntheticRuns?{OCEAN_SYNTHETIC_RUN_STORE_PATH:syntheticRunPath||join(root,"runs.sqlite3")}:{}),...(distanceFixtureText===null?{}:{OCEAN_MONTHLY_DISTANCE_INPUT_PATH:distancePath}),...(qualifyDistanceFixture?{OCEAN_SUPPORT_SNAPSHOT_PATH:distanceSupport,OCEAN_QUALIFIED_DISTANCE_RUN_STORE_PATH:join(root,"distance-runs.sqlite3")}:{}),...(holdDistanceResult?{OCEAN_TEST_DISTANCE_READY:distanceResultReady,OCEAN_TEST_DISTANCE_RELEASE:releaseDistanceResult}:{}),OCEAN_RAW_DATA_DIR:join(root,"raw"),OCEAN_CACHE_DIR:join(root,"cache")},stdio:["ignore","pipe","pipe"]});
+      env:{...inherited,OCEAN_TEST_FRONTEND:resolve(projectRoot,"frontend/prototype"),OCEAN_PROTOTYPE_DATA_DIR:resolve(projectRoot,"frontend/prototype/data"),OCEAN_API_PREFIX:'/api',OCEAN_AI_PROVIDER:"rules",OCEAN_MONTHLY_EXECUTION_TOKEN:caseOwnerToken,...(publishedFixtureText===null?{}:{OCEAN_TEST_PUBLISHED:join(root,"published.json")}),...(enableCaseStore?{OCEAN_CASE_STORE_PATH:join(root,"cases.sqlite3")}:{}),...(enableSyntheticRuns?{OCEAN_SYNTHETIC_RUN_STORE_PATH:syntheticRunPath||join(root,"runs.sqlite3")}:{}),...(distanceFixtureText===null?{}:{OCEAN_MONTHLY_DISTANCE_INPUT_PATH:distancePath}),...(qualifyDistanceFixture?{OCEAN_SUPPORT_SNAPSHOT_PATH:distanceSupport,OCEAN_QUALIFIED_DISTANCE_RUN_STORE_PATH:distanceStorePath}:{}),...(holdDistanceResult?{OCEAN_TEST_DISTANCE_READY:distanceResultReady,OCEAN_TEST_DISTANCE_RELEASE:releaseDistanceResult}:{}),OCEAN_RAW_DATA_DIR:join(root,"raw"),OCEAN_CACHE_DIR:join(root,"cache")},stdio:["ignore","pipe","pipe"]});
     child.on('error',()=>{startError=true;});
     child.stdout.on("data",b=>{output+=b.toString();try{const info=JSON.parse(output.split("\n")[0]);port=info.port;runtime=info.runtime;}catch{}});
     child.stderr.resume();
@@ -122,8 +131,8 @@ uvicorn.Server(uvicorn.Config(app,log_level='error')).run(sockets=[s])`;
       }
       await delay(Math.min(50, remaining));
     }
-    await work(base,{runtime,distancePath,distanceSupport,distanceResultReady,releaseDistanceResult});
-  }finally{if(child){child.kill();await Promise.race([new Promise(r=>child.once("exit",r)),delay(2000)]);}
+    await work(base,{runtime,distancePath,distanceSupport,distanceResultReady,releaseDistanceResult,distanceStorePath,interrupt:()=>stop('SIGKILL')});
+  }finally{await stop().catch(()=>stop('SIGKILL'));
     if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith("ocean-month-service-"))await rm(root,{recursive:true,force:true}).catch(()=>{});
   }
 }
