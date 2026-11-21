@@ -17,6 +17,7 @@ from pydantic import SecretStr
 from test_monthly_distance_reference import AUTH, URL, layer, reference_fixture
 
 from app import monthly_distance_reference, synthetic_runs
+from app.analysis_support import content_id
 from app.config import settings
 from app.monthly_analysis import create_monthly_router
 from app.monthly_models import MonthlyResearchApproval
@@ -219,6 +220,9 @@ def test_owner_distance_options_prepare_exact_current_p0_without_starting_a_task
         "input_sha256": request["input_version"],
         "request": request,
         "research_ready": False,
+        "execution_environment_id": content_id(monthly_distance_reference.distance_execution_environment(
+            monthly_distance_reference.distance_execution_sources(),
+        )),
     }
     raw = json.loads(reference.read_bytes())
     raw["conditions"]["geometries"][0]["id"] = "another-circle"

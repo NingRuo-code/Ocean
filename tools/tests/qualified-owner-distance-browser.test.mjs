@@ -745,7 +745,7 @@ test("a lost explicit retry receipt recovers the new attempt without repeating t
 );
 
 test("the browser requires a distinct explicit request when the original registered evidence changed", () =>
-  withService(async (base,{distancePath})=>{
+  withService(async (base,{distancePath,distanceSupportState})=>{
     const browser=await launchBrowser(edge), c=browser.cdp, posts=[];
     c.onEvent(msg=>{
       const request=msg.params?.request;
@@ -757,19 +757,30 @@ test("the browser requires a distinct explicit request when the original registe
       await c.send("Network.enable");
       const parent=await timedOutOwnerRun(c,base);
       const original=await(await fetch(base+route+"/"+parent+"?purpose="+mode,{headers})).json();
+      await click(c,"#ownerRunRetry");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='prepared'");
+      await writeFile(distanceSupportState,JSON.stringify({schema:"ocean-support-state/v1",state:"expired"}));
+      await click(c,"#ownerRunSubmit");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='error'");
+      assert.match(await c.evaluate("document.getElementById('ownerRunStatus').textContent"),/明确拒绝/);
+      const expired=JSON.parse(posts[1].postData).intent_id;
+      assert.equal((await fetch(base+route+"/intents/"+expired+"?purpose="+mode,{headers})).status,404);
+      assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),parent);
+      await unlink(distanceSupportState);
+
       const changed=JSON.parse(fixture);
       changed.front_position_error_km=0.27;
       await writeFile(distancePath,JSON.stringify(changed));
       await click(c,"#ownerRunRetry");
       await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='error'");
       assert.match(await c.evaluate("document.getElementById('ownerRunStatus').textContent"),/原条件.*不.*重试/);
-      assert.equal(posts.length,1);
+      assert.equal(posts.length,2);
       await click(c,"#ownerRunRetryCurrent");
       await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='prepared'");
       const prepared=await c.evaluate("document.getElementById('ownerRunPrepared').textContent");
       assert.match(prepared,/按当前条件提交新请求/);
       assert.ok(prepared.includes(original.input_sha256));
-      assert.equal(posts.length,1);
+      assert.equal(posts.length,2);
       await click(c,"#ownerRunSubmit");
       await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'");
       const current=await c.evaluate("document.getElementById('ownerRuns').dataset.runId");
@@ -777,10 +788,10 @@ test("the browser requires a distinct explicit request when the original registe
       assert.equal(newRun.retry.mode,"current_conditions");
       assert.equal(newRun.retry.parent_run_id,parent);
       assert.notEqual(newRun.input_sha256,original.input_sha256);
-      assert.equal(posts.length,2);
+      assert.equal(posts.length,3);
       assert.deepEqual(await(await fetch(base+route+"/"+parent+"?purpose="+mode,{headers})).json(),original);
     } finally {
       await browser.close();
     }
-  },{caseOwnerToken:owner,distanceFixtureText:fixture,qualifyDistanceFixture:true,shortenFirstDistance:true})
+  },{caseOwnerToken:owner,distanceFixtureText:fixture,qualifyDistanceFixture:true,shortenFirstDistance:true,watchSupportExpiry:true})
 );

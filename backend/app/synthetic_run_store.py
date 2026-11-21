@@ -151,10 +151,15 @@ class RunStore:
             not distance or value["state"] != "failed" or value["cancelled"] is not True or "failure_reason" in value
         ):
             raise RunStoreError("unavailable")
+        if "execution_environment_id" in value and (
+            not distance or not isinstance(value["execution_environment_id"], str)
+            or not re.fullmatch(r"sha256:[0-9a-f]{64}", value["execution_environment_id"])
+        ):
+            raise RunStoreError("unavailable")
         if "retry" in value:
             retry = value["retry"]
             if (
-                not distance or not isinstance(retry, dict)
+                not distance or "execution_environment_id" not in value or not isinstance(retry, dict)
                 or set(retry) != {"parent_run_id", "parent_record_id", "mode"}
                 or not isinstance(retry["parent_run_id"], str)
                 or not re.fullmatch(r"[0-9a-f]{32}", retry["parent_run_id"])
@@ -167,25 +172,28 @@ class RunStore:
         value["record_id"] = identity
         return value
 
-    def replay(self, db, intent, fingerprint, retry=None):
+    def replay(self, db, intent, fingerprint, retry=None, environment_id=None):
         row = db.execute("SELECT id,intent,fingerprint,payload FROM runs WHERE intent=?", (intent,)).fetchone() if db else None
         if row is None:
             return None
         value = self.checked(row)
-        if row[2] != fingerprint or value.get("retry") != retry:
+        if (
+            row[2] != fingerprint or value.get("retry") != retry
+            or (retry is not None and value.get("execution_environment_id") != environment_id)
+        ):
             raise RunStoreError("intent_conflict")
         return value
 
-    def find(self, intent, fingerprint, retry=None):
+    def find(self, intent, fingerprint, retry=None, environment_id=None):
         with self.connection() as db:
-            return self.replay(db, intent, fingerprint, retry)
+            return self.replay(db, intent, fingerprint, retry, environment_id)
 
-    def submit(self, submission, work, *, qualification=None, retry=None):
+    def submit(self, submission, work, *, qualification=None, retry=None, environment_id=None):
         if (qualification is not None) != self.qualified_distance:
             raise RunStoreError("unavailable")
         intent, fingerprint = submission["intent_id"], content_id(submission)
         with self.connection(write=True) as db:
-            previous = self.replay(db, intent, fingerprint, retry)
+            previous = self.replay(db, intent, fingerprint, retry, environment_id)
             if previous:
                 return previous
             if db.execute("SELECT count(*) FROM runs").fetchone()[0] >= 64:
@@ -195,10 +203,18 @@ class RunStore:
                     "SELECT id,intent,fingerprint,payload FROM runs WHERE id=?",
                     (retry["parent_run_id"],),
                 ).fetchone()
+                if parent_row is None:
+                    raise RunStoreError("retry_parent")
                 parent = self.checked(parent_row)
+                same = (
+                    parent["request"] == submission["request"]
+                    and parent["input_sha256"] == submission["input_sha256"]
+                    and parent["qualification"] == qualification
+                    and parent.get("execution_environment_id") == environment_id
+                )
                 if (
                     parent["state"] != "failed" or parent["record_id"] != retry["parent_record_id"]
-                    or (retry["mode"] == "same_conditions" and parent["qualification"] != qualification)
+                    or same != (retry["mode"] == "same_conditions")
                 ):
                     raise RunStoreError("retry_parent")
             started = datetime.now(UTC).isoformat()
@@ -222,6 +238,8 @@ class RunStore:
                 elif error and error["code"] in DISTANCE_FAILURE_REASONS:
                     value["failure_reason"] = error["code"]
                     value["error"] = {"code": "calculation_failed"}
+            if environment_id is not None:
+                value["execution_environment_id"] = environment_id
             if retry is not None:
                 value["retry"] = retry
             value["record_id"] = content_id(value)
@@ -252,5 +270,5 @@ class RunStore:
                 raise RunStoreError("unavailable")
             records = (self.checked(row) for row in rows)
             return [{key: value for key, value in record.items() if key in {
-                "id", "intent_id", "record_id", "submission_id", "request", "input_sha256", "state", "submitted_at", "finished_at", "error", "failure_reason", "cancelled", "retry"
+                "id", "intent_id", "record_id", "submission_id", "request", "input_sha256", "state", "submitted_at", "finished_at", "error", "failure_reason", "cancelled", "retry", "execution_environment_id"
             }} for record in records]

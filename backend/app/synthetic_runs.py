@@ -52,6 +52,7 @@ class OwnerSubmission(ClosedModel):
 class OwnerRetrySubmission(OwnerSubmission):
     request: MonthlyDistanceRequest
     parent_record_id: Identity
+    execution_environment_id: Identity
     mode: Literal["same_conditions", "current_conditions"]
 
 
@@ -109,7 +110,7 @@ def check_distance_candidate(raw, support, environment):
 
 @dataclass(frozen=True)
 class ActiveDistanceRun:
-    submission_id: str
+    operation_fingerprint: str
     control: DistanceRunControl
     task: Task
 
@@ -146,7 +147,7 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
         intent_id, fingerprint = submission_key if submission_key else (None, None)
         running = active_distance_runs.get(intent_id)
         if running is not None:
-            if running.submission_id != fingerprint:
+            if running.operation_fingerprint != fingerprint:
                 raise HTTPException(409, "Synthetic run intent_conflict", headers={"Cache-Control": "no-store"})
             return await shield(running.task)
         try:
@@ -227,7 +228,8 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
             raise HTTPException(409, "Original run qualification changed", headers={"Cache-Control": "no-store"})
         check_distance_candidate(raw, support, environment)
         return {"schema_version": "ocean-owner-distance-options/v1", "input_sha256": fingerprint,
-                "request": request.model_dump(), "research_ready": False}
+                "request": request.model_dump(), "research_ready": False,
+                "execution_environment_id": content_id(environment)}
 
     @router.get("/distance-options")
     async def distance_options(draft: Annotated[MonthlyDraft, Query()], response: Response):
@@ -237,7 +239,10 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
         return await run_distance_work(distance_candidate, draft)
 
     def find_distance_replay(submission, body, retry):
-        return guarded(lambda: distance_store.find(submission.intent_id, content_id(body), retry))
+        expected_environment = submission.execution_environment_id if retry else None
+        return guarded(lambda: distance_store.find(
+            submission.intent_id, content_id(body), retry, expected_environment,
+        ))
 
     def submit_distance(submission, body, retry, control):
         old = find_distance_replay(submission, body, retry)
@@ -247,7 +252,10 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
             prepared_distance = prepare_distance(settings, submission)
         except HTTPException as error:
             raise distance_rejection(error.status_code, error.detail, error.headers) from None
-        qualification, raw, sources, _ = prepared_distance
+        qualification, raw, sources, environment = prepared_distance
+        environment_id = content_id(environment)
+        if retry is not None and submission.execution_environment_id != environment_id:
+            raise distance_rejection(409, "Prepared execution environment changed")
         control.enable_cancellation()
         cancelled = (None, {"code": "execution_cancelled"})
 
@@ -293,7 +301,9 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
             return result, None
 
         return guarded(
-            lambda: distance_store.submit(body, execute_distance, qualification=qualification, retry=retry),
+            lambda: distance_store.submit(
+                body, execute_distance, qualification=qualification, retry=retry, environment_id=environment_id,
+            ),
             distance_submission=True,
         )
 
@@ -331,7 +341,8 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
         return guarded(lambda: store.submit(body, execute))
 
     async def submit_qualified(submission, body, retry=None):
-        fingerprint = content_id({"submission": body, "retry": retry})
+        expected_environment = submission.execution_environment_id if retry else None
+        fingerprint = content_id({"submission": body, "retry": retry, "environment": expected_environment})
         return await run_distance_work(
             submit_distance, submission, body, retry, replay_if_busy=find_distance_replay,
             submission_key=(submission.intent_id, fingerprint),
@@ -356,8 +367,13 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
         original = parent["request"]
         draft = MonthlyDraft(**{key: original[key] for key in
                                 ("month", "longitude", "latitude", "radius_km", "layer_use")})
-        options = distance_candidate(draft, parent['qualification'])
-        if options["request"] != original or options["input_sha256"] != parent["input_sha256"]:
+        if "execution_environment_id" not in parent:
+            raise HTTPException(409, "Original execution environment is unverified", headers={"Cache-Control": "no-store"})
+        options = distance_candidate(draft, parent["qualification"])
+        if (
+            options["request"] != original or options["input_sha256"] != parent["input_sha256"]
+            or options["execution_environment_id"] != parent["execution_environment_id"]
+        ):
             raise HTTPException(409, "Original run evidence changed", headers={"Cache-Control": "no-store"})
         return {**options, "schema_version": "ocean-owner-distance-retry-options/v1",
                 "parent_run_id": run_id, "parent_record_id": parent["record_id"]}
@@ -379,10 +395,10 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
             raise distance_rejection(409, "Original run identity changed")
         same = (parent["request"] == submission.request.model_dump()
                 and parent["input_sha256"] == submission.input_sha256)
-        if same != (submission.mode == "same_conditions"):
+        if submission.mode == "same_conditions" and not same:
             raise distance_rejection(409, "Retry mode does not match the submitted evidence")
         retry = {"parent_run_id": run_id, "parent_record_id": submission.parent_record_id, "mode": submission.mode}
-        body = submission.model_dump(exclude={"parent_record_id", "mode"})
+        body = submission.model_dump(exclude={"parent_record_id", "mode", "execution_environment_id"})
         return await submit_qualified(submission, body, retry)
 
     @router.get("")
