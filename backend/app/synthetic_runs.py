@@ -37,10 +37,9 @@ from .monthly_models import (
     MonthlyRequest,
 )
 from .owner_access import owner_requirement
+from .owner_task_history import OwnerHistoryQuery, OwnerPurpose, owner_history_page
 from .synthetic_run_export import render_run_file
 from .synthetic_run_store import RunStore, RunStoreError
-
-OwnerPurpose = Literal["monthly_spatial_example", "monthly_distance_reference"]
 
 
 class OwnerSubmission(ClosedModel):
@@ -429,6 +428,20 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
                     purpose: OwnerPurpose = "monthly_spatial_example"):
         response.headers["Cache-Control"] = "no-store"
         return guarded(lambda: store_for(purpose).read_intent(intent_id))
+
+    @router.get("/history")
+    def task_history(filters: Annotated[OwnerHistoryQuery, Query()], response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        stores = {"monthly_spatial_example": store, "monthly_distance_reference": distance_store}
+        configured = [purpose for purpose, runs in stores.items() if runs.path is not None]
+        purposes = [filters.purpose] if filters.purpose is not None else configured
+        if not purposes or any(purpose not in configured for purpose in purposes):
+            raise HTTPException(503, "Owner task history store unavailable", headers={"Cache-Control": "no-store"})
+        catalogs = [(purpose, guarded(stores[purpose].catalog)) for purpose in purposes]
+        page = owner_history_page(catalogs, filters)
+        if filters.history_id and page["history_id"] != filters.history_id:
+            raise HTTPException(409, "Owner history changed", headers={"Cache-Control": "no-store"})
+        return {**page, "available_purposes": configured}
 
     @router.get("/{run_id}")
     def read(run_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response,
