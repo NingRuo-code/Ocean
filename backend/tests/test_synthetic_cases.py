@@ -348,3 +348,68 @@ def test_damaged_protection_keeps_other_cases_and_legacy_versions_discoverable(t
     assert [(item["version"], item["availability"]) for item in versions] == [
         (2, "protection_unavailable"), (1, "legacy_unverified"),
     ]
+
+
+
+
+def test_case_catalog_filters_pages_and_rejects_changed_catalog(tmp_path):
+    client, _ = case_client(tmp_path)
+    request = {**save_request(client), "title": "同名海域案例", "tags": ["东海"]}
+    cases = []
+    for marker in ("a", "b", "c"):
+        cases.append(client.post(BASE + "/cases", headers=AUTH, json={**request, "intent_id": marker * 32}).json())
+    day = cases[0]["created_at"][:10]
+    query = {"q": "东海", "kind": "monthly_spatial_example", "start_date": day, "end_date": day, "limit": 2}
+    first = client.get(BASE + "/cases", params=query, headers=AUTH).json()
+    assert first["total"] == 3
+    assert first["next_offset"] == 2
+    assert len({row["case_id"] for row in first["cases"]}) == 2
+    next_page = {**query, "offset": 2, "catalog_id": first["catalog_id"]}
+    second = client.get(BASE + "/cases", params=next_page, headers=AUTH).json()
+    assert second["next_offset"] is None
+    assert second["cases"][0]["case_id"] == cases[0]["case_id"]
+    assert client.get(BASE + "/cases", params={**query, "start_date": "2030-01-01"}, headers=AUTH).status_code == 422
+    assert client.get(BASE + "/cases", params={**query, "start_date": "2000-01-01", "end_date": "2000-12-31"},
+                      headers=AUTH).json()["total"] == 0
+    client.post(BASE + "/cases", headers=AUTH, json={**request, "intent_id": "d" * 32})
+    assert client.get(BASE + "/cases", params=next_page, headers=AUTH).status_code == 409
+
+
+def test_case_rebinding_and_chapters_create_one_new_protected_version(tmp_path):
+    client, published = case_client(tmp_path)
+    first = client.post(BASE + "/cases", headers=AUTH, json=save_request(client)).json()
+    other = client.get(BASE + "/published").json()["results"][1]
+    original = client.get(BASE + "/published/" + other["result_id"] + "/report",
+                          params={"projection_id": other["projection_id"]}).json()
+    binding = {"result_id": other["result_id"], "projection_id": other["projection_id"],
+               "report_id": original["report_id"]}
+    case_uri = BASE + "/cases/" + first["case_id"]
+    edit = {**first["metadata"], "base_version": 1, "base_version_id": first["version_id"],
+            "intent_id": "b" * 32, "sections": ["limits", "summary"], "report_binding": binding}
+    outdated = {**edit, "report_binding": {**binding, "report_id": "sha256:" + "0" * 64}}
+    assert client.put(case_uri, headers=AUTH, json=outdated).status_code == 409
+    response = client.put(case_uri, headers=AUTH, json=edit)
+    assert response.status_code == 200, response.text
+    updated = response.json()
+    assert updated["version"] == 2
+    assert updated["report"] == original
+    assert updated["sections"] == ["summary", "limits"]
+    assert updated["protected_dependencies"]["report"] == binding["report_id"]
+    assert client.get(case_uri + "?version=1", headers=AUTH).json() == first
+    packed = json.loads(published.read_bytes())
+    packed["snapshots"] = [entry for entry in packed["snapshots"]
+                           if entry["result"]["result_id"] != first["report"]["result"]["result_id"]]
+    published.write_text(json.dumps(packed), encoding="utf-8")
+    original_absent = client.get(case_uri, params={"version": 1, "include_source_status": True}, headers=AUTH).json()
+    assert original_absent.pop("current_published_snapshot") == "projection_missing"
+    assert original_absent == first
+    published.unlink()
+    assert client.put(case_uri, headers=AUTH, json=edit).json() == updated
+    source_missing = client.get(case_uri, params={"include_source_status": True}, headers=AUTH).json()
+    assert source_missing.pop("current_published_snapshot") == "missing"
+    assert source_missing == updated
+    assert len(client.get(case_uri + "/versions", headers=AUTH).json()["versions"]) == 2
+    with sqlite3.connect(tmp_path / "cases.sqlite3") as db:
+        all_references = db.execute("SELECT artifact FROM preparation_references WHERE reference=?",
+                                    (first["case_id"],)).fetchall()
+    assert {row[0] for row in all_references} >= {first["report"]["report_id"], original["report_id"]}
