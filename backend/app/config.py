@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     case_store_path: Path | None = None
     synthetic_run_store_path: Path | None = None
     qualified_distance_run_store_path: Path | None = None
+    owner_preparation_registry_path: Path | None = None
+    owner_preparation_manifest_path: Path | None = None
     support_snapshot_path: Path | None = None
     support_state_path: Path | None = None
     monthly_distance_input_path: Path | None = None
