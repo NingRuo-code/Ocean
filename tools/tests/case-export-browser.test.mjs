@@ -187,3 +187,32 @@ test("an aggregate receipt never permits download of different bytes",()=>withSe
     assert.ok(await downloaded(directory,".aggregate-v1.csv"));
   }finally{await browser.close();await rm(directory,{recursive:true,force:true});}
 },{caseOwnerToken:owner,enableCaseStore:true}));
+
+
+
+
+test("an abort at the end of aggregate digest verification prevents file handoff",()=>withService(async base=>{
+  await savedCase(base);
+  const browser=await launchBrowser(edge),c=browser.cdp;
+  const directory=await mkdtemp(join(tmpdir(),"ocean-case-aggregate-abort-"));
+  try{
+    await c.send("Browser.setDownloadBehavior",{behavior:"allow",downloadPath:directory});
+    await openCase(c,base);
+    await c.evaluate(`(()=>{
+      const NativeController=AbortController, verify=crypto.subtle.digest.bind(crypto.subtle);
+      let transfer;
+      window.AbortController=class extends NativeController{
+        constructor(){super();if(!transfer)transfer=this;}
+      };
+      crypto.subtle.digest=async(...args)=>{
+        const result=await verify(...args);
+        window.aggregateDigestObserved=true;
+        transfer.abort();
+        return result;
+      };
+      document.getElementById("caseExportAggregate").click();
+    })()`);
+    await waitFor(c,"window.aggregateDigestObserved && document.getElementById('caseArchive').dataset.state==='error'");
+    assert.deepEqual(await readdir(directory),[]);
+  }finally{await browser.close();await rm(directory,{recursive:true,force:true});}
+},{caseOwnerToken:owner,enableCaseStore:true}));

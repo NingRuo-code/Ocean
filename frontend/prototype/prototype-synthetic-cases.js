@@ -222,6 +222,7 @@
       const [extension,media]={markdown:["md","text/markdown;charset=utf-8"],csv:["csv","text/csv;charset=utf-8"],"aggregate-csv":["aggregate-v1.csv","text/csv;charset=utf-8"],bundle:["zip","application/zip"],chart:["chart-v1.png","image/png"]}[format];
       const blob=format==="chart"?await OceanCaseChart.png(data,frozen,controller.signal):new Blob([data],{type:media});
       if(n!==generation)return;
+      if(controller.signal.aborted)throw Error("cancelled");
       if(!sameSource(from,source()))throw Error("source_changed");
       const url=URL.createObjectURL(blob);downloads.add(url);
       const link=document.createElement("a");link.href=url;link.download=`Ocean-case-${frozen.case_id}-v${frozen.version}-${frozen.version_id.slice(7,19)}.${extension}`;

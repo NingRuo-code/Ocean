@@ -1,6 +1,7 @@
 """The owner aggregate CSV preserves authorized source values and independent protection."""
 
 import csv
+import json
 import sqlite3
 from hashlib import sha256
 from io import StringIO
@@ -45,6 +46,9 @@ def test_csv_artifact_is_checked_and_protected_for_the_exact_frozen_case(tmp_pat
     }
     assert {row["version_id"] for row in rows} == {saved["version_id"]}
     assert {row["region_id"] for row in rows} == {rows[0]["region_id"]}
+    assert {row["group_id"] for row in rows} == {rows[0]["group_id"]}
+    assert len({row["window_id"] for row in rows}) == 30
+    assert len({row["window_id"] for row in rows if row["scope"] == "month"}) == 1
 
     def no_regeneration(*args):
         raise AssertionError("stored aggregate must be read rather than rendered again")
@@ -57,3 +61,40 @@ def test_csv_artifact_is_checked_and_protected_for_the_exact_frozen_case(tmp_pat
         assert db.execute("SELECT count(*) FROM case_export_artifacts").fetchone()[0] == 1
         db.execute("DELETE FROM preparation_references WHERE artifact=?", (manifest["artifact_id"],))
     assert client.get(url, headers=AUTH, params=query).status_code == 503
+
+
+
+
+def test_unavailable_public_projection_has_undefined_mean_and_safe_provenance(tmp_path):
+    from app.analysis_support import content_id
+
+    client, published = case_client(tmp_path)
+    packed = json.loads(published.read_bytes())
+    entry = packed["snapshots"][0]
+    result = entry["result"]
+    result["status"] = "unavailable"
+    result["metrics"].update(total_hours=None, area_time_km2_days=None, supported_days=0,
+                             mean_hours_per_supported_day=None, density_hours_per_km2_day=None)
+    for day in result["daily"]:
+        day.update(state="unprepared", hours=None, effective_area_km2=None, area_time_km2_days=None, excluded_units=0)
+    result["coverage"].update(status="unavailable", excluded_day_states={"unprepared": len(result["daily"])},
+                              excluded_units=0)
+    result["source"]["id"] = "C:private-metadata.txt"
+    result["source"]["input_sha256"] = content_id(result["daily"])
+    result["result_id"] = content_id({"controlled": "no support", "daily": result["daily"]})
+    entry["snapshot_sha256"] = content_id(result)
+    published.write_text(json.dumps(packed), encoding="utf-8")
+    request = save_request(client)
+    saved = client.post(BASE + "/cases", headers=AUTH, json=request).json()
+    url = BASE + f"/cases/{saved['case_id']}/versions/1/exports/aggregate-csv"
+    params = {"version_id": saved["version_id"], "report_id": saved["report"]["report_id"]}
+    assert client.post(url, headers=AUTH, params=params).status_code == 200
+    response = client.get(url, headers=AUTH, params=params)
+    rows = list(csv.DictReader(StringIO(response.text)))
+    month = {row["metric"]: row for row in rows if row["scope"] == "month"}
+    assert month["mean_hours_per_supported_day"]["value_state"] == "not_applicable"
+    assert month["density_hours_per_km2_day"]["value_state"] == "unknown"
+    assert month["interval"]["value_state"] == "not_estimated"
+    assert {row["source_id"] for row in rows} == {"unknown"}
+    assert {row["source_input_id"] for row in rows} == {result["source"]["input_sha256"]}
+    assert "private-metadata" not in response.text
