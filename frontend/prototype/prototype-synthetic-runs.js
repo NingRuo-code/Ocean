@@ -182,7 +182,7 @@
         Object.hasOwn(taskEvidenceRoles,role.role)&&Object.hasOwn(taskEvidenceStates,role.physical_state)&&
         (role.identity===null||/^(sha256:)?[0-9a-f]{64}$/.test(role.identity))&&
         typeof role.readable_by_owner==='boolean'&&role.published_in_project===false&&
-        (role.eligible_for_publication===null||role.eligible_for_publication===false)&&role.referenced===null);
+        (role.eligible_for_publication===null||role.eligible_for_publication===false)&&(role.referenced===null||typeof role.referenced==='boolean'));
   }
 
   function renderTaskRoles(value){
@@ -190,7 +190,8 @@
     for(const role of value.roles){
       const item=node(roles,'li',taskEvidenceRoles[role.role]+' · '+taskEvidenceStates[role.physical_state]+
         ' · '+(role.readable_by_owner?'本人可读':'本入口不提供读取')+' · 项目未公开 · '+
-        (role.eligible_for_publication===null?'公开许可待核':'限本人使用')+' · 引用状态未知');
+        (role.eligible_for_publication===null?'公开许可待核':'限本人使用')+' · '+
+        (role.referenced===null?'引用状态未知':role.referenced?'存在活动引用':'暂无登记引用'));
       if(role.identity)node(item,'small',' '+role.identity);
     }
     node(taskHistoryDetail,'p',value.original_recomputation==='source_missing'
@@ -199,6 +200,41 @@
       const labels={input:'输入',environment:'环境',qualification:'P0',source:'来源版本',processor:'处理版本',plan:'准备计划'};
       if(Object.hasOwn(labels,name))node(taskHistoryDetail,'p',labels[name]+' '+(identity??'未知'));
     }
+  }
+
+  function showPreparationProtection(item,value){
+    const role=value.roles.find(entry=>entry.role==='ordinary_artifact');
+    const control=value.protection;
+    const valid=state=>state&&['protected','unprotected','unknown'].includes(state.state)&&
+      (state.pinned===null||typeof state.pinned==='boolean')&&
+      (state.active_references===null||Number.isSafeInteger(state.active_references)&&state.active_references>=0);
+    if(!role?.identity||!valid(control))return;
+    const status=node(taskHistoryDetail,'p','');
+    const button=node(taskHistoryDetail,'button','');
+    button.type='button';button.id='ownerTaskArtifactProtection';
+    const draw=state=>{
+      status.textContent=state.pinned===true?'本人已保护此产物。':
+        state.active_references>0?'产物有活动引用，仍受保护。':
+        state.state==='unprotected'?'暂无保护或活动引用。':'保护状态待核。';
+      button.textContent=state.pinned===true?'取消本人保护':'保护此产物';
+      button.disabled=!role.readable_by_owner&&state.pinned!==true;
+      button.onclick=()=>{
+        const next=state.pinned!==true;
+        const endpoint='/tasks/'+item.id+'/protection';
+        button.disabled=true;
+        let acknowledged=state;
+        void readTaskHistory(null,'正在更新本人保护。',updated=>{
+          if(updated?.schema_version!=='ocean-owner-artifact-protection/v1'||updated.task_id!==item.id||
+              updated.artifact_id!==role.identity||updated.pinned!==next||!valid(updated))throw Error('contract');
+          acknowledged=updated;
+          draw(updated);
+          $('ownerTaskHistoryStatus').textContent='已更新本人保护。';
+        },false,'/data/owner-preparation',signal=>
+          ownerNet('/data/owner-preparation',endpoint,'PUT',{pinned:next},json,signal))
+          .finally(()=>{if(button.isConnected)button.disabled=!role.readable_by_owner&&acknowledged.pinned!==true;});
+      };
+    };
+    draw(control);
   }
 
   function readTaskHistoryDetail(item){
@@ -222,6 +258,7 @@
         if(summary)node(taskHistoryDetail,'p','有效 '+summary.valid+' 格，缺测 '+summary.missing+' 格，锋线 '+summary.front+' 格。');
         else node(taskHistoryDetail,'p',(preparationFailureDetails[value.error]??'准备未完成')+'。没有成功准备产物。');
         renderTaskRoles(value);
+        showPreparationProtection(item,value);
         complete('已读取所选准备记录。');
       },false,'/data/owner-preparation');
     }

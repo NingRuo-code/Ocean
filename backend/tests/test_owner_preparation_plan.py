@@ -384,3 +384,43 @@ def test_evidence_survives_an_unreadable_artifact_lookup(tmp_path, monkeypatch):
     assert role["physical_state"] == "unverified"
     assert role["eligible_for_publication"] is False
     assert role["readable_by_owner"] is False
+
+
+
+
+def test_real_task_registers_use_and_owner_can_pin_or_release_only_own_reference(tmp_path, monkeypatch):
+    from app import owner_preparation
+    from app.owner_preparation_store import PreparationStore
+
+    client, body = verified_single_day_client(tmp_path)
+    store = PreparationStore(tmp_path / "preparation.sqlite3")
+    observed = []
+    original = owner_preparation.run_front_day
+
+    def during_real_process(settings, expected, expires_at):
+        observed.append(store.protection("sha256:" + expected["raw_sha256"])["active_references"])
+        return original(settings, expected, expires_at)
+
+    monkeypatch.setattr(owner_preparation, "run_front_day", during_real_process)
+    accepted = client.post(API + "/tasks", json=body, headers=AUTH).json()
+    uri = API + "/tasks/" + accepted["id"]
+    evidence = client.get(uri + "/evidence", headers=AUTH).json()
+    assert observed == [1]
+    source = next(role for role in evidence["roles"] if role["role"] == "source_data")
+    assert source["referenced"] is None
+    assert evidence["protection"] == {"state": "unprotected", "pinned": False, "active_references": 0}
+    assert client.put(uri + "/protection", json={"pinned": True}).status_code == 401
+    assert client.put(uri + "/protection", headers=AUTH, json={"pinned": "yes"}).status_code == 422
+    pinned = client.put(uri + "/protection", headers=AUTH, json={"pinned": True}).json()
+    assert pinned["pinned"] is True
+    artifact = pinned["artifact_id"]
+    assert PreparationStore(tmp_path / "preparation.sqlite3").protection(artifact)["state"] == "protected"
+    store.change_result_dependency(accepted["id"], "saved_case", "controlled-first-case", True)
+    store.change_result_dependency(accepted["id"], "saved_report", "controlled-second-report", True)
+    unlocked = client.put(uri + "/protection", headers=AUTH, json={"pinned": False}).json()
+    assert unlocked["pinned"] is False
+    assert unlocked["active_references"] == 2
+    store.change_result_dependency(accepted["id"], "saved_case", "controlled-first-case", False)
+    restored = client.get(uri + "/evidence", headers=AUTH).json()
+    assert restored["protection"] == {"state": "protected", "pinned": False, "active_references": 1}
+    assert restored["record_id"] == evidence["record_id"]

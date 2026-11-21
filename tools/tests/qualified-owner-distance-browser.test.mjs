@@ -1,8 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {execFile} from "node:child_process";
 import {createHash} from "node:crypto";
 import {access, mkdir, readFile, unlink, writeFile} from "node:fs/promises";
 import {setTimeout as delay} from "node:timers/promises";
+import {promisify} from "node:util";
 import {join} from "node:path";
 import {launchBrowser, waitFor} from "../lib/browser-driver.mjs";
 import {click, headers, owner, type} from "../lib/case-test-browser.mjs";
@@ -1102,7 +1104,7 @@ for(const corrupt of [false,true])test(corrupt
   proof.license_evidence_id="sha256:"+digest(await readFile("docs/data/august-2024-source-registry.json"));
   proof.cost_evidence_id="sha256:"+digest(await readFile("docs/data/august-2024-archive-members.json"));
   let stagedOriginal;
-  await withService(async (base,{releaseFrontPreparation})=>{
+  await withService(async (base,{releaseFrontPreparation,preparationStorePath})=>{
     const browser=await launchBrowser(edge),c=browser.cdp,posts=[],reads=[];
     const api=base+"/api/data/owner-preparation";
     let firstUnsent=null;
@@ -1160,6 +1162,8 @@ for(const corrupt of [false,true])test(corrupt
       assert.equal(processing.state,"processing");
       const artifactPath=api+"/tasks/"+processing.id+"/artifact";
       assert.equal((await fetch(artifactPath,{headers})).status,404);
+      const active=await(await fetch(api+"/tasks/"+processing.id+"/evidence",{headers})).json();
+      assert.equal(active.roles.find(role=>role.role==="source_data").referenced,true);
       if(!corrupt){
         const catalog=await c.evaluate("fetch('/api/catalog').then(response=>response.ok)");
         assert.equal(catalog,true);
@@ -1218,6 +1222,30 @@ for(const corrupt of [false,true])test(corrupt
       assert.match(await c.evaluate(readHistory),corrupt?/处理或校验失败.*聚合结果快照 · 无结果记录/s:
         /有效 19102 格.*聚合结果快照 · 已保存.*地图产物 · 已保存.*按原版本复算仍待核验/s);
       if(!corrupt){
+        const pin='#ownerTaskArtifactProtection';
+        await waitFor(c,"!!document.getElementById('ownerTaskArtifactProtection')");
+        await click(c,pin);
+        await waitFor(c,readHistory+".includes('本人已保护此产物')");
+        const updateReference=async(kind,ref,present)=>{
+          const update="import sys; from app.owner_preparation_store import PreparationStore; "+
+            "db, task, kind, ref, present = sys.argv[1:]; "+
+            "PreparationStore(db).change_result_dependency(task,kind,ref,present=='1')";
+          await promisify(execFile)(process.env.OCEAN_EXPERIMENT_PYTHON||"python",["-c",update,preparationStorePath,
+            ready.id,kind,ref,present?"1":"0"],{cwd:join(process.cwd(),"backend"),timeout:5000,windowsHide:true});
+        };
+        await updateReference("saved_case","controlled-case",true);
+        await updateReference("saved_report","controlled-report",true);
+        await updateReference("saved_case","controlled-case",false);
+        await click(c,"#ownerTaskHistoryClose");
+        await click(c,"#ownerTaskHistoryOpen");
+        await waitFor(c,"document.querySelectorAll('#ownerTaskHistoryItems button').length===1 && !document.getElementById('ownerTaskHistoryApply').disabled");
+        await click(c,"#ownerTaskHistoryItems button");
+        await waitFor(c,readHistory+".includes('本人已保护此产物')");
+        await click(c,pin);
+        await waitFor(c,readHistory+".includes('产物有活动引用，仍受保护')");
+        await updateReference("saved_report","controlled-report",false);
+        await click(c,"#ownerTaskHistoryItems button");
+        await waitFor(c,readHistory+".includes('暂无保护或活动引用')");
         await unlink(stagedOriginal);
         await click(c,"#ownerTaskHistoryItems button");
         await waitFor(c,readHistory+".includes('原资料 · 缺失')");

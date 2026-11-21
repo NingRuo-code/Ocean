@@ -14,7 +14,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.routing import APIRoute
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, StrictBool, field_validator, model_validator
 
 from .analysis_support import content_id, decode_controlled_json, read_regular_bytes
 from .comparison_models import Identity
@@ -74,6 +74,10 @@ class PreparationSubmission(ClosedModel):
     intent_id: IntentId
     plan_id: Identity
     request: PreparationRequest
+
+
+class OwnerArtifactPin(ClosedModel):
+    pinned: StrictBool
 
 
 class ReusableUnit(ClosedModel):
@@ -570,6 +574,25 @@ def create_owner_preparation_router(settings):
                                 headers={"Cache-Control": "no-store"})
         return artifact
 
+    def visible_protection(artifact_id):
+        if artifact_id is None:
+            return None
+        try:
+            status = store.protection(artifact_id)
+        except RunStoreError:
+            status = {"state": "unknown", "pinned": None, "active_references": None}
+        return {field: status[field] for field in ("state", "pinned", "active_references")}
+
+    @router.put("/tasks/{task_id}/protection")
+    def pin_artifact(task_id: IntentId, body: OwnerArtifactPin, response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        try:
+            artifact_id, status = store.change_result_dependency(task_id, "owner_pin", "owner", body.pinned)
+        except RunStoreError as exc:
+            raise store_failure(exc) from None
+        return {"schema_version": "ocean-owner-artifact-protection/v1", "task_id": task_id,
+                "artifact_id": artifact_id, **{field: status[field] for field in ("state", "pinned", "active_references")}}
+
     @router.get("/tasks/{task_id}/evidence")
     def read_task_evidence(task_id: IntentId, response: Response):
         response.headers["Cache-Control"] = "no-store"
@@ -583,6 +606,10 @@ def create_owner_preparation_router(settings):
             physical = "unverified"
         day = date.fromisoformat(record["expected"]["date"])
         raw_path = settings.raw_data_dir / "front" / str(day.year) / f"front_location{day:%Y%m%d}.nc"
-        return preparation_evidence(record, task_status(record), physical, path_state(raw_path))
+        artifact = record["artifact"]
+        artifact_id = artifact["artifact_id"] if artifact else None
+        source_id = "sha256:" + record["expected"]["raw_sha256"]
+        return preparation_evidence(record, task_status(record), physical, path_state(raw_path),
+                                    visible_protection(artifact_id), visible_protection(source_id))
 
     return router

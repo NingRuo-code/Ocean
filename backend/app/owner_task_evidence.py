@@ -24,7 +24,7 @@ def path_state(path):
         return "unknown"
 
 
-def artifact_role(role, state, *, identity=None, readable=False, source=False):
+def artifact_role(role, state, *, identity=None, readable=False, source=False, protection=None):
     return {
         "role": role,
         "identity": identity,
@@ -32,7 +32,8 @@ def artifact_role(role, state, *, identity=None, readable=False, source=False):
         "readable_by_owner": readable,
         "published_in_project": False,
         "eligible_for_publication": None if source or role == "service_cache" else False,
-        "referenced": None,
+        "referenced": (None if protection is None or protection["active_references"] is None
+                       else protection["active_references"] > 0),
         "source_use": "original_input" if source else None,
     }
 
@@ -96,7 +97,7 @@ def analysis_evidence(record, input_path):
     }
 
 
-def preparation_evidence(record, status, artifact_state, source_state):
+def preparation_evidence(record, status, artifact_state, source_state, artifact_protection, source_protection):
     artifact = status["artifact"]
     expected = record["expected"]
     registration = expected["registration"]
@@ -110,12 +111,14 @@ def preparation_evidence(record, status, artifact_state, source_state):
         [
             artifact_role("aggregate_result", "stored" if artifact is not None else "not_recorded",
                           identity=artifact_id, readable=artifact is not None),
-            artifact_role("ordinary_artifact", artifact_state, identity=artifact_id, readable=artifact_state == "stored"),
+            artifact_role("ordinary_artifact", artifact_state, identity=artifact_id,
+                          readable=artifact_state == "stored", protection=artifact_protection),
             artifact_role("staging", "unknown" if status["state"] not in {"ready", "failed"} else "not_registered"),
-            artifact_role("source_data", source_state, identity="sha256:" + expected["raw_sha256"], source=True),
+            artifact_role("source_data", source_state, identity="sha256:" + expected["raw_sha256"],
+                          source=True, protection=source_protection),
         ],
     )
     return {
         **result, "request": status["request"], "bbox": expected["bbox"], "artifact": artifact, "error": status["error"],
-        "state_history": status["state_history"], "license": "CC BY 4.0",
+        "state_history": status["state_history"], "license": "CC BY 4.0", "protection": artifact_protection,
     }
