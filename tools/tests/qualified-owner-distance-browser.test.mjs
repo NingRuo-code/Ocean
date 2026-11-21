@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {createHash} from "node:crypto";
 import {access, readFile, unlink, writeFile} from "node:fs/promises";
 import {setTimeout as delay} from "node:timers/promises";
 import {launchBrowser, waitFor} from "../lib/browser-driver.mjs";
@@ -926,11 +927,19 @@ test("owner task history filters and pages frozen records without changing the a
 );
 
 
-const preparationVersion="sha256:"+"a".repeat(64);
+const digest=value=>createHash("sha256").update(value).digest("hex");
+function sortedArchiveKeys(_key,value){
+  return value&&typeof value==="object"&&!Array.isArray(value)
+    ?Object.fromEntries(Object.keys(value).sort().map(key=>[key,value[key]])):value;
+}
+const catalog=JSON.parse(await readFile("docs/data/august-2024-archive-members.json","utf8"));
+const canonicalCatalog=JSON.stringify(catalog,sortedArchiveKeys).replace(/[^\x00-\x7f]/g,
+  character=>"\\u"+character.charCodeAt(0).toString(16).padStart(4,"0"));
+const preparationVersion="sha256:"+digest(canonicalCatalog);
 const preparationArtifact="sha256:"+"b".repeat(64);
 const preparationSource={
-  source_id:"verified-front",source_type:"front",display_name:"已核验的受控归档",
-  credential_mode:"none",date_coverage:{start:"2024-08-01",end:"2024-08-31"},
+  source_id:"zenodo_front_location",source_type:"front",display_name:"已核验的受控归档",
+  credential_mode:"none",access_level:"public",authorization_scope:"public_open_data",license:"CC BY 4.0",date_coverage:{start:"2024-08-01",end:"2024-08-31"},
   spatial_coverage:{prototype_bbox:[120,27,128,34]},
   preparation:{
     archive_access:"verified",connector:"verified",processing:"verified",license:"verified",cost:"verified",
@@ -947,6 +956,24 @@ const preparationRegistry=JSON.stringify({schema_version:"ocean-source-registry/
     preparation:{...preparationSource.preparation,source_version:null,archive_access:"unknown",connector:"unsupported"}},
 ]});
 
+const preparationManifest=JSON.stringify({
+  schema_version:"ocean-artifact-manifest/v1",
+  registry_id:"sha256:"+digest(preparationRegistry),
+  preparation_evidence:{zenodo_front_location:{
+    source_version:preparationVersion,
+    archive_check:{schema:"ocean-august-archive-member-check/v1",month:"2024-08",catalog_sha256:preparationVersion.slice(7),
+      sources:{front:{record:20356239,members:[
+        {date:"2024-08-05",status:"matched",sha256:"c".repeat(64)},
+        {date:"2024-08-06",status:"matched",sha256:"d".repeat(64)},
+      ]}}},
+    connector_sha256:"sha256:"+digest(await readFile("backend/scripts/fetch_zenodo_front_samples.py")),
+    processor_sha256:"sha256:"+digest(await readFile("backend/app/frontend_payload.py")),
+    license_evidence_id:"sha256:"+"e".repeat(64),
+    cost_evidence_id:"sha256:"+"f".repeat(64),
+    reusable_units:preparationSource.preparation.reusable_units,
+  }},
+});
+
 test("the owner previews only registered archive preparation and sees missing credentials and connectors", () =>
   withService(async base=>{
     const browser=await launchBrowser(edge),c=browser.cdp,posts=[];
@@ -961,7 +988,7 @@ test("the owner previews only registered archive preparation and sees missing cr
       assert.equal(await c.evaluate("document.getElementById('ownerPreparationOpen').disabled"),true);
       await type(c,"ownerRunToken",owner);
       await click(c,"#ownerPreparationOpen");
-      await waitFor(c,"document.querySelector('#ownerPreparationSource option[value=verified-front]')!==null");
+      await waitFor(c,"document.querySelector('#ownerPreparationSource option[value=zenodo_front_location]')!==null");
 
       const choose=async sourceId=>{
         await c.evaluate("(sourceId=>{const source=document.getElementById('ownerPreparationSource');"+
@@ -970,7 +997,7 @@ test("the owner previews only registered archive preparation and sees missing cr
           "form.elements.purpose.value='map';form.elements.target.value='day_artifact';form.elements.start_date.value='2024-08-05';"+
           "form.elements.end_date.value='2024-08-06';form.querySelector('[name=layers][value=front]').click();})("+JSON.stringify(sourceId)+")");
       };
-      await choose("verified-front");
+      await choose("zenodo_front_location");
       await click(c,"#ownerPreparationPreview");
       await waitFor(c,"!!document.getElementById('ownerPreparationResult').dataset.planId");
       const plan=await(await fetch(preview+"/plan",{method:"POST",headers,body:posts[0].postData})).json();
@@ -1001,5 +1028,5 @@ test("the owner previews only registered archive preparation and sees missing cr
     } finally{
       await browser.close();
     }
-  },{caseOwnerToken:owner,ownerPreparationRegistryText:preparationRegistry})
+  },{caseOwnerToken:owner,ownerPreparationRegistryText:preparationRegistry,ownerPreparationManifestText:preparationManifest})
 );

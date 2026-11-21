@@ -7,6 +7,9 @@
   const reasonNames={
     credential_unavailable:'缺少凭据',credential_unknown:'凭据要求未知',source_version_unknown:'源版本未知',
     archive_access_unknown:'归档访问未知',connector_unsupported:'连接器不可用',coverage_unknown:'观测覆盖未知',
+    authorization_blocked:'登记授权受限',authorization_unverified:'使用授权未核验',
+    archive_manifest_unverified:'归档核验清单未知',adapter_unverified:'连接器或本地处理版本未核验',
+    archive_unit_evidence_unknown:'所选原始单元尚无核验记录',
   };
   const evidenceFields={credential_check:'凭据验证',archive_access:'归档访问',connector:'连接器',processing:'本地处理',
     license:'使用许可',cost:'费用条件'};
@@ -40,6 +43,7 @@
 
   function validSources(data){
     return data?.schema_version==='ocean-owner-preparation-registry/v1'&&identity.test(data.registry_id)&&
+      (data.preparation_evidence_id===null||identity.test(data.preparation_evidence_id))&&
       Array.isArray(data.sources)&&data.sources.length<=32&&
       new Set(data.sources.map(item=>item.source_id)).size===data.sources.length&&data.sources.every(item=>
         key.test(item.source_id)&&typeof item.name==='string'&&item.name.length<=160&&
@@ -100,7 +104,7 @@
         registry=null;
         form.reset();
         fillSelect(source,[]);
-        clearResult();
+        chooseSource();
         status.textContent='';
       }
       sync();
@@ -177,7 +181,7 @@
           !Array.isArray(data.units)||data.units.length>124||
           (data.source_version!==null&&!identity.test(data.source_version))||
           (data.estimated_preparation_bytes!==null&&(!Number.isSafeInteger(data.estimated_preparation_bytes)||data.estimated_preparation_bytes<0)))throw Error('contract');
-      if(data.registry_id!==registry.registry_id)throw Error('registry');
+      if(data.registry_id!==registry.registry_id||data.preparation_evidence_id!==registry.preparation_evidence_id)throw Error('registry');
       const bbox=data.bbox;
       if(!Array.isArray(bbox)||bbox.length!==4||!bbox.every(Number.isFinite)||
           Math.abs(bbox[0])>180||Math.abs(bbox[2])>180||Math.abs(bbox[1])>90||Math.abs(bbox[3])>90||
@@ -194,7 +198,7 @@
       const reasons=data.reasons.map(reasonMessage);
       const eligible=reasons.length===0;
       if((eligible&&data.source_version===null)||
-          data.units.some(unit=>(unit.state==='blocked')===eligible)||
+          data.units.some(unit=>eligible?unit.state==='blocked':unit.state==='to_prepare')||
           data.can_prepare!==(eligible&&data.units.some(unit=>unit.state==='to_prepare')))throw Error('contract');
 
       clearResult();
