@@ -825,21 +825,42 @@ test("owner task history filters and pages frozen records without changing the a
       const {month,longitude,latitude,radius_km}=options.conditions[0];
       const legacyRequest={month,longitude,latitude,radius_km,purpose:"monthly_spatial_example",
         input_version:options.input_version,method_version:options.method_version,parameter_version:options.parameter_version};
+      let legacy;
       for(const marker of ["1","2","3","4"]){
         const seeded=await fetch(base+route,{method:"POST",headers,body:JSON.stringify({
           intent_id:marker.repeat(32),input_sha256:options.input_sha256,request:legacyRequest,
         })});
         assert.equal(seeded.status,200);
-        await seeded.body?.cancel();
+        legacy=await seeded.json();
       }
 
+      async function pressEscape(){
+        await c.send("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
+        await c.send("Input.dispatchKeyEvent",{type:"keyUp",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
+      }
+      await click(c,"#ownerTaskHistoryOpen");
+      assert.equal(await c.evaluate("document.activeElement.id"),"ownerTaskHistoryPurpose");
+      await pressEscape();
+      await waitFor(c,"document.getElementById('ownerTaskHistory').hidden");
+      assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),selected);
       await click(c,"#ownerTaskHistoryOpen");
       await waitFor(c,"document.querySelectorAll('#ownerTaskHistoryItems button').length===5");
       await click(c,"#ownerTaskHistoryNext");
       await waitFor(c,"document.querySelectorAll('#ownerTaskHistoryItems button').length===1");
       await click(c,"#ownerTaskHistoryPrevious");
       await waitFor(c,"document.querySelectorAll('#ownerTaskHistoryItems button').length===5");
-      await c.evaluate("document.getElementById('ownerTaskHistoryPurpose').value='monthly_distance_reference';document.getElementById('ownerTaskHistoryStatusFilter').value='interrupted'");
+      await click(c,'#ownerTaskHistoryItems button[data-run-id="'+legacy.id+'"]');
+      await waitFor(c,"document.getElementById('ownerTaskHistoryDetail').textContent.includes("+JSON.stringify(legacy.result.result_id)+")");
+
+      await c.evaluate("document.querySelector('#ownerTaskHistoryForm [name=start_date]').value='2026-12-31';document.querySelector('#ownerTaskHistoryForm [name=end_date]').value='2026-01-01'");
+      await click(c,"#ownerTaskHistoryApply");
+      await waitFor(c,"document.getElementById('ownerTaskHistoryStatus').textContent.includes('上次核实')");
+      assert.equal(await c.evaluate("document.getElementById('ownerTaskHistoryNext').disabled"),true);
+      const original=await(await fetch(base+route+"/"+failed+"?purpose="+mode,{headers})).json();
+      const day=original.submitted_at.slice(0,10);
+      await c.evaluate("document.getElementById('ownerTaskHistoryPurpose').value='monthly_distance_reference';document.getElementById('ownerTaskHistoryStatusFilter').value='interrupted';"+
+        "document.querySelector('#ownerTaskHistoryForm [name=start_date]').value="+JSON.stringify(day)+";"+
+        "document.querySelector('#ownerTaskHistoryForm [name=end_date]').value="+JSON.stringify(day));
       await click(c,"#ownerTaskHistoryApply");
       await waitFor(c,"document.querySelectorAll('#ownerTaskHistoryItems button').length===1");
       await click(c,"#ownerTaskHistoryItems button");
@@ -850,6 +871,27 @@ test("owner task history filters and pages frozen records without changing the a
       const zoom=await c.evaluate("state.zoom");
       await click(c,"#zoomIn");
       await waitFor(c,"state.zoom!=="+zoom);
+      const mapBefore=await c.evaluate("JSON.stringify(state.view)");
+      const grip=await c.evaluate(`(()=>{
+        const map=document.getElementById('map'),r=map.getBoundingClientRect();
+        for(const horizontal of [.65,.75,.55,.85,.45,.35,.25]){
+          for(const top of [110,r.height*.13,r.height*.28,r.height*.5,r.height*.65]){
+            const x=r.left+r.width*horizontal,y=r.top+top;
+            const hit=document.elementFromPoint(x,y);
+            if(hit&&map.contains(hit)&&!hit.closest('button,input,select,.map-legend,.map-controls,.map-pick,.map-probe,.load-status'))return{x,y};
+          }
+        }
+        return null;
+      })()`);
+      assert.ok(grip,"A visible map point can receive the pointer");
+      await c.send("Input.dispatchMouseEvent",{type:"mouseMoved",...grip});
+      await c.send("Input.dispatchMouseEvent",{type:"mousePressed",button:"left",buttons:1,clickCount:1,...grip});
+      for(const distance of [16,32,48]){
+        await c.send("Input.dispatchMouseEvent",{type:"mouseMoved",button:"left",buttons:1,x:grip.x+distance,y:grip.y+distance/3});
+      }
+      await c.send("Input.dispatchMouseEvent",{type:"mouseReleased",button:"left",buttons:0,clickCount:1,x:grip.x+48,y:grip.y+16});
+      await waitFor(c,"JSON.stringify(state.view)!=="+JSON.stringify(mapBefore));
+      assert.equal(await c.evaluate("document.getElementById('ownerTaskHistory').hidden"),false);
       const offline={offline:true,latency:0,downloadThroughput:-1,uploadThroughput:-1};
       await c.send("Network.emulateNetworkConditions",offline);
       await waitFor(c,"document.getElementById('ownerTaskHistoryStatus').textContent.includes('暂不可核实')");
@@ -859,8 +901,7 @@ test("owner task history filters and pages frozen records without changing the a
       await waitFor(c,"navigator.onLine && !document.getElementById('ownerTaskHistoryApply').disabled");
 
       await c.evaluate("document.querySelector('#ownerTaskHistoryItems button').focus()");
-      await c.send("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
-      await c.send("Input.dispatchKeyEvent",{type:"keyUp",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
+      await pressEscape();
       await waitFor(c,"document.getElementById('ownerTaskHistory').hidden");
       assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),selected);
       assert.equal(await c.evaluate("document.activeElement.id"),"ownerTaskHistoryOpen");

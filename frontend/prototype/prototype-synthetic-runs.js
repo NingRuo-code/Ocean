@@ -110,15 +110,17 @@
     syncTaskHistory();
   }
 
-  async function readTaskHistory(suffix,message,receive){
+  async function readTaskHistory(suffix,message,receive,isPage=false){
     if(!taskHistoryAllowed()||taskHistory.hidden||!root.open||panel.hidden)return;
     stopTaskHistoryRequest();
-    const observer=new AbortController(),from=source();
+    const observer=new AbortController(),from=source(),opener=document.activeElement;
+    const close=$('ownerTaskHistoryClose');
     const deadline=setTimeout(()=>observer.abort(),6000);
     taskHistoryRequest=observer;
     const status=$('ownerTaskHistoryStatus');
     status.textContent=message;
     syncTaskHistory();
+    if(taskHistory.contains(opener)&&opener.disabled)close.focus({preventScroll:true});
     try{
       const value=await net(suffix,'GET',null,json,observer.signal);
       if(taskHistoryRequest!==observer||!sameSource(from,source()))return;
@@ -127,13 +129,18 @@
     }catch(error){
       if(taskHistoryRequest!==observer)return;
       if(['http_401','http_403','source_changed'].includes(error.message))clearPrivate();
-      else if(error.message==='http_409'){
-        taskHistoryPage=null;
-        status.textContent='历史已有变化。请重新查找第一页。';
-      }else status.textContent=error.message==='http_422'?'日期范围或筛选条件无效。':'历史状态暂不可核实。可重新查询。';
+      else{
+        if(isPage)taskHistoryPage=null;
+        status.textContent=error.message==='http_409'?'历史已有变化。请重新查找第一页。':
+          error.message==='http_422'?'日期范围或筛选条件无效。':'历史状态暂不可核实。可重新查询。';
+        if(isPage&&$('ownerTaskHistoryItems').childElementCount)status.textContent+=' 下方为上次核实的历史。';
+      }
     }finally{
       clearTimeout(deadline);
-      if(taskHistoryRequest===observer){taskHistoryRequest=null;syncTaskHistory();}
+      if(taskHistoryRequest===observer){
+        taskHistoryRequest=null;syncTaskHistory();
+        if(document.activeElement===close&&taskHistory.contains(opener)&&!opener.disabled)opener.focus({preventScroll:true});
+      }
     }
   }
 
@@ -144,7 +151,7 @@
       if(run.record_id!==item.record_id)throw Error('contract');
       taskHistoryDetail.replaceChildren();
       taskHistoryDetail.dataset.runId=run.id;
-      renderRunEvidence(run,taskHistoryDetail);
+      renderRunEvidence(run,taskHistoryDetail,item.submitted_at,item.finished_at);
       $('ownerTaskHistoryStatus').textContent='已读取所选历史记录。';
     });
   }
@@ -165,6 +172,7 @@
           rows.some(item=>!id.test(item?.id)||!id.test(item.intent_id)||!hash.test(item.record_id)||
             !taskHistoryStatuses.has(item.status)||!purposes.includes(item.request?.purpose)||
             (item.submitted_at!==null&&!validTaskTime(item.submitted_at))||
+            (item.finished_at!==null&&!validTaskTime(item.finished_at))||
             !validRequest(item.request,item.request.purpose)))throw Error('contract');
       for(const option of $('ownerTaskHistoryPurpose').options){
         option.disabled=Boolean(option.value)&&!purposes.includes(option.value);
@@ -182,7 +190,7 @@
       }
       $('ownerTaskHistoryStatus').textContent=rows.length?'第 '+(filters.offset+1)+' 至 '+(filters.offset+rows.length)+
         ' 条，共 '+data.total+' 条。':'当前条件下没有历史记录。';
-    });
+    },true);
   }
 
   function historyFormFilters(){
@@ -195,6 +203,7 @@
     if(!taskHistory.hidden){hideTaskHistory();return;}
     taskHistory.hidden=false;
     taskHistoryOpen.setAttribute('aria-expanded','true');
+    $('ownerTaskHistoryPurpose').focus({preventScroll:true});
     readTaskHistoryPage(historyFormFilters());
   };
   taskHistoryForm.onsubmit=event=>{event.preventDefault();readTaskHistoryPage(historyFormFilters());};
@@ -575,7 +584,7 @@
       ?'已读取可靠提交的合成任务结果；地图条件未改变。':'已读取持久失败记录；新尝试必须明确准备新的意图。';
     set(cancelled?'cancelled':run.state,message+(unresolved?' 原提交意图仍待核实，核对入口保留。':''));update();
   }
-  function renderRunEvidence(run,box){
+  function renderRunEvidence(run,box,submittedAt=run.submitted_at,finishedAt=run.finished_at){
     const qualified=run.request.purpose===distancePurpose;
     const layers=qualified?(run.request.layer_use==='front_effort_sst'?' · 锋面、活动与海温':' · 锋面与活动'):'';
     node(box,'p','原任务条件：'+describe(run.request)+layers);
@@ -583,8 +592,8 @@
     if(run.retry)node(box,'p',(run.retry.mode==='same_conditions'?'原条件重试':'按当前条件的新请求')+
       ' · 原任务 '+run.retry.parent_run_id+' / '+run.retry.parent_record_id);
     if(run.execution_environment_id)node(box,'p','运行环境 '+run.execution_environment_id);
-    const started=validTaskTime(run.submitted_at)?run.submitted_at:'未知';
-    const finished=validTaskTime(run.finished_at)?run.finished_at:'未知';
+    const started=validTaskTime(submittedAt)?submittedAt:'未知';
+    const finished=validTaskTime(finishedAt)?finishedAt:'未知';
     node(box,'p','服务处理 '+started+' 至 '+finished+'，终态已提交。'
       +(qualified?'合成距离参照':'合成软件验证')+'；真实研究资格未通过。');
     node(box,'p','这里只读冻结记录，当前原源可用及原样复算未知；没有自动公开或保存为案例。');
@@ -593,6 +602,7 @@
       if (qualified) showDistanceEvidence(box, r);
       else {
         const m = r.metrics;
+        node(box,'p','结果 '+r.result_id);
         node(box,'p','H='+(m.total_hours??'未知')+' h；E='+(m.area_time_km2_days??'未知')+' km²·d；有效/日历日 '+m.supported_days+'/'+m.calendar_days+'。');
         showDaily(box, r.daily, r.caveats);
       }
