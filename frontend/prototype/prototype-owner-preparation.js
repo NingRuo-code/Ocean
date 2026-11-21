@@ -58,7 +58,7 @@
         Array.isArray(item.reasons)&&item.reasons.length<=16&&item.reasons.every(reason=>Boolean(reasonMessage(reason))));
   }
 
-  window.OceanOwnerPreparation=function mount({root,actions,request,canRead,lock}){
+  window.OceanOwnerPreparation=function mount({root,actions,request,canRead,sourceKey,lock}){
     const open=node(actions,'button','归档准备预览');open.id='ownerPreparationOpen';
     open.setAttribute('aria-controls','ownerPreparation');
     open.setAttribute('aria-expanded','false');
@@ -90,6 +90,13 @@
     const canObserve=()=>canRead()&&root.open&&!document.hidden&&!panel.hidden;
 
     function sync(){
+      if(task&&task.source!==sourceKey()){
+        task=null;
+        taskPanel.hidden=true;
+        taskDetails.replaceChildren();
+        delete taskDetails.dataset.state;
+        taskMessage.textContent='';
+      }
       open.disabled=!canRead();
       refresh.disabled=!canObserve()||Boolean(observer);
       submit.disabled=refresh.disabled||!registry||!source.value;
@@ -125,7 +132,6 @@
         chooseSource();
         taskDetails.replaceChildren();
         delete taskDetails.dataset.state;
-        if(task)task.submission=null;
         replay.hidden=true;
         taskMessage.textContent='';
         status.textContent='';
@@ -164,6 +170,7 @@
         if(observer?.controller===active){
           observer=null;
           sync();
+          if(suffix==='/plan'&&task&&!task.finished&&!task.submission&&canObserve())scheduleTaskRead();
           if(document.activeElement===close&&panel.contains(opener)&&!opener.disabled)opener.focus({preventScroll:true});
         }
       }
@@ -200,7 +207,10 @@
         fillSelect(source,data.sources.map(item=>item.source_id),Object.fromEntries(data.sources.map(item=>[item.source_id,item.name])));
         chooseSource();
         source.focus({preventScroll:true});
-        if(task)scheduleTaskRead();
+        if(task){
+          replay.hidden=!task.submission;
+          scheduleTaskRead();
+        }
       });
     }
 
@@ -310,7 +320,7 @@
     function startPreparation(plan,selection){
       if(!execute||execute.disabled)return;
       const intent=Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
-      task={intent,plan,id:null,finished:false,submission:{intent_id:intent,plan_id:plan,request:selection}};
+      task={intent,plan,source:sourceKey(),id:null,finished:false,submission:{intent_id:intent,plan_id:plan,request:selection}};
       taskPanel.hidden=false;
       taskDetails.replaceChildren();
       delete taskDetails.dataset.state;

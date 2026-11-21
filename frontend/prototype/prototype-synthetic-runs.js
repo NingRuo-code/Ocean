@@ -82,6 +82,7 @@
     root,actions,
     request:(suffix,method,body,signal)=>ownerNet('/data/owner-preparation',suffix,method,body,json,signal),
     canRead:sameOriginOwnerAvailable,
+    sourceKey:()=>source().base,
     lock:()=>clearPrivate(),
   });
 

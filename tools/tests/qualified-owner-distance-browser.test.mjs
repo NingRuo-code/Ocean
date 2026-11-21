@@ -1101,6 +1101,11 @@ for(const corrupt of [false,true])test(corrupt
         await c.send("Fetch.disable");
         const absent=await fetch(api+"/intents/"+JSON.parse(posts[1].postData).intent_id,{headers});
         assert.equal(absent.status,404);
+        await click(c,"#ownerRunLock");
+        await waitFor(c,"document.getElementById('ownerPreparation').hidden && document.getElementById('ownerRunToken').value===''");
+        await type(c,"ownerRunToken",owner);
+        await click(c,"#ownerPreparationOpen");
+        await waitFor(c,"!document.getElementById('ownerPreparationReplayTask').hidden && !document.getElementById('ownerPreparationReplayTask').disabled");
         await click(c,"#ownerPreparationReplayTask");
       }
       await waitFor(c,"document.getElementById('ownerPreparationTaskDetails').dataset.state==='processing'");
