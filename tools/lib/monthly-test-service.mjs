@@ -20,6 +20,7 @@ export async function withService(work, {
   holdDistanceResult = false,
   holdDistancePublication = false,
   traceDistanceProcess = false,
+  shortenFirstDistance = false,
   prepareRaw = null,
   projectRoot = process.cwd(),
 } = {}) {
@@ -107,6 +108,18 @@ def trace_accepted_intent(control):
     Path(os.environ["OCEAN_TEST_DISTANCE_INTENTS_STARTED"]).write_text(str(started_intents),encoding="ascii")
 distance_process.Popen=trace_distance
 distance_process.DistanceRunControl.enable_cancellation=trace_accepted_intent`:''}
+${shortenFirstDistance?`import app.monthly_distance_reference as distance_reference
+import app.synthetic_runs as owner_runs
+calculate_first_distance=owner_runs.calculate_distance_reference
+def short_first_distance(*args):
+    owner_runs.calculate_distance_reference=calculate_first_distance
+    current_timeout=distance_reference.DISTANCE_EXECUTION_TIMEOUT_SECONDS
+    distance_reference.DISTANCE_EXECUTION_TIMEOUT_SECONDS=0.01
+    try:
+        return calculate_first_distance(*args)
+    finally:
+        distance_reference.DISTANCE_EXECUTION_TIMEOUT_SECONDS=current_timeout
+owner_runs.calculate_distance_reference=short_first_distance`:''}
 from app.main import app
 ${inventoryCode}
 app.mount('/',StaticFiles(directory=os.environ['OCEAN_TEST_FRONTEND']))

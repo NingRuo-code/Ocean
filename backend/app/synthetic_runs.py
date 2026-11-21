@@ -49,6 +49,12 @@ class OwnerSubmission(ClosedModel):
     request: MonthlyRequest | MonthlyDistanceRequest
 
 
+class OwnerRetrySubmission(OwnerSubmission):
+    request: MonthlyDistanceRequest
+    parent_record_id: Identity
+    mode: Literal["same_conditions", "current_conditions"]
+
+
 def registered_distance_material(settings):
     try:
         raw = read_distance_input(settings.monthly_distance_input_path)
@@ -177,9 +183,9 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
             return work()
         except RunStoreError as error:
             code = str(error)
-            if distance_submission and code == "capacity":
-                raise distance_rejection(409, "Synthetic run capacity") from None
-            status = 404 if code == "not_found" else 409 if code in {"intent_conflict", "capacity"} else 503
+            if distance_submission and code in {"capacity", "retry_parent"}:
+                raise distance_rejection(409, "Synthetic run " + code) from None
+            status = 404 if code == "not_found" else 409 if code in {"intent_conflict", "capacity", "retry_parent"} else 503
             raise HTTPException(status, "Synthetic run " + (code if status != 503 else "store unavailable"), headers={"Cache-Control": "no-store"}) from None
 
     def input_snapshot():
@@ -202,7 +208,7 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
                 "evidence_kind": "synthetic_example", "research_ready": False,
                 "license": data.license, "execution": "synchronous_atomic_terminal_record"}
 
-    def distance_candidate(draft):
+    def distance_candidate(draft, previous_qualification=None):
         guarded(distance_store.check_available)
         draft = draft.model_copy(update={"layer_use": draft.layer_use or "front_effort"})
         support = read_execution_support(settings, draft, include_declared_conditions_id=True)
@@ -216,7 +222,9 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
             method_version=get_args(DistanceMethod)[0],
             parameter_version=get_args(DistanceParameters)[0],
         )
-        qualify_support(settings, request, support)
+        qualification = qualify_support(settings, request, support)
+        if previous_qualification is not None and qualification != previous_qualification:
+            raise HTTPException(409, "Original run qualification changed", headers={"Cache-Control": "no-store"})
         check_distance_candidate(raw, support, environment)
         return {"schema_version": "ocean-owner-distance-options/v1", "input_sha256": fingerprint,
                 "request": request.model_dump(), "research_ready": False}
@@ -228,11 +236,11 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
             raise HTTPException(422, "A monthly distance draft is required", headers={"Cache-Control": "no-store"})
         return await run_distance_work(distance_candidate, draft)
 
-    def find_distance_replay(submission, body):
-        return guarded(lambda: distance_store.find(submission.intent_id, content_id(body)))
+    def find_distance_replay(submission, body, retry):
+        return guarded(lambda: distance_store.find(submission.intent_id, content_id(body), retry))
 
-    def submit_distance(submission, body, control):
-        old = find_distance_replay(submission, body)
+    def submit_distance(submission, body, retry, control):
+        old = find_distance_replay(submission, body, retry)
         if old:
             return old
         try:
@@ -284,8 +292,10 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
             result["result_id"] = content_id(result)
             return result, None
 
-        return guarded(lambda: distance_store.submit(body, execute_distance, qualification=qualification),
-                       distance_submission=True)
+        return guarded(
+            lambda: distance_store.submit(body, execute_distance, qualification=qualification, retry=retry),
+            distance_submission=True,
+        )
 
     def submit_legacy(submission):
         body = submission.model_dump()
@@ -320,16 +330,60 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
 
         return guarded(lambda: store.submit(body, execute))
 
+    async def submit_qualified(submission, body, retry=None):
+        fingerprint = content_id({"submission": body, "retry": retry})
+        return await run_distance_work(
+            submit_distance, submission, body, retry, replay_if_busy=find_distance_replay,
+            submission_key=(submission.intent_id, fingerprint),
+        )
+
     @router.post("")
     async def submit(submission: OwnerSubmission, response: Response):
         response.headers["Cache-Control"] = "no-store"
         if isinstance(submission.request, MonthlyDistanceRequest):
-            body = submission.model_dump()
-            return await run_distance_work(
-                submit_distance, submission, body, replay_if_busy=find_distance_replay,
-                submission_key=(submission.intent_id, content_id(body)),
-            )
+            return await submit_qualified(submission, submission.model_dump())
         return await to_thread.run_sync(submit_legacy, submission)
+
+    def failed_distance_parent(run_id):
+        parent = guarded(lambda: distance_store.read(run_id))
+        if parent["state"] != "failed":
+            raise HTTPException(409, "A terminal interrupted or failed run is required",
+                                headers={"Cache-Control": "no-store"})
+        return parent
+
+    def distance_retry_candidate(run_id):
+        parent = failed_distance_parent(run_id)
+        original = parent["request"]
+        draft = MonthlyDraft(**{key: original[key] for key in
+                                ("month", "longitude", "latitude", "radius_km", "layer_use")})
+        options = distance_candidate(draft, parent['qualification'])
+        if options["request"] != original or options["input_sha256"] != parent["input_sha256"]:
+            raise HTTPException(409, "Original run evidence changed", headers={"Cache-Control": "no-store"})
+        return {**options, "schema_version": "ocean-owner-distance-retry-options/v1",
+                "parent_run_id": run_id, "parent_record_id": parent["record_id"]}
+
+    @router.get("/{run_id}/retry-options")
+    async def retry_options(run_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        return await run_distance_work(distance_retry_candidate, run_id)
+
+    @router.post("/{run_id}/retry")
+    async def submit_retry(run_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")],
+                           submission: OwnerRetrySubmission, response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        try:
+            parent = await to_thread.run_sync(failed_distance_parent, run_id)
+        except HTTPException as error:
+            raise distance_rejection(error.status_code, error.detail, error.headers) from None
+        if parent["record_id"] != submission.parent_record_id:
+            raise distance_rejection(409, "Original run identity changed")
+        same = (parent["request"] == submission.request.model_dump()
+                and parent["input_sha256"] == submission.input_sha256)
+        if same != (submission.mode == "same_conditions"):
+            raise distance_rejection(409, "Retry mode does not match the submitted evidence")
+        retry = {"parent_run_id": run_id, "parent_record_id": submission.parent_record_id, "mode": submission.mode}
+        body = submission.model_dump(exclude={"parent_record_id", "mode"})
+        return await submit_qualified(submission, body, retry)
 
     @router.get("")
     def history(response: Response, purpose: OwnerPurpose = "monthly_spatial_example"):
