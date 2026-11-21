@@ -252,14 +252,14 @@ test("recovers a timed-out qualified response with only a read of the original i
     try{
       await c.send("Network.enable");
       await prepareDistanceInBrowser(c,base);
-      const range=await c.evaluate("state.range");
+      const zoom=await c.evaluate("state.zoom");
       await c.send("Fetch.enable",{patterns:[{urlPattern:"*/owner-runs",requestStage:"Response"}]});
       const submittedAt=Date.now();
       await click(c,"#ownerRunSubmit");
       await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='submitting'");
       await click(c,"#zoomIn");
-      await waitFor(c,"state.range!=="+range);
-      const applied=await c.evaluate("({lon:state.lon,lat:state.lat,date:state.date,range:state.range})");
+      await waitFor(c,"state.zoom!=="+zoom);
+      const applied=await c.evaluate("({lon:state.lon,lat:state.lat,date:state.date,range:state.range,zoom:state.zoom})");
       await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='uncertain'",55_000);
       assert.ok(Date.now()-submittedAt>=39_000);
       assert.equal(await c.evaluate("document.getElementById('ownerRunSubmit').disabled"),true);
@@ -268,7 +268,7 @@ test("recovers a timed-out qualified response with only a read of the original i
       await c.send("Fetch.disable");
       await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'",12_000);
       assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),run.id);
-      assert.deepEqual(await c.evaluate("({lon:state.lon,lat:state.lat,date:state.date,range:state.range})"),applied);
+      assert.deepEqual(await c.evaluate("({lon:state.lon,lat:state.lat,date:state.date,range:state.range,zoom:state.zoom})"),applied);
       const intentPath=route+"/intents/"+run.intent_id+"?purpose="+mode;
       assert.equal(requests.filter(request=>request.method==="POST").length,1);
       assert.equal(requests.filter(request=>request.method==="GET"&&request.url===base+intentPath).length,1);
@@ -362,6 +362,16 @@ test("recovers a damaged qualified reference through history and preserves an ex
       assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),original);
 
       const prior=await c.evaluate("JSON.parse(localStorage.getItem("+JSON.stringify(key)+"))");
+      await click(c,"#ownerRunNew");
+      const beforeReopen=requests.length;
+      await click(c,root+" summary");
+      await waitFor(c,"!document.getElementById('ownerRuns').open");
+      await click(c,root+" summary");
+      await waitFor(c,"document.getElementById('ownerRuns').open");
+      await delay(850);
+      assert.equal(await c.evaluate("localStorage.getItem("+JSON.stringify(key)+")"),null);
+      assert.equal(requests.length,beforeReopen);
+
       const unresolved={...prior,run_id:null,intent_id:other.intent_id};
       const inject="localStorage.setItem("+JSON.stringify(key)+","+JSON.stringify(JSON.stringify(unresolved))+");";
       await c.evaluate(inject+"document.getElementById('ownerRunPurpose').dispatchEvent(new Event('change'))");

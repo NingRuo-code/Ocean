@@ -189,7 +189,7 @@
       const expectedMissing = distanceMode() && root.dataset.state === 'checking' && error.message === 'http_409';
       const message=expectedMissing?'当前条件、来源或 P0 快照无法对应，未提交任务。':{http_401:'本人访问未通过；令牌和私有显示已清除。',http_403:'当前服务不允许本人合成任务；令牌和私有显示已清除。',http_503:'本人持久任务或合成输入不可用，请检查服务配置或稍后核对。',http_409:distanceMode()?'版本、意图或容量冲突；请核对原意图。':'版本、意图或容量冲突；请核对原意图或明确清除本页引用后重新准备。',http_422:'当前条件或版本没有登记合成支持，未显示受理成功。',http_404:'本次未查到记录或接口；原请求仍可能稍后提交，不能判断从未受理。可稍后核对或读取本人历史。',contract:'任务身份或内容无法核实，未显示成功。',source_changed:'服务来源已改变，请重新认证；旧服务意图只向原服务核对。',offline:'离线不能核对或提交本人任务。',owner_required:'请输入当前服务的本人令牌。'}[error.message]||'请求结果暂不可核实；保留上次核实的记录和原条件。';
       const pendingMessage=distanceMode()?' 原提交可能已受理；可核对原意图。':' 原提交可能已受理；可明确核对/重发同一意图，不会自动新建任务。';
-      const unreachableRead=distanceMode()&&operation==='reading'&&
+      const unreachableRead=distanceMode()&&['reading','loading-history'].includes(operation)&&
         (active.signal.aborted||error instanceof TypeError||['http_502','http_503','http_504'].includes(error.message));
       if(authLost)$('ownerRunStatus').textContent=message;
       else if(rejectedDistance)set('error','服务已明确拒绝本次提交。可重新核对合成条件。');
@@ -377,7 +377,7 @@
     set('looking-up','正在查询原意图是否已有终态记录；不会重新计算。');const value=await net('/intents/'+intent+purposeSuffix());if(n!==generation)return;
     show(value,{intent,...(active?{body:active.body}:ref?.run_id?{id:ref.run_id}:{})});
   });
-  $('ownerRunNew').onclick=()=>{stopRecovery();clearReference();set('draft','已清除本地提交引用；服务任务没有取消或删除，可重新核对条件以明确创建新意图。');update();};
+  $('ownerRunNew').onclick=()=>{stopRecovery();preferredRun=null;clearReference();set('draft','已清除本地提交引用；服务任务没有取消或删除，可重新核对条件以明确创建新意图。');update();};
   $('ownerRunPurpose').onchange=()=>{
     const previousSource=sessionSource;
     pendingByPurpose.set(purpose,pending);
