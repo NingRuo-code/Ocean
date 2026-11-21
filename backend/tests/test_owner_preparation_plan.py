@@ -223,6 +223,8 @@ def test_proved_reuse_does_not_depend_on_new_preparation_credential(tmp_path):
 
 def test_catalog_dates_and_adapter_scope_limit_ready_units(tmp_path):
     source = source_registration(date_coverage={"start": "2024-08-01", "end": "2024-09-30"})
+    units = source["preparation"]["reusable_units"]
+    units.extend([{**units[0], "date": "2024-09-01"}, {**units[0], "date": "2024-08-09"}])
     source["preparation"]["layers"].append("sst")
     source["preparation"]["purposes"].append("A_month")
     source["preparation"]["targets"].append("support_input")
@@ -241,6 +243,10 @@ def test_catalog_dates_and_adapter_scope_limit_ready_units(tmp_path):
         assert plan["can_prepare"] is False
         assert plan["units"][0]["state"] == "blocked"
         assert "archive_unit_evidence_unknown" in plan["reasons"]
+    reuse_date = {"start_date": "2024-08-09", "end_date": "2024-08-09"}
+    reuse = client.post(API + "/plan", json={**BODY, **reuse_date}, headers=AUTH).json()
+    assert reuse["units"][0]["state"] == "reusable"
+    assert "archive_unit_evidence_unknown" not in reuse["reasons"]
     for override in [{"layers": ["sst"]}, {"purpose": "A_month"}, {"target": "support_input"}]:
         plan = client.post(API + "/plan", json={**BODY, **override}, headers=AUTH).json()
         assert plan["can_prepare"] is False

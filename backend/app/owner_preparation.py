@@ -213,11 +213,12 @@ def recorded_front_members(source, evidence, receipt):
     archived = receipt.archive_check.sources.get("front")
     if catalog_id != receipt.archive_check.catalog_sha256 or archived is None or archived.record != record:
         return None
-    return {
+    matched = {
         member.date for member in archived.members
         if member.status == "matched" and member.sha256 and member.date in days
         and member.name == f"front_location{member.date:%Y%m%d}.nc"
     }
+    return days, matched
 
 
 def authorized_for_preparation(source, evidence, receipt):
@@ -379,17 +380,18 @@ def create_owner_preparation_router(settings):
             reasons.append("scope_adapter_unsupported")
         reusable = {}
         if supported_scope and archived is not None and authorized_for_preparation(source, evidence, receipt):
+            catalog_days, _ = archived
             corroborated = {content_id(unit.model_dump(mode="json")) for unit in receipt.reusable_units}
             reusable = {
                 (unit.date, unit.layer): unit.artifact_id for unit in evidence.reusable_units
-                if unit.region_id == request.region_id and unit.target == request.target
+                if unit.date in catalog_days and unit.region_id == request.region_id and unit.target == request.target
                 and unit.source_version == evidence.source_version
                 and content_id(unit.model_dump(mode="json")) in corroborated
             }
         days = [request.start_date + timedelta(days=offset)
                 for offset in range((request.end_date - request.start_date).days + 1)]
         if archived is not None and any(
-            day not in archived and any((day, layer) not in reusable for layer in request.layers) for day in days
+            day not in archived[1] and any((day, layer) not in reusable for layer in request.layers) for day in days
         ):
             reasons.append("archive_unit_evidence_unknown")
         units = []
