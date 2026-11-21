@@ -1,10 +1,18 @@
 """Persistent states for small, private owner archive preparation."""
 
 import json
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from .analysis_support import content_id, decode_controlled_json
+from .owner_artifact_references import (
+    change_reference,
+    matches_unprotected_revision,
+    protection_status,
+    reference_rows,
+    register_artifact,
+)
 from .synthetic_run_store import RunStore, RunStoreError
 
 SCHEMA = "ocean-owner-preparation-task/v1"
@@ -92,6 +100,8 @@ class PreparationStore(RunStore):
                 "expires_at": (now + timedelta(seconds=LEASE_SECONDS)).isoformat(),
                 "owner_scope": "single_configured_owner", "artifact": None, "error": None,
             }
+            if "raw_sha256" in expected:
+                change_reference(db, "sha256:" + expected["raw_sha256"], "task_input", record["id"], True)
             raw = self.encode(record)
             db.execute("INSERT INTO runs VALUES(?,?,?,?)",
                        (record["id"], submission["intent_id"], fingerprint, raw))
@@ -120,13 +130,21 @@ class PreparationStore(RunStore):
                                      (artifact_id,)).fetchone()
                 if current is None:
                     db.execute("INSERT INTO preparation_artifacts VALUES(?,?)", (artifact_id, raw_artifact))
+                    known = db.execute(
+                        "SELECT 1 FROM runs WHERE json_extract(payload,'$.artifact.artifact_id')=? LIMIT 1", (artifact_id,)
+                    ).fetchone()
+                    if known is None:
+                        register_artifact(db, artifact_id)
                 elif checked_artifact(decode_controlled_json(current[0], RECORD_LIMIT), record["expected"]) != artifact_id:
                     raise RunStoreError("unavailable")
+                change_reference(db, artifact_id, "shared_task", identity, True)
                 artifact = {key: value for key, value in artifact.items() if key != "display"}
                 record["artifact_storage"] = "separate"
                 record["finished_at"] = now
             elif next_state == "failed":
                 record["finished_at"] = now
+            if next_state in {"ready", "failed"} and "raw_sha256" in record["expected"]:
+                change_reference(db, "sha256:" + record["expected"]["raw_sha256"], "task_input", identity, False)
             record.update(state=next_state, artifact=artifact, error=error)
             record["state_history"].append(next_state)
             raw = self.encode(record)
@@ -141,21 +159,75 @@ class PreparationStore(RunStore):
         if record.get("artifact_storage") != "separate":
             return "stored", summary
         with self.connection() as db:
-            if db is None or not db.execute(
-                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='preparation_artifacts'"
-            ).fetchone():
-                return "missing", None
-            row = db.execute("SELECT payload FROM preparation_artifacts WHERE identity=?",
-                             (summary["artifact_id"],)).fetchone()
-            if row is None:
-                return "missing", None
-            try:
-                artifact = decode_controlled_json(row[0], RECORD_LIMIT)
-                if checked_artifact(artifact, record["expected"]) != summary["artifact_id"]:
-                    return "unverified", None
-            except (KeyError, TypeError, ValueError):
+            return self.separate_artifact(db, record)
+
+    @staticmethod
+    def separate_artifact(db, record):
+        if db is None or not db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='preparation_artifacts'"
+        ).fetchone():
+            return "missing", None
+        artifact_id = record["artifact"]["artifact_id"]
+        row = db.execute("SELECT payload FROM preparation_artifacts WHERE identity=?", (artifact_id,)).fetchone()
+        if row is None:
+            return "missing", None
+        try:
+            artifact = decode_controlled_json(row[0], RECORD_LIMIT)
+            if checked_artifact(artifact, record["expected"]) != artifact_id:
                 return "unverified", None
-            return "stored", artifact
+        except (KeyError, TypeError, ValueError):
+            return "unverified", None
+        return "stored", artifact
+
+    def protection(self, artifact_id, *, task_id=None, source=False):
+        with self.connection() as db:
+            if db is not None:
+                db.execute("BEGIN")
+            status = protection_status(db, artifact_id)
+            if task_id is not None or source:
+                status["task_reference"] = None
+            if status["state"] != "protected":
+                if task_id is not None and status["state"] == "unprotected":
+                    status["task_reference"] = False
+                return status
+            references = reference_rows(db, artifact_id)
+            if task_id is not None:
+                status["task_reference"] = any(kind == "shared_task" and reference == task_id
+                                              for kind, reference, _ in references)
+            if source:
+                now = datetime.now(UTC).isoformat()
+                for kind, reference, _ in references:
+                    if kind != "task_input":
+                        continue
+                    row = db.execute("SELECT id,intent,fingerprint,payload FROM runs WHERE id=?", (reference,)).fetchone()
+                    if row is None or self.checked(row)["expires_at"] <= now:
+                        status["active_references"] = None
+                        break
+            return status
+
+    @contextmanager
+    def guard_artifact_cleanup(self, artifact_id, expected_guard):
+        """Hold the same writer lock for the reference check and any future cleanup."""
+        with self.connection(write=True) as db:
+            if not matches_unprotected_revision(db, artifact_id, expected_guard):
+                raise RunStoreError("protection_changed")
+            yield db
+
+    def change_result_dependency(self, task_id, kind, reference_id, present):
+        """Pin or reference one validated prepared artifact by its original task."""
+        if kind not in {"owner_pin", "shared_task", "saved_case", "saved_report"}:
+            raise RunStoreError("not_found")
+        with self.connection(write=True) as db:
+            row = db.execute("SELECT id,intent,fingerprint,payload FROM runs WHERE id=?", (task_id,)).fetchone()
+            record = self.checked(row)
+            if record["artifact"] is None:
+                raise RunStoreError("not_found")
+            if (present and record.get("artifact_storage") == "separate"
+                    and self.separate_artifact(db, record)[0] != "stored"):
+                raise RunStoreError("not_found")
+            artifact_id = record["artifact"]["artifact_id"]
+            change_reference(db, artifact_id, kind, reference_id, present)
+            return artifact_id, protection_status(db, artifact_id)
 
     def catalog(self):
         with self.connection() as db:

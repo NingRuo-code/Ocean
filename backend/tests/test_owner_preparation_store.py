@@ -36,9 +36,14 @@ def test_expired_preparation_cannot_publish_or_block_a_new_intent(tmp_path, monk
     monkeypatch.setattr(owner_preparation_store, "datetime", Clock)
     store = PreparationStore(tmp_path / "preparation.sqlite3")
     request = {"intent_id": "a" * 32, "plan_id": "old", "request": {}}
-    first, started = store.accept(request, {})
+    source = "a" * 64
+    first, started = store.accept(request, {"raw_sha256": source})
     assert started and store.transition(first["id"], "processing")
+    assert store.protection("sha256:" + source, source=True)["active_references"] == 1
     Clock.current += timedelta(seconds=LEASE_SECONDS)
+    unresolved = store.protection("sha256:" + source, source=True)
+    assert unresolved["state"] == "protected"
+    assert unresolved["active_references"] is None
     _, second_started = store.accept({"intent_id": "b" * 32}, {})
     assert second_started
     expired = task_status(store.read(first["id"]))

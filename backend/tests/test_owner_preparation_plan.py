@@ -384,3 +384,101 @@ def test_evidence_survives_an_unreadable_artifact_lookup(tmp_path, monkeypatch):
     assert role["physical_state"] == "unverified"
     assert role["eligible_for_publication"] is False
     assert role["readable_by_owner"] is False
+
+
+
+
+def test_real_task_registers_use_and_owner_can_pin_or_release_only_own_reference(tmp_path, monkeypatch):
+    from app import owner_preparation
+    from app.owner_preparation_store import PreparationStore
+
+    client, body = verified_single_day_client(tmp_path)
+    store = PreparationStore(tmp_path / "preparation.sqlite3")
+    observed = []
+    original = owner_preparation.run_front_day
+
+    def during_real_process(settings, expected, expires_at):
+        observed.append(store.protection("sha256:" + expected["raw_sha256"])["active_references"])
+        return original(settings, expected, expires_at)
+
+    monkeypatch.setattr(owner_preparation, "run_front_day", during_real_process)
+    accepted = client.post(API + "/tasks", json=body, headers=AUTH).json()
+    uri = API + "/tasks/" + accepted["id"]
+    evidence = client.get(uri + "/evidence", headers=AUTH).json()
+    assert observed == [1]
+    source = next(role for role in evidence["roles"] if role["role"] == "source_data")
+    assert source["referenced"] is None
+    assert evidence["protection"] == {"state": "protected", "pinned": False, "active_references": 1,
+                                      "task_reference": True}
+    assert client.put(uri + "/protection", json={"pinned": True}).status_code == 401
+    assert client.put(uri + "/protection", headers=AUTH, json={"pinned": "yes"}).status_code == 422
+    pinned = client.put(uri + "/protection", headers=AUTH, json={"pinned": True}).json()
+    assert pinned["pinned"] is True
+    artifact = pinned["artifact_id"]
+    assert PreparationStore(tmp_path / "preparation.sqlite3").protection(artifact)["state"] == "protected"
+    store.change_result_dependency(accepted["id"], "saved_case", "controlled-first-case", True)
+    store.change_result_dependency(accepted["id"], "saved_report", "controlled-second-report", True)
+    unlocked = client.put(uri + "/protection", headers=AUTH, json={"pinned": False}).json()
+    assert unlocked["pinned"] is False
+    assert unlocked["active_references"] == 3
+    store.change_result_dependency(accepted["id"], "saved_case", "controlled-first-case", False)
+    restored = client.get(uri + "/evidence", headers=AUTH).json()
+    assert restored["protection"] == {"state": "protected", "pinned": False, "active_references": 2,
+                                     "task_reference": True}
+    assert restored["record_id"] == evidence["record_id"]
+
+
+
+
+def test_two_executed_tasks_share_one_output_with_independent_references(tmp_path):
+    from app.owner_preparation_store import PreparationStore
+    from app.synthetic_run_store import RunStoreError
+
+    client, body = verified_single_day_client(tmp_path)
+    first = client.post(API + "/tasks", json=body, headers=AUTH).json()
+    second = client.post(API + "/tasks", json={**body, "intent_id": "b" * 32}, headers=AUTH).json()
+    assert first["id"] != second["id"]
+    first_uri = API + "/tasks/" + first["id"]
+    second_uri = API + "/tasks/" + second["id"]
+    first_detail = client.get(first_uri, headers=AUTH).json()
+    second_detail = client.get(second_uri, headers=AUTH).json()
+    artifact_id = first_detail["artifact"]["artifact_id"]
+    assert second_detail["artifact"]["artifact_id"] == artifact_id
+    assert client.put(first_uri + "/result-reference", json={"retained": False}).status_code == 401
+    lost_one = client.put(first_uri + "/result-reference", headers=AUTH, json={"retained": False}).json()
+    assert lost_one["state"] == "protected"
+    assert lost_one["task_reference"] is False
+    assert lost_one["active_references"] == 1
+    second_evidence = client.get(second_uri + "/evidence", headers=AUTH).json()
+    assert second_evidence["protection"]["task_reference"] is True
+    store = PreparationStore(tmp_path / "preparation.sqlite3")
+    reserved = store.protection(artifact_id)
+    with pytest.raises(RunStoreError, match="protection_changed"), store.guard_artifact_cleanup(
+        artifact_id, reserved["deletion_guard"]
+    ):
+        pytest.fail("A live task reference may not pass the cleanup lock")
+    released = client.put(second_uri + "/result-reference", headers=AUTH, json={"retained": False}).json()
+    assert released["state"] == "unprotected"
+    assert released["active_references"] == 0
+    current = store.protection(artifact_id)
+    with store.guard_artifact_cleanup(artifact_id, current["deletion_guard"]) as db:
+        assert db.in_transaction
+    assert client.get(first_uri, headers=AUTH).json() == first_detail
+
+
+
+def test_recreating_missing_output_does_not_invent_historical_reference_authority(tmp_path):
+    client, body = verified_single_day_client(tmp_path)
+    first = client.post(API + "/tasks", json=body, headers=AUTH).json()
+    uri = API + "/tasks/" + first["id"]
+    artifact_id = client.get(uri, headers=AUTH).json()["artifact"]["artifact_id"]
+    with sqlite3.connect(tmp_path / "preparation.sqlite3") as db:
+        db.execute("DELETE FROM preparation_artifacts WHERE identity=?", (artifact_id,))
+        db.execute("DELETE FROM preparation_references WHERE artifact=?", (artifact_id,))
+        db.execute("DELETE FROM preparation_reference_registry WHERE artifact=?", (artifact_id,))
+    second = client.post(API + "/tasks", json={**body, "intent_id": "b" * 32}, headers=AUTH).json()
+    second_uri = API + "/tasks/" + second["id"]
+    assert client.get(second_uri, headers=AUTH).json()["artifact"]["artifact_id"] == artifact_id
+    released = client.put(second_uri + "/result-reference", headers=AUTH, json={"retained": False}).json()
+    assert released["state"] == "unknown"
+    assert released["active_references"] is None

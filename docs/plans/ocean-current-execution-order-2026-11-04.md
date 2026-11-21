@@ -8,7 +8,7 @@
 
 [#103](https://github.com/NingRuo-code/Ocean/issues/103) 继续等 #98 的真实 A 成果与资格，由 #67 → #68 → #71 → #98 顺序放行。#104 保留 #84 的真实 B 交接，#105 保留 #88、#93 的区域证据与逐源权限。#46、#93、#143 继续等待各自真实证据。本机只读演示保留，八月正式整月、对外询证、正式服务器验收和独立备份继续暂缓。
 
-公共任务中心先完成 [#110](https://github.com/NingRuo-code/Ocean/issues/110) 的本人任务筛选、分页和冻结详情，再完成 [#111](https://github.com/NingRuo-code/Ocean/issues/111) 的登记归档准备预览。预览按源版本、归档成员、许可和实际适配器核对，范围为已登记的一日锋面地图资料；[PR #391](https://github.com/NingRuo-code/Ocean/pull/391) 已合入。随后推进 [#112](https://github.com/NingRuo-code/Ocean/issues/112)，用现有 Zenodo 20356239 原始单日锋面经过实际处理、校验和登记，并由本机浏览器读取本人状态。样本观测时刻与共同覆盖的研究资格继续按原关口核验。#112 合入后先推进不依赖服务器盘点的 [#119](https://github.com/NingRuo-code/Ocean/issues/119)。[#113](https://github.com/NingRuo-code/Ocean/issues/113) 仍保留 [#47](https://github.com/NingRuo-code/Ocean/issues/47) 的分层资源证据前置。
+公共任务中心先完成 [#110](https://github.com/NingRuo-code/Ocean/issues/110) 的本人任务筛选、分页和冻结详情，再完成 [#111](https://github.com/NingRuo-code/Ocean/issues/111) 的登记归档准备预览。预览按源版本、归档成员、许可和实际适配器核对，范围为已登记的一日锋面地图资料；[PR #391](https://github.com/NingRuo-code/Ocean/pull/391) 已合入。随后推进 [#112](https://github.com/NingRuo-code/Ocean/issues/112)，用现有 Zenodo 20356239 原始单日锋面经过实际处理、校验和登记，并由本机浏览器读取本人状态。样本观测时刻与共同覆盖的研究资格继续按原关口核验。[#112](https://github.com/NingRuo-code/Ocean/issues/112) 和 [#119](https://github.com/NingRuo-code/Ocean/issues/119) 已合入。继续 [#120](https://github.com/NingRuo-code/Ocean/issues/120) 的保护和活动引用，再核对已有本人案例与报告记录能否作为 [#127](https://github.com/NingRuo-code/Ocean/issues/127) 的本机验证材料。[#113](https://github.com/NingRuo-code/Ocean/issues/113) 仍保留 [#47](https://github.com/NingRuo-code/Ocean/issues/47) 的分层资源证据前置。
 
 ## 本机完整显示参照
 
