@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {mkdtemp,readFile,readdir,rm,mkdir,copyFile} from "node:fs/promises";
 import {join} from "node:path";
 import {tmpdir} from "node:os";
+import {createHash} from "node:crypto";
 import {spawnSync} from "node:child_process";
 import {setTimeout as delay} from "node:timers/promises";
 import {launchBrowser,waitFor} from "../lib/browser-driver.mjs";
@@ -94,3 +95,42 @@ test(`leaving a pending PNG through ${leave} cancels it and clears owner evidenc
   }finally{await browser.close();await rm(directory,{recursive:true,force:true});}
 },{caseOwnerToken:owner,enableCaseStore:true}));
 }
+
+
+
+
+test("the service persists the PNG rendered from a protected chart and Edge downloads those exact bytes",()=>withService(async base=>{
+  const first=await savedCase(base),browser=await launchBrowser(edge),c=browser.cdp,
+    directory=await mkdtemp(join(tmpdir(),"ocean-chart-protected-"));
+  try{
+    await c.send("Browser.setDownloadBehavior",{behavior:"allow",downloadPath:directory});
+    await openCase(c,base);
+    const endpoint=exportUrl(base,first,"chart-png");
+    assert.equal((await fetch(endpoint,{headers})).status,404);
+    const priorDate=await c.evaluate("document.getElementById('timeDate').value");
+    await c.evaluate("document.getElementById('dateNext').click()");
+    await waitFor(c,"document.getElementById('timeDate').value!=="+JSON.stringify(priorDate)+
+      " && !document.getElementById('caseExportProtectedPng')?.disabled");
+    await c.evaluate("document.getElementById('caseExportProtectedPng').click()");
+    await waitFor(c,"['downloaded','error'].includes(document.getElementById('caseArchive').dataset.state)",45000);
+    assert.equal(await c.evaluate("document.getElementById('caseArchive').dataset.state"),"downloaded",
+      await c.evaluate("document.querySelector('#caseArchive [role=status]').textContent"));
+    const filename=await downloaded(directory,".chart-v1.png"),bytes=await readFile(filename);
+    const receipt=await(await fetch(endpoint,{headers,method:"POST"})).json();
+    assert.equal(receipt.format_version,"owner-case-chart-png/v1");
+    assert.equal(receipt.chart_basis,first.protected_dependencies.chart_basis);
+    assert.equal(receipt.version_id,first.version_id);
+    assert.equal(receipt.sha256,"sha256:"+createHash("sha256").update(bytes).digest("hex"));
+    assert.equal(receipt.protection,"saved_case");
+    const binary=await fetch(endpoint,{headers});
+    assert.equal(binary.status,200);
+    assert.deepEqual(bytes,Buffer.from(await binary.arrayBuffer()));
+    assert.equal((await fetch(endpoint)).status,401);
+    const verify=spawnSync(process.env.OCEAN_EXPERIMENT_PYTHON||"python",["-c",
+      "from PIL import Image;import sys,json;im=Image.open(sys.argv[1]);im.load();print(json.dumps([im.width,im.height]))",
+      filename],{encoding:"utf8",windowsHide:true});
+    assert.equal(verify.status,0,verify.stderr);
+    assert.deepEqual(JSON.parse(verify.stdout),[1600,receipt.height]);
+    assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/尚未登记原地图的冻结视窗和图层/);
+  }finally{await browser.close();await rm(directory,{recursive:true,force:true});}
+},{caseOwnerToken:owner,enableCaseStore:true,caseChartPngBrowser:edge}));

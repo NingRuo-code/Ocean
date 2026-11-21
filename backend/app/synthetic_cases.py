@@ -1,6 +1,8 @@
 """Owner-only software archive of verified public CC0 synthetic month reports."""
 
 from datetime import date
+from subprocess import SubprocessError
+from threading import Lock
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
@@ -8,6 +10,8 @@ from pydantic import Field, field_validator, model_validator
 
 from .analysis_support import content_id
 from .case_chart import render_case_chart
+from .case_chart_png import FORMAT as CHART_PNG_FORMAT
+from .case_chart_png import chart_png_manifest, render_chart_png
 from .case_export import case_filename, render_case_bundle, render_case_file
 from .comparison_models import Identity
 from .known_month_report import build_known_month_report
@@ -96,6 +100,14 @@ class CaseUpdate(CaseMetadata):
 def create_case_router(settings, published_path):
     router = APIRouter(dependencies=[Depends(owner_requirement(settings))])
     store = CaseStore(settings.case_store_path)
+    chart_worker = Lock()
+
+    def chart_renderer_configured():
+        try:
+            return all(path is not None and path.is_file()
+                       for path in (settings.case_chart_png_node, settings.case_chart_png_browser))
+        except OSError:
+            return False
 
     def guarded(work):
         try:
@@ -179,7 +191,15 @@ def create_case_router(settings, published_path):
         response.headers["Cache-Control"] = "no-store"
         record = guarded(lambda: store.read(case_id, version))
         if include_source_status:
-            return {**record, "current_published_snapshot": current_snapshot(record)}
+            view = {**record, "current_published_snapshot": current_snapshot(record)}
+            if record.get("protected_dependencies") is not None:
+                try:
+                    available = chart_renderer_configured() or store.has_artifact(case_id, record["version"], CHART_PNG_FORMAT)
+                except CaseStoreError:
+                    available = False
+                if available:
+                    view["chart_png_available"] = True
+            return view
         return record
 
     @router.post("/{case_id}/versions/{version}/exports/aggregate-csv")
@@ -199,6 +219,53 @@ def create_case_router(settings, published_path):
             "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
             "Content-Disposition": f'attachment; filename="{filename}"',
             "X-Ocean-Artifact-SHA256": manifest["sha256"],
+        })
+
+    @router.post("/{case_id}/versions/{version}/exports/chart-png")
+    def prepare_chart_png(case_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")],
+                          version: Annotated[int, Field(ge=1, le=16)], version_id: Identity,
+                          report_id: Identity, response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        key = (case_id, version, version_id, report_id, CHART_PNG_FORMAT, chart_png_manifest)
+        try:
+            existing, _ = guarded(lambda: store.artifact_export(*key))
+            return existing
+        except HTTPException as exc:
+            if exc.status_code != 404:
+                raise
+        case = guarded(lambda: store.read(case_id, version))
+        if case["version_id"] != version_id or case["report"]["report_id"] != report_id:
+            raise HTTPException(409, "Saved chart identity mismatch", headers={"Cache-Control": "no-store"})
+        if not chart_renderer_configured() or case.get("protected_dependencies") is None:
+            raise HTTPException(503, "Protected chart renderer unavailable", headers={"Cache-Control": "no-store"})
+        if not chart_worker.acquire(blocking=False):
+            raise HTTPException(429, "The chart renderer is occupied", headers={"Cache-Control": "no-store"})
+        try:
+            try:
+                existing, _ = guarded(lambda: store.artifact_export(*key))
+                return existing
+            except HTTPException as exc:
+                if exc.status_code != 404:
+                    raise
+            try:
+                png = render_chart_png(settings, case)
+            except (OSError, ValueError, SubprocessError):
+                raise HTTPException(503, "Frozen chart generation failed", headers={"Cache-Control": "no-store"}) from None
+            manifest, _ = guarded(lambda: store.artifact_export(*key, render=lambda _: png))
+            return manifest
+        finally:
+            chart_worker.release()
+
+    @router.get("/{case_id}/versions/{version}/exports/chart-png")
+    def read_chart_png(case_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")],
+                       version: Annotated[int, Field(ge=1, le=16)], version_id: Identity, report_id: Identity):
+        manifest, png = guarded(lambda: store.artifact_export(
+            case_id, version, version_id, report_id, CHART_PNG_FORMAT, chart_png_manifest,
+        ))
+        filename = f"Ocean-case-{case_id}-v{version}-{version_id[7:19]}.chart-v1.png"
+        return Response(png, media_type="image/png", headers={
+            "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
+            "Content-Disposition": f'attachment; filename="{filename}"', "X-Ocean-Artifact-SHA256": manifest["sha256"],
         })
 
     @router.get("/{case_id}/versions/{version}/exports/{representation}")
