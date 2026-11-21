@@ -12,6 +12,7 @@ from tempfile import TemporaryDirectory
 
 from .analysis_support import read_regular_bytes
 from .config import PROJECT_ROOT
+from .monthly_distance_process import run_cancellable_distance
 from .monthly_models import MonthlyResearchRequest
 
 DISTANCE_EXECUTION_TIMEOUT_SECONDS = 25
@@ -61,7 +62,7 @@ def distance_execution_environment(sources):
     }
 
 
-def calculate_distance_reference(request, raw, sources, qualification):
+def calculate_distance_reference(request, raw, sources, qualification, cancelled=None):
     parameters = request.model_dump(exclude_none=True)
     try:
         # Each child imports the same helper bytes used in its execution identity.
@@ -73,10 +74,13 @@ def calculate_distance_reference(request, raw, sources, qualification):
                        request.model_dump_json(exclude_none=True)]
             if qualification:
                 command.append(json.dumps(qualification))
-            child = subprocess.run(
-                command, input=raw, capture_output=True,
-                timeout=DISTANCE_EXECUTION_TIMEOUT_SECONDS, check=True,
-            )
+            if cancelled is None:
+                child = subprocess.run(
+                    command, input=raw, capture_output=True,
+                    timeout=DISTANCE_EXECUTION_TIMEOUT_SECONDS, check=True,
+                )
+            else:
+                child = run_cancellable_distance(command, raw, DISTANCE_EXECUTION_TIMEOUT_SECONDS, cancelled)
     except subprocess.CalledProcessError as error:
         if error.stderr.strip() == b"qualification_input_or_conditions_mismatch":
             raise QualificationInputMismatch from None

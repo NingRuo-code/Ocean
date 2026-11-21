@@ -18,6 +18,8 @@ export async function withService(work, {
   qualifyDistanceFixture = false,
   qualifiedRunPath = null,
   holdDistanceResult = false,
+  holdDistancePublication = false,
+  traceDistanceProcess = false,
   prepareRaw = null,
   projectRoot = process.cwd(),
 } = {}) {
@@ -26,6 +28,8 @@ export async function withService(work, {
   if(publishedFixtureText!==null)await writeFile(join(root,"published.json"),publishedFixtureText,"utf8");
   const distancePath=join(root,"distance.json"), distanceSupport=join(root,"distance-support.json");
   const distanceResultReady=join(root,"distance-result-ready"), releaseDistanceResult=join(root,"release-distance-result");
+  const distanceProcessStarted=join(root,"distance-process-started");
+  const distanceIntentsStarted=join(root,"distance-intents-started");
   if(distanceFixtureText!==null)await writeFile(distancePath,distanceFixtureText,"utf8");
   const inventoryCode=collectRuntimeInventory?`
 def installed_distributions():
@@ -59,12 +63,9 @@ config.settings=config.Settings(_env_file=None)
 ${publishedFixtureText===null?'':`from pathlib import Path
 import app.published_months as published
 published.PUBLISHED_PATH=Path(os.environ['OCEAN_TEST_PUBLISHED'])`}
-${holdDistanceResult?`from pathlib import Path
+${holdDistanceResult || holdDistancePublication?`from pathlib import Path
 from time import monotonic,sleep
-import app.synthetic_runs as owner_runs
-calculate_distance=owner_runs.calculate_distance_reference
-def hold_after_calculation(*args):
-    result=calculate_distance(*args)
+def pause_distance():
     Path(os.environ["OCEAN_TEST_DISTANCE_READY"]).touch()
     release=Path(os.environ["OCEAN_TEST_DISTANCE_RELEASE"])
     deadline=monotonic()+12
@@ -72,8 +73,40 @@ def hold_after_calculation(*args):
         if monotonic() >= deadline:
             raise TimeoutError("Test did not release the distance result")
         sleep(0.02)
+`:''}
+${holdDistanceResult?`import app.synthetic_runs as owner_runs
+calculate_distance=owner_runs.calculate_distance_reference
+def hold_after_calculation(*args):
+    result=calculate_distance(*args)
+    pause_distance()
     return result
 owner_runs.calculate_distance_reference=hold_after_calculation`:''}
+${holdDistancePublication?`import app.monthly_distance_process as distance_process
+begin_distance_publication=distance_process.DistanceRunControl.begin_publication
+def hold_at_publication(control):
+    publish=begin_distance_publication(control)
+    pause_distance()
+    return publish
+distance_process.DistanceRunControl.begin_publication=hold_at_publication`:''}
+${traceDistanceProcess?`from pathlib import Path
+import app.monthly_distance_process as distance_process
+spawn_distance=distance_process.Popen
+new_intent=distance_process.DistanceRunControl.__init__
+started_processes=0
+started_intents=0
+def trace_distance(*args, **kwargs):
+    global started_processes
+    child=spawn_distance(*args, **kwargs)
+    started_processes+=1
+    Path(os.environ["OCEAN_TEST_DISTANCE_PROCESS_STARTED"]).write_text(str(started_processes),encoding="ascii")
+    return child
+def trace_accepted_intent(control):
+    global started_intents
+    new_intent(control)
+    started_intents+=1
+    Path(os.environ["OCEAN_TEST_DISTANCE_INTENTS_STARTED"]).write_text(str(started_intents),encoding="ascii")
+distance_process.Popen=trace_distance
+distance_process.DistanceRunControl.__init__=trace_accepted_intent`:''}
 from app.main import app
 ${inventoryCode}
 app.mount('/',StaticFiles(directory=os.environ['OCEAN_TEST_FRONTEND']))
@@ -105,7 +138,7 @@ uvicorn.Server(uvicorn.Config(app,log_level='error')).run(sockets=[s])`;
       ],{timeout:30_000,windowsHide:true});
     }
     child=spawn(process.env.OCEAN_EXPERIMENT_PYTHON || "python",["-c",code],{cwd:resolve(projectRoot,"backend"),windowsHide:true,
-      env:{...inherited,OCEAN_TEST_FRONTEND:resolve(projectRoot,"frontend/prototype"),OCEAN_PROTOTYPE_DATA_DIR:resolve(projectRoot,"frontend/prototype/data"),OCEAN_API_PREFIX:'/api',OCEAN_AI_PROVIDER:"rules",OCEAN_MONTHLY_EXECUTION_TOKEN:caseOwnerToken,...(publishedFixtureText===null?{}:{OCEAN_TEST_PUBLISHED:join(root,"published.json")}),...(enableCaseStore?{OCEAN_CASE_STORE_PATH:join(root,"cases.sqlite3")}:{}),...(enableSyntheticRuns?{OCEAN_SYNTHETIC_RUN_STORE_PATH:syntheticRunPath||join(root,"runs.sqlite3")}:{}),...(distanceFixtureText===null?{}:{OCEAN_MONTHLY_DISTANCE_INPUT_PATH:distancePath}),...(qualifyDistanceFixture?{OCEAN_SUPPORT_SNAPSHOT_PATH:distanceSupport,OCEAN_QUALIFIED_DISTANCE_RUN_STORE_PATH:distanceStorePath}:{}),...(holdDistanceResult?{OCEAN_TEST_DISTANCE_READY:distanceResultReady,OCEAN_TEST_DISTANCE_RELEASE:releaseDistanceResult}:{}),OCEAN_RAW_DATA_DIR:join(root,"raw"),OCEAN_CACHE_DIR:join(root,"cache")},stdio:["ignore","pipe","pipe"]});
+      env:{...inherited,OCEAN_TEST_FRONTEND:resolve(projectRoot,"frontend/prototype"),OCEAN_PROTOTYPE_DATA_DIR:resolve(projectRoot,"frontend/prototype/data"),OCEAN_API_PREFIX:'/api',OCEAN_AI_PROVIDER:"rules",OCEAN_MONTHLY_EXECUTION_TOKEN:caseOwnerToken,...(publishedFixtureText===null?{}:{OCEAN_TEST_PUBLISHED:join(root,"published.json")}),...(enableCaseStore?{OCEAN_CASE_STORE_PATH:join(root,"cases.sqlite3")}:{}),...(enableSyntheticRuns?{OCEAN_SYNTHETIC_RUN_STORE_PATH:syntheticRunPath||join(root,"runs.sqlite3")}:{}),...(distanceFixtureText===null?{}:{OCEAN_MONTHLY_DISTANCE_INPUT_PATH:distancePath}),...(qualifyDistanceFixture?{OCEAN_SUPPORT_SNAPSHOT_PATH:distanceSupport,OCEAN_QUALIFIED_DISTANCE_RUN_STORE_PATH:distanceStorePath}:{}),...((holdDistanceResult||holdDistancePublication)?{OCEAN_TEST_DISTANCE_READY:distanceResultReady,OCEAN_TEST_DISTANCE_RELEASE:releaseDistanceResult}:{}),...(traceDistanceProcess?{OCEAN_TEST_DISTANCE_PROCESS_STARTED:distanceProcessStarted,OCEAN_TEST_DISTANCE_INTENTS_STARTED:distanceIntentsStarted}:{}),OCEAN_RAW_DATA_DIR:join(root,"raw"),OCEAN_CACHE_DIR:join(root,"cache")},stdio:["ignore","pipe","pipe"]});
     child.on('error',()=>{startError=true;});
     child.stdout.on("data",b=>{output+=b.toString();try{const info=JSON.parse(output.split("\n")[0]);port=info.port;runtime=info.runtime;}catch{}});
     child.stderr.resume();
@@ -131,7 +164,7 @@ uvicorn.Server(uvicorn.Config(app,log_level='error')).run(sockets=[s])`;
       }
       await delay(Math.min(50, remaining));
     }
-    await work(base,{runtime,distancePath,distanceSupport,distanceResultReady,releaseDistanceResult,distanceStorePath,interrupt:()=>stop('SIGKILL')});
+    await work(base,{runtime,distancePath,distanceSupport,distanceResultReady,releaseDistanceResult,distanceStorePath,distanceProcessStarted,distanceIntentsStarted,interrupt:()=>stop('SIGKILL')});
   }finally{await stop().catch(()=>stop('SIGKILL'));
     if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith("ocean-month-service-"))await rm(root,{recursive:true,force:true}).catch(()=>{});
   }

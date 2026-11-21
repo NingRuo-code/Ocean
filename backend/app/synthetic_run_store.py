@@ -146,6 +146,10 @@ class RunStore:
             not distance or value["state"] != "failed" or value["failure_reason"] not in DISTANCE_FAILURE_REASONS
         ):
             raise RunStoreError("unavailable")
+        if "cancelled" in value and (
+            not distance or value["state"] != "failed" or value["cancelled"] is not True or "failure_reason" in value
+        ):
+            raise RunStoreError("unavailable")
         value["record_id"] = identity
         return value
 
@@ -186,7 +190,11 @@ class RunStore:
             }
             if qualification is not None:
                 value["qualification"] = qualification
-                if error and error["code"] in DISTANCE_FAILURE_REASONS:
+                if error and error["code"] == "execution_cancelled":
+                    # The existing terminal failure envelope stays readable after a rollback.
+                    value["cancelled"] = True
+                    value["error"] = {"code": "calculation_failed"}
+                elif error and error["code"] in DISTANCE_FAILURE_REASONS:
                     value["failure_reason"] = error["code"]
                     value["error"] = {"code": "calculation_failed"}
             value["record_id"] = content_id(value)
@@ -217,5 +225,5 @@ class RunStore:
                 raise RunStoreError("unavailable")
             records = (self.checked(row) for row in rows)
             return [{key: value for key, value in record.items() if key in {
-                "id", "intent_id", "record_id", "submission_id", "request", "input_sha256", "state", "submitted_at", "finished_at", "error", "failure_reason"
+                "id", "intent_id", "record_id", "submission_id", "request", "input_sha256", "state", "submitted_at", "finished_at", "error", "failure_reason", "cancelled"
             }} for record in records]
