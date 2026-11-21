@@ -1,7 +1,8 @@
 """Owner-only adapter over the same small synthetic month calculation."""
 
 import hashlib
-from asyncio import create_task, shield
+from asyncio import Task, create_task, shield
+from dataclasses import dataclass
 from subprocess import SubprocessError, TimeoutExpired
 from typing import Annotated, Literal, get_args
 
@@ -13,6 +14,7 @@ from .analysis_support import content_id, decode_controlled_json, read_controlle
 from .audited_support import snapshot_digest
 from .comparison_models import Identity
 from .monthly_capability import MonthlyDraft
+from .monthly_distance_process import DistanceExecutionCancelled, DistanceRunControl
 from .monthly_distance_reference import (
     MAX_INPUT_BYTES,
     QualificationInputMismatch,
@@ -99,6 +101,13 @@ def check_distance_candidate(raw, support, environment):
                             headers={"Cache-Control": "no-store"})
 
 
+@dataclass(frozen=True)
+class ActiveDistanceRun:
+    submission_id: str
+    control: DistanceRunControl
+    task: Task
+
+
 def create_synthetic_run_router(settings, example_path, calculate, method_version, parameter_version):
     router = APIRouter(prefix="/owner-runs", dependencies=[Depends(owner_requirement(settings))])
     store = RunStore(settings.synthetic_run_store_path)
@@ -110,6 +119,7 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
         distance_store = RunStore(None, qualified_distance=True)
 
     active_distance_work = set()
+    active_distance_runs = {}
 
     def distance_rejection(status, detail, headers=None):
         return HTTPException(status, detail, headers={
@@ -118,13 +128,21 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
             "X-Ocean-Submission-State": "rejected",
         })
 
-    def release_distance_work(task):
+    def release_distance_work(task, intent_id):
+        if intent_id is not None:
+            active_distance_runs.pop(intent_id)
         active_distance_work.discard(task)
         distance_slots.release()
         if not task.cancelled():
             task.exception()
 
-    async def run_distance_work(work, *args, replay_if_busy=None):
+    async def run_distance_work(work, *args, replay_if_busy=None, submission_key=None):
+        intent_id, fingerprint = submission_key if submission_key else (None, None)
+        running = active_distance_runs.get(intent_id)
+        if running is not None:
+            if running.submission_id != fingerprint:
+                raise HTTPException(409, "Synthetic run intent_conflict", headers={"Cache-Control": "no-store"})
+            return await shield(running.task)
         try:
             distance_slots.acquire_nowait()
         except WouldBlock:
@@ -139,10 +157,16 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
                 "Qualified distance request capacity is busy",
                 headers={"Cache-Control": "no-store", "Retry-After": "1"},
             ) from None
-        # The slot belongs to the worker even when its caller stops waiting.
+        # The slot and cancellation state belong to the worker even if its caller stops waiting.
+        control = None
+        if intent_id is not None:
+            control = DistanceRunControl()
+            args = (*args, control)
         task = create_task(to_thread.run_sync(work, *args, limiter=distance_workers))
         active_distance_work.add(task)
-        task.add_done_callback(release_distance_work)
+        if control is not None:
+            active_distance_runs[intent_id] = ActiveDistanceRun(fingerprint, control, task)
+        task.add_done_callback(lambda finished: release_distance_work(finished, intent_id))
         return await shield(task)
 
     def store_for(purpose):
@@ -207,7 +231,7 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
     def find_distance_replay(submission, body):
         return guarded(lambda: distance_store.find(submission.intent_id, content_id(body)))
 
-    def submit_distance(submission, body):
+    def submit_distance(submission, body, control):
         old = find_distance_replay(submission, body)
         if old:
             return old
@@ -216,32 +240,44 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
         except HTTPException as error:
             raise distance_rejection(error.status_code, error.detail, error.headers) from None
         qualification, raw, sources, _ = prepared_distance
+        control.enable_cancellation()
+        cancelled = (None, {"code": "execution_cancelled"})
+
+        def reject_before_publication(error):
+            if not control.begin_publication():
+                return cancelled
+            raise distance_rejection(error.status_code, error.detail, error.headers) from None
 
         def check_distance():
             if prepare_distance(settings, submission) != prepared_distance:
                 raise HTTPException(409, "Registered distance evidence changed", headers={"Cache-Control": "no-store"})
 
         def execute_distance():
-            try:
-                check_distance()
-            except HTTPException as error:
-                raise distance_rejection(error.status_code, error.detail, error.headers) from None
+            result = None
             failure = "calculation_failed"
-            try:
-                result = calculate_distance_reference(submission.request, raw, sources, qualification)
-            except QualificationInputMismatch:
-                raise distance_rejection(409, "Distance input does not match qualification") from None
-            except TimeoutExpired:
-                result = None
-                failure = "execution_timed_out"
-            except (OSError, ValueError, TypeError, ImportError, SubprocessError):
-                result = None
-            try:
-                check_distance()
-            except HTTPException as error:
-                if error.status_code not in {409, 503}:
-                    raise
-                return None, {"code": "execution_evidence_changed"}
+            if not control.cancelled.is_set():
+                try:
+                    check_distance()
+                except HTTPException as error:
+                    return reject_before_publication(error)
+                try:
+                    result = calculate_distance_reference(submission.request, raw, sources, qualification, control.cancelled)
+                except QualificationInputMismatch:
+                    return reject_before_publication(HTTPException(409, "Distance input does not match qualification"))
+                except TimeoutExpired:
+                    failure = "execution_timed_out"
+                except (DistanceExecutionCancelled, OSError, ValueError, TypeError, ImportError, SubprocessError):
+                    pass
+            if not control.cancelled.is_set():
+                try:
+                    check_distance()
+                except HTTPException as error:
+                    if error.status_code not in {409, 503}:
+                        raise
+                    result = None
+                    failure = "execution_evidence_changed"
+            if not control.begin_publication():
+                return cancelled
             if result is None:
                 return None, {"code": failure}
             result["versions"]["direct_result_id"] = result.pop("result_id")
@@ -288,8 +324,10 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
     async def submit(submission: OwnerSubmission, response: Response):
         response.headers["Cache-Control"] = "no-store"
         if isinstance(submission.request, MonthlyDistanceRequest):
+            body = submission.model_dump()
             return await run_distance_work(
-                submit_distance, submission, submission.model_dump(), replay_if_busy=find_distance_replay,
+                submit_distance, submission, body, replay_if_busy=find_distance_replay,
+                submission_key=(submission.intent_id, content_id(body)),
             )
         return await to_thread.run_sync(submit_legacy, submission)
 
@@ -297,6 +335,24 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
     def history(response: Response, purpose: OwnerPurpose = "monthly_spatial_example"):
         response.headers["Cache-Control"] = "no-store"
         return {"schema_version": "ocean-owner-synthetic-history/v1", "runs": guarded(store_for(purpose).catalog)}
+
+    @router.post("/intents/{intent_id}/cancel")
+    async def cancel_distance(intent_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        running = active_distance_runs.get(intent_id)
+        run_id = None
+        if running is not None and not running.task.done():
+            state = running.control.request_cancel()
+        else:
+            run = await to_thread.run_sync(lambda: guarded(lambda: distance_store.read_intent(intent_id)))
+            run_id = run["id"]
+            state = "cancelled" if run.get("cancelled") is True else run["state"]
+        return {
+            "schema_version": "ocean-owner-distance-cancel/v1",
+            "intent_id": intent_id,
+            "run_id": run_id,
+            "state": state,
+        }
 
     @router.get("/intents/{intent_id}")
     def read_intent(intent_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response,

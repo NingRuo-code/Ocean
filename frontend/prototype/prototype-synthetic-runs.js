@@ -2,7 +2,7 @@
 (function(){
   const {source:publicSource,sameSource,json}=OceanPublicRead,panel=$('monthDraftPanel');
   const root=document.createElement('details');root.id='ownerRuns';root.dataset.state='locked';
-  root.innerHTML='<summary>本人合成小例任务（持久软件验证）</summary><p>仅运行已登记合成小例，真实月研究仍待接入。小型同步受理，不提供队列、自动续跑或服务端取消；离开面板仅停止观察，已送达提交仍可能完成。</p><label>任务类型<select id="ownerRunPurpose"><option value="monthly_spatial_example">已知单元</option><option value="monthly_distance_reference">P0 合成距离参照</option></select></label><label>合成任务本人令牌<input id="ownerRunToken" type="password" autocomplete="off" spellcheck="false"></label><div class="monthly-actions"><button id="ownerRunPrepare">核对合成条件</button><button id="ownerRunSubmit" disabled>明确提交合成任务</button><button id="ownerRunRead" disabled>重读所选记录</button><button id="ownerRunNew">清除本页引用（不取消任务）</button><button id="ownerRunLock">锁定</button></div><p id="ownerRunStatus" role="status">尚未提交；输入当前服务的本人令牌后核对条件。</p><p id="ownerRunPrepared"></p><div id="ownerRunResult"></div>';
+  root.innerHTML='<summary>本人合成小例任务（持久软件验证）</summary><p id="ownerRunScope"></p><label>任务类型<select id="ownerRunPurpose"><option value="monthly_spatial_example">已知单元</option><option value="monthly_distance_reference">P0 合成距离参照</option></select></label><label>合成任务本人令牌<input id="ownerRunToken" type="password" autocomplete="off" spellcheck="false"></label><div class="monthly-actions"><button id="ownerRunPrepare">核对合成条件</button><button id="ownerRunSubmit" disabled>明确提交合成任务</button><button id="ownerRunRead" disabled>重读所选记录</button><button id="ownerRunNew">清除本页引用（不取消任务）</button><button id="ownerRunLock">锁定</button></div><p id="ownerRunStatus" role="status">尚未提交；输入当前服务的本人令牌后核对条件。</p><p id="ownerRunPrepared"></p><div id="ownerRunResult"></div>';
   panel.append(root);
   const id=/^[0-9a-f]{32}$/,hash=/^sha256:[0-9a-f]{64}$/;
   let draft=null,prepared=null,pending=null,selected=null,sessionSource=null,busy=false,generation=0,controller=null,reference=null,referenceError='';
@@ -17,6 +17,17 @@
   const recoveryDelays = [600, 1200, 2400, 4800, 8000];
   let recovery = null;
   let preferredRun = null;
+  let cancellation = null;
+  let cancellationIntent = null;
+  let observeCancellation = false;
+  const cancelMessages = {
+    checking:'服务正在核对资格。可在核对结束后申请取消。',
+    cancelling:'已提出取消，正在等待服务确认终态。',
+    finishing:'任务已进入结果提交阶段，无法撤回。正在核对最终状态。',
+    completed:'服务确认任务已经完成，取消申请未改变原结果。',
+    cancelled:'服务已确认取消原意图。',
+    failed:'原任务已处于持久失败状态。',
+  };
   let purpose = legacyPurpose;
   let referenceKey = 'ocean-owner-synthetic-run-ref/v1';
 
@@ -38,11 +49,17 @@
   const actions=root.querySelector('.monthly-actions');
   const downloads=new Set();
   node(actions,'button','读取我的合成任务').id='ownerRunHistory';node(actions,'button','核对原意图').id='ownerRunFindIntent';
+  const cancelButton=node(actions,'button','取消原提交');cancelButton.id='ownerRunCancel';
+  const cancelStatus=node(root,'p','');cancelStatus.id='ownerRunCancelStatus';cancelStatus.setAttribute('role','status');
   node(actions,'button','下载所读任务 Markdown').id='ownerRunExportMarkdown';node(actions,'button','下载所读任务 CSV').id='ownerRunExportCsv';
   const referenceStatus=node(root,'p','');referenceStatus.id='ownerRunReferenceStatus';
   const items=node(root,'div','');items.id='ownerRunItems';items.className='case-candidates';
   function activePending(){return pending&&sameSource(pending.from,source())?pending:null;}
   function activeReference(){return reference&&source().kind==='server'&&reference.base===source().base?reference:null;}
+  function cancellableIntent(){
+    const ref=activeReference();
+    return activePending()?.body.intent_id||(ref?.run_id===null?ref.intent_id:null);
+  }
   function referenceMessage(){
     root.dataset.referenceState=referenceError||(!reference?'none':activeReference()?'available':'other-source');
     referenceStatus.textContent=referenceError==='invalid'?'本地引用损坏，未作为任务状态；可从本人服务目录找回。':referenceError==='unavailable'?'本地引用不可用；可从本人服务目录找回，未自动提交。':activeReference()?reference.run_id?'保留了服务来源和任务/意图ID；没有保存令牌、条件或科学结果。':'本地有未核实提交意图；请认证后核对原意图，未自动提交。':reference?'本地引用属于另一服务，当前不会向此服务发送它。':'没有本地任务引用；仍可认证后读取本人服务目录。';
@@ -78,6 +95,11 @@
     $('ownerRunRead').disabled=locked||busy||!selected;
     $('ownerRunNew').disabled=busy||(distanceMode()&&!!unresolved);
     $('ownerRunHistory').disabled=locked||busy;
+    cancelButton.hidden=cancelStatus.hidden=!distanceMode();
+    cancelButton.disabled=!distanceMode()||locked||!cancellableIntent()||Boolean(cancellation);
+    $('ownerRunScope').textContent=distanceMode()
+      ? '距离参照使用已登记合成小例。可以明确申请取消。关闭面板仅停止观察。'
+      : '仅运行已登记合成小例，真实月研究仍待接入。小型同步受理，不提供队列、自动续跑或服务端取消；离开面板仅停止观察，已送达提交仍可能完成。';
     $('ownerRunFindIntent').disabled=locked||busy||!(activePending()||activeReference());
     for(const key of ['ownerRunExportMarkdown','ownerRunExportCsv']){
       $(key).hidden=distanceMode();
@@ -89,6 +111,7 @@
   function clearPrivate(clearToken=true){
     stopRecovery();
     preferredRun=null;
+    clearCancellationStatus();
     generation++;controller?.abort();busy=false;prepared=null;selected=null;sessionSource=null;
     for(const url of downloads)URL.revokeObjectURL(url);downloads.clear();
     if(clearToken)$('ownerRunToken').value='';
@@ -102,6 +125,61 @@
     if(sessionSource&&!sameSource(sessionSource,from))throw Error('source_changed');sessionSource=from;
     return read(from.base+'/query/monthly-analysis/owner-runs'+suffix,signal,{method,redirect:'error',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
   }
+  function stopCancellationObservation(){
+    cancellation?.abort();
+    cancellation=null;
+  }
+
+  function clearCancellationStatus(){
+    stopCancellationObservation();
+    cancellationIntent=null;
+    observeCancellation=false;
+    cancelStatus.textContent='';
+  }
+
+  function setCancellationStatus(intent,message){
+    cancelStatus.textContent=message+' 意图 '+intent+'。';
+  }
+
+  function trackedCancellation(){
+    return observeCancellation&&cancellableIntent()===cancellationIntent;
+  }
+
+  cancelButton.onclick=async()=>{
+    const intent=cancellableIntent(),from=source();
+    if(cancelButton.disabled||!intent)return;
+    const observer=new AbortController();
+    const timeout=setTimeout(()=>observer.abort(),6000);
+    cancellation=observer;
+    cancellationIntent=intent;
+    observeCancellation=true;
+    setCancellationStatus(intent,'正在向服务查询能否取消原提交。');
+    update();
+    try{
+      const reply=await net('/intents/'+intent+'/cancel','POST',null,json,observer.signal);
+      if(cancellation!==observer||!sameSource(from,source()))return;
+      if(observer.signal.aborted)throw Error('cancelled');
+      if(reply?.schema_version!=='ocean-owner-distance-cancel/v1'||reply.intent_id!==intent||
+          !Object.hasOwn(cancelMessages,reply.state)||
+          (['checking','cancelling','finishing'].includes(reply.state)?reply.run_id!==null:!id.test(reply.run_id)))throw Error('contract');
+      setCancellationStatus(intent,cancelMessages[reply.state]);
+      if(reply.state==='checking')observeCancellation=false;
+      if(trackedCancellation()&&!busy)startRecovery();
+    }catch(error){
+      if(cancellation!==observer)return;
+      if(['http_401','http_403','source_changed'].includes(error.message)){
+        clearPrivate();
+        cancelStatus.textContent='需要重新认证才能核对取消结果。';
+      }else{
+        setCancellationStatus(intent,'当前服务暂不可核实取消结果。可核对原意图。');
+        if(trackedCancellation()&&!busy)startRecovery();
+      }
+    }finally{
+      clearTimeout(timeout);
+      if(cancellation===observer){cancellation=null;update();}
+    }
+  };
+
   function stopRecovery(){
     if(!recovery)return;
     clearTimeout(recovery.timer);
@@ -120,16 +198,24 @@
     const from=source();
     if(!canRecover(from))return;
     const active=activePending(), ref=activeReference();
-    const preferred=preferredRun&&preferredRun===selected?.id?selected:null;
+    const trackingCancellation=trackedCancellation();
+    const preferred=!trackingCancellation&&preferredRun&&preferredRun===selected?.id?selected:null;
     const intent=preferred?.intent_id||active?.body.intent_id||ref?.intent_id;
-    if(!intent||root.dataset.state==='history')return;
+    if(!intent||(root.dataset.state==='history'&&!trackingCancellation))return;
     const expected=preferred?{intent,id:preferred.id}:active?{intent,body:active.body}:{intent,id:ref.run_id};
     recovery={from,expected,index:0,timer:null,controller:null};
     scheduleRecovery(recovery);
   }
 
+  function markCancellationUnknown(intent){
+    if(cancellationIntent===intent){
+      setCancellationStatus(intent,'取消终态暂不可核实。可手动核对原意图。');
+    }
+  }
+
   function scheduleRecovery(current){
     if(current.index>=recoveryDelays.length){
+      markCancellationUnknown(current.expected.intent);
       stopRecovery();
       return;
     }
@@ -147,7 +233,7 @@
       if(recovery!==current)return;
       if(!canRecover(current.from)){stopRecovery();return;}
       if(active.signal.aborted)throw Error('cancelled');
-      show(value,current.expected);
+      show(value,current.expected,true);
       stopRecovery();
     }catch(error){
       if(recovery!==current)return;
@@ -156,6 +242,7 @@
         $('ownerRunStatus').textContent='自动核对已停止，需要重新通过本人认证。';
       }else if(error.message==='contract'){
         set('uncertain','任务身份或内容暂不可核实，可手动核对原意图。');
+        markCancellationUnknown(current.expected.intent);
         stopRecovery();
       }else{
         set('uncertain','原任务状态暂不可核实，可手动核对原意图。');
@@ -180,6 +267,11 @@
       recoverAfterError=!rejectedDistance&&['submitting','looking-up'].includes(operation) &&
         !['http_401','http_403','http_409','http_422','source_changed','contract'].includes(error.message);
       if(rejectedDistance){
+        if(cancellationIntent&&cancellableIntent()===cancellationIntent){
+          const intent=cancellationIntent;
+          clearCancellationStatus();
+          setCancellationStatus(intent,'本次提交已被服务拒绝。');
+        }
         clearReference();
         if(selected)saveReference({schema_version:referenceKey,base:from.base,intent_id:selected.intent_id,run_id:selected.id});
       }
@@ -194,7 +286,7 @@
       if(authLost)$('ownerRunStatus').textContent=message;
       else if(rejectedDistance)set('error','服务已明确拒绝本次提交。可重新核对合成条件。');
       else set(activePending()||operation==='looking-up'||unreachableRead?'uncertain':'error',message+(activePending()?pendingMessage:''));
-    }finally{clearTimeout(timer);if(n===generation){busy=false;update();if(recoverAfterError)startRecovery();if(!panel.hidden&&document.activeElement===$('ownerRunLock')&&root.contains(opener)&&!opener.disabled)opener.focus({preventScroll:true});}}
+    }finally{clearTimeout(timer);if(n===generation){busy=false;update();if(recoverAfterError||trackedCancellation())startRecovery();if(!panel.hidden&&document.activeElement===$('ownerRunLock')&&root.contains(opener)&&!opener.disabled)opener.focus({preventScroll:true});}}
   }
   function validRequest(p) {
     if (p?.purpose !== purpose || !/^[12]\d{3}-(0[1-9]|1[0-2])$/.test(p.month) ||
@@ -210,6 +302,11 @@
       p.method_version === 'monthly-known-support/v1' && p.parameter_version === 'known-unit-membership/v1';
   }
 
+  function validCancellationFlag(record,qualified){
+    return !Object.hasOwn(record,'cancelled')||
+      (qualified&&record.state==='failed'&&record.cancelled===true&&!Object.hasOwn(record,'failure_reason'));
+  }
+
   function validDistanceEvidence(record) {
     const {request, qualification, result} = record;
     const validMeasure = value => value === null || (Number.isFinite(value) && value >= 0);
@@ -217,6 +314,7 @@
         qualification.scope !== 'frozen_synthetic_validation') return false;
     if (Object.hasOwn(record,'failure_reason') &&
         (record.state !== 'failed' || !distanceFailureMessages.has(record.failure_reason))) return false;
+    if (!validCancellationFlag(record,true)) return false;
     if (record.state === 'failed') return result === null && record.error?.code === 'calculation_failed';
     return result?.kind === distancePurpose && result.evidence_kind === 'synthetic' &&
       result.research_ready === false && result.qualification?.snapshot_id === qualification.snapshot_id &&
@@ -250,14 +348,34 @@
       if (!validDistanceEvidence(record)) throw Error('contract');
       return record;
     }
+    if(!validCancellationFlag(record,false))throw Error('contract');
     if(record.state==='completed'){
       const r=record.result;
       if(r?.evidence_kind!=='synthetic_example'||r.research_ready!==false||!r.source?.license.startsWith('CC0-1.0')||r.source.input_sha256!==record.input_sha256||!hash.test(r.result_id)||!Array.isArray(r.daily)||r.daily.length<28||r.daily.length>31||!Object.keys(record.request).every(k=>r.parameters[k]===record.request[k]))throw Error('contract');
     }else if(record.result!==null||record.error?.code!=='calculation_failed')throw Error('contract');
     return record;
   }
-  function show(value,expected){
-    const run=checked(value,expected),box=$('ownerRunResult');box.replaceChildren();selected=run;root.dataset.runId=run.id;
+  function show(value,expected,background=false){
+    const run=checked(value,expected),cancelled=run.cancelled===true;
+    const fromCancellation=cancellationIntent===run.intent_id;
+    const unresolved=(activePending()&&pending.body.intent_id!==run.intent_id)||
+      (activeReference()?.run_id===null&&reference.intent_id!==run.intent_id);
+    if(!unresolved){
+      if(activePending()?.body.intent_id===run.intent_id)pending=null;
+      saveReference({schema_version:referenceKey,base:sessionSource.base,intent_id:run.intent_id,run_id:run.id});
+    }
+    if(fromCancellation){
+      clearCancellationStatus();
+      setCancellationStatus(run.intent_id,cancelMessages[cancelled?'cancelled':run.state]);
+    }
+    if(background&&selected&&selected.id!==run.id&&(cancelled||fromCancellation)){
+      preferredRun=selected.id;
+      prepared=null;
+      set(selected.cancelled?'cancelled':selected.state,'已核对原提交，并保留所选记录。');
+      update();
+      return;
+    }
+    const box=$('ownerRunResult');box.replaceChildren();selected=run;root.dataset.runId=run.id;
     const layers=distanceMode()?(run.request.layer_use==='front_effort_sst'?' · 锋面、活动与海温':' · 锋面与活动'):'';
     node(box,'p','原任务条件：'+describe(run.request)+layers);
     node(box,'p','任务 '+run.id+' / 意图 '+run.intent_id+' / '+run.record_id);
@@ -273,11 +391,13 @@
         showDaily(box, r.daily, r.caveats);
       }
     }else{
-      node(box,'p',distanceFailureMessages.get(run.failure_reason)??generalFailureMessage);
+      node(box,'p',run.cancelled===true?'服务已确认取消原意图。没有发布结果。'
+        :distanceFailureMessages.get(run.failure_reason)??generalFailureMessage);
     }
-    const unresolved=(activePending()&&pending.body.intent_id!==run.intent_id)||(activeReference()?.run_id===null&&reference.intent_id!==run.intent_id);
-    if(!unresolved){if(activePending()?.body.intent_id===run.intent_id)pending=null;saveReference({schema_version:referenceKey,base:sessionSource.base,intent_id:run.intent_id,run_id:run.id});}
-    prepared=null;set(run.state,(run.state==='completed'?'已读取可靠提交的合成任务结果；地图条件未改变。':'已读取持久失败记录；新尝试必须明确准备新的意图。')+(unresolved?' 原提交意图仍待核实，核对入口保留。':''));update();
+    prepared=null;
+    const message=cancelled?'已读取服务确认的取消记录。':run.state==='completed'
+      ?'已读取可靠提交的合成任务结果；地图条件未改变。':'已读取持久失败记录；新尝试必须明确准备新的意图。';
+    set(cancelled?'cancelled':run.state,message+(unresolved?' 原提交意图仍待核实，核对入口保留。':''));update();
   }
   function showDistanceEvidence(box, result) {
     const common = result.month.common;
@@ -340,9 +460,10 @@
   });
   $('ownerRunSubmit').onclick=()=>perform(async(n,from)=>{
     preferredRun=null;
+    clearCancellationStatus();
     if(!activePending()){if(!prepared)throw Error('contract');const intent=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');pending={from:prepared.from,body:{intent_id:intent,input_sha256:prepared.input_sha256,request:prepared.request}};saveReference({schema_version:referenceKey,base:pending.from.base,intent_id:intent,run_id:null});}
     if(!sameSource(pending.from,from))throw Error('source_changed');
-    const body=pending.body,intent=body.intent_id;set('submitting','正在等待服务受理结果；关闭观察不取消已送达提交。');const result=await net('','POST',body);if(n!==generation)return;show(result,{intent,body});
+    const body=pending.body,intent=body.intent_id;set('submitting','正在等待服务受理结果；关闭观察不取消已送达提交。');update();const result=await net('','POST',body);if(n!==generation)return;show(result,{intent,body},true);
   });
   function readRecord(identity){
     if(busy&&['reading','downloading'].includes(root.dataset.state)){generation++;controller?.abort();busy=false;}
@@ -366,8 +487,8 @@
   $('ownerRunExportMarkdown').onclick=()=>download('markdown');$('ownerRunExportCsv').onclick=()=>download('csv');
   $('ownerRunHistory').onclick=()=>perform(async n=>{
     set('loading-history','正在读取本人服务目录；原有显示保留为上次核实内容。');const data=await net(purposeSuffix());if(n!==generation)return;
-    if(data?.schema_version!=='ocean-owner-synthetic-history/v1'||!Array.isArray(data.runs)||data.runs.length>64||new Set(data.runs.map(r=>r.id)).size!==data.runs.length||data.runs.some(r=>!id.test(r.id)||!id.test(r.intent_id)||!hash.test(r.record_id)||!['completed','failed'].includes(r.state)||!validRequest(r.request)||!Number.isFinite(Date.parse(r.finished_at))))throw Error('contract');
-    items.replaceChildren();for(const run of data.runs){const button=node(items,'button',describe(run.request)+' · '+(run.state==='completed'?'已完成':'计算失败')+' · '+run.finished_at);button.dataset.runId=run.id;button.onclick=()=>readRecord(run.id);}
+    if(data?.schema_version!=='ocean-owner-synthetic-history/v1'||!Array.isArray(data.runs)||data.runs.length>64||new Set(data.runs.map(r=>r.id)).size!==data.runs.length||data.runs.some(r=>!id.test(r.id)||!id.test(r.intent_id)||!hash.test(r.record_id)||!['completed','failed'].includes(r.state)||!validCancellationFlag(r,distanceMode())||!validRequest(r.request)||!Number.isFinite(Date.parse(r.finished_at))))throw Error('contract');
+    items.replaceChildren();for(const run of data.runs){const button=node(items,'button',describe(run.request)+' · '+(distanceMode()&&run.cancelled===true?'已取消':run.state==='completed'?'已完成':'计算失败')+' · '+run.finished_at);button.dataset.runId=run.id;button.onclick=()=>readRecord(run.id);}
     if(!data.runs.length)node(items,'p','当前未查到已提交终态；在途请求仍可能稍后出现。');
     set('history','已读取全部 '+data.runs.length+' 条本人持久记录；选择后只读原条件和冻结结果。');
   });
@@ -377,7 +498,7 @@
     set('looking-up','正在查询原意图是否已有终态记录；不会重新计算。');const value=await net('/intents/'+intent+purposeSuffix());if(n!==generation)return;
     show(value,{intent,...(active?{body:active.body}:ref?.run_id?{id:ref.run_id}:{})});
   });
-  $('ownerRunNew').onclick=()=>{stopRecovery();preferredRun=null;clearReference();set('draft','已清除本地提交引用；服务任务没有取消或删除，可重新核对条件以明确创建新意图。');update();};
+  $('ownerRunNew').onclick=()=>{stopRecovery();clearCancellationStatus();preferredRun=null;clearReference();set('draft','已清除本地提交引用；服务任务没有取消或删除，可重新核对条件以明确创建新意图。');update();};
   $('ownerRunPurpose').onchange=()=>{
     const previousSource=sessionSource;
     pendingByPurpose.set(purpose,pending);
@@ -395,10 +516,16 @@
   window.addEventListener('ocean-month-draft',e=>{if(root.dataset.state==='checking'){generation++;controller?.abort();busy=false;}draft=e.detail?.longitude===null?null:e.detail;prepared=null;$('ownerRunPrepared').textContent='';if(!busy&&!pending)set('draft','条件已改变；请重新核对。');update();});
   window.addEventListener('ocean-month-draft-closed',()=>clearPrivate());
   window.addEventListener('ocean-load-state',()=>{if(sessionSource&&!sameSource(sessionSource,source()))clearPrivate();update();});
-  root.addEventListener('toggle',()=>root.open?startRecovery():stopRecovery());
-  document.addEventListener('visibilitychange',()=>document.hidden?stopRecovery():startRecovery());
+  root.addEventListener('toggle',()=>{
+    if(root.open){startRecovery();return;}
+    stopRecovery();stopCancellationObservation();update();
+  });
+  document.addEventListener('visibilitychange',()=>{
+    if(!document.hidden){startRecovery();return;}
+    stopRecovery();stopCancellationObservation();update();
+  });
   window.addEventListener('offline',()=>{
-    stopRecovery();
+    stopRecovery();stopCancellationObservation();
     const from=source();
     if(distanceMode()&&!panel.hidden&&root.open&&sessionSource&&sameSource(from,sessionSource)){
       generation++;
