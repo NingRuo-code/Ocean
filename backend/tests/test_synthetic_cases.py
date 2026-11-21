@@ -396,6 +396,13 @@ def test_case_rebinding_and_chapters_create_one_new_protected_version(tmp_path):
     assert updated["sections"] == ["summary", "limits"]
     assert updated["protected_dependencies"]["report"] == binding["report_id"]
     assert client.get(case_uri + "?version=1", headers=AUTH).json() == first
+    packed = json.loads(published.read_bytes())
+    packed["snapshots"] = [entry for entry in packed["snapshots"]
+                           if entry["result"]["result_id"] != first["report"]["result"]["result_id"]]
+    published.write_text(json.dumps(packed), encoding="utf-8")
+    original_absent = client.get(case_uri, params={"version": 1, "include_source_status": True}, headers=AUTH).json()
+    assert original_absent.pop("current_published_snapshot") == "projection_missing"
+    assert original_absent == first
     published.unlink()
     assert client.put(case_uri, headers=AUTH, json=edit).json() == updated
     source_missing = client.get(case_uri, params={"include_source_status": True}, headers=AUTH).json()

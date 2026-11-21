@@ -159,13 +159,27 @@ def create_case_router(settings, published_path):
         response.headers["Cache-Control"] = "no-store"
         return {"schema_version": "ocean-synthetic-case-versions/v1", "case_id": case_id, "versions": guarded(lambda: store.versions(case_id))}
 
+    def current_snapshot(record):
+        physical = path_state(published_path)
+        if physical != "present_unverified":
+            return physical
+        saved = record["report"]
+        try:
+            candidate = read_public_month(published_path, saved["result"]["result_id"])
+        except HTTPException as exc:
+            return "projection_missing" if exc.status_code in (403, 404) else "unknown"
+        if (candidate["projection_id"] != saved["result"]["projection_id"]
+                or build_known_month_report(candidate)["report_id"] != saved["report_id"]):
+            return "projection_changed"
+        return "present_verified"
+
     @router.get("/{case_id}")
     def read(case_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response,
              version: Annotated[int | None, Query(ge=1, le=16)] = None, include_source_status: bool = False):
         response.headers["Cache-Control"] = "no-store"
         record = guarded(lambda: store.read(case_id, version))
         if include_source_status:
-            return {**record, "current_published_snapshot": path_state(published_path)}
+            return {**record, "current_published_snapshot": current_snapshot(record)}
         return record
 
     @router.get("/{case_id}/versions/{version}/exports/{representation}")

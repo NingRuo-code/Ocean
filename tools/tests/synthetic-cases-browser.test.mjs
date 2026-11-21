@@ -248,7 +248,7 @@ test("a concurrent newer version preserves the rejected browser draft until expl
     await waitFor(c,"document.getElementById('caseArchive').dataset.state==='error'");
     assert.equal(await c.evaluate("document.getElementById('caseEditNote').value"),"我尚未提交的草稿");
     assert.equal(await c.evaluate("document.getElementById('caseArchive').dataset.version"),"1");
-    assert.match(await c.evaluate("document.querySelector('#caseArchive [role=status]').textContent"),/草稿未覆盖/);
+    assert.match(await c.evaluate("document.querySelector('#caseArchive [role=status]').textContent"),/草稿基于版本 1，当前已保存版本 2.*草稿仍保留/s);
     await click(c,"#caseLatest");await waitFor(c,"document.getElementById('caseArchive').dataset.version==='2'");
     assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/另一标签页已保存/);
   }finally{await browser.close();}
@@ -385,11 +385,19 @@ test("filtered case paging keeps same-title identities and rebinds a new protect
     const previous=await(await fetch(api+"/cases/"+expected.case_id+"?version=1",{headers})).json();
     assert.equal(previous.report.report_id,supplied.report_id);
     assert.equal(previous.version_id,expected.version_id);
-    await unlink(publishedPath);
+    const liveCatalog=JSON.parse(await readFile(publishedPath,"utf8"));
+    liveCatalog.snapshots=liveCatalog.snapshots.filter(entry=>entry.result.result_id!==supplied.result.result_id);
+    await writeFile(publishedPath,JSON.stringify(liveCatalog),"utf8");
     await c.evaluate("(()=>{const select=document.getElementById('caseVersion');select.value='1';select.dispatchEvent(new Event('change',{bubbles:true}));})()");
     await waitFor(c,"document.getElementById('caseArchive').dataset.reportId==="+JSON.stringify(supplied.report_id));
     assert.equal(await c.evaluate("document.getElementById('caseArchive').dataset.version"),"1");
-    assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/原公开快照目录缺失.*新鲜度.*待核/s);
+    assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/当前目录无法提供原公开快照.*新鲜度.*待核/s);
+    await unlink(publishedPath);
+    await c.evaluate("document.getElementById('caseVersion').dispatchEvent(new Event('change',{bubbles:true}))");
+    await waitFor(c,"document.getElementById('caseOriginal').textContent.includes('原公开快照目录缺失')");
+    await type(c,"caseCatalogQuery","没有对应的案例");
+    assert.equal(await c.evaluate("document.querySelectorAll('#caseItems button').length"),0);
+    assert.equal(await c.evaluate("document.getElementById('caseCatalogNext').disabled"),true);
     assert.deepEqual(mutations.map(request=>request.method),["PUT"]);
   }finally{await browser.close();}
 },{caseOwnerToken:owner,enableCaseStore:true,
