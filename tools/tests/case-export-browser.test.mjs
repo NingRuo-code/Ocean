@@ -110,3 +110,109 @@ test("an oversized binary response fails before creating a download and keeps th
     await c.send("Fetch.disable");await Promise.allSettled(pending);
   }finally{await browser.close();await rm(directory,{recursive:true,force:true});}
 },{caseOwnerToken:owner,enableCaseStore:true}));
+
+
+
+
+test("Edge downloads a protected aggregate CSV with frozen precision and no private note",()=>withService(async base=>{
+  const first=await savedCase(base),
+    browser=await launchBrowser(edge),c=browser.cdp,directory=await mkdtemp(join(tmpdir(),"ocean-case-aggregate-"));
+  const mutations=[];
+  c.onEvent(event=>{
+    if(event.method==="Network.requestWillBeSent"&&event.params.request.method!=="GET")mutations.push(event.params.request);
+  });
+  try{
+    await c.send("Network.enable");
+    await c.send("Browser.setDownloadBehavior",{behavior:"allow",downloadPath:directory});
+    await openCase(c,base);
+    await click(c,"#caseEditFields summary");
+    await type(c,"caseEditNote","不得导出这份未保存草稿");
+    const path=exportUrl(base,first,"aggregate-csv");
+    assert.equal((await fetch(path,{headers})).status,404);
+    await click(c,"#caseExportAggregate");
+    const file=await downloaded(directory,".aggregate-v1.csv"),bytes=await readFile(file);
+    assert.ok(file.includes(first.version_id.slice(7,19)));
+    const manifest=await(await fetch(path,{method:"POST",headers})).json();
+    assert.equal(manifest.protection,"saved_case");
+    assert.equal(manifest.sha256,"sha256:"+createHash("sha256").update(bytes).digest("hex"));
+    const parser=spawnSync(process.env.OCEAN_EXPERIMENT_PYTHON||"python",["-c",
+      "import csv,json,sys; print(json.dumps(list(csv.DictReader(open(sys.argv[1],encoding='utf-8',newline='')))))",
+      file],{encoding:"utf8",windowsHide:true,timeout:5000});
+    assert.equal(parser.status,0,parser.stderr);
+    const facts=JSON.parse(parser.stdout);
+    assert.equal(facts[0].metric_label,"表观捕捞活动小时");
+    assert.ok(facts.every(row=>row.version_id===first.version_id&&row.report_id===first.report.report_id));
+    const aggregate=Object.fromEntries(facts.filter(row=>row.scope==="month").map(row=>[row.metric,row]));
+    assert.equal(Number(aggregate.total_hours.value),40);
+    assert.equal(aggregate.total_hours.unit,"h");
+    assert.equal(aggregate.total_hours.chart_significant_digits,"6");
+    assert.equal(aggregate.total_hours.precision,"frozen_aggregate");
+    assert.equal(aggregate.total_hours.research_ready,"false");
+    assert.equal(Number(aggregate.area_time_km2_days.value),7);
+    assert.equal(Number(aggregate.density_hours_per_km2_day.value),40/7);
+    assert.equal(aggregate.interval.value_state,"not_estimated");
+    const days=facts.filter(row=>row.scope==="day"&&row.metric==="hours");
+    assert.ok(days.some(row=>row.value==="0.0"&&row.value_state==="known_zero"));
+    assert.ok(days.some(row=>row.value===""&&row.value_state==="unknown"));
+    assert.doesNotMatch(bytes.toString("utf8"),/第一版人工笔记|未保存草稿|冻结版本导出/);
+    assert.equal(await c.evaluate("document.getElementById('caseEditNote').value"),"不得导出这份未保存草稿");
+    assert.deepEqual(mutations.map(request=>[request.method,request.url]),[["POST",path]]);
+  }finally{await browser.close();await rm(directory,{recursive:true,force:true});}
+},{caseOwnerToken:owner,enableCaseStore:true}));
+
+
+
+
+test("an aggregate receipt never permits download of different bytes",()=>withService(async base=>{
+  await savedCase(base);
+  const browser=await launchBrowser(edge),c=browser.cdp,pending=[];
+  const directory=await mkdtemp(join(tmpdir(),"ocean-case-aggregate-bad-"));
+  c.onEvent(event=>{
+    if(event.method!=="Fetch.requestPaused")return;
+    const requestId=event.params.requestId;
+    if(event.params.request.method==="GET"){
+      pending.push(c.send("Fetch.fulfillRequest",{requestId,responseCode:200,
+        responseHeaders:[{name:"Content-Type",value:"text/csv"}],body:Buffer.from("wrong,version").toString("base64")}));
+    }else pending.push(c.send("Fetch.continueRequest",{requestId}));
+  });
+  try{
+    await c.send("Browser.setDownloadBehavior",{behavior:"allow",downloadPath:directory});
+    await openCase(c,base);
+    await c.send("Fetch.enable",{patterns:[{urlPattern:"*/exports/aggregate-csv?*",requestStage:"Request"}]});
+    await click(c,"#caseExportAggregate");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.state==='error'");
+    assert.deepEqual(await readdir(directory),[]);
+    await c.send("Fetch.disable");await Promise.all(pending);
+    await click(c,"#caseExportAggregate");
+    assert.ok(await downloaded(directory,".aggregate-v1.csv"));
+  }finally{await browser.close();await rm(directory,{recursive:true,force:true});}
+},{caseOwnerToken:owner,enableCaseStore:true}));
+
+
+
+
+test("an abort at the end of aggregate digest verification prevents file handoff",()=>withService(async base=>{
+  await savedCase(base);
+  const browser=await launchBrowser(edge),c=browser.cdp;
+  const directory=await mkdtemp(join(tmpdir(),"ocean-case-aggregate-abort-"));
+  try{
+    await c.send("Browser.setDownloadBehavior",{behavior:"allow",downloadPath:directory});
+    await openCase(c,base);
+    await c.evaluate(`(()=>{
+      const NativeController=AbortController, verify=crypto.subtle.digest.bind(crypto.subtle);
+      let transfer;
+      window.AbortController=class extends NativeController{
+        constructor(){super();if(!transfer)transfer=this;}
+      };
+      crypto.subtle.digest=async(...args)=>{
+        const result=await verify(...args);
+        window.aggregateDigestObserved=true;
+        transfer.abort();
+        return result;
+      };
+      document.getElementById("caseExportAggregate").click();
+    })()`);
+    await waitFor(c,"window.aggregateDigestObserved && document.getElementById('caseArchive').dataset.state==='error'");
+    assert.deepEqual(await readdir(directory),[]);
+  }finally{await browser.close();await rm(directory,{recursive:true,force:true});}
+},{caseOwnerToken:owner,enableCaseStore:true}));
