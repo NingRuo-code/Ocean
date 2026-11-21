@@ -87,9 +87,11 @@
     const replay=find('ownerPreparationReplayTask');
     let registry=null,observer=null,task=null,taskTimer=null,execute=null;
 
+    const canObserve=()=>canRead()&&root.open&&!document.hidden&&!panel.hidden;
+
     function sync(){
       open.disabled=!canRead();
-      refresh.disabled=open.disabled||Boolean(observer);
+      refresh.disabled=!canObserve()||Boolean(observer);
       submit.disabled=refresh.disabled||!registry||!source.value;
       taskRead.disabled=refresh.disabled||!task;
       replay.disabled=taskRead.disabled;
@@ -97,7 +99,9 @@
     }
 
     function stop(message){
-      observer?.abort();
+      clearTimeout(taskTimer);
+      if(observer?.observesSubmission&&task?.submission)replay.hidden=false;
+      observer?.controller.abort();
       observer=null;
       if(message&&!panel.hidden)status.textContent=message;
       sync();
@@ -129,23 +133,23 @@
       sync();
     }
 
-    async function read(suffix,method,body,message,receive,messageTarget=status,onError=()=>{}){
-      if(!canRead()||panel.hidden)return;
+    async function read(suffix,method,body,message,receive,messageTarget=status,onError=()=>{},observesSubmission=false){
+      if(!canObserve())return;
       stop();
       const active=new AbortController();
       const opener=document.activeElement;
-      observer=active;
+      observer={controller:active,observesSubmission};
       const timeout=setTimeout(()=>active.abort(),6000);
       messageTarget.textContent=message;
       sync();
       if(panel.contains(opener)&&opener.disabled)close.focus({preventScroll:true});
       try{
         const value=await request(suffix,method,body,active.signal);
-        if(observer!==active||!canRead())return;
+        if(observer?.controller!==active||!canObserve())return;
         if(active.signal.aborted)throw Error('cancelled');
         receive(value);
       }catch(error){
-        if(observer!==active)return;
+        if(observer?.controller!==active)return;
         if(['http_401','http_403','source_changed'].includes(error.message))lock();
         else {
           onError(error);
@@ -157,7 +161,7 @@
         }
       }finally{
         clearTimeout(timeout);
-        if(observer===active){
+        if(observer?.controller===active){
           observer=null;
           sync();
           if(document.activeElement===close&&panel.contains(opener)&&!opener.disabled)opener.focus({preventScroll:true});
@@ -262,6 +266,8 @@
       if(value.state==='ready'){
         if(!artifact||!identity.test(artifact.artifact_id)||artifact.scope!=='private_map_display'||
             artifact.research_ready!==false||artifact.layer!=='front'||artifact.date!==value.request?.start_date||
+            !key.test(value.request?.region_id)||!Array.isArray(artifact.bbox)||artifact.bbox.length!==4||
+            !artifact.bbox.every(Number.isFinite)||artifact.support?.resolution_deg!==0.05||
             !['verified_time_coordinate','archive_member_name'].includes(artifact.date_basis)||
             !['valid','missing','front'].every(field=>Number.isSafeInteger(artifact.support?.[field])&&artifact.support[field]>=0))
           throw Error('contract');
@@ -277,6 +283,8 @@
       node(taskDetails,'p',value.state_history.map(stage=>taskNames[stage]).join(' → '));
       if(artifact){
         node(taskDetails,'p',artifact.date+' · 锋面 · 地图展示 · 本人可见');
+        node(taskDetails,'p',value.request.region_id+' · '+artifact.bbox.join('、')+' · '+artifact.support.resolution_deg+'°');
+        node(taskDetails,'p','产物 '+artifact.artifact_id);
         node(taskDetails,'p','有效 '+artifact.support.valid+' 格，缺测 '+artifact.support.missing+' 格，锋线 '+artifact.support.front+' 格。');
         node(taskDetails,'p',artifact.date_basis==='archive_member_name'?'日期依据为原归档成员名，观测时刻仍待核。':'已核对时间坐标。');
         node(taskDetails,'p','研究用途资格待独立核验。');
@@ -287,7 +295,7 @@
     function scheduleTaskRead(){
       clearTimeout(taskTimer);
       taskTimer=setTimeout(()=>{
-        if(!task||panel.hidden||!canRead())return;
+        if(!task||!canObserve())return;
         if(observer){scheduleTaskRead();return;}
         readTask();
       },450);
@@ -295,7 +303,7 @@
 
     function readTask(){
       clearTimeout(taskTimer);
-      if(!task||panel.hidden||!canRead())return;
+      if(!task||!canObserve())return;
       read('/intents/'+task.intent,'GET',null,'正在读取准备任务。',showTask,taskMessage);
     }
 
@@ -317,7 +325,7 @@
           task=null;
           clearResult();
         }else if(task)replay.hidden=false;
-      });
+      },true);
     }
 
     replay.onclick=submitTask;
@@ -338,6 +346,7 @@
       stop();clearResult();
       if(event.target===source)chooseSource();
       else status.textContent='已修改选择。可重新预览准备范围。';
+      if(task&&!task.finished&&!task.submission)scheduleTaskRead();
     });
     form.onsubmit=event=>{
       event.preventDefault();
@@ -352,6 +361,11 @@
       read('/plan','POST',selection,'正在核对准备范围。',value=>showPlan(value,selection));
     };
     sync();
-    return {sync,stop,clear:()=>hide(true)};
+    function resume(){
+      sync();
+      if(task&&canObserve())scheduleTaskRead();
+    }
+
+    return {sync,stop,resume,clear:()=>hide(true)};
   };
 })();

@@ -1039,7 +1039,9 @@ test("the owner previews only registered archive preparation and sees missing cr
 );
 
 
-test("the owner explicitly prepares an original front day in Edge without launching analysis", async t=>{
+for(const corrupt of [false,true])test(corrupt
+  ?"a changed original front day fails in Edge without publishing any result"
+  :"the owner explicitly prepares an original front day in Edge without launching analysis", async t=>{
   const relative="front/2024/front_location20240805.nc";
   const original=await readFile("data/raw/"+relative).catch(()=>null);
   const rawDigest="37610c878649fc39eb43a7d1203ea48b14cab7d9c7fa21de2ecad81d0dc8e2c5";
@@ -1055,17 +1057,23 @@ test("the owner explicitly prepares an original front day in Edge without launch
   proof.archive_check.sources.front.members[0].sha256=rawDigest;
   proof.license_evidence_id="sha256:"+digest(await readFile("docs/data/august-2024-source-registry.json"));
   proof.cost_evidence_id="sha256:"+digest(await readFile("docs/data/august-2024-archive-members.json"));
-  await withService(async base=>{
-    const browser=await launchBrowser(edge),c=browser.cdp,posts=[];
+  await withService(async (base,{releaseFrontPreparation})=>{
+    const browser=await launchBrowser(edge),c=browser.cdp,posts=[],reads=[];
     const api=base+"/api/data/owner-preparation";
+    let firstUnsent=null;
     c.onEvent(msg=>{
-      if(msg.method==="Network.requestWillBeSent"&&msg.params.request.method==="POST")posts.push(msg.params.request);
+      if(msg.method==="Fetch.requestPaused"&&msg.params.request.method==="POST")firstUnsent=msg.params.requestId;
+    });
+    c.onEvent(msg=>{
+      if(msg.method!=="Network.requestWillBeSent")return;
+      if(msg.params.request.method==="POST")posts.push(msg.params.request);
+      if(msg.params.request.method==="GET"&&msg.params.request.url.startsWith(api+"/intents/"))reads.push(msg.params.request.url);
     });
     try{
       await c.send("Network.enable");
       await openOwner(c,base);
       await type(c,"ownerRunToken",owner);
-      const view=await c.evaluate("JSON.stringify(state.view)");
+      let view=await c.evaluate("JSON.stringify(state.view)");
       await click(c,"#ownerPreparationOpen");
       await waitFor(c,"!!document.querySelector('#ownerPreparationSource option[value=zenodo_front_location]')");
       await c.evaluate(`(()=>{
@@ -1081,35 +1089,83 @@ test("the owner explicitly prepares an original front day in Edge without launch
       await click(c,"#ownerPreparationPreview");
       await waitFor(c,"!document.getElementById('ownerPreparationExecute')?.disabled && !!document.getElementById('ownerPreparationExecute')");
       assert.deepEqual(posts.map(p=>p.url),[api+"/plan"]);
+      if(!corrupt)await c.send("Fetch.enable",{patterns:[{urlPattern:api+"/tasks",requestStage:"Request"}]});
       await c.evaluate("document.getElementById('ownerPreparationExecute').click();document.getElementById('ownerPreparationExecute').click()");
-      await waitFor(c,"!!document.getElementById('ownerPreparationTaskDetails').dataset.state");
+      if(!corrupt){
+        for(let retries=0;!firstUnsent&&retries<80;retries++)await delay(25);
+        assert.ok(firstUnsent,"The browser pauses its first POST before it reaches the server");
+        await c.evaluate("(()=>{const end=document.getElementById('ownerPreparationForm').elements.end_date;"+
+          "end.value='2024-08-06';end.dispatchEvent(new Event('change',{bubbles:true}));})()");
+        await waitFor(c,"!document.getElementById('ownerPreparationReplayTask').hidden");
+        await c.send("Fetch.failRequest",{requestId:firstUnsent,errorReason:"Aborted"}).catch(()=>{});
+        await c.send("Fetch.disable");
+        const absent=await fetch(api+"/intents/"+JSON.parse(posts[1].postData).intent_id,{headers});
+        assert.equal(absent.status,404);
+        await click(c,"#ownerPreparationReplayTask");
+      }
+      await waitFor(c,"document.getElementById('ownerPreparationTaskDetails').dataset.state==='processing'");
+      const body=JSON.parse(posts.at(-1).postData);
+      if(!corrupt)assert.deepEqual(body,JSON.parse(posts[1].postData));
+      const processing=await(await fetch(api+"/intents/"+body.intent_id,{headers})).json();
+      assert.equal(processing.state,"processing");
+      const artifactPath=api+"/tasks/"+processing.id+"/artifact";
+      assert.equal((await fetch(artifactPath,{headers})).status,404);
+      if(!corrupt){
+        const catalog=await c.evaluate("fetch('/api/catalog').then(response=>response.ok)");
+        assert.equal(catalog,true);
+        await c.evaluate("document.getElementById('zoomIn').click()");
+        await waitFor(c,"JSON.stringify(state.view)!=="+JSON.stringify(view));
+        view=await c.evaluate("JSON.stringify(state.view)");
+        await click(c,"#ownerRuns summary");
+        await waitFor(c,"!document.getElementById('ownerRuns').open");
+        const before=reads.length;
+        await delay(650);
+        assert.equal(reads.length,before);
+        await click(c,"#ownerRuns summary");
+        await waitFor(c,"document.getElementById('ownerRuns').open");
+      }
       await click(c,"#ownerPreparationClose");
       await waitFor(c,"document.getElementById('ownerPreparation').hidden");
+      await writeFile(releaseFrontPreparation,"release","utf8");
       await click(c,"#ownerPreparationOpen");
-      await waitFor(c,"document.getElementById('ownerPreparationTaskDetails').dataset.state==='ready'");
+      const terminal=corrupt?"failed":"ready";
+      await waitFor(c,"document.getElementById('ownerPreparationTaskDetails').dataset.state==="+JSON.stringify(terminal));
       const details=await c.evaluate("document.getElementById('ownerPreparationTaskDetails').textContent");
-      assert.match(details,/已受理.*处理中.*校验中.*登记中.*已就绪/s);
-      assert.match(details,/2024-08-05.*本人可见.*19102.*3298.*411.*观测时刻仍待核.*研究用途资格待独立核验/s);
+      if(corrupt){
+        assert.match(details,/已受理.*处理中.*准备失败/s);
+        assert.doesNotMatch(details,/已就绪|产物 sha256/);
+      }else{
+        assert.match(details,/已受理.*处理中.*校验中.*登记中.*已就绪/s);
+        assert.match(details,/2024-08-05.*本人可见.*east_china.*120、27、128、34.*0.05°.*产物 sha256:.*19102.*3298.*411.*观测时刻仍待核.*研究用途资格待独立核验/s);
+      }
       assert.equal(await c.evaluate("JSON.stringify(state.view)"),view);
-      assert.deepEqual(posts.map(p=>p.url),[api+"/plan",api+"/tasks"]);
-      const body=JSON.parse(posts[1].postData);
+      assert.deepEqual(posts.map(p=>p.url),corrupt?[api+"/plan",api+"/tasks"]:[api+"/plan",api+"/tasks",api+"/tasks"]);
       const ready=await(await fetch(api+"/intents/"+body.intent_id,{headers})).json();
-      assert.equal(ready.state,"ready");
-      const artifactPath=api+"/tasks/"+ready.id+"/artifact";
+      assert.equal(ready.state,terminal);
+      assert.equal(ready.id,processing.id);
       assert.equal((await fetch(artifactPath)).status,401);
-      const artifact=await(await fetch(artifactPath,{headers})).json();
-      assert.equal(artifact.artifact_id,ready.artifact.artifact_id);
-      assert.equal(artifact.raw_sha256,rawDigest);
-      assert.equal(artifact.research_ready,false);
+      if(corrupt){
+        assert.equal((await fetch(artifactPath,{headers})).status,404);
+        assert.equal(ready.artifact,null);
+        assert.equal(ready.error,"processing_failed");
+      }else{
+        const artifact=await(await fetch(artifactPath,{headers})).json();
+        assert.equal(artifact.artifact_id,ready.artifact.artifact_id);
+        assert.equal(artifact.raw_sha256,rawDigest);
+        assert.equal(artifact.research_ready,false);
+      }
       const replayed=await(await fetch(api+"/tasks",{method:"POST",headers,body:JSON.stringify(body)})).json();
       assert.deepEqual(replayed,ready);
     }finally{await browser.close();}
   },{
     caseOwnerToken:owner,ownerPreparationRegistryText:registry,ownerPreparationManifestText:JSON.stringify(evidence),
     enableOwnerPreparationExecution:true,
+    holdFrontPreparation:true,
     prepareRaw:async raw=>{
       await mkdir(join(raw,"front","2024"),{recursive:true});
-      await writeFile(join(raw,relative),original);
+      const data=Buffer.from(original);
+      if(corrupt)data[data.length-1]^=1;
+      await writeFile(join(raw,relative),data);
     },
   });
 });

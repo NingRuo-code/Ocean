@@ -10,7 +10,7 @@ from tempfile import TemporaryDirectory
 import numpy as np
 from app.analysis_support import content_id, read_regular_bytes
 from app.frontend_payload import MIN_LENGTH_KM, TOLERANCE_KM, exporter
-from app.owner_preparation import within_front_budget
+from app.owner_preparation import adapter_fingerprints, within_front_budget
 
 from tools.audit_daily_sources import netcdf_rows
 from tools.verify_august_archive_members import check_member, load_catalog, member_path
@@ -101,9 +101,19 @@ def main():
     parser.add_argument("day", type=date.fromisoformat)
     parser.add_argument("sha256")
     parser.add_argument("bbox", nargs=4, type=float)
+    parser.add_argument("--processor-id")
     args = parser.parse_args()
     try:
+        processor = args.processor_id
+        if processor and adapter_fingerprints()[1] != processor:
+            raise ValueError("Unexpected front processor version")
         artifact = prepare_front_day(args.raw_root, args.day, tuple(args.bbox), args.sha256)
+        if processor:
+            if adapter_fingerprints()[1] != processor:
+                raise ValueError("Front processor version changed")
+            artifact.pop("artifact_id")
+            artifact["processor_id"] = processor
+            artifact["artifact_id"] = content_id(artifact)
     except (ValueError, KeyError, IndexError, OSError, RuntimeError):
         parser.exit(1, "Registered front sample could not be validated or processed.\n")
     print(json.dumps(artifact, allow_nan=False, separators=(",", ":")))

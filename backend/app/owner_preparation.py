@@ -5,7 +5,7 @@ import os
 import re
 import subprocess
 import sys
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from hashlib import sha256
 from tempfile import TemporaryFile
 from typing import Annotated, Literal
@@ -313,20 +313,24 @@ def within_front_budget(bbox):
     )
 
 
-def run_front_day(settings, expected):
+def run_front_day(settings, expected, expires_at):
     command = [
         sys.executable, "-m", "tools.prepare_owner_front_day", str(settings.raw_data_dir.resolve()),
         expected["date"], expected["raw_sha256"], *map(str, expected["bbox"]),
+        "--processor-id", expected["registration"]["processor_id"],
     ]
+    remaining = (datetime.fromisoformat(expires_at) - datetime.now(UTC)).total_seconds() - 2
+    if remaining <= 0:
+        raise subprocess.TimeoutExpired(command, 0)
     # Resolve the app in the same checkout even if the service was launched from the backend directory.
     pythonpath = os.pathsep.join(filter(None, (str(PROJECT_ROOT / "backend"), os.environ.get("PYTHONPATH"))))
     with TemporaryFile() as output:
         subprocess.run(command, cwd=PROJECT_ROOT, stdout=output, stderr=subprocess.DEVNULL, check=True,
-                       timeout=30, env={**os.environ, "PYTHONPATH": pythonpath})
+                       timeout=min(30, remaining), env={**os.environ, "PYTHONPATH": pythonpath})
         output.seek(0)
         result = decode_controlled_json(output.read(RECORD_LIMIT + 1), RECORD_LIMIT)
     worker_id = result.pop("artifact_id")
-    if worker_id != content_id(result):
+    if worker_id != content_id(result) or result.pop("processor_id") != expected["registration"]["processor_id"]:
         raise ValueError("Front processing returned a mismatched result")
     result["registration"] = expected["registration"]
     return {**result, "artifact_id": content_id(result)}
@@ -485,12 +489,12 @@ def create_owner_preparation_router(settings):
         return HTTPException(status, "Private preparation task is unavailable",
                              headers={"Cache-Control": "no-store"})
 
-    def execute(id_, request, plan_id, expected):
+    def execute(id_, request, plan_id, expected, expires_at):
         error = "processing_failed"
         try:
             if not store.transition(id_, "processing"):
                 return
-            artifact = run_front_day(settings, expected)
+            artifact = run_front_day(settings, expected, expires_at)
             if not store.transition(id_, "validating"):
                 return
             checked_artifact(artifact, expected)
@@ -526,7 +530,7 @@ def create_owner_preparation_router(settings):
         except RunStoreError as exc:
             raise store_failure(exc) from None
         if created:
-            background.add_task(execute, record["id"], submission.request, submission.plan_id, proof)
+            background.add_task(execute, record["id"], submission.request, submission.plan_id, proof, record["expires_at"])
         return task_status(record)
 
     @router.get("/intents/{intent_id}")
