@@ -107,9 +107,14 @@ test("the service persists the PNG rendered from a protected chart and Edge down
     await openCase(c,base);
     const endpoint=exportUrl(base,first,"chart-png");
     assert.equal((await fetch(endpoint,{headers})).status,404);
+    const priorDate=await c.evaluate("document.getElementById('timeDate').value");
     await c.evaluate("document.getElementById('dateNext').click()");
-    await waitFor(c,"!document.getElementById('caseExportProtectedPng').disabled");
-    await click(c,"#caseExportProtectedPng");
+    await waitFor(c,"document.getElementById('timeDate').value!=="+JSON.stringify(priorDate)+
+      " && !document.getElementById('caseExportProtectedPng')?.disabled");
+    await c.evaluate("document.getElementById('caseExportProtectedPng').click()");
+    await waitFor(c,"['downloaded','error'].includes(document.getElementById('caseArchive').dataset.state)",45000);
+    assert.equal(await c.evaluate("document.getElementById('caseArchive').dataset.state"),"downloaded",
+      await c.evaluate("document.querySelector('#caseArchive [role=status]').textContent"));
     const filename=await downloaded(directory,".chart-v1.png"),bytes=await readFile(filename);
     const receipt=await(await fetch(endpoint,{headers,method:"POST"})).json();
     assert.equal(receipt.format_version,"owner-case-chart-png/v1");
