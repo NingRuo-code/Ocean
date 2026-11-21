@@ -689,3 +689,109 @@ test("the browser learns that a real calculation has reached publication and kee
     }
   },{caseOwnerToken:owner,distanceFixtureText:fixture,qualifyDistanceFixture:true,holdDistancePublication:true})
 );
+
+
+async function timedOutOwnerRun(c,base) {
+  await prepareDistanceInBrowser(c,base);
+  await click(c,"#ownerRunSubmit");
+  await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='failed'");
+  return c.evaluate("document.getElementById('ownerRuns').dataset.runId");
+}
+
+test("a lost explicit retry receipt recovers the new attempt without repeating the calculation", () =>
+  withService(async base=>{
+    const browser=await launchBrowser(edge), c=browser.cdp, requests=[];
+    let discarded;
+    c.onEvent(msg=>{
+      const request=msg.params?.request;
+      if(msg.method==="Network.requestWillBeSent"&&request.url.startsWith(base+route)){
+        requests.push(request);
+      }
+      if(msg.method==="Fetch.requestPaused"&&msg.params.responseStatusCode){
+        discarded=c.send("Fetch.failRequest",{requestId:msg.params.requestId,errorReason:"Failed"});
+      }
+    });
+    try{
+      await c.send("Network.enable");
+      await useControlledVisibility(c);
+      const parent=await timedOutOwnerRun(c,base);
+      const original=await(await fetch(base+route+"/"+parent+"?purpose="+mode,{headers})).json();
+      assert.equal(original.failure_reason,"execution_timed_out");
+      await click(c,"#ownerRunRetry");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='prepared'");
+      assert.match(await c.evaluate("document.getElementById('ownerRunPrepared').textContent"),/原条件重试/);
+      assert.equal(requests.filter(request=>request.method==="POST").length,1);
+
+      await c.send("Fetch.enable",{patterns:[{urlPattern:"*/retry",requestStage:"Response"}]});
+      await c.evaluate("document.getElementById('ownerRunSubmit').click();document.getElementById('ownerRunSubmit').click()");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'",35_000);
+      await discarded;
+      await c.send("Fetch.disable");
+      const newId=await c.evaluate("document.getElementById('ownerRuns').dataset.runId");
+      assert.notEqual(newId,parent);
+      const retry=await(await fetch(base+route+"/"+newId+"?purpose="+mode,{headers})).json();
+      assert.equal(retry.retry.parent_run_id,parent);
+      assert.equal(retry.retry.parent_record_id,original.record_id);
+      assert.equal(retry.retry.mode,"same_conditions");
+      assert.deepEqual(retry.request,original.request);
+      assert.equal(requests.filter(request=>request.method==="POST").length,2);
+      assert.equal(requests.filter(request=>request.url===base+route+"/"+parent+"/retry").length,1);
+      assert.equal(requests.filter(request=>request.url===base+route+"/intents/"+retry.intent_id+"?purpose="+mode).length,1);
+      assert.deepEqual(await(await fetch(base+route+"/"+parent+"?purpose="+mode,{headers})).json(),original);
+    } finally {
+      await browser.close();
+    }
+  },{caseOwnerToken:owner,distanceFixtureText:fixture,qualifyDistanceFixture:true,shortenFirstDistance:true})
+);
+
+test("the browser requires a distinct explicit request when the original registered evidence changed", () =>
+  withService(async (base,{distancePath,distanceSupportState})=>{
+    const browser=await launchBrowser(edge), c=browser.cdp, posts=[];
+    c.onEvent(msg=>{
+      const request=msg.params?.request;
+      if(msg.method==="Network.requestWillBeSent"&&request.method==="POST"&&request.url.startsWith(base+route)){
+        posts.push(request);
+      }
+    });
+    try{
+      await c.send("Network.enable");
+      const parent=await timedOutOwnerRun(c,base);
+      const original=await(await fetch(base+route+"/"+parent+"?purpose="+mode,{headers})).json();
+      await click(c,"#ownerRunRetry");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='prepared'");
+      await writeFile(distanceSupportState,JSON.stringify({schema:"ocean-support-state/v1",state:"expired"}));
+      await click(c,"#ownerRunSubmit");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='error'");
+      assert.match(await c.evaluate("document.getElementById('ownerRunStatus').textContent"),/明确拒绝/);
+      const expired=JSON.parse(posts[1].postData).intent_id;
+      assert.equal((await fetch(base+route+"/intents/"+expired+"?purpose="+mode,{headers})).status,404);
+      assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),parent);
+      await unlink(distanceSupportState);
+
+      const changed=JSON.parse(fixture);
+      changed.front_position_error_km=0.27;
+      await writeFile(distancePath,JSON.stringify(changed));
+      await click(c,"#ownerRunRetry");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='error'");
+      assert.match(await c.evaluate("document.getElementById('ownerRunStatus').textContent"),/原条件.*不.*重试/);
+      assert.equal(posts.length,2);
+      await click(c,"#ownerRunRetryCurrent");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='prepared'");
+      const prepared=await c.evaluate("document.getElementById('ownerRunPrepared').textContent");
+      assert.match(prepared,/按当前条件提交新请求/);
+      assert.ok(prepared.includes(original.input_sha256));
+      assert.equal(posts.length,2);
+      await click(c,"#ownerRunSubmit");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'");
+      const current=await c.evaluate("document.getElementById('ownerRuns').dataset.runId");
+      const newRun=await(await fetch(base+route+"/"+current+"?purpose="+mode,{headers})).json();
+      assert.equal(newRun.retry.mode,"current_conditions");
+      assert.equal(newRun.retry.parent_run_id,parent);
+      assert.notEqual(newRun.input_sha256,original.input_sha256);
+      assert.equal(posts.length,3);
+      assert.deepEqual(await(await fetch(base+route+"/"+parent+"?purpose="+mode,{headers})).json(),original);
+    } finally {
+      await browser.close();
+    }
+  },{caseOwnerToken:owner,distanceFixtureText:fixture,qualifyDistanceFixture:true,shortenFirstDistance:true,watchSupportExpiry:true})
+);

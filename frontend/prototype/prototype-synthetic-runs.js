@@ -50,6 +50,8 @@
   const downloads=new Set();
   node(actions,'button','读取我的合成任务').id='ownerRunHistory';node(actions,'button','核对原意图').id='ownerRunFindIntent';
   const cancelButton=node(actions,'button','取消原提交');cancelButton.id='ownerRunCancel';
+  const retryButton=node(actions,'button','核对原条件重试');retryButton.id='ownerRunRetry';
+  const retryCurrentButton=node(actions,'button','核对当前条件的新请求');retryCurrentButton.id='ownerRunRetryCurrent';
   const cancelStatus=node(root,'p','');cancelStatus.id='ownerRunCancelStatus';cancelStatus.setAttribute('role','status');
   node(actions,'button','下载所读任务 Markdown').id='ownerRunExportMarkdown';node(actions,'button','下载所读任务 CSV').id='ownerRunExportCsv';
   const referenceStatus=node(root,'p','');referenceStatus.id='ownerRunReferenceStatus';
@@ -91,7 +93,12 @@
     $('ownerRunPrepare').disabled=locked||busy||!draft||!!unresolved;
     const mayResend=!distanceMode()&&activePending();
     $('ownerRunSubmit').disabled=locked||busy||!(mayResend||(prepared&&(!distanceMode()||!unresolved)));
-    $('ownerRunSubmit').textContent=mayResend?'核对/重发原提交意图（原条件）':'明确提交合成任务';
+    const attempt=prepared?.retry?.mode;
+    $('ownerRunSubmit').textContent=mayResend?'核对/重发原提交意图（原条件）':
+      attempt==='same_conditions'?'明确提交原条件重试':attempt==='current_conditions'?'明确提交当前条件的新请求':'明确提交合成任务';
+    retryButton.hidden=retryCurrentButton.hidden=!distanceMode()||selected?.state!=='failed';
+    retryButton.disabled=locked||busy||!!unresolved||retryButton.hidden;
+    retryCurrentButton.disabled=retryButton.disabled||!draft;
     $('ownerRunRead').disabled=locked||busy||!selected;
     $('ownerRunNew').disabled=busy||(distanceMode()&&!!unresolved);
     $('ownerRunHistory').disabled=locked||busy;
@@ -202,7 +209,7 @@
     const preferred=!trackingCancellation&&preferredRun&&preferredRun===selected?.id?selected:null;
     const intent=preferred?.intent_id||active?.body.intent_id||ref?.intent_id;
     if(!intent||(root.dataset.state==='history'&&!trackingCancellation))return;
-    const expected=preferred?{intent,id:preferred.id}:active?{intent,body:active.body}:{intent,id:ref.run_id};
+    const expected=preferred?{intent,id:preferred.id}:active?{intent,body:active.body,retry:active.retry,environmentId:active.environmentId}:{intent,id:ref.run_id};
     recovery={from,expected,index:0,timer:null,controller:null};
     scheduleRecovery(recovery);
   }
@@ -307,6 +314,24 @@
       (qualified&&record.state==='failed'&&record.cancelled===true&&!Object.hasOwn(record,'failure_reason'));
   }
 
+  function validRetryLink(record){
+    if(!Object.hasOwn(record,'retry'))return true;
+    const link=record.retry;
+    return distanceMode()&&link&&hash.test(record.execution_environment_id)&&
+      Object.keys(link).length===3&&id.test(link.parent_run_id)&&
+      link.parent_run_id!==record.id&&hash.test(link.parent_record_id)&&
+      ['same_conditions','current_conditions'].includes(link.mode);
+  }
+
+  function requestsMatch(left,right){
+    return Object.keys(left).every(key=>left[key]===right[key]);
+  }
+
+  function retryLinksMatch(expected,actual){
+    if(!expected)return !actual;
+    return Boolean(actual&&requestsMatch(expected,actual));
+  }
+
   function validDistanceEvidence(record) {
     const {request, qualification, result} = record;
     const validMeasure = value => value === null || (Number.isFinite(value) && value >= 0);
@@ -343,7 +368,12 @@
     const schema = distanceMode() ? 'ocean-owner-qualified-distance-run/v1' : 'ocean-owner-synthetic-run/v1';
     if(record?.schema_version!==schema||!id.test(record.id)||!id.test(record.intent_id)||!hash.test(record.record_id)||!hash.test(record.submission_id)||!hash.test(record.input_sha256)||!['completed','failed'].includes(record.state)||record.request?.purpose!==purpose||(expected.id&&record.id!==expected.id)||(expected.intent&&record.intent_id!==expected.intent))throw Error('contract');
     if(!validRequest(record.request)||!Number.isFinite(Date.parse(record.submitted_at))||!Number.isFinite(Date.parse(record.finished_at)))throw Error('contract');
-    if(expected.body&&(record.input_sha256!==expected.body.input_sha256||!Object.keys(expected.body.request).every(k=>record.request[k]===expected.body.request[k])))throw Error('contract');
+    if(Object.hasOwn(record,'execution_environment_id')&&
+        (!distanceMode()||!hash.test(record.execution_environment_id)))throw Error('contract');
+    if(!validRetryLink(record))throw Error('contract');
+    if(expected.body&&(record.input_sha256!==expected.body.input_sha256||
+        !requestsMatch(expected.body.request,record.request)||!retryLinksMatch(expected.retry,record.retry)||
+        (expected.retry&&expected.environmentId!==record.execution_environment_id)))throw Error('contract');
     if (distanceMode()) {
       if (!validDistanceEvidence(record)) throw Error('contract');
       return record;
@@ -379,6 +409,9 @@
     const layers=distanceMode()?(run.request.layer_use==='front_effort_sst'?' · 锋面、活动与海温':' · 锋面与活动'):'';
     node(box,'p','原任务条件：'+describe(run.request)+layers);
     node(box,'p','任务 '+run.id+' / 意图 '+run.intent_id+' / '+run.record_id);
+    if(run.retry)node(box,'p',(run.retry.mode==='same_conditions'?'原条件重试':'按当前条件的新请求')+
+      ' · 原任务 '+run.retry.parent_run_id+' / '+run.retry.parent_record_id);
+    if(run.execution_environment_id)node(box,'p','运行环境 '+run.execution_environment_id);
     node(box,'p','服务处理 '+run.submitted_at+' 至 '+run.finished_at+'，终态已提交。'
       +(distanceMode()?'合成距离参照':'合成软件验证')+'；真实研究资格未通过。');
     node(box,'p','这里只读冻结记录，当前原源可用及原样复算未知；没有自动公开或保存为案例。');
@@ -436,21 +469,76 @@
     for(const line of caveats)node(details,'p',line);
   }
 
-  $('ownerRunPrepare').onclick=()=>perform(async(n,from)=>{
-    set('checking','正在核对合成条件；尚未提交。');
-    const values=draft;
-    if (distanceMode()) {
-      const data=await net('/distance-options?'+new URLSearchParams(values));
-      if(n!==generation)return;
-      if(data?.schema_version!=='ocean-owner-distance-options/v1'||data.research_ready!==false||
-        !validRequest(data.request)||data.request.layer_use!=='front_effort'||
-        data.input_sha256!==data.request.input_version||
+  function beginPreparation(message){
+    prepared=null;
+    $('ownerRunPrepared').textContent='';
+    set('checking',message);
+  }
+
+  function acceptDistanceOptions(data,from,parent=null,mode=null){
+    const environmentId=data?.execution_environment_id;
+    if(data?.research_ready!==false||!validRequest(data.request)||!hash.test(environmentId)||
+        data.input_sha256!==data.request.input_version)throw Error('contract');
+    const retry=parent?{parent_run_id:parent.id,parent_record_id:parent.record_id,mode}:null;
+    prepared={from,input_sha256:data.input_sha256,request:data.request,retry,environmentId};
+    const conditions=describe(data.request);
+    $('ownerRunPrepared').textContent=!parent?'将提交合成距离条件 '+conditions+' / '+data.request.support_snapshot_id:
+      (mode==='same_conditions'?'按原条件重试 ':'按当前条件提交新请求 ')+conditions+
+      '。原任务 '+parent.id+'，原条件 '+describe(parent.request)+'，原数据 '+parent.input_sha256+
+      '。图层方案 '+parent.request.layer_use+' → '+data.request.layer_use+
+      '，P0 '+parent.request.support_snapshot_id+' → '+data.request.support_snapshot_id+
+      '，本次数据 '+data.input_sha256+'。运行环境 '+
+      (parent.execution_environment_id??'未知')+' → '+environmentId+'。';
+    set('prepared','合成距离条件已核对。明确提交后才开始计算，实际受理时重新验证来源。');
+  }
+
+  async function prepareCurrentDistance(n,from,values,parent=null){
+    const data=await net('/distance-options?'+new URLSearchParams(values));
+    if(n!==generation)return;
+    if(data?.schema_version!=='ocean-owner-distance-options/v1'||!validRequest(data.request)||
+        data.request.layer_use!=='front_effort'||
         !['month','longitude','latitude','radius_km'].every(key=>data.request[key]===values[key]))throw Error('contract');
-      prepared={from,input_sha256:data.input_sha256,request:data.request};
-      $('ownerRunPrepared').textContent='将提交合成距离条件：'+describe(prepared.request)+' / '+data.request.support_snapshot_id;
-      set('prepared','合成距离条件已核对。明确提交后才开始计算，实际受理时重新验证来源。');
+    if(parent&&requestsMatch(parent.request,data.request)&&data.input_sha256===parent.input_sha256&&
+        data.execution_environment_id===parent.execution_environment_id){
+      set('error','当前条件和资料与原任务一致，可以核对原条件重试。');
       return;
     }
+    acceptDistanceOptions(data,from,parent,parent?'current_conditions':null);
+  }
+
+  retryButton.onclick=()=>{
+    if(retryButton.disabled)return;
+    const parent=selected;
+    return perform(async(n,from)=>{
+      beginPreparation('正在核对原条件和原登记版本。');
+      let data;
+      try{data=await net('/'+parent.id+'/retry-options');}
+      catch(error){
+        if(!['http_404','http_409','http_503'].includes(error.message))throw error;
+        if(n===generation)set('error','原条件、资料或运行环境暂无法核验，当前不能按原条件重试。可明确核对当前条件。');
+        return;
+      }
+      if(n!==generation)return;
+      if(data?.schema_version!=='ocean-owner-distance-retry-options/v1'||data.parent_run_id!==parent.id||
+          data.parent_record_id!==parent.record_id||data.input_sha256!==parent.input_sha256||
+          data.execution_environment_id!==parent.execution_environment_id||!validRequest(data.request)||!requestsMatch(parent.request,data.request))throw Error('contract');
+      acceptDistanceOptions(data,from,parent,'same_conditions');
+    });
+  };
+
+  retryCurrentButton.onclick=()=>{
+    if(retryCurrentButton.disabled)return;
+    const parent=selected,values=draft;
+    return perform((n,from)=>{
+      beginPreparation('正在核对当前草稿和当前登记版本。');
+      return prepareCurrentDistance(n,from,values,parent);
+    });
+  };
+
+  $('ownerRunPrepare').onclick=()=>perform(async(n,from)=>{
+    beginPreparation('正在核对合成条件。');
+    const values=draft;
+    if(distanceMode())return prepareCurrentDistance(n,from,values);
     const data=await net('/options');if(n!==generation)return;
     const match=data.conditions?.find(c=>['month','longitude','latitude','radius_km'].every(k=>c[k]===values[k]));
     if(data.schema_version!=='ocean-owner-synthetic-options/v1'||data.evidence_kind!=='synthetic_example'||data.research_ready!==false||!hash.test(data.input_sha256)||!data.license?.startsWith('CC0-1.0'))throw Error('contract');
@@ -461,9 +549,21 @@
   $('ownerRunSubmit').onclick=()=>perform(async(n,from)=>{
     preferredRun=null;
     clearCancellationStatus();
-    if(!activePending()){if(!prepared)throw Error('contract');const intent=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');pending={from:prepared.from,body:{intent_id:intent,input_sha256:prepared.input_sha256,request:prepared.request}};saveReference({schema_version:referenceKey,base:pending.from.base,intent_id:intent,run_id:null});}
+    if(!activePending()){
+      if(!prepared)throw Error('contract');
+      const intent=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
+      pending={from:prepared.from,body:{intent_id:intent,input_sha256:prepared.input_sha256,request:prepared.request},retry:prepared.retry,environmentId:prepared.environmentId};
+      saveReference({schema_version:referenceKey,base:pending.from.base,intent_id:intent,run_id:null});
+    }
     if(!sameSource(pending.from,from))throw Error('source_changed');
-    const body=pending.body,intent=body.intent_id;set('submitting','正在等待服务受理结果；关闭观察不取消已送达提交。');update();const result=await net('','POST',body);if(n!==generation)return;show(result,{intent,body},true);
+    const {body,retry,environmentId}=pending,intent=body.intent_id;
+    set('submitting','正在等待服务受理结果；关闭观察不取消已送达提交。');
+    update();
+    const suffix=retry?'/'+retry.parent_run_id+'/retry':'';
+    const submission=retry?{...body,parent_record_id:retry.parent_record_id,mode:retry.mode,
+      execution_environment_id:environmentId}:body;
+    const result=await net(suffix,'POST',submission);
+    if(n===generation)show(result,{intent,body,retry,environmentId},true);
   });
   function readRecord(identity){
     if(busy&&['reading','downloading'].includes(root.dataset.state)){generation++;controller?.abort();busy=false;}
@@ -487,7 +587,7 @@
   $('ownerRunExportMarkdown').onclick=()=>download('markdown');$('ownerRunExportCsv').onclick=()=>download('csv');
   $('ownerRunHistory').onclick=()=>perform(async n=>{
     set('loading-history','正在读取本人服务目录；原有显示保留为上次核实内容。');const data=await net(purposeSuffix());if(n!==generation)return;
-    if(data?.schema_version!=='ocean-owner-synthetic-history/v1'||!Array.isArray(data.runs)||data.runs.length>64||new Set(data.runs.map(r=>r.id)).size!==data.runs.length||data.runs.some(r=>!id.test(r.id)||!id.test(r.intent_id)||!hash.test(r.record_id)||!['completed','failed'].includes(r.state)||!validCancellationFlag(r,distanceMode())||!validRequest(r.request)||!Number.isFinite(Date.parse(r.finished_at))))throw Error('contract');
+    if(data?.schema_version!=='ocean-owner-synthetic-history/v1'||!Array.isArray(data.runs)||data.runs.length>64||new Set(data.runs.map(r=>r.id)).size!==data.runs.length||data.runs.some(r=>!id.test(r.id)||!id.test(r.intent_id)||!hash.test(r.record_id)||!['completed','failed'].includes(r.state)||!validCancellationFlag(r,distanceMode())||!validRetryLink(r)||!validRequest(r.request)||!Number.isFinite(Date.parse(r.finished_at))))throw Error('contract');
     items.replaceChildren();for(const run of data.runs){const button=node(items,'button',describe(run.request)+' · '+(distanceMode()&&run.cancelled===true?'已取消':run.state==='completed'?'已完成':'计算失败')+' · '+run.finished_at);button.dataset.runId=run.id;button.onclick=()=>readRecord(run.id);}
     if(!data.runs.length)node(items,'p','当前未查到已提交终态；在途请求仍可能稍后出现。');
     set('history','已读取全部 '+data.runs.length+' 条本人持久记录；选择后只读原条件和冻结结果。');
@@ -496,7 +596,7 @@
     const active=activePending(),ref=activeReference(),intent=active?.body.intent_id||ref?.intent_id;if(!intent)throw Error('contract');
     preferredRun=null;
     set('looking-up','正在查询原意图是否已有终态记录；不会重新计算。');const value=await net('/intents/'+intent+purposeSuffix());if(n!==generation)return;
-    show(value,{intent,...(active?{body:active.body}:ref?.run_id?{id:ref.run_id}:{})});
+    show(value,{intent,...(active?{body:active.body,retry:active.retry,environmentId:active.environmentId}:ref?.run_id?{id:ref.run_id}:{})});
   });
   $('ownerRunNew').onclick=()=>{stopRecovery();clearCancellationStatus();preferredRun=null;clearReference();set('draft','已清除本地提交引用；服务任务没有取消或删除，可重新核对条件以明确创建新意图。');update();};
   $('ownerRunPurpose').onchange=()=>{
