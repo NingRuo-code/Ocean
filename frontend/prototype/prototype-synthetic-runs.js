@@ -14,6 +14,8 @@
     ['execution_timed_out','计算达到服务时限，原尝试已中止。没有发布结果。'],
   ]);
   const pendingByPurpose = new Map();
+  const recoveryDelays = [600, 1200, 2400, 4800, 8000];
+  let recovery = null;
   let purpose = legacyPurpose;
   let referenceKey = 'ocean-owner-synthetic-run-ref/v1';
 
@@ -55,19 +57,25 @@
   function saveReference(value){
     reference=value;referenceError='';try{localStorage.setItem(referenceKey,JSON.stringify(value));}catch{referenceError='unavailable';}referenceMessage();
   }
+  function clearReference(){
+    pending=null;prepared=null;reference=null;referenceError='';
+    try{localStorage.removeItem(referenceKey);}catch{referenceError='unavailable';}
+  }
   function set(state,message){root.dataset.state=state;$('ownerRunStatus').textContent=message;}
   function node(parent,tag,text){const e=document.createElement(tag);e.textContent=text;parent.append(e);return e;}
   function describe(p){return p.month+' · '+fmtCoord(p.longitude,p.latitude)+' · '+p.radius_km+' km';}
   function update(){
-    const offline=source().kind!=='server',locked=offline||!$('ownerRunToken').value;
+    const offline=source().kind!=='server'||(distanceMode()&&!navigator.onLine);
+    const locked=offline||!$('ownerRunToken').value;
     $('ownerRunPurpose').disabled=publicSource().kind!=='server'||busy;
     $('ownerRunToken').disabled=offline||busy;
     const unresolved=activePending()||activeReference()?.run_id===null;
     $('ownerRunPrepare').disabled=locked||busy||!draft||!!unresolved;
-    $('ownerRunSubmit').disabled=locked||busy||!(prepared||activePending());
-    $('ownerRunSubmit').textContent=activePending()?'核对/重发原提交意图（原条件）':'明确提交合成任务';
+    const mayResend=!distanceMode()&&activePending();
+    $('ownerRunSubmit').disabled=locked||busy||!(mayResend||(prepared&&(!distanceMode()||!unresolved)));
+    $('ownerRunSubmit').textContent=mayResend?'核对/重发原提交意图（原条件）':'明确提交合成任务';
     $('ownerRunRead').disabled=locked||busy||!selected;
-    $('ownerRunNew').disabled=busy;
+    $('ownerRunNew').disabled=busy||(distanceMode()&&!!unresolved);
     $('ownerRunHistory').disabled=locked||busy;
     $('ownerRunFindIntent').disabled=locked||busy||!(activePending()||activeReference());
     for(const key of ['ownerRunExportMarkdown','ownerRunExportCsv']){
@@ -78,6 +86,7 @@
     referenceMessage();
   }
   function clearPrivate(clearToken=true){
+    stopRecovery();
     generation++;controller?.abort();busy=false;prepared=null;selected=null;sessionSource=null;
     for(const url of downloads)URL.revokeObjectURL(url);downloads.clear();
     if(clearToken)$('ownerRunToken').value='';
@@ -85,26 +94,95 @@
     items.replaceChildren();
     set('locked',pending?'观察已停止，令牌与私有显示已清除；原提交仍可能已受理，重新认证后核对原意图。':'已锁定；服务持久记录保留。');update();
   }
-  async function net(suffix,method='GET',body,read=json){
+  async function net(suffix,method='GET',body,read=json,signal=controller.signal){
     const from=source(),token=$('ownerRunToken').value;
     if(from.kind!=='server')throw Error('offline');if(!token)throw Error('owner_required');
     if(sessionSource&&!sameSource(sessionSource,from))throw Error('source_changed');sessionSource=from;
-    return read(from.base+'/query/monthly-analysis/owner-runs'+suffix,controller.signal,{method,redirect:'error',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
+    return read(from.base+'/query/monthly-analysis/owner-runs'+suffix,signal,{method,redirect:'error',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
   }
+  function stopRecovery(){
+    if(!recovery)return;
+    clearTimeout(recovery.timer);
+    recovery.controller?.abort();
+    recovery=null;
+  }
+
+  function canRecover(from){
+    return distanceMode() && root.open && !panel.hidden && !document.hidden &&
+      navigator.onLine && !busy && from.kind==='server' && sameSource(from,source()) &&
+      Boolean($('ownerRunToken').value);
+  }
+
+  function startRecovery(){
+    stopRecovery();
+    const from=source();
+    if(!canRecover(from))return;
+    const active=activePending(), ref=activeReference();
+    const intent=active?.body.intent_id||ref?.intent_id;
+    if(!intent)return;
+    if(root.dataset.state==='history'||(selected&&root.dataset.state===selected.state&&selected.intent_id!==intent))return;
+    const expected=active ? {intent,body:active.body} : {intent,id:ref.run_id};
+    recovery={from,expected,index:0,timer:null,controller:null};
+    scheduleRecovery(recovery);
+  }
+
+  function scheduleRecovery(current){
+    if(current.index>=recoveryDelays.length){
+      stopRecovery();
+      return;
+    }
+    current.timer=setTimeout(()=>readRecovery(current),recoveryDelays[current.index++]);
+  }
+
+  async function readRecovery(current){
+    if(recovery!==current)return;
+    if(!canRecover(current.from)){stopRecovery();return;}
+    const active=new AbortController();
+    current.controller=active;
+    const timeout=setTimeout(()=>active.abort(),4000);
+    try{
+      const value=await net('/intents/'+current.expected.intent+purposeSuffix(),'GET',null,json,active.signal);
+      if(recovery!==current)return;
+      if(!canRecover(current.from)){stopRecovery();return;}
+      if(active.signal.aborted)throw Error('cancelled');
+      show(value,current.expected);
+      stopRecovery();
+    }catch(error){
+      if(recovery!==current)return;
+      if(['http_401','http_403','source_changed'].includes(error.message)){
+        clearPrivate();
+        $('ownerRunStatus').textContent='自动核对已停止，需要重新通过本人认证。';
+      }else if(error.message==='contract'){
+        set('uncertain','任务身份或内容暂不可核实，可手动核对原意图。');
+        stopRecovery();
+      }else{
+        set('uncertain','原任务状态暂不可核实，可手动核对原意图。');
+        scheduleRecovery(current);
+      }
+    }finally{clearTimeout(timeout);}
+  }
+
   async function perform(work){
     if(busy)return;
+    stopRecovery();
     controller?.abort();controller=new AbortController();const active=controller,n=++generation,timer=setTimeout(()=>active.abort(),distanceMode()?40000:10000),from=source(),opener=document.activeElement;
+    let recoverAfterError=false;
     busy=true;update();if(root.contains(opener)&&opener.disabled)$('ownerRunLock').focus({preventScroll:true});
     try{await work(n,from);if(n!==generation)return;if(active.signal.aborted)throw Error('cancelled');if(!sameSource(from,source()))throw Error('source_changed');}
     catch(error){if(n!==generation)return;
+      recoverAfterError=['submitting','looking-up'].includes(root.dataset.state) &&
+        !['http_401','http_403','http_409','http_422','source_changed','contract'].includes(error.message);
       if(['http_401','http_403','source_changed'].includes(error.message))clearPrivate();
       if(active.signal.aborted&&root.dataset.state==='downloading'){set('error','文件读取10秒等待超时；所读冻结结果和草稿保留，可明确重试同一文件。');return;}
       if(error.message==='budget'){set('error','文件或响应超过1MiB读取预算，未下载；所读冻结结果和草稿保留。');return;}
       const expectedMissing = distanceMode() && root.dataset.state === 'checking' && error.message === 'http_409';
-      const message=expectedMissing?'当前条件、来源或 P0 快照无法对应，未提交任务。':{http_401:'本人访问未通过；令牌和私有显示已清除。',http_403:'当前服务不允许本人合成任务；令牌和私有显示已清除。',http_503:'本人持久任务或合成输入不可用，请检查服务配置或稍后核对。',http_409:'版本、意图或容量冲突；请核对原意图或明确清除本页引用后重新准备。',http_422:'当前条件或版本没有登记合成支持，未显示受理成功。',http_404:'本次未查到记录或接口；原请求仍可能稍后提交，不能判断从未受理。可稍后核对或读取本人历史。',contract:'任务身份或内容无法核实，未显示成功。',source_changed:'服务来源已改变，请重新认证；旧服务意图只向原服务核对。',offline:'离线不能核对或提交本人任务。',owner_required:'请输入当前服务的本人令牌。'}[error.message]||'请求结果暂不可核实；保留上次核实的记录和原条件。';
-      if(!['http_401','http_403','source_changed'].includes(error.message))set(activePending()||root.dataset.state==='looking-up'?'uncertain':'error',message+(activePending()?' 原提交可能已受理；可明确核对/重发同一意图，不会自动新建任务。':''));
+      const rejectedDistance=distanceMode()&&root.dataset.state==='submitting'&&error.message==='http_422';
+      if(rejectedDistance)clearReference();
+      const message=expectedMissing?'当前条件、来源或 P0 快照无法对应，未提交任务。':{http_401:'本人访问未通过；令牌和私有显示已清除。',http_403:'当前服务不允许本人合成任务；令牌和私有显示已清除。',http_503:'本人持久任务或合成输入不可用，请检查服务配置或稍后核对。',http_409:distanceMode()?'版本、意图或容量冲突；请核对原意图。':'版本、意图或容量冲突；请核对原意图或明确清除本页引用后重新准备。',http_422:'当前条件或版本没有登记合成支持，未显示受理成功。',http_404:'本次未查到记录或接口；原请求仍可能稍后提交，不能判断从未受理。可稍后核对或读取本人历史。',contract:'任务身份或内容无法核实，未显示成功。',source_changed:'服务来源已改变，请重新认证；旧服务意图只向原服务核对。',offline:'离线不能核对或提交本人任务。',owner_required:'请输入当前服务的本人令牌。'}[error.message]||'请求结果暂不可核实；保留上次核实的记录和原条件。';
+      const pendingMessage=distanceMode()?' 原提交可能已受理；可核对原意图。':' 原提交可能已受理；可明确核对/重发同一意图，不会自动新建任务。';
+      if(!['http_401','http_403','source_changed'].includes(error.message))set(activePending()||root.dataset.state==='looking-up'?'uncertain':'error',message+(activePending()?pendingMessage:''));
       else $('ownerRunStatus').textContent=message;
-    }finally{clearTimeout(timer);if(n===generation){busy=false;update();if(!panel.hidden&&document.activeElement===$('ownerRunLock')&&root.contains(opener)&&!opener.disabled)opener.focus({preventScroll:true});}}
+    }finally{clearTimeout(timer);if(n===generation){busy=false;update();if(recoverAfterError)startRecovery();if(!panel.hidden&&document.activeElement===$('ownerRunLock')&&root.contains(opener)&&!opener.disabled)opener.focus({preventScroll:true});}}
   }
   function validRequest(p) {
     if (p?.purpose !== purpose || !/^[12]\d{3}-(0[1-9]|1[0-2])$/.test(p.month) ||
@@ -285,7 +363,7 @@
     set('looking-up','正在查询原意图是否已有终态记录；不会重新计算。');const value=await net('/intents/'+intent+purposeSuffix());if(n!==generation)return;
     show(value,{intent,...(active?{body:active.body}:ref?.run_id?{id:ref.run_id}:{})});
   });
-  $('ownerRunNew').onclick=()=>{pending=null;prepared=null;reference=null;referenceError='';try{localStorage.removeItem(referenceKey);}catch{referenceError='unavailable';}set('draft','已清除本地提交引用；服务任务没有取消或删除，可重新核对条件以明确创建新意图。');update();};
+  $('ownerRunNew').onclick=()=>{stopRecovery();clearReference();set('draft','已清除本地提交引用；服务任务没有取消或删除，可重新核对条件以明确创建新意图。');update();};
   $('ownerRunPurpose').onchange=()=>{
     const previousSource=sessionSource;
     pendingByPurpose.set(purpose,pending);
@@ -303,5 +381,23 @@
   window.addEventListener('ocean-month-draft',e=>{if(root.dataset.state==='checking'){generation++;controller?.abort();busy=false;}draft=e.detail?.longitude===null?null:e.detail;prepared=null;$('ownerRunPrepared').textContent='';if(!busy&&!pending)set('draft','条件已改变；请重新核对。');update();});
   window.addEventListener('ocean-month-draft-closed',()=>clearPrivate());
   window.addEventListener('ocean-load-state',()=>{if(sessionSource&&!sameSource(sessionSource,source()))clearPrivate();update();});
+  root.addEventListener('toggle',()=>root.open?startRecovery():stopRecovery());
+  document.addEventListener('visibilitychange',()=>document.hidden?stopRecovery():startRecovery());
+  window.addEventListener('offline',()=>{
+    stopRecovery();
+    const from=source();
+    if(distanceMode()&&!panel.hidden&&root.open&&sessionSource&&sameSource(from,sessionSource)){
+      generation++;
+      controller?.abort();
+      busy=false;
+      prepared=null;
+      $('ownerRunPrepared').textContent='';
+      if(selected||activePending()||activeReference()){
+        set('uncertain','网络断开，当前状态暂不可核实。保留上次核实的记录和原条件。');
+      }
+    }
+    update();
+  });
+  window.addEventListener('online',()=>{update();startRecovery();});
   readReference();update();
 })();
