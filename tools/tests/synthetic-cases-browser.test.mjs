@@ -27,7 +27,7 @@ test("owner saves a real-service case and reopens the same frozen report after b
     await type(c,"caseOwnerToken",owner);await type(c,"caseCreateTitle","我的固定报告");
     await click(c,"#caseSave");await waitFor(c,"document.getElementById('caseArchive').dataset.state==='saved'");
     const id=await c.evaluate("document.getElementById('caseArchive').dataset.caseId");
-    assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/40.*7.*2.*29/s);
+    assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/40.*7.*2.*29.*已持久保护/s);
     await c.send("Page.reload");await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
     await click(c,"#workbenchToggle");await click(c,"#caseArchiveOpen");
     assert.equal(await c.evaluate("document.getElementById('caseOwnerToken').value"),"");
@@ -35,7 +35,7 @@ test("owner saves a real-service case and reopens the same frozen report after b
     await waitFor(c,"document.querySelectorAll('#caseItems button').length===1");
     await click(c,"#caseItems button");
     await waitFor(c,`document.getElementById('caseArchive').dataset.caseId===${JSON.stringify(id)}`);
-    assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/40.*7.*2.*29/s);
+    assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/40.*7.*2.*29.*已持久保护/s);
     assert.equal(await c.evaluate("localStorage.getItem('caseOwnerToken')"),null);
   }finally{await browser.close();}
 },{caseOwnerToken:owner,enableCaseStore:true}));
@@ -58,6 +58,39 @@ test("a lost save response retries the same durable intent without a duplicate c
     assert.equal((await response.json()).cases.length,1);
   }finally{await browser.close();}
 },{caseOwnerToken:owner,enableCaseStore:true}));
+
+
+test("a real protection transaction rollback leaves the original intent retryable in Edge",()=>withService(async base=>{
+  const browser=await launchBrowser(edge),c=browser.cdp,posts=[];
+  const endpoint=base+"/api/query/monthly-analysis/cases";
+  c.onEvent(event=>{
+    if(event.method==="Network.requestWillBeSent"&&event.params.request.method==="POST"&&
+        event.params.request.url===endpoint)posts.push(JSON.parse(event.params.request.postData));
+  });
+  try{
+    await c.send("Network.enable");
+    await openReport(c,base);
+    await click(c,"#reportSaveCase");
+    await type(c,"caseOwnerToken",owner);
+    await type(c,"caseCreateNote","失败后保留的人工笔记");
+    await click(c,"#caseSave");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.state==='error'");
+    assert.equal(await c.evaluate("document.getElementById('caseArchive').dataset.caseId"),undefined);
+    assert.match(await c.evaluate("document.getElementById('caseArchiveStatus').textContent"),/保护存储暂不可用/);
+    assert.equal(await c.evaluate("document.getElementById('caseCreateNote').value"),"失败后保留的人工笔记");
+    const headers={Authorization:"Bearer "+owner};
+    assert.equal((await(await fetch(endpoint,{headers})).json()).cases.length,0);
+    await click(c,"#caseSave");
+    await waitFor(c,"document.getElementById('caseArchive').dataset.state==='saved'");
+    assert.equal(posts.length,2);
+    assert.deepEqual(posts[0],posts[1]);
+    const id=await c.evaluate("document.getElementById('caseArchive').dataset.caseId");
+    const stored=await(await fetch(endpoint+"/"+id,{headers})).json();
+    assert.equal(stored.protected_dependencies.report,posts[0].report_id);
+    assert.equal(Object.keys(stored.protected_dependencies).length,5);
+    assert.equal((await fetch(endpoint+"/"+id)).status,401);
+  }finally{await browser.close();}
+},{caseOwnerToken:owner,enableCaseStore:true,failFirstCaseProtection:true}));
 
 test("owner case remains a readable small-screen snapshot and clears its secret on leaving",()=>withService(async base=>{
   const browser=await launchBrowser(edge),c=browser.cdp;
@@ -131,7 +164,7 @@ test("owner edits notes as a new immutable version, searches tags and deliberate
     await click(c,"#caseEditFields summary");await type(c,"caseEditNote","人工笔记第二版");await type(c,"caseEditTags","海域甲");
     await click(c,"#caseEditSave");await waitFor(c,"document.getElementById('caseArchive').dataset.version==='2'&&!document.getElementById('caseLoad').disabled");
     assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/人工笔记第二版/);
-    assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/40.*7.*2.*29/s);
+    assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/40.*7.*2.*29.*已持久保护/s);
     await type(c,"caseCatalogQuery","海域甲");await click(c,"#caseLoad");
     await waitFor(c,"document.getElementById('caseArchive').dataset.state==='listed'");
     assert.equal(await c.evaluate("document.querySelectorAll('#caseItems button').length"),1);

@@ -1,4 +1,4 @@
-"""Owner case API: saved public CC0 reports, not real scientific case protection."""
+"""Private persistence and protection for owner cases using known CC0 reports."""
 
 import json
 import sqlite3
@@ -233,3 +233,80 @@ def test_storage_lock_failure_preserves_prior_success_and_old_versions(tmp_path)
             lock.rollback()
     assert client.get(url, headers=AUTH).json() == first
     assert len(client.get(url + "/versions", headers=AUTH).json()["versions"]) == 1
+
+
+
+
+def test_protection_failure_rolls_back_case_and_intent_while_preserving_other_references(tmp_path, monkeypatch):
+    from app import saved_case_store
+    from app.synthetic_run_store import RunStoreError
+
+    client, _ = case_client(tmp_path)
+    first = client.post(BASE + "/cases", json=save_request(client), headers=AUTH).json()
+    dependencies = first["protected_dependencies"]
+    assert set(dependencies) == {"result", "projection", "report", "chart_basis", "map_basis"}
+    request = save_request(client, intent="b" * 32)
+    original = saved_case_store.change_reference
+    inserted = []
+
+    def fail_after_first(db, artifact, kind, reference, present):
+        if inserted:
+            raise RunStoreError("unavailable")
+        original(db, artifact, kind, reference, present)
+        inserted.append(artifact)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(saved_case_store, "change_reference", fail_after_first)
+        failed = client.post(BASE + "/cases", json=request, headers=AUTH)
+    assert failed.status_code == 503
+    assert "protection unavailable" in failed.text
+    assert inserted
+    with sqlite3.connect(tmp_path / "cases.sqlite3") as db:
+        assert db.execute("SELECT count(*) FROM cases").fetchone()[0] == 1
+        assert db.execute("SELECT count(*) FROM versions").fetchone()[0] == 1
+        assert db.execute("SELECT count(*) FROM intents").fetchone()[0] == 1
+        assert db.execute("SELECT count(*) FROM preparation_references").fetchone()[0] == 5
+    assert client.get(BASE + "/cases/" + first["case_id"], headers=AUTH).json() == first
+    restored = client.post(BASE + "/cases", json=request, headers=AUTH)
+    assert restored.status_code == 200
+    assert restored.json()["protected_dependencies"] == dependencies
+
+
+def test_damaged_case_protection_never_replays_false_success(tmp_path):
+    client, _ = case_client(tmp_path)
+    request = save_request(client)
+    saved = client.post(BASE + "/cases", json=request, headers=AUTH).json()
+    db_path = tmp_path / "cases.sqlite3"
+    with sqlite3.connect(db_path) as db:
+        db.execute("DELETE FROM preparation_references WHERE artifact=?",
+                   (saved["protected_dependencies"]["chart_basis"],))
+    case_uri = BASE + "/cases/" + saved["case_id"]
+    assert client.get(case_uri).status_code == 401
+    assert client.get(case_uri, headers=AUTH).status_code == 503
+    assert client.post(BASE + "/cases", json=request, headers=AUTH).status_code == 503
+
+
+
+
+def test_legacy_version_reopens_and_next_version_gets_protection(tmp_path):
+    from app.analysis_support import content_id
+
+    client, _ = case_client(tmp_path)
+    saved = client.post(BASE + "/cases", json=save_request(client), headers=AUTH).json()
+    case_uri = BASE + "/cases/" + saved["case_id"]
+    with sqlite3.connect(tmp_path / "cases.sqlite3") as db:
+        old = dict(saved)
+        old.pop("protected_dependencies")
+        old.pop("version_id")
+        old["version_id"] = content_id(old)
+        db.execute("UPDATE versions SET payload=?", (json.dumps(old),))
+        db.execute("DROP TABLE preparation_references")
+        db.execute("DROP TABLE preparation_reference_registry")
+    assert client.get(case_uri, headers=AUTH).json() == old
+    created = client.put(case_uri, headers=AUTH, json={
+        **old["metadata"], "note": "本次修订有独立保护", "base_version": 1,
+        "base_version_id": old["version_id"], "intent_id": "f" * 32,
+    }).json()
+    assert created["version"] == 2
+    assert created["protected_dependencies"] == saved["protected_dependencies"]
+    assert client.get(case_uri + "?version=1", headers=AUTH).json() == old
