@@ -1,6 +1,7 @@
 """The registered archive preview only reads the authorized registry."""
 
 import json
+import sqlite3
 from hashlib import sha256
 from pathlib import Path
 
@@ -313,3 +314,73 @@ def test_failed_real_preparation_records_no_artifact(tmp_path):
     assert failed["artifact"] is None
     assert failed["error"] == "processing_failed"
     assert client.get(uri + "/artifact", headers=AUTH).status_code == 404
+
+
+def test_history_summary_survives_a_missing_original_and_display_artifact(tmp_path):
+    client, body = verified_single_day_client(tmp_path)
+    accepted = client.post(API + "/tasks", json=body, headers=AUTH).json()
+    uri = API + "/tasks/" + accepted["id"]
+    assert client.get(uri + "/evidence").status_code == 401
+    evidence = client.get(uri + "/evidence", headers=AUTH).json()
+    assert evidence["aggregate"] == {"valid": 19102, "missing": 3298, "front": 411,
+                                     "resolution_deg": 0.05, "research_ready": False}
+    roles = {role["role"]: role for role in evidence["roles"]}
+    assert roles["source_data"]["physical_state"] == "present_unverified"
+    assert roles["ordinary_artifact"]["readable_by_owner"] is True
+    assert roles["ordinary_artifact"]["published_in_project"] is False
+    (tmp_path / "raw/front/2024/front_location20240805.nc").unlink()
+    with sqlite3.connect(tmp_path / "preparation.sqlite3") as db:
+        db.execute("DELETE FROM preparation_artifacts")
+    changed = client.get(uri + "/evidence", headers=AUTH).json()
+    assert changed["record_id"] == evidence["record_id"]
+    assert changed["aggregate"] == evidence["aggregate"]
+    assert changed["original_recomputation"] == "source_missing"
+    changed_roles = {role["role"]: role for role in changed["roles"]}
+    assert changed_roles["source_data"]["physical_state"] == "missing"
+    assert changed_roles["ordinary_artifact"]["physical_state"] == "missing"
+    assert client.get(uri + "/artifact", headers=AUTH).status_code == 404
+
+
+
+def test_inline_preparation_record_remains_readable(tmp_path):
+    client, body = verified_single_day_client(tmp_path)
+    accepted = client.post(API + "/tasks", json=body, headers=AUTH).json()
+    uri = API + "/tasks/" + accepted["id"]
+    from app.analysis_support import content_id
+
+    with sqlite3.connect(tmp_path / "preparation.sqlite3") as db:
+        record = json.loads(db.execute("SELECT payload FROM runs").fetchone()[0])
+        artifact = json.loads(db.execute("SELECT payload FROM preparation_artifacts").fetchone()[0])
+        record.pop("artifact_storage")
+        record.pop("finished_at")
+        record.pop("record_id")
+        record["artifact"] = artifact
+        record["record_id"] = content_id(record)
+        db.execute("UPDATE runs SET payload=?", (json.dumps(record),))
+        db.execute("DROP TABLE preparation_artifacts")
+    assert client.get(uri + "/artifact", headers=AUTH).json() == artifact
+    evidence = client.get(uri + "/evidence", headers=AUTH).json()
+    assert evidence["record_id"] == record["record_id"]
+    assert next(row for row in evidence["roles"] if row["role"] == "ordinary_artifact")["physical_state"] == "stored"
+
+
+
+
+def test_evidence_survives_an_unreadable_artifact_lookup(tmp_path, monkeypatch):
+    from app.owner_preparation_store import PreparationStore
+    from app.synthetic_run_store import RunStoreError
+
+    client, body = verified_single_day_client(tmp_path)
+    accepted = client.post(API + "/tasks", json=body, headers=AUTH).json()
+    uri = API + "/tasks/" + accepted["id"] + "/evidence"
+
+    def unavailable(*args):
+        raise RunStoreError("unavailable")
+
+    monkeypatch.setattr(PreparationStore, "stored_artifact", unavailable)
+    evidence = client.get(uri, headers=AUTH).json()
+    assert evidence["aggregate"]["valid"] == 19102
+    role = next(role for role in evidence["roles"] if role["role"] == "ordinary_artifact")
+    assert role["physical_state"] == "unverified"
+    assert role["eligible_for_publication"] is False
+    assert role["readable_by_owner"] is False

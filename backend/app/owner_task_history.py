@@ -10,16 +10,17 @@ from .comparison_models import Identity
 from .monthly_models import ClosedModel
 
 OwnerPurpose = Literal["monthly_spatial_example", "monthly_distance_reference"]
+HistoryPurpose = Literal["monthly_spatial_example", "monthly_distance_reference", "archive_preparation"]
 HistoryStatus = Literal["completed", "failed", "cancelled", "interrupted"]
 
 
 class OwnerHistoryQuery(ClosedModel):
-    purpose: OwnerPurpose | None = None
+    purpose: HistoryPurpose | None = None
     status: HistoryStatus | None = None
     start_date: date | None = None
     end_date: date | None = None
     limit: Annotated[int, Field(ge=1, le=16)] = 8
-    offset: Annotated[int, Field(ge=0, le=128)] = 0
+    offset: Annotated[int, Field(ge=0, le=192)] = 0
     history_id: Identity | None = None
 
     @model_validator(mode="after")

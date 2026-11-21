@@ -37,6 +37,8 @@ from .monthly_models import (
     MonthlyRequest,
 )
 from .owner_access import owner_requirement
+from .owner_preparation_store import PreparationStore
+from .owner_task_evidence import analysis_evidence
 from .owner_task_history import OwnerHistoryQuery, OwnerPurpose, owner_history_page
 from .synthetic_run_export import render_run_file
 from .synthetic_run_store import RunStore, RunStoreError
@@ -124,6 +126,9 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
     if distance_store.path == store.path:
         distance_store = RunStore(None, qualified_distance=True)
 
+    preparation_store = PreparationStore(settings.owner_preparation_store_path)
+    if preparation_store.path in {store.path, distance_store.path}:
+        preparation_store = PreparationStore(None)
     active_distance_work = set()
     active_distance_runs = {}
 
@@ -432,7 +437,8 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
     @router.get("/history")
     def task_history(filters: Annotated[OwnerHistoryQuery, Query()], response: Response):
         response.headers["Cache-Control"] = "no-store"
-        stores = {"monthly_spatial_example": store, "monthly_distance_reference": distance_store}
+        stores = {"monthly_spatial_example": store, "monthly_distance_reference": distance_store,
+                  "archive_preparation": preparation_store}
         configured = [purpose for purpose, runs in stores.items() if runs.path is not None]
         purposes = [filters.purpose] if filters.purpose is not None else configured
         if not purposes or any(purpose not in configured for purpose in purposes):
@@ -442,6 +448,14 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
         if filters.history_id and page["history_id"] != filters.history_id:
             raise HTTPException(409, "Owner history changed", headers={"Cache-Control": "no-store"})
         return {**page, "available_purposes": configured}
+
+    @router.get("/history/{run_id}/evidence")
+    def task_evidence(run_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response,
+                      purpose: OwnerPurpose = "monthly_spatial_example"):
+        response.headers["Cache-Control"] = "no-store"
+        record = guarded(lambda: store_for(purpose).read(run_id))
+        source = settings.monthly_distance_input_path if purpose == "monthly_distance_reference" else example_path
+        return analysis_evidence(record, source)
 
     @router.get("/{run_id}")
     def read(run_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")], response: Response,

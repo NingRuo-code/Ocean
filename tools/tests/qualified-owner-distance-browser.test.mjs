@@ -640,6 +640,20 @@ test("the browser withdraws a same-owner submission waiting for the previous cal
       const result=await(await fetch(base+route+"/intents/"+queued+"?purpose="+mode,{headers})).json();
       assert.equal(result.cancelled,true);
       assert.equal(result.result,null);
+      const full=base+route+"/"+result.id+"?purpose="+mode;
+      c.onEvent(msg=>{
+        if(msg.method==="Fetch.requestPaused"&&msg.params.request.url===full)
+          void c.send("Fetch.fulfillRequest",{requestId:msg.params.requestId,responseCode:503});
+      });
+      await click(c,"#ownerTaskHistoryOpen");
+      const row='#ownerTaskHistoryItems button[data-run-id="'+result.id+'"]';
+      await waitFor(c,"!!document.querySelector("+JSON.stringify(row)+")");
+      await c.send("Fetch.enable",{patterns:[{urlPattern:full.replace("?","\\?"),requestStage:"Request"}]});
+      await click(c,row);
+      await waitFor(c,"document.getElementById('ownerTaskHistoryStatus').textContent.includes('已读取轻量记录')");
+      const fallback=await c.evaluate("document.getElementById('ownerTaskHistoryDetail').textContent");
+      assert.match(fallback,/服务已确认取消.*聚合结果快照 · 无结果记录/s);
+      assert.doesNotMatch(fallback,/计算已终态失败/);
     } finally {
       await writeFile(releaseDistanceResult,"release");
       await first?.catch(()=>{});
@@ -802,10 +816,15 @@ test("the browser requires a distinct explicit request when the original registe
 test("owner task history filters and pages frozen records without changing the active result or map", () =>
   withService(async base=>{
     const browser=await launchBrowser(edge), c=browser.cdp, posts=[], revocations=[];
+    let unavailableDetail=null;
     c.onEvent(msg=>{
       if(msg.method==="Network.requestWillBeSent"&&msg.params.request.url.startsWith(base+route)&&
           msg.params.request.method==="POST")posts.push(msg.params.request);
       if(msg.method==="Fetch.requestPaused"){
+        if(msg.params.request.url===unavailableDetail){
+          revocations.push(c.send("Fetch.fulfillRequest",{requestId:msg.params.requestId,responseCode:503}));
+          return;
+        }
         const requestHeaders=Object.entries(msg.params.request.headers)
           .filter(([name])=>name.toLowerCase()!=="authorization")
           .map(([name,value])=>({name,value}));
@@ -853,6 +872,7 @@ test("owner task history filters and pages frozen records without changing the a
       await waitFor(c,"document.querySelectorAll('#ownerTaskHistoryItems button').length===5");
       await click(c,'#ownerTaskHistoryItems button[data-run-id="'+legacy.id+'"]');
       await waitFor(c,"document.getElementById('ownerTaskHistoryDetail').textContent.includes("+JSON.stringify(legacy.result.result_id)+")");
+      assert.match(await c.evaluate("document.getElementById('ownerTaskHistoryDetail').textContent"),/聚合结果快照 · 已保存.*原资料.*按原版本复算仍待核验/s);
 
       await c.evaluate("document.querySelector('#ownerTaskHistoryForm [name=start_date]').value='2026-12-31';document.querySelector('#ownerTaskHistoryForm [name=end_date]').value='2026-01-01'");
       await click(c,"#ownerTaskHistoryApply");
@@ -869,7 +889,31 @@ test("owner task history filters and pages frozen records without changing the a
       await waitFor(c,"document.querySelectorAll('#ownerTaskHistoryItems button').length===1");
       await click(c,"#ownerTaskHistoryItems button");
       await waitFor(c,"document.getElementById('ownerTaskHistoryDetail').dataset.runId==="+JSON.stringify(failed));
-      assert.match(await c.evaluate("document.getElementById('ownerTaskHistoryDetail').textContent"),/原任务条件.*时限/s);
+      assert.match(await c.evaluate("document.getElementById('ownerTaskHistoryDetail').textContent"),/原任务条件.*时限.*聚合结果快照 · 无结果记录/s);
+      await c.evaluate("document.getElementById('ownerTaskHistoryStatusFilter').value=''");
+      await click(c,"#ownerTaskHistoryApply");
+      await waitFor(c,"document.querySelectorAll('#ownerTaskHistoryItems button').length===2");
+      await click(c,'#ownerTaskHistoryItems button[data-run-id="'+selected+'"]');
+      await waitFor(c,"document.getElementById('ownerTaskHistoryDetail').dataset.runId==="+JSON.stringify(selected));
+      const detailText="document.getElementById('ownerTaskHistoryDetail').textContent";
+      assert.match(await c.evaluate(detailText),/共同支持子集.*P0 sha256:.*聚合结果快照 · 已保存/s);
+      for(const scenario of [
+        {suffix:"/"+selected+"?purpose="+mode,message:"已读取轻量记录",body:/原任务条件.*聚合结果快照 · 已保存/s},
+        {suffix:"/history/"+selected+"/evidence?purpose="+mode,message:"产物状态暂不可核实",body:/共同支持子集.*P0 sha256:/s},
+      ]){
+        unavailableDetail=base+route+scenario.suffix;
+        await c.send("Fetch.enable",{patterns:[{urlPattern:unavailableDetail.replace("?","\\?"),requestStage:"Request"}]});
+        await click(c,'#ownerTaskHistoryItems button[data-run-id="'+selected+'"]');
+        await waitFor(c,"document.getElementById('ownerTaskHistoryStatus').textContent.includes("+JSON.stringify(scenario.message)+")");
+        assert.match(await c.evaluate(detailText),scenario.body);
+        await c.send("Fetch.disable");
+        unavailableDetail=null;
+      }
+      await c.evaluate("document.getElementById('ownerTaskHistoryStatusFilter').value='interrupted'");
+      await click(c,"#ownerTaskHistoryApply");
+      await waitFor(c,"document.querySelectorAll('#ownerTaskHistoryItems button').length===1");
+      await click(c,"#ownerTaskHistoryItems button");
+      await waitFor(c,"document.getElementById('ownerTaskHistoryDetail').dataset.runId==="+JSON.stringify(failed));
       assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),selected);
       assert.equal(await c.evaluate("document.getElementById('ownerRunResult').textContent"),result);
       const zoom=await c.evaluate("state.zoom");
@@ -1057,6 +1101,7 @@ for(const corrupt of [false,true])test(corrupt
   proof.archive_check.sources.front.members[0].sha256=rawDigest;
   proof.license_evidence_id="sha256:"+digest(await readFile("docs/data/august-2024-source-registry.json"));
   proof.cost_evidence_id="sha256:"+digest(await readFile("docs/data/august-2024-archive-members.json"));
+  let stagedOriginal;
   await withService(async (base,{releaseFrontPreparation})=>{
     const browser=await launchBrowser(edge),c=browser.cdp,posts=[],reads=[];
     const api=base+"/api/data/owner-preparation";
@@ -1161,6 +1206,25 @@ for(const corrupt of [false,true])test(corrupt
       }
       const replayed=await(await fetch(api+"/tasks",{method:"POST",headers,body:JSON.stringify(body)})).json();
       assert.deepEqual(replayed,ready);
+      await click(c,"#ownerPreparationClose");
+      await click(c,"#ownerTaskHistoryOpen");
+      await waitFor(c,"document.querySelectorAll('#ownerTaskHistoryItems button').length===1");
+      await c.evaluate("document.getElementById('ownerTaskHistoryPurpose').value='archive_preparation'");
+      await click(c,"#ownerTaskHistoryApply");
+      await waitFor(c,"document.querySelector('#ownerTaskHistoryItems button')?.textContent.includes('归档准备') && !document.getElementById('ownerTaskHistoryApply').disabled");
+      await click(c,"#ownerTaskHistoryItems button");
+      const readHistory="document.getElementById('ownerTaskHistoryDetail').textContent";
+      await waitFor(c,readHistory+".includes('原资料 · 存在，版本未复核')");
+      assert.match(await c.evaluate(readHistory),corrupt?/处理或校验失败.*聚合结果快照 · 无结果记录/s:
+        /有效 19102 格.*聚合结果快照 · 已保存.*地图产物 · 已保存.*按原版本复算仍待核验/s);
+      if(!corrupt){
+        await unlink(stagedOriginal);
+        await click(c,"#ownerTaskHistoryItems button");
+        await waitFor(c,readHistory+".includes('原资料 · 缺失')");
+        assert.match(await c.evaluate(readHistory),/有效 19102 格.*地图产物 · 已保存/s);
+      }
+      assert.equal(await c.evaluate("JSON.stringify(state.view)"),view);
+      assert.deepEqual(posts.map(p=>p.url),corrupt?[api+"/plan",api+"/tasks"]:[api+"/plan",api+"/tasks",api+"/tasks"]);
     }finally{await browser.close();}
   },{
     caseOwnerToken:owner,ownerPreparationRegistryText:registry,ownerPreparationManifestText:JSON.stringify(evidence),
@@ -1170,7 +1234,8 @@ for(const corrupt of [false,true])test(corrupt
       await mkdir(join(raw,"front","2024"),{recursive:true});
       const data=Buffer.from(original);
       if(corrupt)data[data.length-1]^=1;
-      await writeFile(join(raw,relative),data);
+      stagedOriginal=join(raw,relative);
+      await writeFile(stagedOriginal,data);
     },
   });
 });
