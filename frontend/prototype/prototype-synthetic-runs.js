@@ -126,7 +126,7 @@
     syncTaskHistory();
   }
 
-  async function readTaskHistory(suffix,message,receive,isPage=false,api=taskHistoryApi){
+  async function readTaskHistory(suffix,message,receive,isPage=false,api=taskHistoryApi,loadPair=null){
     if(!sameOriginOwnerAvailable()||taskHistory.hidden||!root.open||panel.hidden)return;
     stopTaskHistoryRequest();
     const observer=new AbortController(),from=source(),opener=document.activeElement;
@@ -138,7 +138,9 @@
     syncTaskHistory();
     if(taskHistory.contains(opener)&&opener.disabled)close.focus({preventScroll:true});
     try{
-      const value=await ownerNet(api,suffix,'GET',null,json,observer.signal);
+      const value=loadPair
+        ?await loadPair(observer.signal)
+        :await ownerNet(api,suffix,'GET',null,json,observer.signal);
       if(taskHistoryRequest!==observer||!sameSource(from,source()))return;
       if(observer.signal.aborted)throw Error('cancelled');
       await receive(value,observer.signal);
@@ -179,14 +181,16 @@
       new Set(roles.map(role=>role.role)).size===roles.length&&roles.every(role=>
         Object.hasOwn(taskEvidenceRoles,role.role)&&Object.hasOwn(taskEvidenceStates,role.physical_state)&&
         (role.identity===null||/^(sha256:)?[0-9a-f]{64}$/.test(role.identity))&&
-        typeof role.readable_by_owner==='boolean'&&role.published_in_project===false&&role.referenced===null);
+        typeof role.readable_by_owner==='boolean'&&role.published_in_project===false&&
+        (role.eligible_for_publication===null||role.eligible_for_publication===false)&&role.referenced===null);
   }
 
   function renderTaskRoles(value){
     const roles=node(taskHistoryDetail,'ul','');
     for(const role of value.roles){
       const item=node(roles,'li',taskEvidenceRoles[role.role]+' · '+taskEvidenceStates[role.physical_state]+
-        ' · '+(role.readable_by_owner?'本人可读':'本入口不提供读取')+' · 项目未公开 · 引用状态未知');
+        ' · '+(role.readable_by_owner?'本人可读':'本入口不提供读取')+' · 项目未公开 · '+
+        (role.eligible_for_publication===null?'公开许可待核':'限本人使用')+' · 引用状态未知');
       if(role.identity)node(item,'small',' '+role.identity);
     }
     node(taskHistoryDetail,'p',value.original_recomputation==='source_missing'
@@ -204,7 +208,8 @@
     if(purpose===taskHistoryArchive){
       return readTaskHistory('/tasks/'+item.id+'/evidence','正在读取冻结准备记录。',value=>{
         const registered=value?.request;
-        if(!taskEvidenceValid(value,item)||!registered||
+        if(!taskEvidenceValid(value,item)||!registered||!Array.isArray(value.bbox)||value.bbox.length!==4||
+            !value.bbox.every(Number.isFinite)||
             !validPreparationHistoryRequest({...registered,purpose:taskHistoryArchive,use:registered.purpose})||
             Object.keys(registered).some(name=>String(registered[name])!==String(item.request[name==='purpose'?'use':name])))
           throw Error('contract');
@@ -213,25 +218,51 @@
             summary.resolution_deg!==0.05||summary.research_ready!==false))throw Error('contract');
         taskHistoryDetail.replaceChildren();
         taskHistoryDetail.dataset.runId=value.task_id;
-        node(taskHistoryDetail,'p','归档准备 · '+registered.start_date+' · 锋面 · '+registered.region_id);
+        node(taskHistoryDetail,'p','归档准备 · '+registered.start_date+' · 锋面 · '+registered.region_id+' · '+value.bbox.join('、'));
         if(summary)node(taskHistoryDetail,'p','有效 '+summary.valid+' 格，缺测 '+summary.missing+' 格，锋线 '+summary.front+' 格。');
         else node(taskHistoryDetail,'p',(preparationFailureDetails[value.error]??'准备未完成')+'。没有成功准备产物。');
         renderTaskRoles(value);
         complete('已读取所选准备记录。');
       },false,'/data/owner-preparation');
     }
-    return readTaskHistory('/'+item.id+'?purpose='+purpose,'正在读取冻结记录。',async (value,signal)=>{
-      const run=checked(value,{id:item.id,intent:item.intent_id,history:true},purpose);
-      if(run.record_id!==item.record_id)throw Error('contract');
-      const evidence=await ownerNet(taskHistoryApi,'/history/'+item.id+'/evidence?purpose='+purpose,'GET',null,json,signal);
-      if(signal.aborted||!taskHistoryRequest||taskHistoryRequest.signal!==signal)return;
-      if(!taskEvidenceValid(evidence,item))throw Error('contract');
+    const analysisPath='/'+item.id+'?purpose='+purpose;
+    const evidencePath='/history/'+item.id+'/evidence?purpose='+purpose;
+    const loadPair=async signal=>{
+      const timeBound=AbortSignal.any([signal,AbortSignal.timeout(5000)]);
+      const results=await Promise.allSettled([analysisPath,evidencePath].map(path=>
+        ownerNet(taskHistoryApi,path,'GET',null,json,timeBound)));
+      for(const result of results){
+        if(result.status==='rejected'&&['http_401','http_403','source_changed'].includes(result.reason.message))throw result.reason;
+      }
+      return results.map(result=>result.status==='fulfilled'?result.value:null);
+    };
+    return readTaskHistory(null,'正在读取冻结记录。',([full,evidence])=>{
+      let run=null;
+      if(full)try{
+        const checkedRun=checked(full,{id:item.id,intent:item.intent_id,history:true},purpose);
+        if(checkedRun.record_id===item.record_id)run=checkedRun;
+      }catch{}
+      const hasEvidence=evidence&&taskEvidenceValid(evidence,item)&&evidence.intent_id===item.intent_id&&
+        evidence.status===item.status&&validRequest(evidence.request,purpose)&&requestsMatch(item.request,evidence.request);
+      if(!run&&!hasEvidence)throw Error('contract');
       taskHistoryDetail.replaceChildren();
-      taskHistoryDetail.dataset.runId=run.id;
-      renderRunEvidence(run,taskHistoryDetail,item.submitted_at,item.finished_at);
-      renderTaskRoles(evidence);
-      complete('已读取所选历史记录。');
-    });
+      taskHistoryDetail.dataset.runId=item.id;
+      if(run)renderRunEvidence(run,taskHistoryDetail,item.submitted_at,item.finished_at);
+      else{
+        node(taskHistoryDetail,'p','原任务条件：'+describe(evidence.request));
+        node(taskHistoryDetail,'p','任务 '+item.id+' / 意图 '+evidence.intent_id+' / '+item.record_id);
+        if(evidence.retry)node(taskHistoryDetail,'p','原任务 '+evidence.retry.parent_run_id+' / '+evidence.retry.parent_record_id);
+        if(evidence.result_id){
+          const summary=evidence.aggregate;
+          node(taskHistoryDetail,'p','结果 '+evidence.result_id+' · H='+(summary.hours??'未知')+' h；E='+
+            (summary.area_time_km2_days??'未知')+' km²·d；有效/日历日 '+summary.supported_days+'/'+summary.calendar_days+'。');
+        }else node(taskHistoryDetail,'p',distanceFailureMessages.get(evidence.failure_reason)??generalFailureMessage);
+      }
+      if(hasEvidence)renderTaskRoles(evidence);
+      const message=run?(hasEvidence?'已读取所选历史记录。':'已读取冻结记录。产物状态暂不可核实。'):
+        '已读取轻量记录。完整详情暂不可核实。';
+      complete(message);
+    },false,taskHistoryApi,loadPair);
   }
 
   function readTaskHistoryPage(filters){

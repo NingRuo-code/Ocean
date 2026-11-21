@@ -362,3 +362,25 @@ def test_inline_preparation_record_remains_readable(tmp_path):
     evidence = client.get(uri + "/evidence", headers=AUTH).json()
     assert evidence["record_id"] == record["record_id"]
     assert next(row for row in evidence["roles"] if row["role"] == "ordinary_artifact")["physical_state"] == "stored"
+
+
+
+
+def test_evidence_survives_an_unreadable_artifact_lookup(tmp_path, monkeypatch):
+    from app.owner_preparation_store import PreparationStore
+    from app.synthetic_run_store import RunStoreError
+
+    client, body = verified_single_day_client(tmp_path)
+    accepted = client.post(API + "/tasks", json=body, headers=AUTH).json()
+    uri = API + "/tasks/" + accepted["id"] + "/evidence"
+
+    def unavailable(*args):
+        raise RunStoreError("unavailable")
+
+    monkeypatch.setattr(PreparationStore, "stored_artifact", unavailable)
+    evidence = client.get(uri, headers=AUTH).json()
+    assert evidence["aggregate"]["valid"] == 19102
+    role = next(role for role in evidence["roles"] if role["role"] == "ordinary_artifact")
+    assert role["physical_state"] == "unverified"
+    assert role["eligible_for_publication"] is False
+    assert role["readable_by_owner"] is False

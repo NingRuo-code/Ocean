@@ -575,9 +575,12 @@ def create_owner_preparation_router(settings):
         response.headers["Cache-Control"] = "no-store"
         try:
             record = store.read(task_id)
-            physical, _ = store.stored_artifact(record)
         except RunStoreError as exc:
             raise store_failure(exc) from None
+        try:
+            physical, _ = store.stored_artifact(record)
+        except RunStoreError:
+            physical = "unverified"
         day = date.fromisoformat(record["expected"]["date"])
         raw_path = settings.raw_data_dir / "front" / str(day.year) / f"front_location{day:%Y%m%d}.nc"
         return preparation_evidence(record, task_status(record), physical, path_state(raw_path))

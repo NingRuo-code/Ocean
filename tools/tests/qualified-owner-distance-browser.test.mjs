@@ -802,10 +802,15 @@ test("the browser requires a distinct explicit request when the original registe
 test("owner task history filters and pages frozen records without changing the active result or map", () =>
   withService(async base=>{
     const browser=await launchBrowser(edge), c=browser.cdp, posts=[], revocations=[];
+    let unavailableDetail=null;
     c.onEvent(msg=>{
       if(msg.method==="Network.requestWillBeSent"&&msg.params.request.url.startsWith(base+route)&&
           msg.params.request.method==="POST")posts.push(msg.params.request);
       if(msg.method==="Fetch.requestPaused"){
+        if(msg.params.request.url===unavailableDetail){
+          revocations.push(c.send("Fetch.fulfillRequest",{requestId:msg.params.requestId,responseCode:503}));
+          return;
+        }
         const requestHeaders=Object.entries(msg.params.request.headers)
           .filter(([name])=>name.toLowerCase()!=="authorization")
           .map(([name,value])=>({name,value}));
@@ -871,13 +876,25 @@ test("owner task history filters and pages frozen records without changing the a
       await click(c,"#ownerTaskHistoryItems button");
       await waitFor(c,"document.getElementById('ownerTaskHistoryDetail').dataset.runId==="+JSON.stringify(failed));
       assert.match(await c.evaluate("document.getElementById('ownerTaskHistoryDetail').textContent"),/原任务条件.*时限.*聚合结果快照 · 无结果记录/s);
-      const selectDistance=()=>c.evaluate("document.getElementById('ownerTaskHistoryStatusFilter').value=''");
-      await selectDistance();
+      await c.evaluate("document.getElementById('ownerTaskHistoryStatusFilter').value=''");
       await click(c,"#ownerTaskHistoryApply");
       await waitFor(c,"document.querySelectorAll('#ownerTaskHistoryItems button').length===2");
       await click(c,'#ownerTaskHistoryItems button[data-run-id="'+selected+'"]');
       await waitFor(c,"document.getElementById('ownerTaskHistoryDetail').dataset.runId==="+JSON.stringify(selected));
-      assert.match(await c.evaluate("document.getElementById('ownerTaskHistoryDetail').textContent"),/共同支持子集.*P0 sha256:.*聚合结果快照 · 已保存/s);
+      const detailText="document.getElementById('ownerTaskHistoryDetail').textContent";
+      assert.match(await c.evaluate(detailText),/共同支持子集.*P0 sha256:.*聚合结果快照 · 已保存/s);
+      for(const scenario of [
+        {suffix:"/"+selected+"?purpose="+mode,message:"已读取轻量记录",body:/原任务条件.*聚合结果快照 · 已保存/s},
+        {suffix:"/history/"+selected+"/evidence?purpose="+mode,message:"产物状态暂不可核实",body:/共同支持子集.*P0 sha256:/s},
+      ]){
+        unavailableDetail=base+route+scenario.suffix;
+        await c.send("Fetch.enable",{patterns:[{urlPattern:unavailableDetail.replace("?","\\?"),requestStage:"Request"}]});
+        await click(c,'#ownerTaskHistoryItems button[data-run-id="'+selected+'"]');
+        await waitFor(c,"document.getElementById('ownerTaskHistoryStatus').textContent.includes("+JSON.stringify(scenario.message)+")");
+        assert.match(await c.evaluate(detailText),scenario.body);
+        await c.send("Fetch.disable");
+        unavailableDetail=null;
+      }
       await c.evaluate("document.getElementById('ownerTaskHistoryStatusFilter').value='interrupted'");
       await click(c,"#ownerTaskHistoryApply");
       await waitFor(c,"document.querySelectorAll('#ownerTaskHistoryItems button').length===1");
