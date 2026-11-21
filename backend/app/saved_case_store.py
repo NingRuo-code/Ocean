@@ -10,7 +10,8 @@ from pathlib import Path
 from uuid import uuid4
 
 from .analysis_support import content_id, decode_controlled_json
-from .case_aggregate_export import FORMAT, aggregate_manifest, render_case_aggregate_csv
+from .case_aggregate_export import FORMAT as AGGREGATE_FORMAT
+from .case_aggregate_export import aggregate_manifest, render_case_aggregate_csv
 from .owner_artifact_references import (
     change_reference,
     protection_status,
@@ -239,13 +240,29 @@ class CaseStore:
             return value
 
     def aggregate_export(self, case_id, version, version_id, report_id, *, prepare=False):
-        with self.connection(write=prepare) as db:
+        render = render_case_aggregate_csv if prepare else None
+        return self.artifact_export(case_id, version, version_id, report_id, AGGREGATE_FORMAT, aggregate_manifest, render=render)
+
+    def has_artifact(self, case_id, version, format_version):
+        with self.connection() as db:
+            if db is None or not db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='case_export_artifacts'"
+            ).fetchone():
+                return False
+            return db.execute(
+                "SELECT 1 FROM case_export_artifacts WHERE case_id=? AND version=? AND format=?",
+                (case_id, version, format_version),
+            ).fetchone() is not None
+
+    def artifact_export(self, case_id, version, version_id, report_id, format_version, describe, *, render=None):
+        preparing = render is not None
+        with self.connection(write=preparing) as db:
             case = self.read_version(db, case_id, version)
             if case["version_id"] != version_id or case["report"]["report_id"] != report_id:
                 raise CaseStoreError("version_conflict")
             if case.get("protected_dependencies") is None:
                 raise CaseStoreError("protection_unavailable")
-            if prepare:
+            if preparing:
                 db.execute("CREATE TABLE IF NOT EXISTS case_export_artifacts("
                            "case_id TEXT, version INTEGER, format TEXT, identity TEXT NOT NULL, payload BLOB NOT NULL,"
                            "PRIMARY KEY(case_id,version,format), FOREIGN KEY(case_id,version) REFERENCES versions(case_id,number))")
@@ -253,23 +270,23 @@ class CaseStore:
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='case_export_artifacts'"
             ).fetchone():
                 raise CaseStoreError("not_found")
-            key = (case_id, version, FORMAT)
+            key = (case_id, version, format_version)
             row = db.execute(
                 "SELECT identity,payload FROM case_export_artifacts WHERE case_id=? AND version=? AND format=?", key
             ).fetchone()
             try:
                 if row is None:
-                    if not prepare:
+                    if not preparing:
                         raise CaseStoreError("not_found")
-                    body = render_case_aggregate_csv(case)
-                    manifest = aggregate_manifest(case, body)
+                    body = render(case)
+                    manifest = describe(case, body)
                     artifact = manifest["artifact_id"]
                     register_artifact(db, artifact)
                     change_reference(db, artifact, "saved_case", case_id, True)
                     db.execute("INSERT INTO case_export_artifacts VALUES(?,?,?,?,?)", (*key, artifact, body))
                 else:
                     artifact, body = row
-                    manifest = aggregate_manifest(case, body)
+                    manifest = describe(case, body)
                     if (manifest["artifact_id"] != artifact or protection_status(db, artifact)["state"] != "protected"
                             or not any(kind == "saved_case" and ref == case_id
                                        for kind, ref, _ in reference_rows(db, artifact))):

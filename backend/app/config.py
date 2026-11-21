@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     ai_timeout_seconds: float = 3.0
     monthly_execution_token: SecretStr | None = None
     case_store_path: Path | None = None
+    case_chart_png_node: Path | None = None
+    case_chart_png_browser: Path | None = None
     synthetic_run_store_path: Path | None = None
     qualified_distance_run_store_path: Path | None = None
     owner_preparation_registry_path: Path | None = None

@@ -39,6 +39,7 @@
       for(const field of $("caseEditFields").querySelectorAll('input[type=checkbox]'))field.disabled=disabled;
       for(const key of ["caseExportMarkdown","caseExportCsv","caseExportBundle","caseExportChart","caseCheckBundle"])$(key).disabled=disabled;
       $("caseExportAggregate").disabled=disabled||!selected.protected_dependencies;
+      if($("caseExportProtectedPng"))$("caseExportProtectedPng").disabled=disabled;
     }
   }
   function editedSections(){
@@ -76,9 +77,9 @@
     sessionSource=from;
     return reader(from.base+"/query/monthly-analysis/cases"+suffix,controller.signal,{...options,redirect:"error",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"}});
   }
-  async function perform(work,state){
+  async function perform(work,state,timeout=10000){
     if(busy)return;
-    controller?.abort();controller=new AbortController();const active=controller,n=++generation,timer=setTimeout(()=>active.abort(),10000),opener=document.activeElement;
+    controller?.abort();controller=new AbortController();const active=controller,n=++generation,timer=setTimeout(()=>active.abort(),timeout),opener=document.activeElement;
     busy=true;updateSave();const parkedFocus=pane.contains(opener)&&opener.disabled;
     if(parkedFocus)$("caseLock").focus({preventScroll:true});
     $("caseArchiveStatus").textContent="正在核对本人权限与案例记录…";
@@ -115,6 +116,11 @@
     for(const [format,label,key] of [["markdown","下载Markdown报告","caseExportMarkdown"],["csv","下载逐日CSV","caseExportCsv"],["aggregate-csv","下载聚合CSV","caseExportAggregate"],["bundle","下载带清单成果包","caseExportBundle"],["chart","下载逐日证据图PNG","caseExportChart"]]){
       const action=node(exports,"button",label);action.id=key;action.onclick=()=>download(format);
     }
+    if(value.chart_png_available){
+      const archive=node(exports,"button","保护并下载图表PNG");
+      archive.id="caseExportProtectedPng";archive.onclick=()=>download("chart-png");
+    }
+    node(root,"p","本案例尚未登记原地图的冻结视窗和图层。");
     node(root,"p","报告、逐日表和成果包包含所读已保存版本的人工笔记；PNG仅含冻结科学证据。均不包含未保存草稿或当前地图，也不会自动公开。");
     const checking=node(root,"details","");checking.id="caseBundleCheckFields";node(checking,"summary","核对本地成果包");
     node(checking,"p","选择已下载的三成员ZIP（最多1MiB）。只在本地读取文件，不上传文件、文件名或路径；需联网重新核对本人及所读版本。重新压缩的包不视为完全一致，可重新选择同一文件重试。");
@@ -196,14 +202,20 @@
     for(const line of [r.source.id+" / "+r.source.version+" / "+r.source.license,...r.caveats])node(details,"p",line);
     updateSave();
   }
-  async function aggregateBytes(path,frozen){
+  async function protectedBytes(path,frozen,format){
+    const chart=format==="chart-png";
+    const schema=chart?"ocean-case-chart-png-receipt/v1":"ocean-case-aggregate-csv-receipt/v1";
+    const version=chart?"owner-case-chart-png/v1":"owner-case-aggregate-csv/v1";
+    const maximum=chart?8388608:131072;
     const receipt=await api(path,{method:"POST"});
-    if(receipt?.schema_version!=="ocean-case-aggregate-csv-receipt/v1"||receipt.case_id!==frozen.case_id||
+    if(receipt?.schema_version!==schema||receipt.case_id!==frozen.case_id||
         receipt.version!==frozen.version||receipt.version_id!==frozen.version_id||receipt.report_id!==frozen.report.report_id||
-        receipt.format_version!=="owner-case-aggregate-csv/v1"||receipt.protection!=="saved_case"||
+        receipt.format_version!==version||receipt.protection!=="saved_case"||
+        (chart&&(receipt.chart_basis!==frozen.protected_dependencies?.chart_basis||receipt.width!==1600||
+          !Number.isInteger(receipt.height)||receipt.height<1100||receipt.height>10000))||
         !hash.test(receipt.artifact_id)||!hash.test(receipt.sha256)||!Number.isSafeInteger(receipt.byte_length)||
-        receipt.byte_length<1||receipt.byte_length>131072)throw Error("contract");
-    const data=await api(path,{},OceanPublicRead.bytes);
+        receipt.byte_length<1||receipt.byte_length>maximum)throw Error("contract");
+    const data=await api(path,{},(url,signal,options)=>OceanPublicRead.bytes(url,signal,options,null,receipt.byte_length));
     if(data.byteLength!==receipt.byte_length)throw Error("contract");
     const calculated=new Uint8Array(await crypto.subtle.digest("SHA-256",data));
     const identity="sha256:"+Array.from(calculated,byte=>byte.toString(16).padStart(2,"0")).join("");
@@ -216,10 +228,11 @@
     return perform(async n=>{
       const query="?version_id="+encodeURIComponent(frozen.version_id)+"&report_id="+encodeURIComponent(frozen.report.report_id);
       const path="/"+frozen.case_id+"/versions/"+frozen.version+"/exports/"+format+query;
-      const data=format==="aggregate-csv"?await aggregateBytes(path,frozen):await api(path,{},OceanPublicRead.bytes);
+      const data=["aggregate-csv","chart-png"].includes(format)?await protectedBytes(path,frozen,format):
+        await api(path,{},OceanPublicRead.bytes);
       if(n!==generation)return;
       if(!sameSource(from,source()))throw Error("source_changed");
-      const [extension,media]={markdown:["md","text/markdown;charset=utf-8"],csv:["csv","text/csv;charset=utf-8"],"aggregate-csv":["aggregate-v1.csv","text/csv;charset=utf-8"],bundle:["zip","application/zip"],chart:["chart-v1.png","image/png"]}[format];
+      const [extension,media]={markdown:["md","text/markdown;charset=utf-8"],csv:["csv","text/csv;charset=utf-8"],"aggregate-csv":["aggregate-v1.csv","text/csv;charset=utf-8"],bundle:["zip","application/zip"],chart:["chart-v1.png","image/png"],"chart-png":["chart-v1.png","image/png"]}[format];
       const blob=format==="chart"?await OceanCaseChart.png(data,frozen,controller.signal):new Blob([data],{type:media});
       if(n!==generation)return;
       if(controller.signal.aborted)throw Error("cancelled");
@@ -229,7 +242,7 @@
       document.body.append(link);link.click();link.remove();
       setTimeout(()=>{URL.revokeObjectURL(url);downloads.delete(url);},1000);
       $("caseArchiveStatus").textContent="已将所读案例版本交给浏览器下载；未保存草稿保留。";
-    },"downloaded");
+    },"downloaded",format==="chart-png"?45000:10000);
   }
   async function checkBundle(file,frozen){
     const from=source();
