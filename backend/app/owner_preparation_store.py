@@ -14,16 +14,22 @@ RECORD_LIMIT = 1_048_576
 ERRORS = {"processing_failed", "evidence_changed", "worker_interrupted"}
 
 
-def checked_artifact(artifact, expected):
-    value = dict(artifact)
-    digest = value.pop("artifact_id")
-    if (content_id(value) != digest or value["schema_version"] != "ocean-owner-front-display-artifact/v1"
+def checked_artifact_fields(value, expected):
+    if (value["schema_version"] != "ocean-owner-front-display-artifact/v1"
             or value["scope"] != "private_map_display" or value["research_ready"] is not False
             or value["product"] != "zenodo-20356239" or value["license"] != "CC BY 4.0"
             or value["raw_sha256"] != expected["raw_sha256"] or value["date"] != expected["date"]
             or value["layer"] != "front" or value["bbox"] != expected["bbox"]
             or value["registration"] != expected["registration"]):
         raise ValueError("Prepared artifact failed its registration identity")
+
+
+def checked_artifact(artifact, expected):
+    value = dict(artifact)
+    digest = value.pop("artifact_id")
+    checked_artifact_fields(value, expected)
+    if content_id(value) != digest:
+        raise ValueError("Prepared artifact digest mismatch")
     return digest
 
 
@@ -54,8 +60,13 @@ class PreparationStore(RunStore):
             raise RunStoreError("unavailable")
         artifact = value["artifact"]
         if state == "ready":
-            checked_artifact(artifact, value["expected"])
-        elif artifact is not None:
+            if value.get("artifact_storage") == "separate":
+                checked_artifact_fields(artifact, value["expected"])
+                if "display" in artifact or not artifact["artifact_id"].startswith("sha256:"):
+                    raise RunStoreError("unavailable")
+            else:
+                checked_artifact(artifact, value["expected"])
+        elif artifact is not None or "artifact_storage" in value:
             raise RunStoreError("unavailable")
         value["record_id"] = identity
         return value
@@ -98,12 +109,76 @@ class PreparationStore(RunStore):
                 next_state, artifact, error = "failed", None, "worker_interrupted"
             if next_state != "failed" and next_state != STAGES[STAGES.index(state) + 1]:
                 raise RunStoreError("unavailable")
+            if next_state == "ready":
+                artifact_id = checked_artifact(artifact, record["expected"])
+                raw_artifact = json.dumps(artifact, allow_nan=False, separators=(",", ":"))
+                if len(raw_artifact.encode("utf-8")) > RECORD_LIMIT:
+                    raise RunStoreError("unavailable")
+                db.execute("CREATE TABLE IF NOT EXISTS preparation_artifacts("
+                           "identity TEXT PRIMARY KEY, payload TEXT NOT NULL)")
+                current = db.execute("SELECT payload FROM preparation_artifacts WHERE identity=?",
+                                     (artifact_id,)).fetchone()
+                if current is None:
+                    db.execute("INSERT INTO preparation_artifacts VALUES(?,?)", (artifact_id, raw_artifact))
+                elif checked_artifact(decode_controlled_json(current[0], RECORD_LIMIT), record["expected"]) != artifact_id:
+                    raise RunStoreError("unavailable")
+                artifact = {key: value for key, value in artifact.items() if key != "display"}
+                record["artifact_storage"] = "separate"
+                record["finished_at"] = now
+            elif next_state == "failed":
+                record["finished_at"] = now
             record.update(state=next_state, artifact=artifact, error=error)
             record["state_history"].append(next_state)
             raw = self.encode(record)
             self.checked((*row[:3], raw))
             db.execute("UPDATE runs SET payload=? WHERE id=?", (raw, identity))
             return next_state != "failed"
+
+    def stored_artifact(self, record):
+        summary = record["artifact"]
+        if summary is None:
+            return "not_recorded", None
+        if record.get("artifact_storage") != "separate":
+            return "stored", summary
+        with self.connection() as db:
+            if db is None or not db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='preparation_artifacts'"
+            ).fetchone():
+                return "missing", None
+            row = db.execute("SELECT payload FROM preparation_artifacts WHERE identity=?",
+                             (summary["artifact_id"],)).fetchone()
+            if row is None:
+                return "missing", None
+            try:
+                artifact = decode_controlled_json(row[0], RECORD_LIMIT)
+                if checked_artifact(artifact, record["expected"]) != summary["artifact_id"]:
+                    return "unverified", None
+            except (KeyError, TypeError, ValueError):
+                return "unverified", None
+            return "stored", artifact
+
+    def catalog(self):
+        with self.connection() as db:
+            if db is None:
+                return []
+            rows = db.execute("SELECT id,intent,fingerprint,payload FROM runs ORDER BY rowid DESC LIMIT 65").fetchall()
+            if len(rows) > 64:
+                raise RunStoreError("unavailable")
+            summaries = []
+            for row in rows:
+                record = self.checked(row)
+                status = task_status(record)
+                state = {"ready": "completed", "failed": "failed"}.get(status["state"], "preparing")
+                if status["error"] == "worker_interrupted":
+                    state = "interrupted"
+                if state == "preparing":
+                    continue
+                summaries.append({
+                    "id": record["id"], "intent_id": status["intent_id"], "record_id": record["record_id"],
+                    "request": {**status["request"], "purpose": "archive_preparation", "use": status["request"]["purpose"]},
+                    "state": state, "submitted_at": status["submitted_at"], "finished_at": record.get("finished_at"),
+                })
+            return summaries
 
     @staticmethod
     def encode(record):

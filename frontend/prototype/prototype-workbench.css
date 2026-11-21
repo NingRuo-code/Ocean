@@ -84,3 +84,5 @@ button:focus-visible,input:focus-visible{outline:2px solid currentColor!importan
 
 #ownerPreparationResult{overflow-wrap:anywhere}
 #ownerPreparationLayers label{display:inline-flex;align-items:center;gap:6px;margin:4px 14px 4px 0}
+
+#ownerTaskHistoryDetail li{min-width:0;overflow-wrap:anywhere}

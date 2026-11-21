@@ -853,6 +853,7 @@ test("owner task history filters and pages frozen records without changing the a
       await waitFor(c,"document.querySelectorAll('#ownerTaskHistoryItems button').length===5");
       await click(c,'#ownerTaskHistoryItems button[data-run-id="'+legacy.id+'"]');
       await waitFor(c,"document.getElementById('ownerTaskHistoryDetail').textContent.includes("+JSON.stringify(legacy.result.result_id)+")");
+      assert.match(await c.evaluate("document.getElementById('ownerTaskHistoryDetail').textContent"),/聚合结果快照 · 已保存.*原资料.*按原版本复算仍待核验/s);
 
       await c.evaluate("document.querySelector('#ownerTaskHistoryForm [name=start_date]').value='2026-12-31';document.querySelector('#ownerTaskHistoryForm [name=end_date]').value='2026-01-01'");
       await click(c,"#ownerTaskHistoryApply");
@@ -869,7 +870,19 @@ test("owner task history filters and pages frozen records without changing the a
       await waitFor(c,"document.querySelectorAll('#ownerTaskHistoryItems button').length===1");
       await click(c,"#ownerTaskHistoryItems button");
       await waitFor(c,"document.getElementById('ownerTaskHistoryDetail').dataset.runId==="+JSON.stringify(failed));
-      assert.match(await c.evaluate("document.getElementById('ownerTaskHistoryDetail').textContent"),/原任务条件.*时限/s);
+      assert.match(await c.evaluate("document.getElementById('ownerTaskHistoryDetail').textContent"),/原任务条件.*时限.*聚合结果快照 · 无结果记录/s);
+      const selectDistance=()=>c.evaluate("document.getElementById('ownerTaskHistoryStatusFilter').value=''");
+      await selectDistance();
+      await click(c,"#ownerTaskHistoryApply");
+      await waitFor(c,"document.querySelectorAll('#ownerTaskHistoryItems button').length===2");
+      await click(c,'#ownerTaskHistoryItems button[data-run-id="'+selected+'"]');
+      await waitFor(c,"document.getElementById('ownerTaskHistoryDetail').dataset.runId==="+JSON.stringify(selected));
+      assert.match(await c.evaluate("document.getElementById('ownerTaskHistoryDetail').textContent"),/共同支持子集.*P0 sha256:.*聚合结果快照 · 已保存/s);
+      await c.evaluate("document.getElementById('ownerTaskHistoryStatusFilter').value='interrupted'");
+      await click(c,"#ownerTaskHistoryApply");
+      await waitFor(c,"document.querySelectorAll('#ownerTaskHistoryItems button').length===1");
+      await click(c,"#ownerTaskHistoryItems button");
+      await waitFor(c,"document.getElementById('ownerTaskHistoryDetail').dataset.runId==="+JSON.stringify(failed));
       assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),selected);
       assert.equal(await c.evaluate("document.getElementById('ownerRunResult').textContent"),result);
       const zoom=await c.evaluate("state.zoom");
@@ -1057,6 +1070,7 @@ for(const corrupt of [false,true])test(corrupt
   proof.archive_check.sources.front.members[0].sha256=rawDigest;
   proof.license_evidence_id="sha256:"+digest(await readFile("docs/data/august-2024-source-registry.json"));
   proof.cost_evidence_id="sha256:"+digest(await readFile("docs/data/august-2024-archive-members.json"));
+  let stagedOriginal;
   await withService(async (base,{releaseFrontPreparation})=>{
     const browser=await launchBrowser(edge),c=browser.cdp,posts=[],reads=[];
     const api=base+"/api/data/owner-preparation";
@@ -1161,6 +1175,25 @@ for(const corrupt of [false,true])test(corrupt
       }
       const replayed=await(await fetch(api+"/tasks",{method:"POST",headers,body:JSON.stringify(body)})).json();
       assert.deepEqual(replayed,ready);
+      await click(c,"#ownerPreparationClose");
+      await click(c,"#ownerTaskHistoryOpen");
+      await waitFor(c,"document.querySelectorAll('#ownerTaskHistoryItems button').length===1");
+      await c.evaluate("document.getElementById('ownerTaskHistoryPurpose').value='archive_preparation'");
+      await click(c,"#ownerTaskHistoryApply");
+      await waitFor(c,"document.querySelector('#ownerTaskHistoryItems button')?.textContent.includes('归档准备') && !document.getElementById('ownerTaskHistoryApply').disabled");
+      await click(c,"#ownerTaskHistoryItems button");
+      const readHistory="document.getElementById('ownerTaskHistoryDetail').textContent";
+      await waitFor(c,readHistory+".includes('原资料 · 存在，版本未复核')");
+      assert.match(await c.evaluate(readHistory),corrupt?/处理或校验失败.*聚合结果快照 · 无结果记录/s:
+        /有效 19102 格.*聚合结果快照 · 已保存.*地图产物 · 已保存.*按原版本复算仍待核验/s);
+      if(!corrupt){
+        await unlink(stagedOriginal);
+        await click(c,"#ownerTaskHistoryItems button");
+        await waitFor(c,readHistory+".includes('原资料 · 缺失')");
+        assert.match(await c.evaluate(readHistory),/有效 19102 格.*地图产物 · 已保存/s);
+      }
+      assert.equal(await c.evaluate("JSON.stringify(state.view)"),view);
+      assert.deepEqual(posts.map(p=>p.url),corrupt?[api+"/plan",api+"/tasks"]:[api+"/plan",api+"/tasks",api+"/tasks"]);
     }finally{await browser.close();}
   },{
     caseOwnerToken:owner,ownerPreparationRegistryText:registry,ownerPreparationManifestText:JSON.stringify(evidence),
@@ -1170,7 +1203,8 @@ for(const corrupt of [false,true])test(corrupt
       await mkdir(join(raw,"front","2024"),{recursive:true});
       const data=Buffer.from(original);
       if(corrupt)data[data.length-1]^=1;
-      await writeFile(join(raw,relative),data);
+      stagedOriginal=join(raw,relative);
+      await writeFile(stagedOriginal,data);
     },
   });
 });

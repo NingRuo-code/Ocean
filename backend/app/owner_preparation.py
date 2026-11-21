@@ -7,6 +7,7 @@ import subprocess
 import sys
 from datetime import UTC, date, datetime, timedelta
 from hashlib import sha256
+from pathlib import Path
 from tempfile import TemporaryFile
 from typing import Annotated, Literal
 
@@ -21,6 +22,7 @@ from .config import PROJECT_ROOT
 from .monthly_models import ClosedModel
 from .owner_access import owner_requirement
 from .owner_preparation_store import RECORD_LIMIT, PreparationStore, checked_artifact, task_status
+from .owner_task_evidence import path_state, preparation_evidence
 from .synthetic_run_store import RunStoreError
 
 RegistryId = Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9_.-]{0,63}$")]
@@ -354,6 +356,9 @@ def create_owner_preparation_router(settings):
     router = APIRouter(prefix="/data/owner-preparation", route_class=PreparationRoute,
                        dependencies=[Depends(owner_requirement(settings))])
     store = PreparationStore(settings.owner_preparation_store_path)
+    analysis_paths = (settings.synthetic_run_store_path, settings.qualified_distance_run_store_path)
+    if any(path is not None and store.path == Path(os.path.abspath(path)) for path in analysis_paths):
+        store = PreparationStore(None)
 
     def registry_snapshot():
         configured = settings.owner_preparation_registry_path
@@ -556,9 +561,25 @@ def create_owner_preparation_router(settings):
             record = store.read(task_id)
         except RunStoreError as exc:
             raise store_failure(exc) from None
-        if record["state"] != "ready":
+        try:
+            physical, artifact = store.stored_artifact(record)
+        except RunStoreError as exc:
+            raise store_failure(exc) from None
+        if physical != "stored":
             raise HTTPException(404, "Private preparation artifact is unavailable",
                                 headers={"Cache-Control": "no-store"})
-        return record["artifact"]
+        return artifact
+
+    @router.get("/tasks/{task_id}/evidence")
+    def read_task_evidence(task_id: IntentId, response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        try:
+            record = store.read(task_id)
+            physical, _ = store.stored_artifact(record)
+        except RunStoreError as exc:
+            raise store_failure(exc) from None
+        day = date.fromisoformat(record["expected"]["date"])
+        raw_path = settings.raw_data_dir / "front" / str(day.year) / f"front_location{day:%Y%m%d}.nc"
+        return preparation_evidence(record, task_status(record), physical, path_state(raw_path))
 
     return router
