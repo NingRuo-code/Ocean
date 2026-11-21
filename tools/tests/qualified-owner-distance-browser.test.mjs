@@ -640,6 +640,20 @@ test("the browser withdraws a same-owner submission waiting for the previous cal
       const result=await(await fetch(base+route+"/intents/"+queued+"?purpose="+mode,{headers})).json();
       assert.equal(result.cancelled,true);
       assert.equal(result.result,null);
+      const full=base+route+"/"+result.id+"?purpose="+mode;
+      c.onEvent(msg=>{
+        if(msg.method==="Fetch.requestPaused"&&msg.params.request.url===full)
+          void c.send("Fetch.fulfillRequest",{requestId:msg.params.requestId,responseCode:503});
+      });
+      await click(c,"#ownerTaskHistoryOpen");
+      const row='#ownerTaskHistoryItems button[data-run-id="'+result.id+'"]';
+      await waitFor(c,"!!document.querySelector("+JSON.stringify(row)+")");
+      await c.send("Fetch.enable",{patterns:[{urlPattern:full.replace("?","\\?"),requestStage:"Request"}]});
+      await click(c,row);
+      await waitFor(c,"document.getElementById('ownerTaskHistoryStatus').textContent.includes('已读取轻量记录')");
+      const fallback=await c.evaluate("document.getElementById('ownerTaskHistoryDetail').textContent");
+      assert.match(fallback,/服务已确认取消.*聚合结果快照 · 无结果记录/s);
+      assert.doesNotMatch(fallback,/计算已终态失败/);
     } finally {
       await writeFile(releaseDistanceResult,"release");
       await first?.catch(()=>{});

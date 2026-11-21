@@ -249,14 +249,18 @@
       taskHistoryDetail.dataset.runId=item.id;
       if(run)renderRunEvidence(run,taskHistoryDetail,item.submitted_at,item.finished_at);
       else{
-        node(taskHistoryDetail,'p','原任务条件：'+describe(evidence.request));
+        const layerUse=evidence.request.layer_use;
+        const layers=layerUse==='front_effort_sst'?' · 锋面、活动与海温':layerUse==='front_effort'?' · 锋面与活动':'';
+        node(taskHistoryDetail,'p','原任务条件：'+describe(evidence.request)+layers);
         node(taskHistoryDetail,'p','任务 '+item.id+' / 意图 '+evidence.intent_id+' / '+item.record_id);
+        node(taskHistoryDetail,'p','服务处理 '+(item.submitted_at??'未知')+' 至 '+(item.finished_at??'未知')+'。');
         if(evidence.retry)node(taskHistoryDetail,'p','原任务 '+evidence.retry.parent_run_id+' / '+evidence.retry.parent_record_id);
         if(evidence.result_id){
           const summary=evidence.aggregate;
           node(taskHistoryDetail,'p','结果 '+evidence.result_id+' · H='+(summary.hours??'未知')+' h；E='+
             (summary.area_time_km2_days??'未知')+' km²·d；有效/日历日 '+summary.supported_days+'/'+summary.calendar_days+'。');
-        }else node(taskHistoryDetail,'p',distanceFailureMessages.get(evidence.failure_reason)??generalFailureMessage);
+        }else node(taskHistoryDetail,'p',evidence.status==='cancelled'?'服务已确认取消原意图。没有发布结果。':
+          distanceFailureMessages.get(evidence.failure_reason)??generalFailureMessage);
       }
       if(hasEvidence)renderTaskRoles(evidence);
       const message=run?(hasEvidence?'已读取所选历史记录。':'已读取冻结记录。产物状态暂不可核实。'):
