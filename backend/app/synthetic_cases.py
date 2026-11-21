@@ -103,7 +103,11 @@ def create_case_router(settings, published_path):
     chart_worker = Lock()
 
     def chart_renderer_configured():
-        return settings.case_chart_png_node is not None and settings.case_chart_png_browser is not None
+        try:
+            return all(path is not None and path.is_file()
+                       for path in (settings.case_chart_png_node, settings.case_chart_png_browser))
+        except OSError:
+            return False
 
     def guarded(work):
         try:
@@ -188,10 +192,13 @@ def create_case_router(settings, published_path):
         record = guarded(lambda: store.read(case_id, version))
         if include_source_status:
             view = {**record, "current_published_snapshot": current_snapshot(record)}
-            if record.get("protected_dependencies") is not None and (
-                chart_renderer_configured() or guarded(lambda: store.has_artifact(case_id, record["version"], CHART_PNG_FORMAT))
-            ):
-                view["chart_png_available"] = True
+            if record.get("protected_dependencies") is not None:
+                try:
+                    available = chart_renderer_configured() or store.has_artifact(case_id, record["version"], CHART_PNG_FORMAT)
+                except CaseStoreError:
+                    available = False
+                if available:
+                    view["chart_png_available"] = True
             return view
         return record
 
