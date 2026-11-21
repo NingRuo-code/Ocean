@@ -38,6 +38,7 @@
       for(const key of ["caseEditTitle","caseEditTags","caseEditNote","caseVersion","caseLatest"])$(key).disabled=disabled;
       for(const field of $("caseEditFields").querySelectorAll('input[type=checkbox]'))field.disabled=disabled;
       for(const key of ["caseExportMarkdown","caseExportCsv","caseExportBundle","caseExportChart","caseCheckBundle"])$(key).disabled=disabled;
+      $("caseExportAggregate").disabled=disabled||!selected.protected_dependencies;
     }
   }
   function editedSections(){
@@ -111,7 +112,7 @@
     const sourceStatus=publishedStates[value.current_published_snapshot]??"";
     node(root,"p",sourceStatus+"当前来源的新鲜度和原版复算条件待核。保存时间 "+value.created_at);
     const exports=node(root,"div","");exports.className="monthly-actions";
-    for(const [format,label,key] of [["markdown","下载Markdown报告","caseExportMarkdown"],["csv","下载逐日CSV","caseExportCsv"],["bundle","下载带清单成果包","caseExportBundle"],["chart","下载逐日证据图PNG","caseExportChart"]]){
+    for(const [format,label,key] of [["markdown","下载Markdown报告","caseExportMarkdown"],["csv","下载逐日CSV","caseExportCsv"],["aggregate-csv","下载聚合CSV","caseExportAggregate"],["bundle","下载带清单成果包","caseExportBundle"],["chart","下载逐日证据图PNG","caseExportChart"]]){
       const action=node(exports,"button",label);action.id=key;action.onclick=()=>download(format);
     }
     node(root,"p","报告、逐日表和成果包包含所读已保存版本的人工笔记；PNG仅含冻结科学证据。均不包含未保存草稿或当前地图，也不会自动公开。");
@@ -195,15 +196,30 @@
     for(const line of [r.source.id+" / "+r.source.version+" / "+r.source.license,...r.caveats])node(details,"p",line);
     updateSave();
   }
+  async function aggregateBytes(path,frozen){
+    const receipt=await api(path,{method:"POST"});
+    if(receipt?.schema_version!=="ocean-case-aggregate-csv-receipt/v1"||receipt.case_id!==frozen.case_id||
+        receipt.version!==frozen.version||receipt.version_id!==frozen.version_id||receipt.report_id!==frozen.report.report_id||
+        receipt.format_version!=="owner-case-aggregate-csv/v1"||receipt.protection!=="saved_case"||
+        !hash.test(receipt.artifact_id)||!hash.test(receipt.sha256)||!Number.isSafeInteger(receipt.byte_length)||
+        receipt.byte_length<1||receipt.byte_length>131072)throw Error("contract");
+    const data=await api(path,{},OceanPublicRead.bytes);
+    if(data.byteLength!==receipt.byte_length)throw Error("contract");
+    const calculated=new Uint8Array(await crypto.subtle.digest("SHA-256",data));
+    const identity="sha256:"+Array.from(calculated,byte=>byte.toString(16).padStart(2,"0")).join("");
+    if(identity!==receipt.sha256)throw Error("contract");
+    return data;
+  }
   function download(format){
     const frozen=selected,from=source();
     if(!frozen)return;
     return perform(async n=>{
       const query="?version_id="+encodeURIComponent(frozen.version_id)+"&report_id="+encodeURIComponent(frozen.report.report_id);
-      const data=await api("/"+frozen.case_id+"/versions/"+frozen.version+"/exports/"+format+query,{},OceanPublicRead.bytes);
+      const path="/"+frozen.case_id+"/versions/"+frozen.version+"/exports/"+format+query;
+      const data=format==="aggregate-csv"?await aggregateBytes(path,frozen):await api(path,{},OceanPublicRead.bytes);
       if(n!==generation)return;
       if(!sameSource(from,source()))throw Error("source_changed");
-      const [extension,media]={markdown:["md","text/markdown;charset=utf-8"],csv:["csv","text/csv;charset=utf-8"],bundle:["zip","application/zip"],chart:["chart-v1.png","image/png"]}[format];
+      const [extension,media]={markdown:["md","text/markdown;charset=utf-8"],csv:["csv","text/csv;charset=utf-8"],"aggregate-csv":["aggregate-v1.csv","text/csv;charset=utf-8"],bundle:["zip","application/zip"],chart:["chart-v1.png","image/png"]}[format];
       const blob=format==="chart"?await OceanCaseChart.png(data,frozen,controller.signal):new Blob([data],{type:media});
       if(n!==generation)return;
       if(!sameSource(from,source()))throw Error("source_changed");

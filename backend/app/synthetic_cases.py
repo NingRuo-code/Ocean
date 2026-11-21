@@ -182,6 +182,25 @@ def create_case_router(settings, published_path):
             return {**record, "current_published_snapshot": current_snapshot(record)}
         return record
 
+    @router.post("/{case_id}/versions/{version}/exports/aggregate-csv")
+    def prepare_aggregate(case_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")],
+                          version: Annotated[int, Field(ge=1, le=16)], version_id: Identity,
+                          report_id: Identity, response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        manifest, _ = guarded(lambda: store.aggregate_export(case_id, version, version_id, report_id, prepare=True))
+        return manifest
+
+    @router.get("/{case_id}/versions/{version}/exports/aggregate-csv")
+    def read_aggregate(case_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")],
+                       version: Annotated[int, Field(ge=1, le=16)], version_id: Identity, report_id: Identity):
+        manifest, data = guarded(lambda: store.aggregate_export(case_id, version, version_id, report_id))
+        filename = f"Ocean-case-{case_id}-v{version}-{manifest['version_id'][7:19]}.aggregate-v1.csv"
+        return Response(data, media_type="text/csv", headers={
+            "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Ocean-Artifact-SHA256": manifest["sha256"],
+        })
+
     @router.get("/{case_id}/versions/{version}/exports/{representation}")
     def export(case_id: Annotated[str, Field(pattern=r"^[0-9a-f]{32}$")],
                version: Annotated[int, Field(ge=1, le=16)],
