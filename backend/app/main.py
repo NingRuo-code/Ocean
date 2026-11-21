@@ -43,6 +43,7 @@ from .known_cases import create_known_case_router
 from .main_analysis import compute_analysis_response
 from .monthly_analysis import create_monthly_router
 from .operational_status import create_status_router
+from .owner_preparation import create_owner_preparation_router
 from .query_service import (
     build_current_state_query,
     build_front_response_query,
@@ -276,6 +277,9 @@ def data_index_date(observation_date: date_type) -> DataIndexDateResponse:
         processed_dir=settings.raw_data_dir.parent / "processed",
         observation_date=observation_date,
     )
+
+
+app.include_router(create_owner_preparation_router(settings), prefix=settings.api_prefix)
 
 
 @app.get(f"{settings.api_prefix}/data/plan", response_model=DataPreparationPlanResponse)

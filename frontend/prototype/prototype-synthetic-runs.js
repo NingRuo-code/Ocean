@@ -78,12 +78,19 @@
   const taskHistoryStatuses=new Map([['completed','已完成'],['failed','失败'],['interrupted','中断'],['cancelled','已取消']]);
   let taskHistoryRequest=null,taskHistoryPage=null;
 
-  function taskHistoryAllowed(){
+  const preparation=OceanOwnerPreparation({
+    root,actions,
+    request:(suffix,method,body,signal)=>ownerNet('/data/owner-preparation',suffix,method,body,json,signal),
+    canRead:sameOriginOwnerAvailable,
+    lock:()=>clearPrivate(),
+  });
+
+  function sameOriginOwnerAvailable(){
     return sameOriginService(source())&&navigator.onLine&&Boolean($('ownerRunToken').value);
   }
 
   function syncTaskHistory(){
-    taskHistoryOpen.disabled=!taskHistoryAllowed();
+    taskHistoryOpen.disabled=!sameOriginOwnerAvailable();
     const blocked=taskHistoryOpen.disabled||Boolean(taskHistoryRequest);
     $('ownerTaskHistoryApply').disabled=blocked;
     $('ownerTaskHistoryPrevious').disabled=blocked||!(taskHistoryPage?.filters.offset>0);
@@ -111,7 +118,7 @@
   }
 
   async function readTaskHistory(suffix,message,receive,isPage=false){
-    if(!taskHistoryAllowed()||taskHistory.hidden||!root.open||panel.hidden)return;
+    if(!sameOriginOwnerAvailable()||taskHistory.hidden||!root.open||panel.hidden)return;
     stopTaskHistoryRequest();
     const observer=new AbortController(),from=source(),opener=document.activeElement;
     const close=$('ownerTaskHistoryClose');
@@ -280,12 +287,14 @@
     for(const button of items.querySelectorAll('button'))button.disabled=locked||(busy&&!['reading','downloading'].includes(root.dataset.state));
     referenceMessage();
     syncTaskHistory();
+    preparation.sync();
   }
   function clearPrivate(clearToken=true){
     stopRecovery();
     preferredRun=null;
     clearCancellationStatus();
     hideTaskHistory(true);
+    preparation.clear();
     generation++;controller?.abort();busy=false;prepared=null;selected=null;sessionSource=null;
     for(const url of downloads)URL.revokeObjectURL(url);downloads.clear();
     if(clearToken)$('ownerRunToken').value='';
@@ -293,11 +302,15 @@
     items.replaceChildren();
     set('locked',pending?'观察已停止，令牌与私有显示已清除；原提交仍可能已受理，重新认证后核对原意图。':'已锁定；服务持久记录保留。');update();
   }
-  async function net(suffix,method='GET',body,read=json,signal=controller.signal){
+  function net(suffix,method='GET',body,read=json,signal=controller.signal){
+    return ownerNet('/query/monthly-analysis/owner-runs',suffix,method,body,read,signal);
+  }
+
+  async function ownerNet(base,suffix,method,body,read,signal){
     const from=source(),token=$('ownerRunToken').value;
     if(from.kind!=='server')throw Error('offline');if(!token)throw Error('owner_required');
     if(sessionSource&&!sameSource(sessionSource,from))throw Error('source_changed');sessionSource=from;
-    return read(from.base+'/query/monthly-analysis/owner-runs'+suffix,signal,{method,redirect:'error',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
+    return read(from.base+base+suffix,signal,{method,redirect:'error',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
   }
   function stopCancellationObservation(){
     cancellation?.abort();
@@ -798,14 +811,15 @@
   window.addEventListener('ocean-load-state',()=>{if(sessionSource&&!sameSource(sessionSource,source()))clearPrivate();update();});
   root.addEventListener('toggle',()=>{
     if(root.open){startRecovery();return;}
-    stopRecovery();stopCancellationObservation();stopTaskHistoryRequest();update();
+    stopRecovery();stopCancellationObservation();stopTaskHistoryRequest();preparation.stop();update();
   });
   document.addEventListener('visibilitychange',()=>{
     if(!document.hidden){startRecovery();return;}
-    stopRecovery();stopCancellationObservation();stopTaskHistoryRequest();update();
+    stopRecovery();stopCancellationObservation();stopTaskHistoryRequest();preparation.stop();update();
   });
   window.addEventListener('offline',()=>{
     stopRecovery();stopCancellationObservation();stopTaskHistoryRequest();
+    preparation.stop('网络断开，准备预览暂不可核实。');
     if(!taskHistory.hidden)$('ownerTaskHistoryStatus').textContent='网络断开，历史状态暂不可核实。';
     const from=source();
     if(distanceMode()&&!panel.hidden&&root.open&&sessionSource&&sameSource(from,sessionSource)){

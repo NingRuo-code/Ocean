@@ -924,3 +924,82 @@ test("owner task history filters and pages frozen records without changing the a
     }
   },{caseOwnerToken:owner,enableSyntheticRuns:true,distanceFixtureText:fixture,qualifyDistanceFixture:true,shortenFirstDistance:true})
 );
+
+
+const preparationVersion="sha256:"+"a".repeat(64);
+const preparationArtifact="sha256:"+"b".repeat(64);
+const preparationSource={
+  source_id:"verified-front",source_type:"front",display_name:"已核验的受控归档",
+  credential_mode:"none",date_coverage:{start:"2024-08-01",end:"2024-08-31"},
+  spatial_coverage:{prototype_bbox:[120,27,128,34]},
+  preparation:{
+    archive_access:"verified",connector:"verified",processing:"verified",license:"verified",cost:"verified",
+    source_version:preparationVersion,regions:{east_china:[120,27,128,34]},layers:["front"],purposes:["map"],
+    targets:["day_artifact"],estimated_bytes_per_unit:20,
+    reusable_units:[{date:"2024-08-05",region_id:"east_china",layer:"front",target:"day_artifact",
+      source_version:preparationVersion,artifact_id:preparationArtifact}],
+  },
+};
+const preparationRegistry=JSON.stringify({schema_version:"ocean-source-registry/v1",sources:[
+  preparationSource,
+  {...preparationSource,source_id:"blocked-front",display_name:"存在缺项的登记归档",
+    credential_mode:"env_token",credential_env_var:"OCEAN_SOURCE_T02_BROWSER_CREDENTIAL",
+    preparation:{...preparationSource.preparation,source_version:null,archive_access:"unknown",connector:"unsupported"}},
+]});
+
+test("the owner previews only registered archive preparation and sees missing credentials and connectors", () =>
+  withService(async base=>{
+    const browser=await launchBrowser(edge),c=browser.cdp,posts=[];
+    const preview=base+"/api/data/owner-preparation";
+    c.onEvent(msg=>{
+      if(msg.method==="Network.requestWillBeSent"&&msg.params.request.method==="POST")posts.push(msg.params.request);
+    });
+    try{
+      assert.equal((await fetch(preview+"/registry")).status,401);
+      await c.send("Network.enable");
+      await openOwner(c,base);
+      assert.equal(await c.evaluate("document.getElementById('ownerPreparationOpen').disabled"),true);
+      await type(c,"ownerRunToken",owner);
+      await click(c,"#ownerPreparationOpen");
+      await waitFor(c,"document.querySelector('#ownerPreparationSource option[value=verified-front]')!==null");
+
+      const choose=async sourceId=>{
+        await c.evaluate("(sourceId=>{const source=document.getElementById('ownerPreparationSource');"+
+          "source.value=sourceId;source.dispatchEvent(new Event('change',{bubbles:true}));"+
+          "const form=document.getElementById('ownerPreparationForm');form.elements.region_id.value='east_china';"+
+          "form.elements.purpose.value='map';form.elements.target.value='day_artifact';form.elements.start_date.value='2024-08-05';"+
+          "form.elements.end_date.value='2024-08-06';form.querySelector('[name=layers][value=front]').click();})("+JSON.stringify(sourceId)+")");
+      };
+      await choose("verified-front");
+      await click(c,"#ownerPreparationPreview");
+      await waitFor(c,"!!document.getElementById('ownerPreparationResult').dataset.planId");
+      const plan=await(await fetch(preview+"/plan",{method:"POST",headers,body:posts[0].postData})).json();
+      assert.equal(posts[0].url,preview+"/plan");
+      assert.equal(plan.execution_started,false);
+      assert.equal(plan.can_prepare,true);
+      assert.equal(await c.evaluate("document.getElementById('ownerPreparationResult').dataset.planId"),plan.plan_id);
+      const prepared=await c.evaluate("document.getElementById('ownerPreparationResult').textContent");
+      assert.match(prepared,/同版本复用.*待准备/s);
+      assert.ok(prepared.includes(preparationArtifact));
+      assert.match(prepared,/120、27、128、34/);
+      await c.send("Emulation.setDeviceMetricsOverride",{width:390,height:900,deviceScaleFactor:1,mobile:true});
+      assert.equal(await c.evaluate("document.getElementById('ownerPreparation').scrollWidth<=document.getElementById('ownerPreparation').clientWidth+1"),true);
+
+      await choose("blocked-front");
+      await click(c,"#ownerPreparationPreview");
+      await waitFor(c,"document.getElementById('ownerPreparationResult').textContent.includes('缺少凭据')");
+      const report=await c.evaluate("document.getElementById('ownerPreparationResult').textContent");
+      assert.match(report,/连接器不可用/);
+      assert.match(report,/归档访问未知/);
+      assert.match(report,/源版本未知/);
+      assert.doesNotMatch(report,/OCEAN_SOURCE/);
+      await c.evaluate("document.getElementById('ownerPreparationForm').elements.start_date.value='2024-01-01'");
+      await click(c,"#ownerPreparationPreview");
+      assert.equal(await c.evaluate("document.getElementById('ownerPreparationForm').checkValidity()"),false);
+      assert.equal(posts.length,2);
+      assert.ok(posts.every(item=>item.url===preview+"/plan"));
+    } finally{
+      await browser.close();
+    }
+  },{caseOwnerToken:owner,ownerPreparationRegistryText:preparationRegistry})
+);
