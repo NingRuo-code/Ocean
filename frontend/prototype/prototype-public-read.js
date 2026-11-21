@@ -7,7 +7,7 @@
   function sameOrigin(a,b) { return a.kind === b.kind && a.base === b.base; }
   async function bytes(url, signal, options = {}, expectedFile = null) {
     const response = await fetch(url,{...options,cache:"no-store",credentials:"omit",signal});
-    if (!response.ok) throw Error("http_"+response.status);
+    if (!response.ok) throw Error("http_"+response.status,{cause:response.headers});
     if(expectedFile&&(response.headers.get('X-Ocean-Record-Id')!==expectedFile.record_id||response.headers.get('X-Ocean-Result-Id')!==expectedFile.result_id))throw Error('contract');
     const reader = response.body.getReader(),chunks=[];
     let size=0;

@@ -1,6 +1,7 @@
 import {resolve,dirname,basename,join} from "node:path";
 import {execFile,spawn} from "node:child_process";
 import {promisify} from "node:util";
+import {once} from "node:events";
 import {mkdtemp,mkdir,rm,writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {setTimeout as delay} from "node:timers/promises";
@@ -84,11 +85,11 @@ uvicorn.Server(uvicorn.Config(app,log_level='error')).run(sockets=[s])`;
   const inherited=Object.fromEntries(Object.entries(process.env).filter(([key])=>!key.toUpperCase().startsWith('OCEAN_')));
   const distanceStorePath=qualifiedRunPath||join(root,"distance-runs.sqlite3");
   let child;
-  async function stop(){
-    if(!child||child.exitCode!==null||child.signalCode!==null)return;
-    const closed=new Promise(resolve=>child.once("exit",resolve));
-    child.kill();
-    await Promise.race([closed,delay(2000)]);
+  async function stop(signal="SIGTERM"){
+    if(!child?.pid||child.exitCode!==null||child.signalCode!==null)return;
+    const closed=once(child,"exit",{signal:AbortSignal.timeout(3000)});
+    child.kill(signal);
+    await closed;
   }
   let output="",port,runtime,startError=null;
   try {
@@ -130,8 +131,8 @@ uvicorn.Server(uvicorn.Config(app,log_level='error')).run(sockets=[s])`;
       }
       await delay(Math.min(50, remaining));
     }
-    await work(base,{runtime,distancePath,distanceSupport,distanceResultReady,releaseDistanceResult,distanceStorePath,stop});
-  }finally{await stop();
+    await work(base,{runtime,distancePath,distanceSupport,distanceResultReady,releaseDistanceResult,distanceStorePath,interrupt:()=>stop('SIGKILL')});
+  }finally{await stop().catch(()=>stop('SIGKILL'));
     if(dirname(resolve(root))===resolve(tmpdir())&&basename(root).startsWith("ocean-month-service-"))await rm(root,{recursive:true,force:true}).catch(()=>{});
   }
 }

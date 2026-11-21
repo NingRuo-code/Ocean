@@ -16,6 +16,7 @@
   const pendingByPurpose = new Map();
   const recoveryDelays = [600, 1200, 2400, 4800, 8000];
   let recovery = null;
+  let preferredRun = null;
   let purpose = legacyPurpose;
   let referenceKey = 'ocean-owner-synthetic-run-ref/v1';
 
@@ -87,6 +88,7 @@
   }
   function clearPrivate(clearToken=true){
     stopRecovery();
+    preferredRun=null;
     generation++;controller?.abort();busy=false;prepared=null;selected=null;sessionSource=null;
     for(const url of downloads)URL.revokeObjectURL(url);downloads.clear();
     if(clearToken)$('ownerRunToken').value='';
@@ -118,10 +120,10 @@
     const from=source();
     if(!canRecover(from))return;
     const active=activePending(), ref=activeReference();
-    const intent=active?.body.intent_id||ref?.intent_id;
-    if(!intent)return;
-    if(root.dataset.state==='history'||(selected&&root.dataset.state===selected.state&&selected.intent_id!==intent))return;
-    const expected=active ? {intent,body:active.body} : {intent,id:ref.run_id};
+    const preferred=preferredRun&&preferredRun===selected?.id?selected:null;
+    const intent=preferred?.intent_id||active?.body.intent_id||ref?.intent_id;
+    if(!intent||root.dataset.state==='history')return;
+    const expected=preferred?{intent,id:preferred.id}:active?{intent,body:active.body}:{intent,id:ref.run_id};
     recovery={from,expected,index:0,timer:null,controller:null};
     scheduleRecovery(recovery);
   }
@@ -170,18 +172,28 @@
     busy=true;update();if(root.contains(opener)&&opener.disabled)$('ownerRunLock').focus({preventScroll:true});
     try{await work(n,from);if(n!==generation)return;if(active.signal.aborted)throw Error('cancelled');if(!sameSource(from,source()))throw Error('source_changed');}
     catch(error){if(n!==generation)return;
-      recoverAfterError=['submitting','looking-up'].includes(root.dataset.state) &&
+      const operation=root.dataset.state;
+      const authLost=['http_401','http_403','source_changed'].includes(error.message);
+      const rejectedDistance=distanceMode()&&operation==='submitting'&&
+        (['http_401','http_403','http_422'].includes(error.message)||
+          error.cause?.get?.('X-Ocean-Submission-State')==='rejected');
+      recoverAfterError=!rejectedDistance&&['submitting','looking-up'].includes(operation) &&
         !['http_401','http_403','http_409','http_422','source_changed','contract'].includes(error.message);
-      if(['http_401','http_403','source_changed'].includes(error.message))clearPrivate();
+      if(rejectedDistance){
+        clearReference();
+        if(selected)saveReference({schema_version:referenceKey,base:from.base,intent_id:selected.intent_id,run_id:selected.id});
+      }
+      if(authLost)clearPrivate();
       if(active.signal.aborted&&root.dataset.state==='downloading'){set('error','文件读取10秒等待超时；所读冻结结果和草稿保留，可明确重试同一文件。');return;}
       if(error.message==='budget'){set('error','文件或响应超过1MiB读取预算，未下载；所读冻结结果和草稿保留。');return;}
       const expectedMissing = distanceMode() && root.dataset.state === 'checking' && error.message === 'http_409';
-      const rejectedDistance=distanceMode()&&root.dataset.state==='submitting'&&error.message==='http_422';
-      if(rejectedDistance)clearReference();
       const message=expectedMissing?'当前条件、来源或 P0 快照无法对应，未提交任务。':{http_401:'本人访问未通过；令牌和私有显示已清除。',http_403:'当前服务不允许本人合成任务；令牌和私有显示已清除。',http_503:'本人持久任务或合成输入不可用，请检查服务配置或稍后核对。',http_409:distanceMode()?'版本、意图或容量冲突；请核对原意图。':'版本、意图或容量冲突；请核对原意图或明确清除本页引用后重新准备。',http_422:'当前条件或版本没有登记合成支持，未显示受理成功。',http_404:'本次未查到记录或接口；原请求仍可能稍后提交，不能判断从未受理。可稍后核对或读取本人历史。',contract:'任务身份或内容无法核实，未显示成功。',source_changed:'服务来源已改变，请重新认证；旧服务意图只向原服务核对。',offline:'离线不能核对或提交本人任务。',owner_required:'请输入当前服务的本人令牌。'}[error.message]||'请求结果暂不可核实；保留上次核实的记录和原条件。';
       const pendingMessage=distanceMode()?' 原提交可能已受理；可核对原意图。':' 原提交可能已受理；可明确核对/重发同一意图，不会自动新建任务。';
-      if(!['http_401','http_403','source_changed'].includes(error.message))set(activePending()||root.dataset.state==='looking-up'?'uncertain':'error',message+(activePending()?pendingMessage:''));
-      else $('ownerRunStatus').textContent=message;
+      const unreachableRead=distanceMode()&&operation==='reading'&&
+        (active.signal.aborted||error instanceof TypeError||['http_502','http_503','http_504'].includes(error.message));
+      if(authLost)$('ownerRunStatus').textContent=message;
+      else if(rejectedDistance)set('error','服务已明确拒绝本次提交。可重新核对合成条件。');
+      else set(activePending()||operation==='looking-up'||unreachableRead?'uncertain':'error',message+(activePending()?pendingMessage:''));
     }finally{clearTimeout(timer);if(n===generation){busy=false;update();if(recoverAfterError)startRecovery();if(!panel.hidden&&document.activeElement===$('ownerRunLock')&&root.contains(opener)&&!opener.disabled)opener.focus({preventScroll:true});}}
   }
   function validRequest(p) {
@@ -327,13 +339,14 @@
     $('ownerRunPrepared').textContent='将提交合成条件：'+describe(prepared.request)+' / '+data.input_sha256+'。明确提交才计算。';set('prepared','合成条件已核对；存储和源身份会在实际受理时复核。');
   });
   $('ownerRunSubmit').onclick=()=>perform(async(n,from)=>{
+    preferredRun=null;
     if(!activePending()){if(!prepared)throw Error('contract');const intent=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');pending={from:prepared.from,body:{intent_id:intent,input_sha256:prepared.input_sha256,request:prepared.request}};saveReference({schema_version:referenceKey,base:pending.from.base,intent_id:intent,run_id:null});}
     if(!sameSource(pending.from,from))throw Error('source_changed');
     const body=pending.body,intent=body.intent_id;set('submitting','正在等待服务受理结果；关闭观察不取消已送达提交。');const result=await net('','POST',body);if(n!==generation)return;show(result,{intent,body});
   });
   function readRecord(identity){
     if(busy&&['reading','downloading'].includes(root.dataset.state)){generation++;controller?.abort();busy=false;}
-    return perform(async n=>{set('reading','正在核对所选持久记录；不会重新计算。');update();const value=await net('/'+identity+purposeSuffix());if(n!==generation)return;show(value,{id:identity});});
+    return perform(async n=>{set('reading','正在核对所选持久记录；不会重新计算。');update();const value=await net('/'+identity+purposeSuffix());if(n!==generation)return;show(value,{id:identity});preferredRun=identity;});
   }
   $('ownerRunRead').onclick=()=>readRecord(selected.id);
   function download(format){
@@ -360,6 +373,7 @@
   });
   $('ownerRunFindIntent').onclick=()=>perform(async n=>{
     const active=activePending(),ref=activeReference(),intent=active?.body.intent_id||ref?.intent_id;if(!intent)throw Error('contract');
+    preferredRun=null;
     set('looking-up','正在查询原意图是否已有终态记录；不会重新计算。');const value=await net('/intents/'+intent+purposeSuffix());if(n!==generation)return;
     show(value,{intent,...(active?{body:active.body}:ref?.run_id?{id:ref.run_id}:{})});
   });

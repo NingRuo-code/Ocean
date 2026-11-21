@@ -111,6 +111,13 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
 
     active_distance_work = set()
 
+    def distance_rejection(status, detail, headers=None):
+        return HTTPException(status, detail, headers={
+            **(headers or {}),
+            "Cache-Control": "no-store",
+            "X-Ocean-Submission-State": "rejected",
+        })
+
     def release_distance_work(task):
         active_distance_work.discard(task)
         distance_slots.release()
@@ -125,6 +132,8 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
                 previous = await to_thread.run_sync(replay_if_busy, *args)
                 if previous is not None:
                     return previous
+                raise distance_rejection(503, "Qualified distance request capacity is busy",
+                                         {"Retry-After": "1"}) from None
             raise HTTPException(
                 503,
                 "Qualified distance request capacity is busy",
@@ -139,11 +148,13 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
     def store_for(purpose):
         return distance_store if purpose == "monthly_distance_reference" else store
 
-    def guarded(work):
+    def guarded(work, *, distance_submission=False):
         try:
             return work()
         except RunStoreError as error:
             code = str(error)
+            if distance_submission and code == "capacity":
+                raise distance_rejection(409, "Synthetic run capacity") from None
             status = 404 if code == "not_found" else 409 if code in {"intent_conflict", "capacity"} else 503
             raise HTTPException(status, "Synthetic run " + (code if status != 503 else "store unavailable"), headers={"Cache-Control": "no-store"}) from None
 
@@ -200,7 +211,10 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
         old = find_distance_replay(submission, body)
         if old:
             return old
-        prepared_distance = prepare_distance(settings, submission)
+        try:
+            prepared_distance = prepare_distance(settings, submission)
+        except HTTPException as error:
+            raise distance_rejection(error.status_code, error.detail, error.headers) from None
         qualification, raw, sources, _ = prepared_distance
 
         def check_distance():
@@ -208,12 +222,15 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
                 raise HTTPException(409, "Registered distance evidence changed", headers={"Cache-Control": "no-store"})
 
         def execute_distance():
-            check_distance()
+            try:
+                check_distance()
+            except HTTPException as error:
+                raise distance_rejection(error.status_code, error.detail, error.headers) from None
             failure = "calculation_failed"
             try:
                 result = calculate_distance_reference(submission.request, raw, sources, qualification)
             except QualificationInputMismatch:
-                raise HTTPException(409, "Distance input does not match qualification", headers={"Cache-Control": "no-store"}) from None
+                raise distance_rejection(409, "Distance input does not match qualification") from None
             except TimeoutExpired:
                 result = None
                 failure = "execution_timed_out"
@@ -231,7 +248,8 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
             result["result_id"] = content_id(result)
             return result, None
 
-        return guarded(lambda: distance_store.submit(body, execute_distance, qualification=qualification))
+        return guarded(lambda: distance_store.submit(body, execute_distance, qualification=qualification),
+                       distance_submission=True)
 
     def submit_legacy(submission):
         body = submission.model_dump()

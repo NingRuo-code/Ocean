@@ -98,10 +98,13 @@ test("owner prepares and submits the same frozen P0 distance sample through the 
       await unlink(distancePath);
       await unlink(distanceSupport);
       await click(c,"#ownerRunSubmit");
-      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='uncertain'");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='error'");
+      assert.match(await c.evaluate("document.getElementById('ownerRunStatus').textContent"),/明确拒绝/);
+      assert.equal(await c.evaluate("document.getElementById('ownerRunPrepare').disabled"),false);
       assert.equal(submissions.length,2);
       const rejected=await fetch(base+route+"/intents/"+submissions[1].intent_id+query,{headers});
       assert.equal(rejected.status,404);
+      assert.equal(rejected.headers.get("X-Ocean-Submission-State"),null);
       await click(c,"#ownerRunHistory");
       await waitFor(c,`document.querySelector('${root}').dataset.state==='history'`);
       await click(c,"#ownerRunItems button");
@@ -229,7 +232,7 @@ test("a closed panel can recover the same run when P0 is withdrawn during execut
   },{caseOwnerToken:owner,distanceFixtureText:fixture,qualifyDistanceFixture:true,holdDistanceResult:true})
 );
 
-test("recovers a lost qualified response with only a read of the original intent", () =>
+test("recovers a timed-out qualified response with only a read of the original intent", () =>
   withService(async base=>{
     const browser=await launchBrowser(edge), c=browser.cdp, requests=[];
     let lostResponse;
@@ -241,19 +244,24 @@ test("recovers a lost qualified response with only a read of the original intent
         const requestId=msg.params.requestId;
         lostResponse=(async()=>{
           const raw=await c.send("Fetch.getResponseBody",{requestId});
-          const run=JSON.parse(raw.base64Encoded?Buffer.from(raw.body,"base64").toString():raw.body);
-          await c.send("Fetch.failRequest",{requestId,errorReason:"Failed"});
-          return run;
+          // Leave the committed response paused until the browser's own deadline aborts its read.
+          return JSON.parse(raw.base64Encoded?Buffer.from(raw.body,"base64").toString():raw.body);
         })();
       }
     });
     try{
       await c.send("Network.enable");
       await prepareDistanceInBrowser(c,base);
-      const applied=await c.evaluate("({lon:state.lon,lat:state.lat,date:state.date,range:state.range})");
+      const range=await c.evaluate("state.range");
       await c.send("Fetch.enable",{patterns:[{urlPattern:"*/owner-runs",requestStage:"Response"}]});
+      const submittedAt=Date.now();
       await click(c,"#ownerRunSubmit");
-      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='uncertain'",30_000);
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='submitting'");
+      await click(c,"#zoomIn");
+      await waitFor(c,"state.range!=="+range);
+      const applied=await c.evaluate("({lon:state.lon,lat:state.lat,date:state.date,range:state.range})");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='uncertain'",55_000);
+      assert.ok(Date.now()-submittedAt>=39_000);
       assert.equal(await c.evaluate("document.getElementById('ownerRunSubmit').disabled"),true);
       const run=await lostResponse;
       assert.equal(run.state,"completed");
@@ -318,6 +326,68 @@ test("preserves a qualified receipt during disconnect and reauthorizes the same 
   },{caseOwnerToken:owner,distanceFixtureText:fixture,qualifyDistanceFixture:true})
 );
 
+test("recovers a damaged qualified reference through history and preserves an explicit selection", () =>
+  withService(async base=>{
+    const browser=await launchBrowser(edge), c=browser.cdp, requests=[];
+    const query="?purpose="+mode;
+    const key="ocean-owner-qualified-distance-run-ref/v1";
+    c.onEvent(msg=>{
+      if(msg.method==="Network.requestWillBeSent"&&msg.params.request.url.startsWith(base+route)){
+        requests.push(msg.params.request);
+      }
+    });
+    try{
+      await c.send("Network.enable");
+      await prepareDistanceInBrowser(c,base);
+      await click(c,"#ownerRunSubmit");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'",40_000);
+      const original=await c.evaluate("document.getElementById('ownerRuns').dataset.runId");
+      const submission=JSON.parse(requests.find(request=>request.method==="POST").postData);
+      const requested={...submission,intent_id:"d".repeat(32)};
+      const response=await fetch(base+route,{method:"POST",headers,body:JSON.stringify(requested)});
+      assert.equal(response.status,200);
+      const other=await response.json();
+      assert.notEqual(other.id,original);
+
+      await c.evaluate("localStorage.setItem("+JSON.stringify(key)+",'{broken')");
+      await openOwner(c,base);
+      await c.evaluate("document.getElementById('ownerRunPurpose').value='monthly_distance_reference';document.getElementById('ownerRunPurpose').dispatchEvent(new Event('change'))");
+      assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.referenceState"),"invalid");
+      assert.equal(await c.evaluate("document.getElementById('ownerRunResult').textContent"),"");
+      await type(c,"ownerRunToken",owner);
+      await click(c,"#ownerRunHistory");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='history'");
+      await click(c,'#ownerRunItems button[data-run-id="'+original+'"]');
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'");
+      assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),original);
+
+      const prior=await c.evaluate("JSON.parse(localStorage.getItem("+JSON.stringify(key)+"))");
+      const unresolved={...prior,run_id:null,intent_id:other.intent_id};
+      const inject="localStorage.setItem("+JSON.stringify(key)+","+JSON.stringify(JSON.stringify(unresolved))+");";
+      await c.evaluate(inject+"document.getElementById('ownerRunPurpose').dispatchEvent(new Event('change'))");
+      await click(c,"#ownerRunHistory");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='history'");
+      await click(c,'#ownerRunItems button[data-run-id="'+original+'"]');
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'");
+      assert.equal(await c.evaluate("document.getElementById('ownerRunSubmit').disabled"),true);
+      const online={offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1};
+      await c.send("Network.emulateNetworkConditions",{...online,offline:true});
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='uncertain'");
+      const returning=requests.length;
+      await c.send("Network.emulateNetworkConditions",online);
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'");
+      assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),original);
+      assert.deepEqual(requests.slice(returning).map(request=>[request.method,request.url]),[
+        ["GET",base+route+"/intents/"+submission.intent_id+query],
+      ]);
+      assert.equal(await c.evaluate("localStorage.getItem("+JSON.stringify(key)+")"),JSON.stringify(unresolved));
+      assert.equal(requests.filter(request=>request.method==="POST").length,1);
+    } finally{
+      await browser.close();
+    }
+  },{caseOwnerToken:owner,distanceFixtureText:fixture,qualifyDistanceFixture:true})
+);
+
 test("bounds intent recovery and stops when the panel closes or authorization is lost", () =>
   withService(async base=>{
     const browser=await launchBrowser(edge), c=browser.cdp, calls=[];
@@ -338,6 +408,8 @@ test("bounds intent recovery and stops when the panel closes or authorization is
     try{
       await c.send("Network.enable");
       await openOwner(c,base);
+      await c.send("Page.bringToFront");
+      await waitFor(c,"!document.hidden");
       const ref={schema_version:"ocean-owner-qualified-distance-run-ref/v1",base:await c.evaluate("OceanPublicRead.source().base"),intent_id:intent,run_id:null};
       await c.evaluate("localStorage.setItem('ocean-owner-qualified-distance-run-ref/v1',"+JSON.stringify(JSON.stringify(ref))+");document.getElementById('ownerRunPurpose').value='monthly_distance_reference';document.getElementById('ownerRunPurpose').dispatchEvent(new Event('change'))");
       await type(c,"ownerRunToken",owner);
@@ -360,7 +432,7 @@ test("bounds intent recovery and stops when the panel closes or authorization is
       for(const [i,seconds] of [1.2,2.4,4.8,8].entries()){
         assert.ok(recovered[i+1].at-recovered[i].at>=seconds-0.15);
       }
-      await delay(1000);
+      await delay(8250);
       assert.equal(calls.length,6);
       assert.match(await c.evaluate("document.getElementById('ownerRunStatus').textContent"),/暂不可核实/);
 
@@ -385,7 +457,7 @@ test("bounds intent recovery and stops when the panel closes or authorization is
 
 test("an actual service interruption leaves the pending intent unknown without publishing a partial run", () => {
   const options={caseOwnerToken:owner,distanceFixtureText:fixture,qualifyDistanceFixture:true};
-  return withService(async (base,{distanceStorePath,distanceResultReady,releaseDistanceResult,stop})=>{
+  return withService(async (base,{distanceStorePath,distanceResultReady,releaseDistanceResult,interrupt})=>{
     const browser=await launchBrowser(edge), c=browser.cdp, submissions=[];
     const query="?purpose="+mode;
     c.onEvent(msg=>{
@@ -416,7 +488,7 @@ test("an actual service interruption leaves the pending intent unknown without p
       assert.equal(running,true,"the actual engine reached the pre-commit test pause");
       assert.equal(submissions.length,2);
       assert.equal((await fetch(base+route+"/intents/"+submissions[1]+query,{headers})).status,404);
-      await stop();
+      await interrupt();
       await assert.rejects(fetch(base+"/api/health",{signal:AbortSignal.timeout(1500)}));
       await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='uncertain'");
       assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),completed);
