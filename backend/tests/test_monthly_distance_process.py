@@ -79,13 +79,17 @@ def test_running_child_retains_the_existing_time_limit():
 
 def test_cancellation_wins_before_publication_and_remains_idempotent():
     run = DistanceRunControl()
-    assert run.request_cancel() is True
+    assert run.request_cancel() == "checking"
+    assert not run.cancelled.is_set()
+    run.enable_cancellation()
+    assert run.request_cancel() == "cancelling"
     assert run.begin_publication() is False
-    assert run.request_cancel() is True
+    assert run.request_cancel() == "cancelling"
 
 
 def test_publication_prevents_a_late_cancellation_from_changing_the_outcome():
     run = DistanceRunControl()
+    run.enable_cancellation()
     assert run.begin_publication() is True
-    assert run.request_cancel() is False
+    assert run.request_cancel() == "finishing"
     assert not run.cancelled.is_set()

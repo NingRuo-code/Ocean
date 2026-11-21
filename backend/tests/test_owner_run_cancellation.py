@@ -142,3 +142,31 @@ def test_cancellation_after_publication_decision_cannot_discard_a_complete_resul
         assert completed["result"] is not None
         assert client.post(path + "/cancel", headers=AUTH).json()["state"] == "completed"
         assert client.get(path, headers=AUTH, params=PURPOSE).json() == completed
+
+
+def test_cancel_during_qualification_does_not_claim_an_accepted_cancellation(tmp_path, monkeypatch):
+    client, body, path = qualified_owner(tmp_path)
+    qualifying, release = Event(), Event()
+    prepare = synthetic_runs.prepare_distance
+
+    def hold_first_qualification(*args):
+        if not qualifying.is_set():
+            qualifying.set()
+            assert release.wait(10)
+        return prepare(*args)
+
+    monkeypatch.setattr(synthetic_runs, "prepare_distance", hold_first_qualification)
+    with client, ThreadPoolExecutor(max_workers=1) as pool:
+        submission = pool.submit(client.post, RUNS, headers=AUTH, json=body)
+        try:
+            assert qualifying.wait(12)
+            cancel = client.post(path + "/cancel", headers=AUTH)
+            assert cancel.status_code == 200
+            assert cancel.json()["state"] == "checking"
+            assert cancel.json()["run_id"] is None
+        finally:
+            release.set()
+        original = submission.result(15).json()
+        assert original["state"] == "completed"
+        assert "cancelled" not in original
+        assert client.get(path, headers=AUTH, params=PURPOSE).json() == original

@@ -564,8 +564,12 @@ test("the qualified browser can explicitly cancel the real worker and reopen its
       const intent=JSON.parse(posts[0].postData).intent_id;
       const cancelPath=base+route+"/intents/"+intent+"/cancel";
       assert.equal(await c.evaluate("document.getElementById('ownerRunCancel').disabled"),false);
+      await c.send("Fetch.enable",{patterns:[{urlPattern:"*/cancel",requestStage:"Response"}]});
       await click(c,"#ownerRunCancel");
       await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='cancelled'",25_000);
+      await c.send("Fetch.disable");
+      await delay(350);
+      assert.match(await c.evaluate("document.getElementById('ownerRunCancelStatus').textContent"),/已确认取消/);
       const id=await c.evaluate("document.getElementById('ownerRuns').dataset.runId");
       const body=await(await fetch(base+route+"/intents/"+intent+query,{headers})).json();
       assert.equal(body.id,id);
@@ -604,6 +608,15 @@ test("the browser withdraws a same-owner submission waiting for the previous cal
     let first;
     try {
       await prepareDistanceInBrowser(c,base);
+      await writeFile(releaseDistanceResult,"publish the selected original");
+      await click(c,"#ownerRunSubmit");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'");
+      const chosen=await c.evaluate("document.getElementById('ownerRuns').dataset.runId");
+      const preserved=await c.evaluate("document.getElementById('ownerRunResult').textContent");
+      await unlink(releaseDistanceResult);
+      await unlink(distanceResultReady);
+      await click(c,"#ownerRunPrepare");
+      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='prepared'");
       const query=new URLSearchParams({...coordinates,month});
       const options=await(await fetch(base+route+"/distance-options?"+query,{headers})).json();
       first=fetch(base+route,{method:"POST",headers,body:JSON.stringify({
@@ -611,16 +624,18 @@ test("the browser withdraws a same-owner submission waiting for the previous cal
       })});
       await waitForServiceFile(distanceResultReady);
       await click(c,"#ownerRunSubmit");
-      await waitForServiceFile(distanceIntentsStarted,"2");
+      await waitForServiceFile(distanceIntentsStarted,"3");
+      const queued=await c.evaluate("JSON.parse(localStorage.getItem('ocean-owner-qualified-distance-run-ref/v1')).intent_id");
       await click(c,"#ownerRunCancel");
       await waitFor(c,"document.getElementById('ownerRunCancelStatus').textContent.includes('已提出取消')");
       await writeFile(releaseDistanceResult,"release first result");
       const original=await(await first).json();
       assert.equal(original.state,"completed");
-      await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='cancelled'");
-      assert.equal(await readFile(distanceProcessStarted,"utf8"),"1");
-      const id=await c.evaluate("document.getElementById('ownerRuns').dataset.runId");
-      const result=await(await fetch(base+route+"/"+id+"?purpose="+mode,{headers})).json();
+      await waitFor(c,"document.getElementById('ownerRunCancelStatus').textContent.includes('已确认取消')");
+      assert.equal(await readFile(distanceProcessStarted,"utf8"),"2");
+      assert.equal(await c.evaluate("document.getElementById('ownerRuns').dataset.runId"),chosen);
+      assert.equal(await c.evaluate("document.getElementById('ownerRunResult').textContent"),preserved);
+      const result=await(await fetch(base+route+"/intents/"+queued+"?purpose="+mode,{headers})).json();
       assert.equal(result.cancelled,true);
       assert.equal(result.result,null);
     } finally {
@@ -643,6 +658,7 @@ test("the browser learns that a real calculation has reached publication and kee
       await writeFile(releaseDistanceResult,"publish");
       await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'");
       const id=await c.evaluate("document.getElementById('ownerRuns').dataset.runId");
+      assert.match(await c.evaluate("document.getElementById('ownerRunCancelStatus').textContent"),/已经完成/);
       const published=await(await fetch(base+route+"/"+id+"?purpose="+mode,{headers})).json();
       assert.equal(published.state,"completed");
       assert.equal(published.result.days.length,31);

@@ -91,7 +91,7 @@ distance_process.DistanceRunControl.begin_publication=hold_at_publication`:''}
 ${traceDistanceProcess?`from pathlib import Path
 import app.monthly_distance_process as distance_process
 spawn_distance=distance_process.Popen
-new_intent=distance_process.DistanceRunControl.__init__
+accept_intent=distance_process.DistanceRunControl.enable_cancellation
 started_processes=0
 started_intents=0
 def trace_distance(*args, **kwargs):
@@ -102,11 +102,11 @@ def trace_distance(*args, **kwargs):
     return child
 def trace_accepted_intent(control):
     global started_intents
-    new_intent(control)
+    accept_intent(control)
     started_intents+=1
     Path(os.environ["OCEAN_TEST_DISTANCE_INTENTS_STARTED"]).write_text(str(started_intents),encoding="ascii")
 distance_process.Popen=trace_distance
-distance_process.DistanceRunControl.__init__=trace_accepted_intent`:''}
+distance_process.DistanceRunControl.enable_cancellation=trace_accepted_intent`:''}
 from app.main import app
 ${inventoryCode}
 app.mount('/',StaticFiles(directory=os.environ['OCEAN_TEST_FRONTEND']))

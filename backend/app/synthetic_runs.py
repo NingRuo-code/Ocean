@@ -240,6 +240,13 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
         except HTTPException as error:
             raise distance_rejection(error.status_code, error.detail, error.headers) from None
         qualification, raw, sources, _ = prepared_distance
+        control.enable_cancellation()
+        cancelled = (None, {"code": "execution_cancelled"})
+
+        def reject_before_publication(error):
+            if not control.begin_publication():
+                return cancelled
+            raise distance_rejection(error.status_code, error.detail, error.headers) from None
 
         def check_distance():
             if prepare_distance(settings, submission) != prepared_distance:
@@ -252,11 +259,11 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
                 try:
                     check_distance()
                 except HTTPException as error:
-                    raise distance_rejection(error.status_code, error.detail, error.headers) from None
+                    return reject_before_publication(error)
                 try:
                     result = calculate_distance_reference(submission.request, raw, sources, qualification, control.cancelled)
                 except QualificationInputMismatch:
-                    raise distance_rejection(409, "Distance input does not match qualification") from None
+                    return reject_before_publication(HTTPException(409, "Distance input does not match qualification"))
                 except TimeoutExpired:
                     failure = "execution_timed_out"
                 except (DistanceExecutionCancelled, OSError, ValueError, TypeError, ImportError, SubprocessError):
@@ -270,7 +277,7 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
                     result = None
                     failure = "execution_evidence_changed"
             if not control.begin_publication():
-                return None, {"code": "execution_cancelled"}
+                return cancelled
             if result is None:
                 return None, {"code": failure}
             result["versions"]["direct_result_id"] = result.pop("result_id")
@@ -335,7 +342,7 @@ def create_synthetic_run_router(settings, example_path, calculate, method_versio
         running = active_distance_runs.get(intent_id)
         run_id = None
         if running is not None and not running.task.done():
-            state = "cancelling" if running.control.request_cancel() else "finishing"
+            state = running.control.request_cancel()
         else:
             run = await to_thread.run_sync(lambda: guarded(lambda: distance_store.read_intent(intent_id)))
             run_id = run["id"]

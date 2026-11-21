@@ -17,13 +17,20 @@ class DistanceRunControl:
         self.cancelled = Event()
         self._lock = Lock()
         self._publishing = False
+        self._qualified = False
+
+    def enable_cancellation(self):
+        with self._lock:
+            self._qualified = True
 
     def request_cancel(self):
         with self._lock:
-            if self._publishing:
-                return self.cancelled.is_set()
+            if not self._qualified:
+                return "checking"
+            if self._publishing and not self.cancelled.is_set():
+                return "finishing"
             self.cancelled.set()
-            return True
+            return "cancelling"
 
     def begin_publication(self):
         with self._lock:
