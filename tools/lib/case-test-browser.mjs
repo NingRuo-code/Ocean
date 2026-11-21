@@ -19,7 +19,9 @@ export async function savedCase(base,index=0){
 }
 export async function openCase(c,base){
   await c.send("Page.enable");await c.send("Page.navigate",{url:base+"/prototype-fishing.html"});await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
-  await click(c,"#workbenchToggle");await click(c,"#caseArchiveOpen");await type(c,"caseOwnerToken",owner);await click(c,"#caseLoad");
+  await click(c,"#workbenchToggle");await click(c,"#caseArchiveOpen");await type(c,"caseOwnerToken",owner);
+  await waitFor(c,"!document.getElementById('caseLoad').disabled && !document.getElementById('caseArchive').hidden");
+  await click(c,"#caseLoad");
   await waitFor(c,"document.querySelectorAll('#caseItems button').length===1&&!document.getElementById('caseLoad').disabled");await click(c,"#caseItems button");
   await waitFor(c,"document.getElementById('caseArchive').dataset.state==='opened'&&!document.getElementById('caseVersion').disabled");
 }

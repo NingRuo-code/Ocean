@@ -41,10 +41,15 @@ test("owner saves a real-service case and reopens the same frozen report after b
     assert.equal(JSON.parse(posts[0].postData).report_id,preview);
     const id=await c.evaluate("document.getElementById('caseArchive').dataset.caseId");
     assert.match(await c.evaluate("document.getElementById('caseOriginal').textContent"),/40.*7.*2.*29.*已持久保护/s);
-    await c.send("Page.reload");await waitFor(c,"document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
+    const beforeReload=await c.evaluate("performance.timeOrigin");
+    await c.send("Page.reload");
+    await waitFor(c,"performance.timeOrigin!=="+beforeReload+
+      " && document.getElementById('preferenceStatus')?.getAttribute('aria-busy')==='false'");
     await click(c,"#workbenchToggle");await click(c,"#caseArchiveOpen");
     assert.equal(await c.evaluate("document.getElementById('caseOwnerToken').value"),"");
-    await type(c,"caseOwnerToken",owner);await click(c,"#caseLoad");
+    await type(c,"caseOwnerToken",owner);
+    await waitFor(c,"!document.getElementById('caseLoad').disabled && !document.getElementById('caseArchive').hidden");
+    await click(c,"#caseLoad");
     await waitFor(c,"document.querySelectorAll('#caseItems button').length===1");
     await click(c,"#caseItems button");
     await waitFor(c,`document.getElementById('caseArchive').dataset.caseId===${JSON.stringify(id)}`);
