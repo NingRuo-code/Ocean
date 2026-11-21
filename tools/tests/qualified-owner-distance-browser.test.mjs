@@ -34,6 +34,14 @@ const fixture = JSON.stringify({
   front_days:dates.map(date=>({date,source_id:"front-original",lines:[[[124.55,30.15],[124.55,30.25]]]})),
 });
 
+async function useControlledVisibility(c) {
+  // Keep unrelated desktop focus changes out of the measured retry/reconnect paths.
+  await c.send("Page.addScriptToEvaluateOnNewDocument",{source:
+    "Object.defineProperty(document,'hidden',{get:()=>window.oceanTestHidden===true});"+
+    "document.addEventListener('visibilitychange',event=>{if(event.isTrusted)event.stopImmediatePropagation()},true);",
+  });
+}
+
 async function openOwner(c,base) {
   await c.send("Page.enable");
   await c.send("Page.navigate",{url:base+"/prototype-fishing.html"});
@@ -251,6 +259,7 @@ test("recovers a timed-out qualified response with only a read of the original i
     });
     try{
       await c.send("Network.enable");
+      await useControlledVisibility(c);
       await prepareDistanceInBrowser(c,base);
       const zoom=await c.evaluate("state.zoom");
       await c.send("Fetch.enable",{patterns:[{urlPattern:"*/owner-runs",requestStage:"Response"}]});
@@ -338,6 +347,7 @@ test("recovers a damaged qualified reference through history and preserves an ex
     });
     try{
       await c.send("Network.enable");
+      await useControlledVisibility(c);
       await prepareDistanceInBrowser(c,base);
       await click(c,"#ownerRunSubmit");
       await waitFor(c,"document.getElementById('ownerRuns').dataset.state==='completed'",40_000);
@@ -417,9 +427,8 @@ test("bounds intent recovery and stops when the panel closes or authorization is
     });
     try{
       await c.send("Network.enable");
+      await useControlledVisibility(c);
       await openOwner(c,base);
-      await c.send("Page.bringToFront");
-      await waitFor(c,"!document.hidden");
       const ref={schema_version:"ocean-owner-qualified-distance-run-ref/v1",base:await c.evaluate("OceanPublicRead.source().base"),intent_id:intent,run_id:null};
       await c.evaluate("localStorage.setItem('ocean-owner-qualified-distance-run-ref/v1',"+JSON.stringify(JSON.stringify(ref))+");document.getElementById('ownerRunPurpose').value='monthly_distance_reference';document.getElementById('ownerRunPurpose').dispatchEvent(new Event('change'))");
       await type(c,"ownerRunToken",owner);
@@ -431,7 +440,12 @@ test("bounds intent recovery and stops when the panel closes or authorization is
       await waitFor(c,"!document.getElementById('ownerRuns').open");
       await delay(850);
       assert.equal(calls.length,1);
+      await c.evaluate("window.oceanTestHidden=true;document.dispatchEvent(new Event('visibilitychange'))");
       await click(c,root+" summary");
+      await waitFor(c,"document.getElementById('ownerRuns').open");
+      await delay(850);
+      assert.equal(calls.length,1);
+      await c.evaluate("window.oceanTestHidden=false;document.dispatchEvent(new Event('visibilitychange'))");
       const deadline=Date.now()+43_000;
       while(calls.length<6&&Date.now()<deadline)await delay(50);
       assert.equal(calls.length,6,JSON.stringify({
