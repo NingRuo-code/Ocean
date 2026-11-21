@@ -2,6 +2,14 @@
 
 生效日期：2026-11-04。用户已明确要求处理可精简 ticket，并将实现顺序写入项目记忆。本页为后续领取任务的当前入口；历史规划保留作决策依据，当前范围与顺序以本页及 GitHub 实时状态为准。
 
+## 2026-11-21 本机任务链路与下一关口
+
+[#99](https://github.com/NingRuo-code/Ocean/issues/99) 的本机本人任务、[#100](https://github.com/NingRuo-code/Ocean/issues/100) 的断线回读和 [#101](https://github.com/NingRuo-code/Ocean/issues/101) 的取消已合入。现有 P0 小样通过 [#102](https://github.com/NingRuo-code/Ocean/issues/102) 的原条件重试、当前条件的新请求、资格过期和回执丢失回归，证据见 [PR #389](https://github.com/NingRuo-code/Ocean/pull/389)。
+
+[#103](https://github.com/NingRuo-code/Ocean/issues/103) 继续等 #98 的真实 A 成果与资格，由 #67 → #68 → #71 → #98 顺序放行。#104 保留 #84 的真实 B 交接，#105 保留 #88、#93 的区域证据与逐源权限。#46、#93、#143 继续等待各自真实证据。本机只读演示保留，八月正式整月、对外询证、正式服务器验收和独立备份继续暂缓。
+
+公共任务中心的 [#110](https://github.com/NingRuo-code/Ocean/issues/110) 和 [#111](https://github.com/NingRuo-code/Ocean/issues/111) 已解除原生依赖。先实现已有本人任务的筛选、分页和冻结详情，再做登记归档的准备范围预览。
+
 ## 本机完整显示参照
 
 后续本机边界验证补齐 #46 报错后的部分绘制与入口页面，#93 显式未知来源，#143 月度资格与实际天数的一致性。下一轮真实测量仍需可核验的同日活动视窗；这些修正不改变数据、服务器或对外询证的暂缓安排。
