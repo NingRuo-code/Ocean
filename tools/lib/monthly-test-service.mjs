@@ -26,6 +26,7 @@ export async function withService(work, {
   ownerPreparationManifestText = null,
   enableOwnerPreparationExecution = false,
   holdFrontPreparation = false,
+  failFirstCaseProtection = false,
   prepareRaw = null,
   projectRoot = process.cwd(),
 } = {}) {
@@ -133,6 +134,13 @@ def short_first_distance(*args):
         distance_reference.DISTANCE_EXECUTION_TIMEOUT_SECONDS=current_timeout
 owner_runs.calculate_distance_reference=short_first_distance`:''}
 from app.main import app
+${failFirstCaseProtection?`from app.saved_case_store import CaseStore, CaseStoreError
+protect_saved_version=CaseStore.protect_version
+def interrupt_first_protection(db, value):
+    protect_saved_version(db, value)
+    CaseStore.protect_version=staticmethod(protect_saved_version)
+    raise CaseStoreError("protection_unavailable")
+CaseStore.protect_version=staticmethod(interrupt_first_protection)`:''}
 ${holdFrontPreparation?`from pathlib import Path
 from time import monotonic,sleep
 from app import owner_preparation

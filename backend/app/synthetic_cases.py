@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import Field, field_validator
 
 from .analysis_support import content_id
-from .case_export import case_filename, render_case_bundle, render_case_file
 from .case_chart import render_case_chart
+from .case_export import case_filename, render_case_bundle, render_case_file
 from .comparison_models import Identity
 from .known_month_report import build_known_month_report
 from .monthly_models import ClosedModel
@@ -66,7 +66,10 @@ def create_case_router(settings, published_path):
         except CaseStoreError as error:
             code = str(error)
             status = 404 if code == "not_found" else 409 if code in {"intent_conflict", "capacity", "version_conflict", "no_changes"} else 503
-            raise HTTPException(status, "Case " + (code if status != 503 else "store unavailable"), headers={"Cache-Control": "no-store"}) from None
+            message = "protection unavailable" if code == "protection_unavailable" else (
+                code if status != 503 else "store unavailable"
+            )
+            raise HTTPException(status, "Case " + message, headers={"Cache-Control": "no-store"}) from None
 
     @router.post("")
     def save(request: CaseCreate, response: Response):

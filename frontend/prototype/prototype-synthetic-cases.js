@@ -2,7 +2,7 @@
 (function(){
   const {source,sameSource,json}=OceanPublicRead;
   const pane=document.createElement("section");pane.id="caseArchive";pane.className="card";pane.dataset.state="locked";
-  pane.innerHTML='<h3>我的合成案例</h3><p class="result-note">仅保存已核验的 CC0 合成报告。离开此区即清除本页访问令牌和未保存草稿；未完成真实研究或 TASK 保护联动。</p><label>本人访问令牌<input id="caseOwnerToken" type="password" autocomplete="off" spellcheck="false"></label><div class="monthly-actions"><button id="caseLoad">读取我的案例</button><button id="caseLock">锁定并清空草稿</button></div><p id="caseArchiveStatus" role="status"></p><details id="caseCreateFields"><summary>保存当前预览报告</summary><p id="caseCandidate" class="result-note"></p><label>标题<input id="caseCreateTitle" maxlength="120"></label><label>标签（每行一项，最多8项）<textarea id="caseCreateTags" maxlength="648" rows="2"></textarea></label><label>人工笔记<textarea id="caseCreateNote" maxlength="4000" rows="3"></textarea></label><button id="caseSave" disabled>将这份报告存为新案例</button></details><div id="caseItems" class="case-candidates"></div><div id="caseOriginal"></div>';
+  pane.innerHTML='<h3>我的合成案例</h3><p class="result-note">仅保存已核验的 CC0 合成报告。离开此区即清除本页访问令牌和未保存草稿。保存后保护该版本的报告及图表、地图依据。</p><label>本人访问令牌<input id="caseOwnerToken" type="password" autocomplete="off" spellcheck="false"></label><div class="monthly-actions"><button id="caseLoad">读取我的案例</button><button id="caseLock">锁定并清空草稿</button></div><p id="caseArchiveStatus" role="status"></p><details id="caseCreateFields"><summary>保存当前预览报告</summary><p id="caseCandidate" class="result-note"></p><label>标题<input id="caseCreateTitle" maxlength="120"></label><label>标签（每行一项，最多8项）<textarea id="caseCreateTags" maxlength="648" rows="2"></textarea></label><label>人工笔记<textarea id="caseCreateNote" maxlength="4000" rows="3"></textarea></label><button id="caseSave" disabled>将这份报告存为新案例</button></details><div id="caseItems" class="case-candidates"></div><div id="caseOriginal"></div>';
   const shortcut=document.createElement("button");shortcut.id="caseArchiveOpen";shortcut.textContent="▣　我的合成案例";$("monthlyDraftOpen").after(shortcut);
   const searchLabel=document.createElement("label");searchLabel.textContent="按标题或标签检索";
   const searchInput=document.createElement("input");searchInput.id="caseCatalogQuery";searchInput.maxLength=120;searchLabel.append(searchInput);pane.insertBefore(searchLabel,pane.querySelector("#caseItems"));
@@ -35,9 +35,14 @@
     $("caseCatalogQuery").value="";
     delete pane.dataset.caseId;delete pane.dataset.version;pane.dataset.state="locked";updateSave();
   }
-  function verify(value){
+  function verify(value,requireProtection=false){
     const r=value?.report?.result;
-    if(value?.schema_version!=="ocean-synthetic-case-version/v1"||!id.test(value.case_id)||!hash.test(value.version_id)||!Number.isInteger(value.version)||value.version<1||value.version>16||!hash.test(value.report?.report_id)||r?.evidence_kind!=="synthetic_example"||r.research_ready!==false||r.public_aggregate_allowed!==true||!r.source?.license.startsWith("CC0-1.0")||typeof value.metadata?.title!=="string"||typeof value.metadata.note!=="string"||!Array.isArray(value.metadata.tags))throw Error("contract");
+    if(value?.schema_version!=="ocean-synthetic-case-version/v1"||!id.test(value.case_id)||!hash.test(value.version_id)||!Number.isInteger(value.version)||value.version<1||value.version>16||!hash.test(value.report?.report_id)||r?.evidence_kind!=="synthetic_example"||r.research_ready!==false||r.public_aggregate_allowed!==true||r.source?.license.split(";")[0].trim()!=="CC0-1.0"||typeof value.metadata?.title!=="string"||typeof value.metadata.note!=="string"||!Array.isArray(value.metadata.tags))throw Error("contract");
+    const dependencies=value.protected_dependencies;
+    if((requireProtection||dependencies!==undefined)&&(!dependencies||Object.keys(dependencies).length!==5||
+        dependencies.result!==r.result_id||dependencies.projection!==r.projection_id||
+        dependencies.report!==value.report.report_id||!hash.test(dependencies.chart_basis)||!hash.test(dependencies.map_basis)))
+      throw Error("contract");
     return value;
   }
   async function api(suffix,options={},reader=json){
@@ -58,7 +63,7 @@
     catch(error){if(n!==generation)return;
       if(["http_401","http_403","source_changed"].includes(error.message))clearPrivate();
       else pane.dataset.state="error";
-      const messages={bundle_mismatch:"成果包与所读版本不一致，未确认；请检查文件或阅读版本。未保存草稿保留。",bundle_file:"文件为空或无法读取，未完成核对；未保存草稿保留。",bundle_budget:"文件超过1MiB，未完成核对；未保存草稿保留。",chart_render_failed:"图像未生成；请重试，未保存草稿保留。",http_401:"本人访问未通过，令牌已清除；未保存草稿已清除。",http_403:"当前服务不允许案例操作；令牌与未保存草稿已清除。",http_503:"案例库或本人访问尚未启用，或存储暂不可用。",http_409:"存在版本或意图冲突，或已达64案例/16版本上限；草稿未覆盖，可读取最新版核对。",http_422:"标题、标签或笔记不符合保存限制，请修改后重试。",offline:"离线页面不能读取或保存本人案例。",owner_required:"请输入当前服务配置的本人令牌。",contract:"案例内容无法核实，未显示为成功。",source_changed:"服务来源已改变，请重新输入令牌。"};
+      const messages={bundle_mismatch:"成果包与所读版本不一致，未确认；请检查文件或阅读版本。未保存草稿保留。",bundle_file:"文件为空或无法读取，未完成核对；未保存草稿保留。",bundle_budget:"文件超过1MiB，未完成核对；未保存草稿保留。",chart_render_failed:"图像未生成；请重试，未保存草稿保留。",http_401:"本人访问未通过，令牌已清除；未保存草稿已清除。",http_403:"当前服务不允许案例操作；令牌与未保存草稿已清除。",http_503:"案例库或保护存储暂不可用。本次保存或读取暂不可核实，未保存草稿保留。",http_409:"存在版本或意图冲突，或已达64案例/16版本上限；草稿未覆盖，可读取最新版核对。",http_422:"标题、标签或笔记不符合保存限制，请修改后重试。",offline:"离线页面不能读取或保存本人案例。",owner_required:"请输入当前服务配置的本人令牌。",contract:"案例内容无法核实，未显示为成功。",source_changed:"服务来源已改变，请重新输入令牌。"};
       messages.cancelled="请求已取消或超时，未完成本次操作；可重试，未保存草稿保留。";
       $("caseArchiveStatus").textContent=messages[error.message]||(active.signal.aborted?messages.cancelled:"请求未完成；可重试同一保存意图，或读取案例核对。");
     }finally{clearTimeout(timer);if(n===generation){busy=false;updateSave();if((document.activeElement===document.body||(parkedFocus&&document.activeElement===$("caseLock")))&&!pane.hidden){const target=pane.contains(opener)&&!opener.disabled?opener:$("caseVersion");target?.focus({preventScroll:true});}}}
@@ -71,6 +76,7 @@
     node(root,"p","标签："+value.metadata.tags.join("、"));
     node(root,"p",describe(r));node(root,"p",`原快照 H=${m.total_hours??"未知"} h；E=${m.area_time_km2_days??"未知"} km²·d；有效日 ${m.supported_days}/${m.calendar_days}。`);
     node(root,"p",value.report.interpretation.boundary);
+    node(root,"p",value.protected_dependencies?"报告、结果和图表、地图依据已持久保护。":"此旧版本的保护状态待核。");
     node(root,"p","仅证明保存时核验的合成快照；当前源未重查，不代表仍可用或能够原样复算。 "+value.created_at);
     const exports=node(root,"div","");exports.className="monthly-actions";
     for(const [format,label,key] of [["markdown","下载Markdown报告","caseExportMarkdown"],["csv","下载逐日CSV","caseExportCsv"],["bundle","下载带清单成果包","caseExportBundle"],["chart","下载逐日证据图PNG","caseExportChart"]]){
@@ -93,10 +99,15 @@
       field.value=key==="Title"?value.metadata.title:key==="Tags"?value.metadata.tags.join("\n"):value.metadata.note;field.addEventListener("input",updateSave);
     }
     const save=node(editor,"button","保存笔记新版本");save.id="caseEditSave";save.onclick=()=>perform(async n=>{
-      const fields={...metadata("caseEdit"),base_version:selected.version,base_version_id:selected.version_id},signature=JSON.stringify({case_id:selected.case_id,...fields});
+      const base=selected;
+      const fields={...metadata("caseEdit"),base_version:base.version,base_version_id:base.version_id},signature=JSON.stringify({case_id:base.case_id,...fields});
       if(editIntent?.signature!==signature)editIntent={signature,id:crypto.randomUUID().replaceAll("-","")};
-      const result=await api("/"+selected.case_id,{method:"PUT",body:JSON.stringify({...fields,intent_id:editIntent.id})});if(n!==generation)return;
-      show(result);await loadVersions(n);if(n!==generation)return;const list=await queryCatalog();if(n!==generation)return;catalog(list);$("caseArchiveStatus").textContent="人工信息已保存为新版本，旧版本和科学报告保留。";
+      const result=await api("/"+base.case_id,{method:"PUT",body:JSON.stringify({...fields,intent_id:editIntent.id})});if(n!==generation)return;
+      const updated=verify(result,true);
+      if(updated.case_id!==base.case_id||updated.version!==base.version+1||updated.report.report_id!==base.report.report_id||
+          updated.report.result.result_id!==base.report.result.result_id||updated.report.result.projection_id!==base.report.result.projection_id)
+        throw Error("contract");
+      show(updated);await loadVersions(n);if(n!==generation)return;const list=await queryCatalog();if(n!==generation)return;catalog(list);$("caseArchiveStatus").textContent="人工信息已保存为新版本，旧版本和科学报告保留。";
     },"updated");
     const details=node(root,"details","" );node(details,"summary","冻结逐日证据及身份");
     node(details,"p",value.case_id+" / "+value.version_id+" / "+value.report.report_id);
@@ -155,13 +166,29 @@
   async function loadVersions(n){
     const identity=selected.case_id,version=selected.version,data=await api("/"+identity+"/versions");if(n!==generation)return;
     if(data?.schema_version!=="ocean-synthetic-case-versions/v1"||data.case_id!==identity||!Array.isArray(data.versions)||data.versions.length>16||new Set(data.versions.map(v=>v.version)).size!==data.versions.length||data.versions.some(v=>!Number.isInteger(v.version)||v.version<1||v.version>16||!hash.test(v.version_id)))throw Error("contract");
-    $("caseVersion").replaceChildren();for(const item of data.versions){const option=node($("caseVersion"),"option","版本 "+item.version+" · "+item.created_at);option.value=String(item.version);}$("caseVersion").value=String(version);
+    $("caseVersion").replaceChildren();
+    for(const item of data.versions){
+      const unavailable=item.availability==="protection_unavailable";
+      const option=node($("caseVersion"),"option","版本 "+item.version+" · "+item.created_at+(unavailable?" · 保护待核":""));
+      option.value=String(item.version);
+      option.disabled=unavailable;
+    }
+    $("caseVersion").value=String(version);
   }
   function readCase(identity,version){return perform(async n=>{const value=await api("/"+identity+(version?"?version="+version:""));if(n!==generation)return;show(value);await loadVersions(n);if(n!==generation)return;$("caseArchiveStatus").textContent="已重开持久保存的合成快照；人工信息按所选版本显示。";},"opened");}
   function catalog(data){
     if(data?.schema_version!=="ocean-synthetic-case-catalog/v1"||!Array.isArray(data.cases)||data.cases.length>64)throw Error("contract");
     $("caseItems").replaceChildren();
-    for(const item of data.cases){if(!id.test(item.case_id)||typeof item.metadata?.title!=="string")throw Error("contract");const button=node($("caseItems"),"button",item.metadata.title+" · v"+item.version);button.onclick=()=>readCase(item.case_id);}
+    for(const item of data.cases){
+      if(!id.test(item.case_id)||typeof item.metadata?.title!=="string"||!Number.isInteger(item.version))throw Error("contract");
+      const unavailable=item.availability==="protection_unavailable";
+      const fallback=item.readable_version;
+      if(unavailable&&fallback!==null&&(!Number.isInteger(fallback)||fallback<1||fallback>=item.version))throw Error("contract");
+      const suffix=unavailable?(fallback===null?" · 保护待核":" · 最新版保护待核，可读 v"+fallback):"";
+      const button=node($("caseItems"),"button",item.metadata.title+" · v"+item.version+suffix);
+      button.disabled=unavailable&&fallback===null;
+      button.onclick=()=>readCase(item.case_id,unavailable?fallback:null);
+    }
     if(!data.cases.length)node($("caseItems"),"p","当前没有已保存案例。");
   }
   function open(){OceanHistoryViews.open("private-cases");}
@@ -177,7 +204,10 @@
     const r=candidate.report,fields={result_id:r.result.result_id,projection_id:r.result.projection_id,report_id:r.report_id,...metadata("caseCreate")};
     const signature=JSON.stringify(fields);if(intent?.signature!==signature)intent={signature,id:crypto.randomUUID().replaceAll("-","")};
     const value=await api("",{method:"POST",body:JSON.stringify({...fields,intent_id:intent.id})});if(n!==generation)return;
-    show(value);await loadVersions(n);if(n!==generation)return;const data=await queryCatalog();if(n!==generation)return;catalog(data);$("caseArchiveStatus").textContent="案例已持久保存；科学内容仍为合成样例。";
+    const saved=verify(value,true);
+    if(saved.report.report_id!==fields.report_id||saved.report.result.result_id!==fields.result_id||
+        saved.report.result.projection_id!==fields.projection_id)throw Error("contract");
+    show(saved);await loadVersions(n);if(n!==generation)return;const data=await queryCatalog();if(n!==generation)return;catalog(data);$("caseArchiveStatus").textContent="案例已持久保存并保护。科学内容为合成样例。";
   },"saved");
   window.addEventListener("ocean-month-report",e=>{
     candidate=e.detail?structuredClone(e.detail):null;
